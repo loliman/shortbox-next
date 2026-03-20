@@ -8,6 +8,7 @@ type HomeDataOptions = {
   limit?: number;
   order?: string | null;
   direction?: string | null;
+  filter?: Record<string, unknown> | null;
 };
 
 export async function getHomePageData(options: HomeDataOptions) {
@@ -18,6 +19,7 @@ export async function getHomePageData(options: HomeDataOptions) {
     const service = new IssueService();
     const connection = await service.getLastEdited(
       {
+        ...(options.filter || {}),
         us: options.us,
       },
       limit + offset + 1,

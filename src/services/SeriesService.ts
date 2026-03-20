@@ -1,6 +1,7 @@
 import type { Connection, Edge, Filter } from "../types/query-data";
 import type { Issue, Publisher, Series } from "../types/domain";
 import { prisma } from "../lib/prisma/client";
+import { FilterService } from "./FilterService";
 import {
   createSeries as createSeriesWrite,
   deleteSeriesByLookup,
@@ -273,16 +274,27 @@ export class SeriesService {
   ) {
     void after;
     void loggedIn;
-    void filter;
 
     const publisherName = typeof publisher?.name === "string" ? publisher.name.trim() : "";
     const shouldFilterPublisherName = publisherName !== "" && publisherName !== "*";
     const shouldFilterPublisherUs = typeof publisher?.us === "boolean";
     const normalizedPattern = String(pattern || "").trim();
     const take = Number.isFinite(first) && first && first > 0 ? Math.floor(first) : undefined;
+    const filteredIssueIds = filter ? await new FilterService(this.requestId).getFilteredIssueIds(filter, loggedIn) : null;
 
     const rows = await prisma.series.findMany({
       where: {
+        ...(filteredIssueIds
+          ? {
+              issues: {
+                some: {
+                  id: {
+                    in: filteredIssueIds.map((id) => BigInt(id)),
+                  },
+                },
+              },
+            }
+          : {}),
         ...(shouldFilterPublisherName || shouldFilterPublisherUs
           ? {
               publisher: {

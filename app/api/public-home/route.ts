@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getHomePageData } from "@/src/lib/screens/home-data";
+import { parseFilter } from "@/src/components/nav-bar/listUtils";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -8,6 +9,7 @@ export async function GET(request: Request) {
   const limit = Number(searchParams.get("limit") || "50");
   const order = searchParams.get("order");
   const direction = searchParams.get("direction");
+  const filter = parseFilter(searchParams.get("filter"));
 
   try {
     const data = await getHomePageData({
@@ -16,6 +18,7 @@ export async function GET(request: Request) {
       limit,
       order,
       direction,
+      filter,
     });
 
     return NextResponse.json(data);

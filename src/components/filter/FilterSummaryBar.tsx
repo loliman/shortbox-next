@@ -8,6 +8,7 @@ import Typography from "@mui/material/Typography";
 import { generateUrl } from "../../util/hierarchy";
 import type { SelectedRoot } from "../../types/domain";
 import { CONTRIBUTOR_FIELDS, TRANSLATOR_FIELD } from "./constants";
+import { buildRouteHref } from "../generic/routeHref";
 
 const MAX_CHIPS = 8;
 
@@ -76,7 +77,13 @@ export default function FilterSummaryBar(props: Readonly<FilterSummaryBarProps>)
           <Button
             size="small"
             variant="outlined"
-            onClick={() => router.push(us ? "/filter/us" : "/filter/de")}
+            onClick={() =>
+              router.push(
+                buildRouteHref(us ? "/filter/us" : "/filter/de", props.query, {
+                  from: generateUrl((props.selected || { us }) as SelectedRoot, us),
+                })
+              )
+            }
           >
             Bearbeiten
           </Button>

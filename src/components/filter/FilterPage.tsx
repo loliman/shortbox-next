@@ -1,5 +1,5 @@
 import React from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Paper from "@mui/material/Paper";
 import CardContent from "@mui/material/CardContent";
 import CardHeader from "@mui/material/CardHeader";
@@ -17,12 +17,18 @@ import ContributorsSection from "./sections/ContributorsSection";
 import DetailsSection from "./sections/DetailsSection";
 import { FilterPageProps, FilterValues } from "./types";
 import { buildRouteHref } from "../generic/routeHref";
+import { generateUrl } from "../../util/hierarchy";
 
 function FilterPage(props: FilterPageProps) {
   const router = useRouter();
-  const pathname = usePathname();
-  const { us, query, session, isDesktop = false } = props;
+  const { us, session, isDesktop = false } = props;
+  const query = props.query as { filter?: string; from?: string } | null | undefined;
   const initialValues = React.useMemo(() => parseFilterValues(query?.filter), [query?.filter]);
+  const targetPath = React.useMemo(() => {
+    const from = typeof query?.from === "string" ? query.from.trim() : "";
+    if (from) return from;
+    return generateUrl(props.routeContext.selected, us);
+  }, [props.routeContext.selected, query?.from, us]);
   const [activeTab, setActiveTab] = React.useState(0);
   const sectionSx = {
     px: { xs: 1.25, sm: 1.75 },
@@ -44,8 +50,9 @@ function FilterPage(props: FilterPageProps) {
 
           const payload = serializeFilterValues(values, us);
           router.push(
-            buildRouteHref(pathname || `/${us ? "us" : "de"}`, query, {
+            buildRouteHref(targetPath || `/${us ? "us" : "de"}`, query, {
               filter: payload ? JSON.stringify(payload) : null,
+              from: null,
             })
           );
 

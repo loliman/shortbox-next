@@ -1,6 +1,7 @@
 import type { Connection, Edge, Filter } from "../types/query-data";
 import type { Issue, Publisher } from "../types/domain";
 import { prisma } from "../lib/prisma/client";
+import { FilterService } from "./FilterService";
 import {
   createPublisher as createPublisherWrite,
   deletePublisherByLookup,
@@ -177,14 +178,29 @@ export class PublisherService {
   ) {
     void after;
     void loggedIn;
-    void filter;
 
     const normalizedPattern = normalizePattern(pattern);
     const take = Number.isFinite(first) && first && first > 0 ? Math.floor(first) : undefined;
+    const filteredIssueIds = filter ? await new FilterService(this.requestId).getFilteredIssueIds(filter, loggedIn) : null;
 
     const rows = await prisma.publisher.findMany({
       where: {
         original: us,
+        ...(filteredIssueIds
+          ? {
+              series: {
+                some: {
+                  issues: {
+                    some: {
+                      id: {
+                        in: filteredIssueIds.map((id) => BigInt(id)),
+                      },
+                    },
+                  },
+                },
+              },
+            }
+          : {}),
         ...(normalizedPattern
           ? {
               name: {

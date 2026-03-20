@@ -50,6 +50,10 @@ export default function Home(routeProps: Readonly<HomeProps>) {
     () => ({ ...appContext, ...routeProps.routeContext }),
     [appContext, routeProps.routeContext]
   );
+  const query = routeProps.routeContext.query as
+    | { filter?: string; order?: string; direction?: string; view?: string }
+    | null
+    | undefined;
   const homeLoadingRegisteredRef = React.useRef(false);
 
   const unregisterHomeLoading = React.useCallback(() => {
@@ -67,11 +71,11 @@ export default function Home(routeProps: Readonly<HomeProps>) {
     };
   }, [registerLoadingComponent, unregisterHomeLoading]);
 
-  const filter = parseListingFilter(props.query, Boolean(props.us));
+  const filter = parseListingFilter(query, Boolean(props.us));
   const compactLayout =
     props.compactLayout ??
     Boolean(props.isPhone || (props.isTablet && !props.isTabletLandscape));
-  const listingView = getListingView(props.query);
+  const listingView = getListingView(query);
   const galleryGridColumns = compactLayout
     ? "repeat(1, minmax(0, 1fr))"
     : {
@@ -94,11 +98,11 @@ export default function Home(routeProps: Readonly<HomeProps>) {
     () =>
       JSON.stringify({
         us: Boolean(props.us),
-        order: getListingOrder(props.query),
-        direction: getListingDirection(props.query),
+        order: getListingOrder(query),
+        direction: getListingDirection(query),
         filter,
       }),
-    [props.us, props.query, filter]
+    [props.us, query, filter]
   );
 
   const loadPage = React.useCallback(
@@ -111,9 +115,10 @@ export default function Home(routeProps: Readonly<HomeProps>) {
           locale: props.us ? "us" : "de",
           offset: String(offset),
           limit: "50",
-          order: getListingOrder(props.query),
-          direction: getListingDirection(props.query),
+          order: getListingOrder(query),
+          direction: getListingDirection(query),
         });
+        if (query?.filter) params.set("filter", query.filter);
         const response = await fetch(`/api/public-home?${params.toString()}`, { cache: "no-store" });
         if (!response.ok) throw new Error(`Home request failed: ${response.status}`);
 
@@ -137,7 +142,7 @@ export default function Home(routeProps: Readonly<HomeProps>) {
         }
       }
     },
-    [props.us, props.query, unregisterHomeLoading]
+    [props.us, query, unregisterHomeLoading]
   );
 
   React.useEffect(() => {
@@ -171,9 +176,7 @@ export default function Home(routeProps: Readonly<HomeProps>) {
         <QueryResult
           error={error}
           loading={loading}
-          placeholder={
-            <HomeListingPlaceholder query={props.query} compactLayout={compactLayout} />
-          }
+          placeholder={<HomeListingPlaceholder query={query} compactLayout={compactLayout} />}
           placeholderCount={1}
         />
       ) : (
@@ -198,7 +201,7 @@ export default function Home(routeProps: Readonly<HomeProps>) {
                 {!compactLayout ? (
                   <Box sx={{ display: "flex", justifyContent: "flex-end", flexGrow: 1 }}>
                     <ListingToolbar
-                      query={props.query}
+                      query={query}
                       previewProps={props as any}
                       compactLayout={compactLayout}
                       showSort
@@ -226,7 +229,7 @@ export default function Home(routeProps: Readonly<HomeProps>) {
 
             {compactLayout ? (
               <ListingToolbar
-                query={props.query}
+                query={query}
                 previewProps={props as any}
                 compactLayout={compactLayout}
                 showSort

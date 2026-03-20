@@ -134,7 +134,11 @@ export default function TopBarFilterMenu(props: Readonly<TopBarFilterMenuProps>)
               aria-expanded={menuOpen ? "true" : undefined}
               onClick={(e) => {
                 if (!isFilterActive) {
-                  router.push(us ? "/filter/us" : "/filter/de");
+                  router.push(
+                    buildRouteHref(us ? "/filter/us" : "/filter/de", props.query, {
+                      from: generateUrl(selected, us),
+                    })
+                  );
                   return;
                 }
                 if (menuOpen) {
@@ -170,7 +174,11 @@ export default function TopBarFilterMenu(props: Readonly<TopBarFilterMenuProps>)
           key="edit"
           onClick={() => {
             handleFilterMenuClose();
-            router.push(us ? "/filter/us" : "/filter/de");
+            router.push(
+              buildRouteHref(us ? "/filter/us" : "/filter/de", props.query, {
+                from: generateUrl(selected, us),
+              })
+            );
           }}
         >
           <ListItemIcon>

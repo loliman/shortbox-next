@@ -35,95 +35,8 @@ type RuntimeFilter = Filter & {
   numbers?: Array<(NumberFilter & { variant?: string | null }) | null>;
 };
 
-const filterIssueInclude = {
-  series: {
-    include: {
-      publisher: true,
-    },
-  },
-  covers: {
-    orderBy: [{ number: "asc" }, { id: "asc" }],
-    select: {
-      id: true,
-      url: true,
-      number: true,
-    },
-  },
-  arcs: {
-    include: {
-      arc: true,
-    },
-  },
-  stories: {
-    include: {
-      reprint: {
-        select: {
-          id: true,
-        },
-      },
-      reprintedBy: {
-        select: {
-          id: true,
-        },
-      },
-      appearances: {
-        include: {
-          appearance: true,
-        },
-      },
-      individuals: {
-        include: {
-          individual: true,
-        },
-      },
-      parent: {
-        include: {
-          children: {
-            select: {
-              id: true,
-            },
-          },
-          issue: {
-            include: {
-              arcs: {
-                include: {
-                  arc: true,
-                },
-              },
-            },
-          },
-          appearances: {
-            include: {
-              appearance: true,
-            },
-          },
-          individuals: {
-            include: {
-              individual: true,
-            },
-          },
-        },
-      },
-      children: {
-        include: {
-          issue: {
-            select: {
-              collected: true,
-            },
-          },
-          appearances: {
-            include: {
-              appearance: true,
-            },
-          },
-        },
-      },
-    },
-  },
-} satisfies Prisma.IssueInclude;
-
 type FilterIssueRecord = Prisma.IssueGetPayload<{
-  include: typeof filterIssueInclude;
+  include: Prisma.IssueInclude;
 }>;
 
 type ExportPublisher = { name: string };
@@ -183,7 +96,18 @@ function parseFilterDate(raw: string | null | undefined): Date | null {
 
 function toDayKey(date: Date | null | undefined): string | null {
   if (!date) return null;
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function startOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+}
+
+function endOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
 }
 
 function compareValues(left: string, right: string, compare: string): boolean {
@@ -233,13 +157,13 @@ function formatRank(format: string | null | undefined): number {
 
 function getStoryAppearanceNames(issue: FilterIssueRecord, us: boolean): string[] {
   const values = new Set<string>();
-  for (const story of issue.stories) {
-    for (const link of story.appearances) values.add(link.appearance.name);
-    for (const child of story.children) {
-      for (const link of child.appearances) values.add(link.appearance.name);
+  for (const story of (issue.stories || []) as any[]) {
+    for (const link of (story.appearances || []) as any[]) values.add(link.appearance.name);
+    for (const child of (story.children || []) as any[]) {
+      for (const link of (child.appearances || []) as any[]) values.add(link.appearance.name);
     }
     if (!us && story.parent) {
-      for (const link of story.parent.appearances) values.add(link.appearance.name);
+      for (const link of (story.parent.appearances || []) as any[]) values.add(link.appearance.name);
     }
   }
   return [...values];
@@ -248,15 +172,152 @@ function getStoryAppearanceNames(issue: FilterIssueRecord, us: boolean): string[
 function getArcTitles(issue: FilterIssueRecord, us: boolean): string[] {
   const values = new Set<string>();
   if (us) {
-    for (const link of issue.arcs) values.add(link.arc.title);
+    for (const link of (issue.arcs || []) as any[]) values.add(link.arc.title);
     return [...values];
   }
 
-  for (const story of issue.stories) {
+  for (const story of (issue.stories || []) as any[]) {
     if (!story.parent?.issue) continue;
-    for (const link of story.parent.issue.arcs) values.add(link.arc.title);
+    for (const link of (story.parent.issue.arcs || []) as any[]) values.add(link.arc.title);
   }
   return [...values];
+}
+
+function hasArcTerms(filter: RuntimeFilter): boolean {
+  const arcTerms = Array.isArray(filter.arcs)
+    ? filter.arcs
+    : splitFilterTerms(filter.arcs as string | null | undefined);
+  return Array.isArray(arcTerms) ? arcTerms.length > 0 : false;
+}
+
+function hasAppearanceTerms(filter: RuntimeFilter): boolean {
+  const appearanceTerms = Array.isArray(filter.appearances)
+    ? filter.appearances
+    : splitFilterTerms(filter.appearances as string | null | undefined);
+  return Array.isArray(appearanceTerms) ? appearanceTerms.length > 0 : false;
+}
+
+function hasRealityTerms(filter: RuntimeFilter): boolean {
+  const realityTerms = Array.isArray(filter.realities)
+    ? filter.realities
+    : splitFilterTerms(filter.realities as string | null | undefined);
+  return Array.isArray(realityTerms) ? realityTerms.length > 0 : false;
+}
+
+function hasIndividualTerms(filter: RuntimeFilter): boolean {
+  return Array.isArray(filter.individuals) && filter.individuals.length > 0;
+}
+
+function hasStorySwitchTerms(filter: RuntimeFilter): boolean {
+  return Boolean(
+    filter.firstPrint ||
+      filter.notFirstPrint ||
+      filter.onlyPrint ||
+      filter.notOnlyPrint ||
+      filter.onlyTb ||
+      filter.notOnlyTb ||
+      filter.exclusive ||
+      filter.notExclusive ||
+      filter.reprint ||
+      filter.notReprint ||
+      filter.otherOnlyTb ||
+      filter.notOtherOnlyTb ||
+      filter.noPrint ||
+      filter.notNoPrint ||
+      filter.onlyOnePrint ||
+      filter.notOnlyOnePrint
+  );
+}
+
+function buildIssueIncludeForFilter(filter: RuntimeFilter): Prisma.IssueInclude {
+  const include: Prisma.IssueInclude = {
+    series: {
+      include: {
+        publisher: true,
+      },
+    },
+  };
+
+  const needsStoryGraph =
+    hasStorySwitchTerms(filter) ||
+    hasAppearanceTerms(filter) ||
+    hasRealityTerms(filter) ||
+    hasIndividualTerms(filter) ||
+    (!Boolean(filter.us) && hasArcTerms(filter));
+
+  if (Boolean(filter.us) && hasArcTerms(filter)) {
+    include.arcs = {
+      include: {
+        arc: true,
+      },
+    };
+  }
+
+  if (needsStoryGraph) {
+    include.stories = {
+      include: {
+        appearances: hasAppearanceTerms(filter) || hasRealityTerms(filter)
+          ? {
+              include: {
+                appearance: true,
+              },
+            }
+          : false,
+        individuals: hasIndividualTerms(filter)
+          ? {
+              include: {
+                individual: true,
+              },
+            }
+          : false,
+        parent:
+          !Boolean(filter.us) || hasStorySwitchTerms(filter) || hasIndividualTerms(filter)
+            ? {
+                include: {
+                  issue: !Boolean(filter.us) && hasArcTerms(filter)
+                    ? {
+                        include: {
+                          arcs: {
+                            include: {
+                              arc: true,
+                            },
+                          },
+                        },
+                      }
+                    : false,
+                  appearances: !Boolean(filter.us) && (hasAppearanceTerms(filter) || hasRealityTerms(filter))
+                    ? {
+                        include: {
+                          appearance: true,
+                        },
+                      }
+                    : false,
+                  individuals: !Boolean(filter.us) && hasIndividualTerms(filter)
+                    ? {
+                        include: {
+                          individual: true,
+                        },
+                      }
+                    : false,
+                },
+              }
+            : false,
+        children: hasAppearanceTerms(filter) || hasRealityTerms(filter)
+          ? {
+              include: {
+                appearances: {
+                  include: {
+                    appearance: true,
+                  },
+                },
+              },
+            }
+          : false,
+      },
+    };
+  }
+
+  return include;
 }
 
 function matchesReleasedates(issue: FilterIssueRecord, releasedates: RuntimeFilter["releasedates"]): boolean {
@@ -318,9 +379,9 @@ function matchesIndividuals(issue: FilterIssueRecord, individuals: RuntimeFilter
     const nonTranslatorTypes = normalizedTypes.filter((type) => type !== TRANSLATOR_STORY_INDIVIDUAL_TYPE);
     const includesTranslator = normalizedTypes.includes(TRANSLATOR_STORY_INDIVIDUAL_TYPE);
 
-    return issue.stories.some((story) => {
-      const storyIndividuals = story.individuals;
-      const parentIndividuals = story.parent?.individuals || [];
+    return ((issue.stories || []) as any[]).some((story) => {
+      const storyIndividuals = (story.individuals || []) as any[];
+      const parentIndividuals = (story.parent?.individuals || []) as any[];
 
       const matchesStory = (types: string[]) =>
         storyIndividuals.some(
@@ -348,7 +409,9 @@ function matchesIndividuals(issue: FilterIssueRecord, individuals: RuntimeFilter
 }
 
 function matchesStorySwitches(issue: FilterIssueRecord, filter: RuntimeFilter): boolean {
-  if (!issue.stories.length) {
+  const stories = (issue.stories || []) as any[];
+
+  if (!stories.length) {
     if (filter.reprint) return false;
     if (filter.notReprint) return true;
     if (filter.noPrint) return true;
@@ -356,25 +419,25 @@ function matchesStorySwitches(issue: FilterIssueRecord, filter: RuntimeFilter): 
   }
 
   const storyConditions: boolean[] = [];
-  if (filter.firstPrint) storyConditions.push(issue.stories.some((story) => story.firstApp));
-  if (filter.notFirstPrint) storyConditions.push(issue.stories.some((story) => !story.firstApp));
-  if (filter.onlyPrint) storyConditions.push(issue.stories.some((story) => story.onlyApp));
-  if (filter.notOnlyPrint) storyConditions.push(issue.stories.some((story) => !story.onlyApp));
-  if (filter.onlyTb) storyConditions.push(issue.stories.some((story) => story.onlyTb));
-  if (filter.notOnlyTb) storyConditions.push(issue.stories.some((story) => !story.onlyTb));
-  if (filter.exclusive) storyConditions.push(issue.stories.some((story) => !story.parent));
-  if (filter.notExclusive) storyConditions.push(issue.stories.some((story) => Boolean(story.parent)));
-  if (filter.reprint) storyConditions.push(issue.stories.length > 0 && issue.stories.every((story) => !story.firstApp));
+  if (filter.firstPrint) storyConditions.push(stories.some((story) => story.firstApp));
+  if (filter.notFirstPrint) storyConditions.push(stories.some((story) => !story.firstApp));
+  if (filter.onlyPrint) storyConditions.push(stories.some((story) => story.onlyApp));
+  if (filter.notOnlyPrint) storyConditions.push(stories.some((story) => !story.onlyApp));
+  if (filter.onlyTb) storyConditions.push(stories.some((story) => story.onlyTb));
+  if (filter.notOnlyTb) storyConditions.push(stories.some((story) => !story.onlyTb));
+  if (filter.exclusive) storyConditions.push(stories.some((story) => !story.parent));
+  if (filter.notExclusive) storyConditions.push(stories.some((story) => Boolean(story.parent)));
+  if (filter.reprint) storyConditions.push(stories.length > 0 && stories.every((story) => !story.firstApp));
   if (filter.notReprint)
-    storyConditions.push(issue.stories.length === 0 || issue.stories.some((story) => story.firstApp));
-  if (filter.otherOnlyTb) storyConditions.push(issue.stories.some((story) => story.otherOnlyTb));
-  if (filter.notOtherOnlyTb) storyConditions.push(issue.stories.some((story) => !story.otherOnlyTb));
+    storyConditions.push(stories.length === 0 || stories.some((story) => story.firstApp));
+  if (filter.otherOnlyTb) storyConditions.push(stories.some((story) => story.otherOnlyTb));
+  if (filter.notOtherOnlyTb) storyConditions.push(stories.some((story) => !story.otherOnlyTb));
   if (filter.noPrint)
-    storyConditions.push(issue.stories.length === 0 || issue.stories.some((story) => !story.firstApp && !story.onlyApp));
+    storyConditions.push(stories.length === 0 || stories.some((story) => !story.firstApp && !story.onlyApp));
   if (filter.notNoPrint)
-    storyConditions.push(issue.stories.some((story) => story.firstApp || story.onlyApp));
-  if (filter.onlyOnePrint) storyConditions.push(issue.stories.some((story) => story.onlyOnePrint));
-  if (filter.notOnlyOnePrint) storyConditions.push(issue.stories.some((story) => !story.onlyOnePrint));
+    storyConditions.push(stories.some((story) => story.firstApp || story.onlyApp));
+  if (filter.onlyOnePrint) storyConditions.push(stories.some((story) => story.onlyOnePrint));
+  if (filter.notOnlyOnePrint) storyConditions.push(stories.some((story) => !story.onlyOnePrint));
 
   return storyConditions.every(Boolean);
 }
@@ -418,13 +481,14 @@ export class FilterService {
     const response: ExportResponse = {};
 
     for (const issue of issues) {
-      const publisherName = issue.series?.publisher?.name || "Unbekannter Verlag";
+      const seriesRecord = (issue.series || null) as any;
+      const publisherName = seriesRecord?.publisher?.name || "Unbekannter Verlag";
       const publisher: ExportPublisher = { name: publisherName };
       const series: ExportSeries = {
-        title: issue.series?.title || "",
-        volume: Number(issue.series?.volume || 0),
-        startyear: Number(issue.series?.startYear || 0),
-        endyear: Number(issue.series?.endYear || 0),
+        title: seriesRecord?.title || "",
+        volume: Number(seriesRecord?.volume || 0),
+        startyear: Number(seriesRecord?.startYear || 0),
+        endyear: Number(seriesRecord?.endYear || 0),
         publisher,
       };
       const issueData: ExportIssueData = {
@@ -489,15 +553,21 @@ export class FilterService {
     return issues.length;
   }
 
+  public async getFilteredIssueIds(filter: Filter, loggedIn: boolean): Promise<number[]> {
+    const issues = await this.getFilteredIssues(filter, loggedIn);
+    return issues.map((issue) => Number(issue.id));
+  }
+
   private async getFilteredIssues(filter: Filter, loggedIn: boolean): Promise<FilterIssueRecord[]> {
     void loggedIn;
     const runtimeFilter = filter as RuntimeFilter;
     const where = this.buildBaseWhere(runtimeFilter);
+    const include = buildIssueIncludeForFilter(runtimeFilter);
 
     const issues = await prisma.issue.findMany({
       where,
-      include: filterIssueInclude,
-    });
+      include,
+    }) as FilterIssueRecord[];
 
     const filtered = issues.filter((issue) => this.matchesIssue(issue, runtimeFilter));
     if (runtimeFilter.onlyNotCollectedNoOwnedVariants) {
@@ -521,6 +591,67 @@ export class FilterService {
       .map((format) => String(format || "").trim())
       .filter((format) => format.length > 0);
     if (formats.length > 0) and.push({ format: { in: formats } });
+
+    const releasedateConditions: Prisma.IssueWhereInput[] = [];
+    for (const entry of filter.releasedates || []) {
+        const parsedDate = parseFilterDate(entry?.date);
+        if (!parsedDate) continue;
+        const compare = String(entry?.compare || "=");
+
+        if (compare === "=") {
+          releasedateConditions.push({
+            releaseDate: {
+              gte: startOfDay(parsedDate),
+              lte: endOfDay(parsedDate),
+            },
+          });
+          continue;
+        }
+
+        if (compare === ">=") {
+          releasedateConditions.push({
+            releaseDate: {
+              gte: startOfDay(parsedDate),
+            },
+          });
+          continue;
+        }
+
+        if (compare === ">") {
+          releasedateConditions.push({
+            releaseDate: {
+              gt: endOfDay(parsedDate),
+            },
+          });
+          continue;
+        }
+
+        if (compare === "<=") {
+          releasedateConditions.push({
+            releaseDate: {
+              lte: endOfDay(parsedDate),
+            },
+          });
+          continue;
+        }
+
+        if (compare === "<") {
+          releasedateConditions.push({
+            releaseDate: {
+              lt: startOfDay(parsedDate),
+            },
+          });
+          continue;
+        }
+
+        releasedateConditions.push({
+          releaseDate: {
+            gte: startOfDay(parsedDate),
+            lte: endOfDay(parsedDate),
+          },
+        });
+      }
+    and.push(...releasedateConditions);
 
     if (filter.withVariants && !filter.onlyCollected) {
       and.push({

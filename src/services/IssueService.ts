@@ -2,6 +2,7 @@ import type { Connection, Edge, Filter } from "../types/query-data";
 import type { Issue } from "../types/domain";
 import { prisma } from "../lib/prisma/client";
 import { deleteIssueByLookup } from "../lib/server/issues-write";
+import { FilterService } from "./FilterService";
 
 type PublisherRef = {
   name?: string | null;
@@ -427,12 +428,19 @@ export class IssueService {
   ) {
     void after;
     void loggedIn;
-    void filter;
 
     const normalizedPattern = normalizeText(pattern);
     const take = Number.isFinite(first) && first && first > 0 ? Math.floor(first) : undefined;
+    const filteredIssueIds = filter ? await new FilterService().getFilteredIssueIds(filter, loggedIn) : null;
     const rows = await prisma.issue.findMany({
       where: {
+        ...(filteredIssueIds
+          ? {
+              id: {
+                in: filteredIssueIds.map((id) => BigInt(id)),
+              },
+            }
+          : {}),
         series: {
           title: normalizeText(series.title),
           volume: BigInt(Number(series.volume ?? 0)),
@@ -507,14 +515,21 @@ export class IssueService {
   ) {
     void after;
     void loggedIn;
-    void filter;
 
     const limit = Number.isFinite(first) && first && first > 0 ? Math.floor(first) : 25;
+    const filteredIssueIds = filter ? await new FilterService().getFilteredIssueIds(filter, loggedIn) : null;
     const rows = await prisma.issue.findMany({
       where: {
         fkSeries: {
           not: null,
         },
+        ...(filteredIssueIds
+          ? {
+              id: {
+                in: filteredIssueIds.map((id) => BigInt(id)),
+              },
+            }
+          : {}),
       },
       include: {
         series: {
