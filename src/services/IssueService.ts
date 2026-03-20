@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import type { Connection, Edge, Filter } from "../types/query-data";
 import type { Issue } from "../types/domain";
 import { prisma } from "../lib/prisma/client";
@@ -30,6 +31,16 @@ type IssueInput = {
   limitation?: string | null;
   addinfo?: string | null;
   series?: SeriesInput | null;
+};
+
+type IssueSelectionInput = {
+  us: boolean;
+  publisher: string;
+  series: string;
+  volume: number;
+  number: string;
+  format?: string | null;
+  variant?: string | null;
 };
 
 type SortDirection = "asc" | "desc";
@@ -693,4 +704,502 @@ export class IssueService {
     const byId = new Map(rows.map((row) => [Number(row.id), serializePreviewIssue(row)]));
     return ids.map((id) => byId.get(id) ?? null);
   }
+
+  async getIssueDetails(selection: IssueSelectionInput) {
+    const current = await prisma.issue.findFirst({
+      where: {
+        number: selection.number,
+        format: normalizeIssueOptionalString(selection.format) ?? undefined,
+        variant: normalizeIssueOptionalString(selection.variant) ?? undefined,
+        series: {
+          title: selection.series,
+          volume: BigInt(selection.volume),
+          publisher: {
+            name: selection.publisher,
+            original: selection.us,
+          },
+        },
+      },
+      include: createIssueDetailsInclude(),
+      orderBy: [{ id: "asc" }],
+    });
+
+    const fallback =
+      current ||
+      (await prisma.issue.findFirst({
+        where: {
+          number: selection.number,
+          series: {
+            title: selection.series,
+            volume: BigInt(selection.volume),
+            publisher: {
+              name: selection.publisher,
+              original: selection.us,
+            },
+          },
+        },
+        include: createIssueDetailsInclude(),
+        orderBy: [{ format: "asc" }, { variant: "asc" }, { id: "asc" }],
+      }));
+
+    if (!fallback) return null;
+
+    const variants = await prisma.issue.findMany({
+      where: {
+        number: fallback.number,
+        fkSeries: fallback.fkSeries ?? undefined,
+      },
+      include: {
+        covers: {
+          orderBy: [{ number: "asc" }, { id: "asc" }],
+          take: 1,
+          include: {
+            individuals: {
+              include: {
+                individual: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: [{ format: "asc" }, { variant: "asc" }, { id: "asc" }],
+    });
+
+    return toIssueDetailsShape(fallback, variants);
+  }
+}
+
+const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
+  issue: {
+    include: {
+      series: {
+        include: {
+          publisher: true,
+        },
+      },
+    },
+  },
+  parent: {
+    include: {
+      issue: {
+        include: {
+          series: {
+            include: {
+              publisher: true,
+            },
+          },
+        },
+      },
+      children: {
+        orderBy: [{ number: "asc" }, { id: "asc" }],
+        include: {
+          issue: {
+            include: {
+              series: {
+                include: {
+                  publisher: true,
+                },
+              },
+            },
+          },
+          parent: {
+            include: {
+              issue: {
+                include: {
+                  series: {
+                    include: {
+                      publisher: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      reprint: {
+        include: {
+          issue: {
+            include: {
+              series: {
+                include: {
+                  publisher: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      reprintedBy: {
+        include: {
+          issue: {
+            include: {
+              series: {
+                include: {
+                  publisher: true,
+                },
+              },
+            },
+          },
+          parent: {
+            include: {
+              issue: {
+                include: {
+                  series: {
+                    include: {
+                      publisher: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      individuals: {
+        include: {
+          individual: true,
+        },
+      },
+      appearances: {
+        include: {
+          appearance: true,
+        },
+      },
+    },
+  },
+  reprint: {
+    include: {
+      issue: {
+        include: {
+          series: {
+            include: {
+              publisher: true,
+            },
+          },
+        },
+      },
+    },
+  },
+  reprintedBy: {
+    include: {
+      issue: {
+        include: {
+          series: {
+            include: {
+              publisher: true,
+            },
+          },
+        },
+      },
+      parent: {
+        include: {
+          issue: {
+            include: {
+              series: {
+                include: {
+                  publisher: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  children: {
+    orderBy: [{ number: "asc" }, { id: "asc" }],
+    include: {
+      issue: {
+        include: {
+          series: {
+            include: {
+              publisher: true,
+            },
+          },
+        },
+      },
+      parent: {
+        include: {
+          issue: {
+            include: {
+              series: {
+                include: {
+                  publisher: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  individuals: {
+    include: {
+      individual: true,
+    },
+  },
+  appearances: {
+    include: {
+      appearance: true,
+    },
+  },
+});
+
+function createIssueDetailsInclude() {
+  return Prisma.validator<Prisma.IssueInclude>()({
+    series: {
+      include: {
+        publisher: true,
+      },
+    },
+    stories: {
+      orderBy: [{ number: "asc" }, { id: "asc" }],
+      include: issueDetailsStoryInclude,
+    },
+    arcs: {
+      include: {
+        arc: true,
+      },
+    },
+    individuals: {
+      include: {
+        individual: true,
+      },
+    },
+    covers: {
+      orderBy: [{ number: "asc" }, { id: "asc" }],
+      include: {
+        individuals: {
+          include: {
+            individual: true,
+          },
+        },
+      },
+    },
+  });
+}
+
+function toIssueDetailsShape(issue: any, variants: any[]) {
+  const mappedVariants = variants.map((variant) => ({
+    id: serializeIssueId(variant.id),
+    title: variant.title || null,
+    number: variant.number,
+    legacy_number: variant.legacyNumber || null,
+    format: variant.format || null,
+    variant: variant.variant || null,
+    releasedate: serializeIssueDate(variant.releaseDate),
+    verified: variant.verified,
+    collected: variant.collected ?? null,
+    comicguideid: serializeNullableIssueId(variant.comicGuideId),
+    cover: variant.covers[0] ? toIssueCoverShape(variant.covers[0]) : null,
+  }));
+
+  return {
+    id: serializeIssueId(issue.id),
+    title: issue.title || null,
+    number: issue.number,
+    legacy_number: issue.legacyNumber || null,
+    format: issue.format || null,
+    variant: issue.variant || null,
+    releasedate: serializeIssueDate(issue.releaseDate),
+    pages: serializeNullableIssueNumber(issue.pages),
+    price: issue.price ?? null,
+    currency: issue.currency || null,
+    isbn: issue.isbn || null,
+    limitation: issue.limitation === null || issue.limitation === undefined ? null : String(issue.limitation),
+    addinfo: issue.addInfo || null,
+    verified: issue.verified,
+    collected: issue.collected ?? null,
+    comicguideid: serializeNullableIssueId(issue.comicGuideId),
+    createdat: serializeIssueDate(issue.createdAt),
+    updatedat: serializeIssueDate(issue.updatedAt),
+    series: toIssueSeriesShape(issue.series),
+    stories: issue.stories.map((story: any) => toIssueStoryShape(story, true)),
+    cover: issue.covers[0] ? toIssueCoverShape(issue.covers[0]) : null,
+    individuals: issue.individuals.map(toIssueIndividualEntryShape),
+    arcs: issue.arcs.map((entry: any) => ({
+      id: serializeIssueId(entry.arc.id),
+      title: entry.arc.title || null,
+      type: entry.arc.type || null,
+    })),
+    variants: mappedVariants,
+    storyOwner: null,
+    inheritsStories: false,
+    tags: [],
+  };
+}
+
+function toIssueSeriesShape(series: any) {
+  if (!series) return null;
+
+  return {
+    id: serializeIssueId(series.id),
+    title: series.title || null,
+    startyear: serializeNullableIssueNumber(series.startYear),
+    endyear: serializeNullableIssueNumber(series.endYear),
+    volume: serializeNullableIssueNumber(series.volume),
+    genre: null,
+    addinfo: series.addInfo || null,
+    publisher: series.publisher
+      ? {
+          id: serializeIssueId(series.publisher.id),
+          name: series.publisher.name || null,
+          us: series.publisher.original,
+          addinfo: series.publisher.addInfo || null,
+          startyear: serializeNullableIssueNumber(series.publisher.startYear),
+          endyear: serializeNullableIssueNumber(series.publisher.endYear),
+        }
+      : null,
+  };
+}
+
+function toIssueReferenceShape(issue: any) {
+  if (!issue) return null;
+
+  return {
+    id: serializeIssueId(issue.id),
+    title: issue.title || null,
+    number: issue.number,
+    legacy_number: issue.legacyNumber || null,
+    format: issue.format || null,
+    variant: issue.variant || null,
+    releasedate: serializeIssueDate(issue.releaseDate),
+    collected: issue.collected ?? null,
+    series: toIssueSeriesShape(issue.series),
+  };
+}
+
+function toIssueCoverShape(cover: any) {
+  return {
+    id: serializeIssueId(cover.id),
+    url: cover.url || null,
+    number: serializeNullableIssueNumber(cover.number),
+    addinfo: cover.addInfo || null,
+    individuals: Array.isArray(cover.individuals)
+      ? cover.individuals.map((entry: any) => ({
+          id: serializeIssueId(entry.individual.id),
+          name: entry.individual.name || null,
+          type: entry.type || "",
+        }))
+      : [],
+  };
+}
+
+function toIssueIndividualEntryShape(entry: any) {
+  return {
+    id: serializeIssueId(entry.individual.id),
+    name: entry.individual.name || null,
+    type: entry.type || "",
+  };
+}
+
+function toIssueStoryShape(story: any, includeParent: boolean) {
+  return {
+    id: serializeIssueId(story.id),
+    number: serializeNullableIssueNumber(story.number),
+    title: story.title || null,
+    addinfo: story.addInfo || null,
+    part: story.part || null,
+    exclusive: false,
+    onlyapp: story.onlyApp,
+    firstapp: story.firstApp,
+    onlytb: story.onlyTb,
+    otheronlytb: story.otherOnlyTb,
+    onlyoneprint: story.onlyOnePrint,
+    collected: story.collected,
+    collectedmultipletimes: story.collectedMultipleTimes,
+    issue: toIssueReferenceShape(story.issue),
+    parent: includeParent ? toIssueParentStoryShape(story.parent) : null,
+    reprintOf: story.reprint ? toIssueStoryReferenceShape(story.reprint) : null,
+    reprints: Array.isArray(story.reprintedBy) ? story.reprintedBy.map(toIssueStoryReferenceShape) : [],
+    children: Array.isArray(story.children) ? story.children.map(toIssueStoryReferenceShape) : [],
+    individuals: Array.isArray(story.individuals)
+      ? story.individuals.map((entry: any) => ({
+          id: serializeIssueId(entry.individual.id),
+          name: entry.individual.name || null,
+          type: entry.type || "",
+        }))
+      : [],
+    appearances: Array.isArray(story.appearances)
+      ? story.appearances.map((entry: any) => ({
+          id: serializeIssueId(entry.appearance.id),
+          name: entry.appearance.name || null,
+          type: entry.appearance.type || "",
+          role: entry.role || "",
+        }))
+      : [],
+  };
+}
+
+function toIssueParentStoryShape(story: any) {
+  if (!story) return null;
+
+  return {
+    id: serializeIssueId(story.id),
+    number: serializeNullableIssueNumber(story.number),
+    title: story.title || null,
+    addinfo: story.addInfo || null,
+    part: story.part || null,
+    collectedmultipletimes: story.collectedMultipleTimes,
+    issue: toIssueReferenceShape(story.issue),
+    reprintOf: story.reprint ? toIssueStoryReferenceShape(story.reprint) : null,
+    reprints: Array.isArray(story.reprintedBy) ? story.reprintedBy.map(toIssueStoryReferenceShape) : [],
+    children: Array.isArray(story.children) ? story.children.map(toIssueStoryReferenceShape) : [],
+    individuals: Array.isArray(story.individuals)
+      ? story.individuals.map((entry: any) => ({
+          id: serializeIssueId(entry.individual.id),
+          name: entry.individual.name || null,
+          type: entry.type || "",
+        }))
+      : [],
+    appearances: Array.isArray(story.appearances)
+      ? story.appearances.map((entry: any) => ({
+          id: serializeIssueId(entry.appearance.id),
+          name: entry.appearance.name || null,
+          type: entry.appearance.type || "",
+          role: entry.role || "",
+        }))
+      : [],
+  };
+}
+
+function toIssueStoryReferenceShape(story: any) {
+  return {
+    id: serializeIssueId(story.id),
+    number: serializeNullableIssueNumber(story.number),
+    title: story.title || null,
+    addinfo: story.addInfo || null,
+    part: story.part || null,
+    issue: toIssueReferenceShape(story.issue),
+    parent: story.parent
+      ? {
+          issue: toIssueReferenceShape(story.parent.issue),
+          number: serializeNullableIssueNumber(story.parent.number),
+        }
+      : null,
+  };
+}
+
+function normalizeIssueOptionalString(value: string | null | undefined) {
+  const normalized = String(value || "").trim();
+  return normalized === "" ? null : normalized;
+}
+
+function serializeIssueDate(value: Date | null | undefined) {
+  return value ? value.toISOString() : null;
+}
+
+function serializeIssueId(value: bigint | number | string) {
+  return String(value);
+}
+
+function serializeNullableIssueId(value: bigint | number | string | null | undefined) {
+  if (value === null || value === undefined) return null;
+  return String(value);
+}
+
+function serializeNullableIssueNumber(value: bigint | number | null | undefined) {
+  if (value === null || value === undefined) return null;
+  return Number(value);
 }

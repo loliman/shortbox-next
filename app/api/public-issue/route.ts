@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getIssueScreenData } from "@/src/lib/screens/issue-details-data";
+import { IssueService } from "@/src/services/IssueService";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   const us = searchParams.get("locale") === "us";
 
   try {
-    const data = await getIssueScreenData({
+    const data = await new IssueService().getIssueDetails({
       us,
       publisher,
       series,
