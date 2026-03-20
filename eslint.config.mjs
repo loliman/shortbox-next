@@ -19,7 +19,6 @@ const eslintConfig = [
       "**/*.test.tsx",
       "src/services/MarvelCrawlerService.ts",
       "src/services/SeriesService.ts",
-      "src/services/StoryService.ts",
       "src/services/UserService.ts"
     ]
   },

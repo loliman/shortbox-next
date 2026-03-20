@@ -28,7 +28,6 @@
     "node_modules",
     "src/services/MarvelCrawlerService.ts",
     "src/services/SeriesService.ts",
-    "src/services/StoryService.ts",
     "src/services/UserService.ts"
   ]
 }

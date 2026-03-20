@@ -1,48 +1,71 @@
-/* eslint-disable */
-import models from '../models';
-import { Op } from 'sequelize';
-import logger from '../util/logger';
+import { prisma } from "../lib/prisma/client";
+
+type StoryRow = Awaited<ReturnType<typeof prisma.story.findFirst>>;
 
 export class StoryService {
-  constructor(
-    private models: typeof import('../models').default,
-    private requestId?: string,
-  ) {}
-
-  private log(message: string, level: 'info' | 'warn' | 'error' = 'info') {
-    if (level === 'error') {
-      logger.error(message, { requestId: this.requestId });
-      return;
-    }
-    if (level === 'warn') {
-      logger.warn(message, { requestId: this.requestId });
-      return;
-    }
-    logger.info(message, { requestId: this.requestId });
+  constructor(private requestId?: string) {
+    void this.requestId;
   }
 
   async getStoriesByIds(ids: readonly number[]) {
-    const stories = await this.models.Story.findAll({
-      where: { id: { [Op.in]: [...ids] } },
+    if (ids.length === 0) return [];
+
+    const rows = await prisma.story.findMany({
+      where: {
+        id: {
+          in: ids.map((id) => BigInt(id)),
+        },
+      },
+      orderBy: [{ id: "asc" }],
     });
-    return ids.map((id) => stories.find((s) => s.id === id) || null);
+
+    const byId = new Map(rows.map((story) => [Number(story.id), story]));
+    return ids.map((id) => byId.get(id) ?? null);
   }
 
   async getChildrenByParentIds(parentIds: readonly number[]) {
-    const stories = await this.models.Story.findAll({
-      where: { fk_parent: { [Op.in]: [...parentIds] } },
-      order: [['id', 'ASC']],
+    if (parentIds.length === 0) return [];
+
+    const rows = await prisma.story.findMany({
+      where: {
+        fkParent: {
+          in: parentIds.map((id) => BigInt(id)),
+        },
+      },
+      orderBy: [{ id: "asc" }],
     });
 
-    return parentIds.map((parentId) => stories.filter((story) => story.fk_parent === parentId));
+    const grouped = new Map<number, StoryRow[]>();
+    for (const story of rows) {
+      const parentId = Number(story.fkParent);
+      const current = grouped.get(parentId) || [];
+      current.push(story);
+      grouped.set(parentId, current);
+    }
+
+    return parentIds.map((parentId) => grouped.get(parentId) ?? []);
   }
 
   async getReprintsByStoryIds(storyIds: readonly number[]) {
-    const stories = await this.models.Story.findAll({
-      where: { fk_reprint: { [Op.in]: [...storyIds] } },
-      order: [['id', 'ASC']],
+    if (storyIds.length === 0) return [];
+
+    const rows = await prisma.story.findMany({
+      where: {
+        fkReprint: {
+          in: storyIds.map((id) => BigInt(id)),
+        },
+      },
+      orderBy: [{ id: "asc" }],
     });
 
-    return storyIds.map((storyId) => stories.filter((story) => story.fk_reprint === storyId));
+    const grouped = new Map<number, StoryRow[]>();
+    for (const story of rows) {
+      const reprintId = Number(story.fkReprint);
+      const current = grouped.get(reprintId) || [];
+      current.push(story);
+      grouped.set(reprintId, current);
+    }
+
+    return storyIds.map((storyId) => grouped.get(storyId) ?? []);
   }
 }
