@@ -45,6 +45,7 @@ interface HomeProps {
 
 export default function Home(routeProps: Readonly<HomeProps>) {
   const appContext = React.useContext(AppContext);
+  const { registerLoadingComponent, unregisterLoadingComponent } = appContext;
   const props = React.useMemo(
     () => ({ ...appContext, ...routeProps.routeContext }),
     [appContext, routeProps.routeContext]
@@ -54,17 +55,17 @@ export default function Home(routeProps: Readonly<HomeProps>) {
   const unregisterHomeLoading = React.useCallback(() => {
     if (!homeLoadingRegisteredRef.current) return;
     homeLoadingRegisteredRef.current = false;
-    props.unregisterLoadingComponent?.("Home");
-  }, [props]);
+    unregisterLoadingComponent("Home");
+  }, [unregisterLoadingComponent]);
 
   React.useEffect(() => {
-    props.registerLoadingComponent?.("Home");
+    registerLoadingComponent("Home");
     homeLoadingRegisteredRef.current = true;
 
     return () => {
       unregisterHomeLoading();
     };
-  }, [props, unregisterHomeLoading]);
+  }, [registerLoadingComponent, unregisterHomeLoading]);
 
   const filter = parseListingFilter(props.query, Boolean(props.us));
   const compactLayout =

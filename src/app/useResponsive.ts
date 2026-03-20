@@ -17,9 +17,10 @@ export type ResponsiveState = {
 
 export function useResponsive(): ResponsiveState {
   const theme = useTheme();
-  const isLandscape = useMediaQuery("(orientation: landscape)");
-  const isPhone = useMediaQuery(theme.breakpoints.down("sm"));
-  const isDesktop = useMediaQuery(theme.breakpoints.up("lg"));
+  const mediaQueryOptions = { noSsr: true } as const;
+  const isLandscape = useMediaQuery("(orientation: landscape)", mediaQueryOptions);
+  const isPhone = useMediaQuery(theme.breakpoints.down("sm"), mediaQueryOptions);
+  const isDesktop = useMediaQuery(theme.breakpoints.up("lg"), mediaQueryOptions);
   const isTablet = !isPhone && !isDesktop;
   const isPhoneLandscape = isPhone && isLandscape;
   const isTabletLandscape = isTablet && isLandscape;

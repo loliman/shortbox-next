@@ -103,10 +103,14 @@ function AppContextProvider({
   }, [responsive.navWide]);
 
   const resetLoadingComponents = useCallback(() => {
-    setState((prevState) => ({
-      ...prevState,
-      loadingComponents: [],
-    }));
+    setState((prevState) =>
+      prevState.loadingComponents.length === 0
+        ? prevState
+        : {
+            ...prevState,
+            loadingComponents: [],
+          }
+    );
   }, []);
 
   const registerLoadingComponent = useCallback((component: string) => {
@@ -120,10 +124,13 @@ function AppContextProvider({
   }, []);
 
   const unregisterLoadingComponent = useCallback((component: string) => {
-    setState((prevState) => ({
-      ...prevState,
-      loadingComponents: prevState.loadingComponents.filter((c) => c !== component),
-    }));
+    setState((prevState) => {
+      if (!prevState.loadingComponents.includes(component)) return prevState;
+      return {
+        ...prevState,
+        loadingComponents: prevState.loadingComponents.filter((c) => c !== component),
+      };
+    });
   }, []);
 
   const isComponentRegistered = useCallback(
