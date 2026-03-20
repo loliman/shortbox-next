@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getPublisherScreenData } from "@/src/lib/screens/entity-details-data";
+import { PublisherService } from "@/src/services/PublisherService";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -7,7 +7,8 @@ export async function GET(request: Request) {
   const publisher = searchParams.get("publisher") || "";
 
   try {
-    const data = await getPublisherScreenData({ us, publisher });
+    const service = new PublisherService();
+    const data = await service.getPublisherDetails({ us, publisher });
     return NextResponse.json({ item: data });
   } catch {
     return NextResponse.json({ item: null });

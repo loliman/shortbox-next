@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSeriesScreenData } from "@/src/lib/screens/entity-details-data";
+import { SeriesService } from "@/src/services/SeriesService";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -9,7 +9,8 @@ export async function GET(request: Request) {
   const volume = Number(searchParams.get("volume") || "1");
 
   try {
-    const data = await getSeriesScreenData({ us, publisher, series, volume });
+    const service = new SeriesService();
+    const data = await service.getSeriesDetails({ us, publisher, series, volume });
     return NextResponse.json({ item: data });
   } catch {
     return NextResponse.json({ item: null });
