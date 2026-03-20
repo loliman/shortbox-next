@@ -1,12 +1,12 @@
 import PublisherEdit from "@/src/components/restricted/edit/PublisherEdit";
-import { createAppRouteContext } from "@/src/app/routeContext";
+import { createAppRouteContext, type NextPageParams, type NextPageSearchParams } from "@/src/app/routeContext";
 
-export default function UsPublisherEditPage({
+export default async function UsPublisherEditPage({
   params,
   searchParams,
 }: Readonly<{
-  params: Record<string, string>;
-  searchParams?: Record<string, string | string[] | undefined>;
+  params: NextPageParams;
+  searchParams?: NextPageSearchParams;
 }>) {
-  return <PublisherEdit routeContext={createAppRouteContext({ params, searchParams, edit: true, us: true })} />;
+  return <PublisherEdit routeContext={createAppRouteContext({ params: await params, searchParams: await searchParams, edit: true, us: true })} />;
 }

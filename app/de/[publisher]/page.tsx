@@ -1,14 +1,14 @@
 import PublisherDetails from "@/src/components/details/PublisherDetails";
-import { createAppRouteContext } from "@/src/app/routeContext";
+import { createAppRouteContext, type NextPageParams, type NextPageSearchParams } from "@/src/app/routeContext";
 
-export default function DePublisherPage({
+export default async function DePublisherPage({
   params,
   searchParams,
 }: Readonly<{
-  params: Record<string, string>;
-  searchParams?: Record<string, string | string[] | undefined>;
+  params: NextPageParams;
+  searchParams?: NextPageSearchParams;
 }>) {
   return (
-    <PublisherDetails routeContext={createAppRouteContext({ params, searchParams, us: false })} />
+    <PublisherDetails routeContext={createAppRouteContext({ params: await params, searchParams: await searchParams, us: false })} />
   );
 }

@@ -678,8 +678,8 @@ function AdminTasksPage(props: Readonly<AdminTasksProps>) {
   );
 }
 
-export default function AdminTasks() {
+export default function AdminTasks(props: Readonly<AdminTasksProps>) {
   const snackbarBridge = useSnackbarBridge();
 
-  return <AdminTasksPage {...snackbarBridge} />;
+  return <AdminTasksPage {...props} {...snackbarBridge} />;
 }

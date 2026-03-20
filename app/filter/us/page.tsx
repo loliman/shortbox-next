@@ -1,10 +1,10 @@
 import Filter from "@/src/components/filter/Filter";
-import { createAppRouteContext } from "@/src/app/routeContext";
+import { createAppRouteContext, type NextPageSearchParams } from "@/src/app/routeContext";
 
-export default function UsFilterPage({
+export default async function UsFilterPage({
   searchParams,
 }: Readonly<{
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams?: NextPageSearchParams;
 }>) {
-  return <Filter routeContext={createAppRouteContext({ searchParams, us: true })} />;
+  return <Filter routeContext={createAppRouteContext({ searchParams: await searchParams, us: true })} />;
 }

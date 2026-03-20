@@ -1,10 +1,10 @@
 import Home from "@/src/components/Home";
-import { createAppRouteContext } from "@/src/app/routeContext";
+import { createAppRouteContext, type NextPageSearchParams } from "@/src/app/routeContext";
 
-export default function UsHomePage({
+export default async function UsHomePage({
   searchParams,
 }: Readonly<{
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams?: NextPageSearchParams;
 }>) {
-  return <Home routeContext={createAppRouteContext({ searchParams, us: true })} />;
+  return <Home routeContext={createAppRouteContext({ searchParams: await searchParams, us: true })} />;
 }

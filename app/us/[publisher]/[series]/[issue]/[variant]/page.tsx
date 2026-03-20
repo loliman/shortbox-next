@@ -1,14 +1,14 @@
 import IssueDetailsUS from "@/src/components/details/IssueDetailsUS";
-import { createAppRouteContext } from "@/src/app/routeContext";
+import { createAppRouteContext, type NextPageParams, type NextPageSearchParams } from "@/src/app/routeContext";
 
-export default function UsIssueVariantPage({
+export default async function UsIssueVariantPage({
   params,
   searchParams,
 }: Readonly<{
-  params: Record<string, string>;
-  searchParams?: Record<string, string | string[] | undefined>;
+  params: NextPageParams;
+  searchParams?: NextPageSearchParams;
 }>) {
   return (
-    <IssueDetailsUS routeContext={createAppRouteContext({ params, searchParams, us: true })} />
+    <IssueDetailsUS routeContext={createAppRouteContext({ params: await params, searchParams: await searchParams, us: true })} />
   );
 }

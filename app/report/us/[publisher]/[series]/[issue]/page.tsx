@@ -1,12 +1,12 @@
 import IssueReport from "@/src/components/report/IssueReport";
-import { createAppRouteContext } from "@/src/app/routeContext";
+import { createAppRouteContext, type NextPageParams, type NextPageSearchParams } from "@/src/app/routeContext";
 
-export default function UsIssueReportPage({
+export default async function UsIssueReportPage({
   params,
   searchParams,
 }: Readonly<{
-  params: Record<string, string>;
-  searchParams?: Record<string, string | string[] | undefined>;
+  params: NextPageParams;
+  searchParams?: NextPageSearchParams;
 }>) {
-  return <IssueReport routeContext={createAppRouteContext({ params, searchParams, us: true })} />;
+  return <IssueReport routeContext={createAppRouteContext({ params: await params, searchParams: await searchParams, us: true })} />;
 }

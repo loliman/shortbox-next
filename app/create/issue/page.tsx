@@ -1,10 +1,10 @@
 import IssueCreate from "@/src/components/restricted/create/IssueCreate";
-import { createAppRouteContext } from "@/src/app/routeContext";
+import { createAppRouteContext, type NextPageSearchParams } from "@/src/app/routeContext";
 
-export default function IssueCreatePage({
+export default async function IssueCreatePage({
   searchParams,
 }: Readonly<{
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams?: NextPageSearchParams;
 }>) {
-  return <IssueCreate routeContext={createAppRouteContext({ searchParams, create: true })} />;
+  return <IssueCreate routeContext={createAppRouteContext({ searchParams: await searchParams, create: true })} />;
 }

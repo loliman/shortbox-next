@@ -1,12 +1,12 @@
 import IssueCopy from "@/src/components/restricted/copy/IssueCopy";
-import { createAppRouteContext } from "@/src/app/routeContext";
+import { createAppRouteContext, type NextPageParams, type NextPageSearchParams } from "@/src/app/routeContext";
 
-export default function UsIssueCopyPage({
+export default async function UsIssueCopyPage({
   params,
   searchParams,
 }: Readonly<{
-  params: Record<string, string>;
-  searchParams?: Record<string, string | string[] | undefined>;
+  params: NextPageParams;
+  searchParams?: NextPageSearchParams;
 }>) {
-  return <IssueCopy routeContext={createAppRouteContext({ params, searchParams, us: true })} />;
+  return <IssueCopy routeContext={createAppRouteContext({ params: await params, searchParams: await searchParams, us: true })} />;
 }

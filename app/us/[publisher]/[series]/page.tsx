@@ -1,14 +1,14 @@
 import SeriesDetails from "@/src/components/details/SeriesDetails";
-import { createAppRouteContext } from "@/src/app/routeContext";
+import { createAppRouteContext, type NextPageParams, type NextPageSearchParams } from "@/src/app/routeContext";
 
-export default function UsSeriesPage({
+export default async function UsSeriesPage({
   params,
   searchParams,
 }: Readonly<{
-  params: Record<string, string>;
-  searchParams?: Record<string, string | string[] | undefined>;
+  params: NextPageParams;
+  searchParams?: NextPageSearchParams;
 }>) {
   return (
-    <SeriesDetails routeContext={createAppRouteContext({ params, searchParams, us: true })} />
+    <SeriesDetails routeContext={createAppRouteContext({ params: await params, searchParams: await searchParams, us: true })} />
   );
 }

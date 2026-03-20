@@ -12,6 +12,10 @@ export type AppRouteContextValue = {
   level: string;
 };
 
+export type NextPageParams = Promise<Record<string, string>>;
+export type NextPageSearchParams =
+  Promise<Record<string, string | string[] | undefined> | undefined>;
+
 type RouteSearchParams =
   | URLSearchParams
   | Record<string, string | string[] | undefined>

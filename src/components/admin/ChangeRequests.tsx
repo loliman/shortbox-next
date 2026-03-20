@@ -592,8 +592,8 @@ function toIsoDateOnly(value: Date): string {
   return value.toISOString().slice(0, 10);
 }
 
-export default function ChangeRequests() {
+export default function ChangeRequests(props: Readonly<ChangeRequestsProps>) {
   const snackbarBridge = useSnackbarBridge();
 
-  return <ChangeRequestsPage {...snackbarBridge} />;
+  return <ChangeRequestsPage {...props} {...snackbarBridge} />;
 }

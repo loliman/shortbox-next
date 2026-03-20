@@ -1,12 +1,12 @@
 import SeriesEdit from "@/src/components/restricted/edit/SeriesEdit";
-import { createAppRouteContext } from "@/src/app/routeContext";
+import { createAppRouteContext, type NextPageParams, type NextPageSearchParams } from "@/src/app/routeContext";
 
-export default function UsSeriesEditPage({
+export default async function UsSeriesEditPage({
   params,
   searchParams,
 }: Readonly<{
-  params: Record<string, string>;
-  searchParams?: Record<string, string | string[] | undefined>;
+  params: NextPageParams;
+  searchParams?: NextPageSearchParams;
 }>) {
-  return <SeriesEdit routeContext={createAppRouteContext({ params, searchParams, edit: true, us: true })} />;
+  return <SeriesEdit routeContext={createAppRouteContext({ params: await params, searchParams: await searchParams, edit: true, us: true })} />;
 }

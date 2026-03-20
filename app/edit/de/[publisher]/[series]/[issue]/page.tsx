@@ -1,12 +1,12 @@
 import IssueEdit from "@/src/components/restricted/edit/IssueEdit";
-import { createAppRouteContext } from "@/src/app/routeContext";
+import { createAppRouteContext, type NextPageParams, type NextPageSearchParams } from "@/src/app/routeContext";
 
-export default function DeIssueEditPage({
+export default async function DeIssueEditPage({
   params,
   searchParams,
 }: Readonly<{
-  params: Record<string, string>;
-  searchParams?: Record<string, string | string[] | undefined>;
+  params: NextPageParams;
+  searchParams?: NextPageSearchParams;
 }>) {
-  return <IssueEdit routeContext={createAppRouteContext({ params, searchParams, edit: true, us: false })} />;
+  return <IssueEdit routeContext={createAppRouteContext({ params: await params, searchParams: await searchParams, edit: true, us: false })} />;
 }
