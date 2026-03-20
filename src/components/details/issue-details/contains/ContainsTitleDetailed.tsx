@@ -1,0 +1,523 @@
+import React from "react";
+import { useRouter } from "next/navigation";
+import Typography from "@mui/material/Typography";
+import Link from "@mui/material/Link";
+import Chip from "@mui/material/Chip";
+import Box from "@mui/material/Box";
+import IconButton from "@mui/material/IconButton";
+import SearchIcon from "@mui/icons-material/Search";
+import CoverTooltip from "../../../nav-bar/CoverTooltip";
+import { generateLabel, generateUrl } from "../../../../util/hierarchy";
+import { romanize } from "../../../../util/util";
+import type { SelectedRoot } from "../../../../types/domain";
+import { IssueReferenceInline } from "../../../generic/IssueNumberInline";
+import { buildRouteHref } from "../../../generic/routeHref";
+
+type ContainsIssueLike = {
+  number?: string | number;
+  legacy_number?: string | null;
+  format?: string | null;
+  variant?: string | null;
+  stories?: Array<unknown> | null;
+  series?: {
+    title?: string;
+    volume?: number;
+    publisher?: { name?: string; us?: boolean };
+  };
+  issue?: {
+    number?: string | number;
+    series?: {
+      title?: string;
+      volume?: number;
+      publisher?: { name?: string; us?: boolean };
+    };
+  };
+};
+
+type ContainsParentLike = {
+  title?: string | null;
+  collectedmultipletimes?: boolean;
+  collected?: boolean;
+  children?: Array<{ part?: string | null; issue?: { releasedate?: string | null } | null } | null> | null;
+  reprintOf?: { issue?: ContainsIssueLike; number?: string | number } | null;
+  issue?: ContainsIssueLike;
+  number?: string | number;
+};
+
+type ContainsItemLike = {
+  number?: string | number;
+  title?: string | null;
+  part?: string | null;
+  addinfo?: string | null;
+  url?: string | null;
+  exclusive?: boolean;
+  firstapp?: boolean;
+  onlyapp?: boolean;
+  onlytb?: boolean;
+  otheronlytb?: boolean;
+  onlyoneprint?: boolean;
+  collectedmultipletimes?: boolean;
+  collected?: boolean;
+  parent?: ContainsParentLike | null;
+  issue?: ContainsIssueLike;
+};
+
+type ContainsTitleDetailedProps = {
+  item: ContainsItemLike;
+  us?: boolean;
+  simple?: boolean;
+  isCover?: boolean;
+  session?: unknown;
+  compactLayout?: boolean;
+  isPhone?: boolean;
+  isTablet?: boolean;
+  isTabletLandscape?: boolean;
+  drawerOpen?: boolean;
+  isPhonePortrait?: boolean;
+  query?: Record<string, unknown> | null;
+};
+
+const PART_PATTERN = /^(\d+)\s*\/\s*(\d+)$/;
+
+function parseStoryPart(value: string | null | undefined): { current: number; total: number } | null {
+  const match = String(value || "")
+    .trim()
+    .match(PART_PATTERN);
+  if (!match) return null;
+
+  const current = Number(match[1]);
+  const total = Number(match[2]);
+  if (!Number.isFinite(current) || !Number.isFinite(total) || current <= 0 || total <= 0) {
+    return null;
+  }
+
+  return { current, total };
+}
+
+function toReleaseTimestamp(value: string | null | undefined): number {
+  const parsed = Date.parse(String(value || "").trim());
+  return Number.isNaN(parsed) ? Number.POSITIVE_INFINITY : parsed;
+}
+
+function getEarliestFullPublicationTimestamp(
+  children: Array<{ part?: string | null; issue?: { releasedate?: string | null } | null } | null>
+): number {
+  const timestamps = children
+    .filter((child) => {
+      const parsed = parseStoryPart(child?.part);
+      return !parsed || parsed.total <= 1;
+    })
+    .map((child) => toReleaseTimestamp(child?.issue?.releasedate))
+    .filter((timestamp) => Number.isFinite(timestamp));
+
+  return timestamps.length > 0 ? Math.min(...timestamps) : Number.POSITIVE_INFINITY;
+}
+
+function getQualifyingMultipartTotals(
+  children: Array<{ part?: string | null; issue?: { releasedate?: string | null } | null } | null>
+): Set<number> {
+  const earliestFullPublicationTimestamp = getEarliestFullPublicationTimestamp(children);
+  if (!Number.isFinite(earliestFullPublicationTimestamp)) return new Set<number>();
+
+  const partsByTotal = new Map<number, Array<{ current: number; releasedateTs: number }>>();
+
+  children.forEach((child) => {
+    const parsed = parseStoryPart(child?.part);
+    if (!parsed || parsed.total <= 1) return;
+
+    const entries = partsByTotal.get(parsed.total) || [];
+    entries.push({
+      current: parsed.current,
+      releasedateTs: toReleaseTimestamp(child?.issue?.releasedate),
+    });
+    partsByTotal.set(parsed.total, entries);
+  });
+
+  const qualifyingTotals = new Set<number>();
+  for (const [total, entries] of partsByTotal.entries()) {
+    const parts = new Set(entries.map((entry) => entry.current));
+    let isComplete = true;
+    for (let current = 1; current <= total; current += 1) {
+      if (!parts.has(current)) {
+        isComplete = false;
+        break;
+      }
+    }
+    if (!isComplete) continue;
+
+    const completionTimestamp = Math.max(
+      ...entries.map((entry) => entry.releasedateTs).filter((value) => Number.isFinite(value))
+    );
+    if (completionTimestamp < earliestFullPublicationTimestamp) {
+      qualifyingTotals.add(total);
+    }
+  }
+
+  return qualifyingTotals;
+}
+
+function getFirstPublicationLabel(item: ContainsItemLike): string {
+  const siblingChildren = item.parent?.children || [];
+  return getQualifyingMultipartTotals(siblingChildren).size > 0
+    ? "Erste vollständige Veröffentlichung"
+    : "Erstveröffentlichung";
+}
+
+function shouldShowPartialPublicationLabel(item: ContainsItemLike): boolean {
+  const parsedPart = parseStoryPart(item.part);
+  if (!parsedPart || parsedPart.total <= 1) return false;
+
+  const siblingChildren = item.parent?.children || [];
+  return getQualifyingMultipartTotals(siblingChildren).has(parsedPart.total);
+}
+
+export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps>) {
+  const router = useRouter();
+  const item = props.item;
+  const issue = resolveIssueForDetails(item);
+  const issueSelection = issue ? toIssueSelection(issue) : null;
+  const storyExpandNumber = String(item.parent?.number ?? item.number ?? "").trim();
+  const storyNumberLabel = "";
+
+  const stackActions =
+    props.compactLayout ??
+    Boolean(props.isPhone || (props.isTablet && !props.isTabletLandscape));
+  const exclusive = Boolean(item.exclusive && !props.us);
+  const variant = !props.us && issue?.variant ? " " + issue.variant : "";
+  const itemTitle = normalizeDisplayStoryTitle(item.title);
+  const parentTitle =
+    !itemTitle && item.parent?.title ? normalizeDisplayStoryTitle(item.parent.title) : undefined;
+  const storyTitle = itemTitle || parentTitle || "";
+  const storyTitleLabel = storyTitle !== "" ? storyTitle : "Story";
+  const showParentTitle = Boolean(parentTitle && itemTitle && parentTitle !== itemTitle);
+  const addinfoText = buildAddinfoText(item);
+  const reprintSelection = item.parent?.reprintOf?.issue
+    ? toIssueSelection(item.parent.reprintOf.issue)
+    : null;
+  const hasIssueReference = Boolean(issue?.series);
+  const titleText = itemTitle || "";
+  const actionChips = buildDetailedActionChips({
+    item,
+    isCover: props.isCover,
+    exclusive,
+    hasSession: Boolean(props.session),
+  });
+  const detailButton =
+    !exclusive && issue && issueSelection ? (
+      <CoverTooltip issue={issue} us={props.us}>
+        <IconButton
+          component="span"
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(
+              buildRouteHref(generateUrl(issueSelection, !props.us), props.query, {
+                filter: null,
+                expand: storyExpandNumber || undefined,
+              })
+            );
+          }}
+          aria-label="Details"
+        >
+          <SearchIcon fontSize="small" />
+        </IconButton>
+      </CoverTooltip>
+    ) : null;
+
+  return (
+    <Box
+      data-testid="story-header"
+      sx={
+        stackActions
+          ? {
+              width: "100%",
+              display: "grid",
+              gridTemplateColumns: "minmax(0, 1fr) auto",
+              alignItems: "start",
+              columnGap: 1,
+            }
+          : {
+              width: "100%",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              gap: 1,
+            }
+      }
+    >
+      <Box sx={{ minWidth: 0 }}>
+        <Box
+          sx={{
+            display: "grid",
+            rowGap: 0.3,
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "baseline", gap: 1, flexWrap: "wrap" }}>
+            <Typography
+              variant="overline"
+              sx={{
+                fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif',
+                fontWeight: 500,
+                fontSize: "0.7rem",
+                lineHeight: 1.5,
+                textTransform: "uppercase",
+                letterSpacing: "0.16em",
+                color: "text.secondary",
+                opacity: 0.9,
+              }}
+            >
+              {storyTitleLabel}
+            </Typography>
+            {storyNumberLabel ? (
+              <Chip
+                size="small"
+                label={`Story ${storyNumberLabel}`}
+                sx={{ fontWeight: 600, height: 20 }}
+              />
+            ) : null}
+          </Box>
+          <Typography
+            variant="subtitle1"
+            sx={{
+              fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif',
+              fontSize: "1rem",
+              lineHeight: 1.75,
+              fontWeight: 700,
+              color: "text.secondary",
+              letterSpacing: "0.01em",
+              opacity: 0.9,
+            }}
+          >
+            <IssueReferenceInline
+              seriesLabel={
+                hasIssueReference
+                  ? generateLabel({ series: issue?.series as any } as any)
+                  : undefined
+              }
+              number={hasIssueReference ? issue?.number : undefined}
+              legacy_number={issue?.legacy_number}
+            />
+          </Typography>
+          {showParentTitle ? (
+            <Typography
+              sx={{
+                fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif',
+                fontSize: "0.9rem",
+                lineHeight: 1.55,
+                fontWeight: 500,
+                color: "text.secondary",
+                opacity: 0.9,
+              }}
+            >
+              {parentTitle}
+            </Typography>
+          ) : null}
+          {variant ? (
+            <Typography
+              sx={{
+                fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif',
+                fontSize: "0.85rem",
+                lineHeight: 1.5,
+                fontWeight: 500,
+                color: "text.secondary",
+                opacity: 0.9,
+              }}
+            >
+              {variant} Variant
+            </Typography>
+          ) : null}
+        </Box>
+
+        {item.parent?.reprintOf?.issue ? (
+          <Box
+            sx={{
+              mt: 1,
+              p: 1.25,
+              borderRadius: 1.5,
+              border: "1px solid",
+              borderColor: "divider",
+              backgroundColor: (theme) =>
+                theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)",
+            }}
+          >
+            <Typography variant="caption" color="text.secondary" sx={{ letterSpacing: "0.08em" }}>
+              US-Original
+            </Typography>
+            <CoverTooltip
+              issue={item.parent.reprintOf.issue}
+              us={props.us}
+              number={item.parent.reprintOf.number}
+            >
+              <Link
+                component="button"
+                type="button"
+                variant="body2"
+                underline="hover"
+                color="text.primary"
+                sx={{
+                  mt: 0.25,
+                  p: 0,
+                  textAlign: "left",
+                  lineHeight: 1.43,
+                  fontWeight: 600,
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!reprintSelection) return;
+                  router.push(
+                    buildRouteHref(generateUrl(reprintSelection, true), props.query, {
+                      expand: item.parent?.reprintOf?.number,
+                      filter: null,
+                    })
+                  );
+                }}
+              >
+                {reprintSelection ? generateLabel(reprintSelection) : ""}
+              </Link>
+            </CoverTooltip>
+          </Box>
+        ) : null}
+
+        <Typography
+          sx={{
+            fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif',
+            fontSize: "0.8rem",
+            lineHeight: 1.75,
+            fontWeight: 500,
+            color: "text.secondary",
+            letterSpacing: "0.01em",
+            opacity: 0.9,
+          }}
+        >
+          {addinfoText === "" ? null : addinfoText}
+        </Typography>
+
+        {stackActions && actionChips.length > 0 ? (
+          <Box
+            sx={{
+              mt: 1,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 0.6,
+              alignItems: "center",
+            }}
+          >
+            {actionChips}
+          </Box>
+        ) : null}
+      </Box>
+
+      {stackActions ? (
+        <Box sx={{ justifySelf: "end", alignSelf: "center" }}>{detailButton}</Box>
+      ) : (
+        <Box
+          sx={{
+            ml: "auto",
+            alignSelf: "center",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 0.6,
+            justifyContent: "flex-end",
+            alignItems: "center",
+          }}
+        >
+          {actionChips}
+          {detailButton}
+        </Box>
+      )}
+    </Box>
+  );
+}
+
+function buildAddinfoText(item: ContainsItemLike): string {
+  let addinfoText = "";
+  if (item.part && item.part.indexOf("/x") === -1) {
+    addinfoText += "Teil " + item.part.replace("/", " von ");
+  }
+  if (addinfoText !== "" && item.addinfo) {
+    addinfoText += ", ";
+  }
+  if (item.addinfo) {
+    addinfoText += item.addinfo;
+  }
+  return addinfoText;
+}
+
+function resolveIssueForDetails(item: ContainsItemLike): ContainsIssueLike | undefined {
+  const baseIssue = item.parent?.issue ? item.parent.issue : item;
+  if (baseIssue && baseIssue.issue) {
+    return {
+      ...baseIssue,
+      number: baseIssue.issue.number,
+      legacy_number: (baseIssue.issue as { legacy_number?: string | null }).legacy_number,
+      series: baseIssue.issue.series,
+    };
+  }
+  return baseIssue;
+}
+
+function toIssueSelection(issue: ContainsIssueLike): SelectedRoot {
+  return { issue: issue as SelectedRoot["issue"] };
+}
+
+function buildDetailedActionChips({
+  item,
+  isCover,
+  exclusive,
+  hasSession,
+}: {
+  item: ContainsItemLike;
+  isCover?: boolean;
+  exclusive: boolean;
+  hasSession: boolean;
+}): React.ReactElement[] {
+  const chips: React.ReactElement[] = [];
+
+  if (!isCover && item.url && item.number === 0) {
+    chips.push(<Chip key="cover" label="Cover" color="default" />);
+  }
+
+  if (!isCover && item.onlyapp && item.parent) {
+    chips.push(<Chip key="onlyapp" label="Einzige Veröffentlichung" color="secondary" />);
+  }
+
+  if (!isCover && !item.onlyapp && item.parent && shouldShowPartialPublicationLabel(item)) {
+    chips.push(<Chip key="firstapp-partial" label="Erste teilweise Veröffentlichung" color="primary" />);
+  } else if (!isCover && !item.onlyapp && item.firstapp && item.parent) {
+    chips.push(<Chip key="firstapp" label={getFirstPublicationLabel(item)} color="primary" />);
+  }
+
+  if (!isCover && item.otheronlytb && item.parent) {
+    chips.push(
+      <Chip key="otheronlytb" variant="outlined" label="Sonst nur in Taschenbuch" color="default" />
+    );
+  }
+
+  if (exclusive) {
+    chips.push(<Chip key="exclusive" label="Exklusiv" color="secondary" />);
+  }
+
+  if (item.parent?.collectedmultipletimes && hasSession) {
+    chips.push(<Chip key="collectedmultiple" color="success" label="Mehrfach gesammelt" />);
+  }
+
+  if (!item.parent?.collectedmultipletimes && item.parent?.collected && hasSession) {
+    chips.push(<Chip key="collected" color="success" label="Gesammelt" />);
+  }
+
+  return chips;
+}
+
+function normalizeDisplayStoryTitle(value: string | null | undefined): string {
+  const normalized = String(value || "").trim();
+  return normalized === "Untitled" ? "" : normalized;
+}
+
+function getStoryNumberBadge(item: ContainsItemLike): string {
+  const storyNumber = Number(item.parent?.number);
+  const storyCount = Array.isArray(item.parent?.issue?.stories)
+    ? item.parent.issue.stories.length
+    : 0;
+
+  if (!Number.isFinite(storyNumber) || storyNumber <= 0 || storyCount <= 1) return "";
+  return ` [${romanize(storyNumber)}]`;
+}

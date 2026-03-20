@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function HomeRedirectPage() {
+export default function CatchAllRedirectPage() {
   redirect("/de");
 }
