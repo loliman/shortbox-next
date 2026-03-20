@@ -18,8 +18,7 @@ const eslintConfig = [
       "**/*.test.ts",
       "**/*.test.tsx",
       "src/services/MarvelCrawlerService.ts",
-      "src/services/SeriesService.ts",
-      "src/services/UserService.ts"
+      "src/services/SeriesService.ts"
     ]
   },
   ...compat.extends("next/core-web-vitals", "next/typescript"),

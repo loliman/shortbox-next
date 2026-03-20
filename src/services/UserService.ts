@@ -1,8 +1,11 @@
-import { Transaction } from 'sequelize';
-import logger from '../util/logger';
-import type { LoginInput } from '@loliman/shortbox-contract';
-import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
-import { RateLimiterMemory, type RateLimiterRes } from 'rate-limiter-flexible';
+import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { RateLimiterMemory, type RateLimiterRes } from "rate-limiter-flexible";
+import { prisma } from "../lib/prisma/client";
+
+type LoginInput = {
+  name?: string | null;
+  password?: string | null;
+};
 
 type PasswordVerificationResult = {
   valid: boolean;
@@ -10,7 +13,7 @@ type PasswordVerificationResult = {
 };
 
 const parsePositiveInt = (value: string | undefined, fallback: number): number => {
-  const parsed = parseInt(value || '', 10);
+  const parsed = parseInt(value || "", 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 };
 
@@ -18,48 +21,35 @@ export class LoginRateLimitError extends Error {
   public readonly retryAfterSeconds: number;
 
   constructor(retryAfterSeconds: number) {
-    super('Zu viele Login-Versuche');
-    this.name = 'LoginRateLimitError';
+    super("Zu viele Login-Versuche");
+    this.name = "LoginRateLimitError";
     this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 
 export class UserService {
-  private static readonly HASH_PREFIX = 'scrypt';
+  private static readonly HASH_PREFIX = "scrypt";
   private static readonly LOGIN_RATE_LIMIT_MAX_ATTEMPTS = parsePositiveInt(
     process.env.LOGIN_MAX_ATTEMPTS,
-    8,
+    8
   );
   private static readonly LOGIN_RATE_LIMIT_WINDOW_SECONDS = parsePositiveInt(
     process.env.LOGIN_WINDOW_SECONDS,
-    900,
+    900
   );
   private static readonly LOGIN_RATE_LIMIT_LOCK_SECONDS = parsePositiveInt(
     process.env.LOGIN_LOCK_SECONDS,
-    900,
+    900
   );
   private static readonly loginRateLimiter = new RateLimiterMemory({
-    keyPrefix: 'login',
+    keyPrefix: "login",
     points: UserService.LOGIN_RATE_LIMIT_MAX_ATTEMPTS,
     duration: UserService.LOGIN_RATE_LIMIT_WINDOW_SECONDS,
     blockDuration: UserService.LOGIN_RATE_LIMIT_LOCK_SECONDS,
   });
 
-  constructor(
-    private models: typeof import('../models').default,
-    private requestId?: string,
-  ) {}
-
-  private log(message: string, level: 'info' | 'warn' | 'error' = 'info') {
-    if (level === 'error') {
-      logger.error(message, { requestId: this.requestId });
-      return;
-    }
-    if (level === 'warn') {
-      logger.warn(message, { requestId: this.requestId });
-      return;
-    }
-    logger.info(message, { requestId: this.requestId });
+  constructor(private requestId?: string) {
+    void this.requestId;
   }
 
   private isSha256Hex(value: string): boolean {
@@ -74,20 +64,17 @@ export class UserService {
   }
 
   private hashPassword(password: string): string {
-    const salt = randomBytes(16).toString('base64url');
-    const hash = scryptSync(password, salt, 64).toString('base64url');
+    const salt = randomBytes(16).toString("base64url");
+    const hash = scryptSync(password, salt, 64).toString("base64url");
     return `${UserService.HASH_PREFIX}$${salt}$${hash}`;
   }
 
-  private verifyPassword(
-    inputPassword: string,
-    storedPassword: string,
-  ): PasswordVerificationResult {
+  private verifyPassword(inputPassword: string, storedPassword: string): PasswordVerificationResult {
     if (storedPassword.startsWith(`${UserService.HASH_PREFIX}$`)) {
-      const [, salt, expectedHash] = storedPassword.split('$');
+      const [, salt, expectedHash] = storedPassword.split("$");
       if (!salt || !expectedHash) return { valid: false };
 
-      const calculatedHash = scryptSync(inputPassword, salt, 64).toString('base64url');
+      const calculatedHash = scryptSync(inputPassword, salt, 64).toString("base64url");
       return {
         valid: this.safeEqual(expectedHash, calculatedHash),
       };
@@ -106,8 +93,8 @@ export class UserService {
   }
 
   private buildLoginRateLimitKey(name: string, requestIp?: string): string {
-    const normalizedName = name.trim().toLowerCase() || 'unknown';
-    const normalizedIp = (requestIp || '').trim() || 'unknown';
+    const normalizedName = name.trim().toLowerCase() || "unknown";
+    const normalizedIp = (requestIp || "").trim() || "unknown";
     return `${normalizedName}|${normalizedIp}`;
   }
 
@@ -117,8 +104,8 @@ export class UserService {
   }
 
   private asRateLimiterRes(error: unknown): RateLimiterRes | null {
-    if (!error || typeof error !== 'object') return null;
-    if (!('msBeforeNext' in error) || !('remainingPoints' in error)) return null;
+    if (!error || typeof error !== "object") return null;
+    if (!("msBeforeNext" in error) || !("remainingPoints" in error)) return null;
     return error as RateLimiterRes;
   }
 
@@ -147,38 +134,24 @@ export class UserService {
     }
   }
 
-  async login(user: LoginInput, transaction: Transaction, requestIp?: string): Promise<any | null> {
-    const name = (user.name || '').trim();
-    this.log(`Login attempt for user: ${name || 'unknown'}`);
+  async login(user: LoginInput, requestIp?: string) {
+    const name = (user.name || "").trim();
     const loginRateLimitKey = this.buildLoginRateLimitKey(name, requestIp);
 
-    try {
-      await this.ensureLoginRateLimitNotExceeded(loginRateLimitKey);
-    } catch (error) {
-      if (error instanceof LoginRateLimitError) {
-        this.log(
-          `Login blocked by rate limiter for user: ${name || 'unknown'} (${error.retryAfterSeconds}s)`,
-          'warn',
-        );
-      }
-      throw error;
-    }
+    await this.ensureLoginRateLimitNotExceeded(loginRateLimitKey);
 
-    let userRecord = await this.models.User.findOne({
-      where: { name },
-      transaction,
+    const userRecord = await prisma.user.findFirst({
+      where: {
+        name,
+      },
     });
 
-    if (!userRecord) {
-      await this.registerLoginFailure(loginRateLimitKey);
-      return null;
-    }
-    if (!user.password) {
+    if (!userRecord || !userRecord.password) {
       await this.registerLoginFailure(loginRateLimitKey);
       return null;
     }
 
-    const passwordVerification = this.verifyPassword(user.password, userRecord.password);
+    const passwordVerification = this.verifyPassword(user.password || "", userRecord.password);
     if (!passwordVerification.valid) {
       await this.registerLoginFailure(loginRateLimitKey);
       return null;
@@ -186,20 +159,44 @@ export class UserService {
 
     await this.clearLoginRateLimit(loginRateLimitKey);
 
+    const nextSessionId = randomBytes(18).toString("hex");
+    const data: {
+      sessionId: string;
+      updatedAt: Date;
+      password?: string;
+    } = {
+      sessionId: nextSessionId,
+      updatedAt: new Date(),
+    };
+
     if (
       !userRecord.password.startsWith(`${UserService.HASH_PREFIX}$`) &&
       passwordVerification.upgradePassword
     ) {
-      userRecord.password = this.hashPassword(passwordVerification.upgradePassword);
+      data.password = this.hashPassword(passwordVerification.upgradePassword);
     }
 
-    await userRecord.save({ transaction });
-    return userRecord;
+    const updatedUser = await prisma.user.update({
+      where: {
+        id: userRecord.id,
+      },
+      data,
+    });
+
+    return updatedUser;
   }
 
-  async logout(userId: number, transaction: Transaction) {
-    this.log(`Logout for user ID: ${userId}`);
-    void transaction;
+  async logout(userId: number | bigint | string) {
+    await prisma.user.update({
+      where: {
+        id: BigInt(userId),
+      },
+      data: {
+        sessionId: null,
+        updatedAt: new Date(),
+      },
+    });
+
     return true;
   }
 }
