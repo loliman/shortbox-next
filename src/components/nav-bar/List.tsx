@@ -262,9 +262,9 @@ export default function List(ownProps: Readonly<Partial<ListProps>>) {
   if (isInitialLoading) {
     content = Array.from({ length: 25 }).map((_, idx) => <TypeListEntryPlaceholder key={idx} />);
   } else if (publisherError) {
-    content = <NestedErrorRow depth={0} message="Fehler beim Laden der Navigation" />;
+    content = <NestedErrorRow depth={0} message="Navigation aktuell nicht verfügbar" />;
   } else if (visiblePublisherNodes.length === 0) {
-    content = <NoEntries />;
+    content = <NestedEmptyRow depth={0} message="Keine Einträge vorhanden" />;
   } else {
     content = visiblePublisherNodes.map((publisherNode) => {
       const publisherName = publisherNode.name || "";
@@ -494,8 +494,8 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
   );
 
   if (seriesLoading && seriesNodes.length === 0) return <NestedLoadingRow depth={1} />;
-  if (seriesError) return <NestedErrorRow depth={1} />;
-  if (seriesNodes.length === 0) return <NestedEmptyRow depth={1} />;
+  if (seriesError) return <NestedErrorRow depth={1} message="Serien aktuell nicht verfügbar" />;
+  if (seriesNodes.length === 0) return <NestedEmptyRow depth={1} message="Keine Serien vorhanden" />;
 
   return (
     <MuiList disablePadding>
@@ -667,8 +667,8 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
   ]);
 
   if (issuesLoading && issueNodes.length === 0) return <NestedLoadingRow depth={2} />;
-  if (issuesError) return <NestedErrorRow depth={2} />;
-  if (issueNodes.length === 0) return <NestedEmptyRow depth={2} />;
+  if (issuesError) return <NestedErrorRow depth={2} message="Ausgaben aktuell nicht verfügbar" />;
+  if (issueNodes.length === 0) return <NestedEmptyRow depth={2} message="Keine Ausgaben vorhanden" />;
 
   return (
     <MuiList disablePadding ref={issueListRef}>
@@ -865,10 +865,16 @@ function NestedErrorRow({
   );
 }
 
-function NestedEmptyRow({ depth }: { depth: number }) {
+function NestedEmptyRow({
+  depth,
+  message = "Keine Einträge vorhanden",
+}: {
+  depth: number;
+  message?: string;
+}) {
   return (
     <ListItem sx={{ pl: getDepthPadding(depth) }}>
-      <ListItemText primary="Keine Eintraege" />
+      <ListItemText primary={message} />
     </ListItem>
   );
 }

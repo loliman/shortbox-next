@@ -168,10 +168,14 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
       <CardHeader title="Change Requests" />
       <CardContent sx={{ pt: 1 }}>
         {loading ? <Typography>Lade Change Requests...</Typography> : null}
-        {error ? <Alert severity="error">Change Requests konnten nicht geladen werden.</Alert> : null}
+        {error ? (
+          <Alert severity="warning">
+            Change Requests konnten aktuell nicht geladen werden. Die Ansicht bleibt leer.
+          </Alert>
+        ) : null}
 
         {!loading && !error && visibleChangeRequests.length === 0 ? (
-          <Alert severity="success">Keine offenen Change Requests.</Alert>
+          <Alert severity="info">Keine offenen Change Requests.</Alert>
         ) : null}
 
         <Box>

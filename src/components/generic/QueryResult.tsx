@@ -79,10 +79,17 @@ export default function QueryResult(props: Readonly<QueryResultProps>) {
       <Box sx={{ p: 2, display: "flex" }}>
         <SearchIcon fontSize="large" />
         <Typography sx={{ pl: 1.25, alignSelf: "center" }}>
-          {generateLabel(selected)} nicht gefunden
+          {getNotFoundLabel(selected)}
         </Typography>
       </Box>
     );
 
   return null;
+}
+
+function getNotFoundLabel(selected?: SelectedRoot | null): string {
+  if (!selected) return "Eintrag nicht gefunden";
+
+  const label = generateLabel(selected);
+  return label && label.trim().length > 0 ? `${label} nicht gefunden` : "Eintrag nicht gefunden";
 }

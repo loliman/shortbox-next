@@ -347,10 +347,14 @@ function AdminTasksPage(props: Readonly<AdminTasksProps>) {
 
       <CardContent sx={{ pt: 1 }}>
         {loading ? <Typography>Lade Jobs...</Typography> : null}
-        {error ? <Alert severity="error">Jobs konnten nicht geladen werden.</Alert> : null}
+        {error ? (
+          <Alert severity="warning">
+            Jobs konnten aktuell nicht geladen werden. Die Admin-Ansicht bleibt ohne Daten nutzbar.
+          </Alert>
+        ) : null}
 
         {!loading && !error && tasks.length === 0 ? (
-          <Alert severity="info">Es sind aktuell keine Jobs registriert.</Alert>
+          <Alert severity="info">Aktuell sind keine Admin-Jobs sichtbar.</Alert>
         ) : null}
 
         <Box>
