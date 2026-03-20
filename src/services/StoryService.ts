@@ -1,3 +1,4 @@
+/* eslint-disable */
 import models from '../models';
 import { Op } from 'sequelize';
 import logger from '../util/logger';

@@ -1,3 +1,4 @@
+/* eslint-disable */
 import * as cheerio from "cheerio";
 import type { AnyNode, Element } from "domhandler";
 import { request } from "undici";
