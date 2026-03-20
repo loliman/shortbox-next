@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import type { AppThemeMode } from "../../app/theme";
 import type { SessionData } from "../../app/session";
@@ -29,6 +31,8 @@ export interface AppContextValue {
   isTablet: boolean;
   isDesktop: boolean;
   isLandscape: boolean;
+  isPhoneLandscape: boolean;
+  isTabletLandscape: boolean;
   isPhonePortrait: boolean;
   compactLayout: boolean;
   navWide: boolean;
@@ -53,6 +57,8 @@ const defaultContextValue: AppContextValue = {
   isTablet: false,
   isDesktop: true,
   isLandscape: false,
+  isPhoneLandscape: false,
+  isTabletLandscape: false,
   isPhonePortrait: false,
   compactLayout: false,
   navWide: true,
@@ -161,6 +167,8 @@ function AppContextProvider({
       isTablet: responsive.isTablet,
       isDesktop: responsive.isDesktop,
       isLandscape: responsive.isLandscape,
+      isPhoneLandscape: responsive.isPhoneLandscape,
+      isTabletLandscape: responsive.isTabletLandscape,
       isPhonePortrait: responsive.isPhonePortrait,
       compactLayout: responsive.isCompact,
       navWide: responsive.navWide,

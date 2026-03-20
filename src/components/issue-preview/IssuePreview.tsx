@@ -27,7 +27,7 @@ interface IssuePreviewProps {
   drawerOpen?: boolean;
 }
 
-const NO_COVER_URL = `${import.meta.env.BASE_URL}nocover.png`;
+const NO_COVER_URL = "/nocover.png";
 
 export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
   const us = Boolean(props.us);

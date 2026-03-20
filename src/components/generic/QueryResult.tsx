@@ -33,7 +33,7 @@ export default function QueryResult(props: Readonly<QueryResultProps>) {
 
     for (let i = 0; i < placeholderCount; i++)
       placeholder.push(
-        React.cloneElement(props.placeholder, {
+        React.cloneElement(props.placeholder as React.ReactElement<any>, {
           key: i,
         })
       );

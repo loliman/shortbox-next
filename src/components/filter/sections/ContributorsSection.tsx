@@ -9,8 +9,7 @@ import AutocompleteBase from "../../generic/AutocompleteBase";
 import { useAutocompleteQuery } from "../../generic/useAutocompleteQuery";
 import { CONTRIBUTOR_FIELDS, TRANSLATOR_FIELD } from "../constants";
 import { FilterValues } from "../types";
-import { updateField } from "../queryHelpers";
-import type { ChangePayload, FieldItem } from "../../../util/filterFieldHelpers";
+import { updateField, type ChangePayload, type FieldItem } from "../../../util/filterFieldHelpers";
 
 const MIN_QUERY_LENGTH = 2;
 

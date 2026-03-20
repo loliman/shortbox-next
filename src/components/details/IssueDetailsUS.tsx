@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { AppContext } from "../generic/AppContext";
 import { useAppRouteContext } from "../generic";

@@ -1,3 +1,5 @@
+"use client";
+
 import Toolbar from "@mui/material/Toolbar";
 import Switch from "@mui/material/Switch";
 import AppBar from "@mui/material/AppBar";

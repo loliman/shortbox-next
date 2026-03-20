@@ -106,14 +106,14 @@ export function ContainsItem(props: Readonly<ContainsItemProps>) {
           },
         }}
       >
-        {React.cloneElement(props.itemTitle, {
+        {React.cloneElement(props.itemTitle as React.ReactElement<any>, {
           query: props.query,
           item: props.item,
           us: props.us,
         })}
       </AccordionSummary>
       <AccordionDetails>
-        {React.cloneElement(props.itemDetails, {
+        {React.cloneElement(props.itemDetails as React.ReactElement<any>, {
           us: props.us,
           query: props.query,
           item: props.item,

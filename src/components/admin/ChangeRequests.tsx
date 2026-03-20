@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import {
   Accordion,
@@ -31,9 +33,17 @@ interface ParsedChangeRequest {
   item?: Record<string, unknown>;
 }
 
+type ChangeRequestEntry = {
+  id?: string | number | null;
+  createdAt?: string | null;
+  changeRequest?: unknown;
+};
+
 function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
   const [hiddenIds, setHiddenIds] = React.useState<Record<string, boolean>>({});
-  const [data, setData] = React.useState<{ changeRequests?: unknown[] }>({ changeRequests: [] });
+  const [data, setData] = React.useState<{ changeRequests?: ChangeRequestEntry[] }>({
+    changeRequests: [],
+  });
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<unknown>(null);
   const [accepting, setAccepting] = React.useState(false);
@@ -47,7 +57,7 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
         cache: "no-store",
       });
       if (!response.ok) throw new Error(`Change requests request failed: ${response.status}`);
-      const payload = (await response.json()) as { items?: unknown[] };
+      const payload = (await response.json()) as { items?: ChangeRequestEntry[] };
       setData({ changeRequests: Array.isArray(payload.items) ? payload.items : [] });
     } catch (nextError) {
       setData({ changeRequests: [] });
@@ -64,11 +74,11 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
   const visibleChangeRequests = React.useMemo(() => {
     const entries = data?.changeRequests || [];
     return entries
-      .filter((entry: { id?: string | number | null } | null) => {
+      .filter((entry) => {
         const id = String(entry?.id || "");
         return id.length > 0 && !hiddenIds[id];
       })
-      .sort((a: { createdAt?: string | null }, b: { createdAt?: string | null }) => {
+      .sort((a, b) => {
         return toTimestamp(a.createdAt) - toTimestamp(b.createdAt);
       });
   }, [data?.changeRequests, hiddenIds]);
@@ -95,7 +105,7 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
     }
   };
 
-  const handleAccept = async (entry: { id?: string | number | null; changeRequest?: unknown } | null) => {
+  const handleAccept = async (entry: ChangeRequestEntry | null) => {
     const id = String(entry?.id || "");
     if (!id) return;
 
@@ -164,10 +174,7 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
 
         <Box>
           {visibleChangeRequests.map(
-            (
-              entry: { id?: string | number | null; createdAt?: string | null; changeRequest?: unknown },
-              idx: number
-            ) => {
+            (entry: ChangeRequestEntry, idx: number) => {
               const id = String(entry.id || "");
               const isLast = idx === visibleChangeRequests.length - 1;
               const borderRadius =

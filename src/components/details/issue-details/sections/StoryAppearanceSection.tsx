@@ -12,10 +12,10 @@ type StoryAppearanceSectionProps = {
 };
 
 export function StoryAppearanceSection(props: Readonly<StoryAppearanceSectionProps>) {
+  const [expanded, setExpanded] = React.useState(false);
   const source = props.item as { parent?: { appearances?: unknown[] }; appearances?: unknown[] };
   const appearances = source.parent ? source.parent.appearances : source.appearances;
   if (!appearances || appearances.length === 0) return null;
-  const [expanded, setExpanded] = React.useState(false);
 
   return (
     <Box sx={{ mt: 3, pt: 2, borderTop: 1, borderColor: "divider" }}>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useParams, usePathname, useSearchParams } from "next/navigation";
 import queryString from "query-string";
 import type { SelectedRoot } from "../../types/domain";

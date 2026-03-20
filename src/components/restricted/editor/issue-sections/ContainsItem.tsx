@@ -207,7 +207,7 @@ class ContainsItem extends React.Component<ContainsItemProps> {
 
         <AccordionDetails sx={{ pr: 2, pb: 2, pt: 1.25, pl: 6 }}>
           <Box>
-            {React.cloneElement(this.props.fields, {
+            {React.cloneElement(this.props.fields as React.ReactElement<any>, {
               ...this.props,
               disabled: isDisabled,
             })}

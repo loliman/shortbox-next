@@ -25,7 +25,7 @@ export function DetailsTable(props: Readonly<DetailsTableProps>) {
         }}
       >
         <TableBody>
-          {React.cloneElement(props.details, {
+          {React.cloneElement(props.details as React.ReactElement<any>, {
             ...props,
             issue: props.issue,
           })}

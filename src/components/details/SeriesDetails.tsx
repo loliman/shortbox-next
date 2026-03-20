@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import CardHeader from "@mui/material/CardHeader";
 import CardContent from "@mui/material/CardContent";
@@ -181,7 +183,13 @@ export default function SeriesDetails(props: Readonly<Record<string, unknown>>) 
   const appContext = React.useContext(AppContext);
   const routeContext = useAppRouteContext();
 
-  return <SeriesDetailsView {...appContext} {...routeContext} {...props} />;
+  return (
+    <SeriesDetailsView
+      {...(appContext as unknown as SeriesDetailsProps)}
+      {...(routeContext as unknown as SeriesDetailsProps)}
+      {...(props as unknown as SeriesDetailsProps)}
+    />
+  );
 }
 
 function SeriesDetailsView(props: Readonly<SeriesDetailsProps>) {

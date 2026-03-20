@@ -1,5 +1,4 @@
 import React from "react";
-import { useRouter } from "next/navigation";
 import Chip from "@mui/material/Chip";
 import Box from "@mui/material/Box";
 import { buildRouteHref } from "../../../generic/routeHref";
@@ -20,7 +19,6 @@ export function toChipList(
   props: ChipNavigationProps,
   type: string
 ) {
-  const router = useRouter();
   const safeItems = Array.isArray(items) ? items : [];
   if (safeItems.length === 0) {
     return <Chip key={0} variant="outlined" label="Unbekannt" />;
@@ -51,13 +49,12 @@ export function toChipList(
             key={`${typename}|${label}|${idx}`}
             variant="outlined"
             label={label}
-            onClick={() =>
-              router.push(
-                buildRouteHref(props.us ? "/us" : "/de", null, {
-                  filter: JSON.stringify(filter),
-                })
-              )
-            }
+            onClick={() => {
+              if (typeof window === "undefined") return;
+              window.location.href = buildRouteHref(props.us ? "/us" : "/de", null, {
+                filter: JSON.stringify(filter),
+              });
+            }}
           />
         );
       })}

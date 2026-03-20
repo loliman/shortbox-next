@@ -13,7 +13,6 @@ import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
 import DeletionDialog from "./DeletionDialog";
 import { stripItem } from "../../util/util";
-import { ReimportScopeKind } from "../../graphql/typed-documents.generated";
 import { AppContext } from "../generic/AppContext";
 import { useAppRouteContext } from "../generic";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
@@ -217,7 +216,7 @@ interface ActionMenuItemProps {
 }
 
 type ReimportScopeInput = {
-  reimportScopeKind: ReimportScopeKind;
+  reimportScopeKind: "Publisher" | "Series" | "Issue";
   publisherId?: string;
   seriesId?: string;
   issueId?: string;
@@ -262,21 +261,21 @@ function toReimportScopeInput(
 
   if (level === HierarchyLevel.PUBLISHER) {
     return {
-      reimportScopeKind: ReimportScopeKind.Publisher,
+      reimportScopeKind: "Publisher",
       publisherId: id,
     };
   }
 
   if (level === HierarchyLevel.SERIES) {
     return {
-      reimportScopeKind: ReimportScopeKind.Series,
+      reimportScopeKind: "Series",
       seriesId: id,
     };
   }
 
   if (level === HierarchyLevel.ISSUE) {
     return {
-      reimportScopeKind: ReimportScopeKind.Issue,
+      reimportScopeKind: "Issue",
       issueId: id,
     };
   }

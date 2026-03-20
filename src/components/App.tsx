@@ -2,6 +2,7 @@
 
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
+import { SnackbarProvider } from "notistack";
 import { type ReactNode, Suspense, useEffect, useMemo, useState } from "react";
 import AppContextProvider from "./generic/AppContext";
 import { createAppTheme, type AppThemeMode } from "../app/theme";
@@ -25,7 +26,6 @@ type AppProps = {
 export default function App(props: Readonly<AppProps>) {
   const [session, setSession] = useState<SessionData | null>(null);
   const [themeMode, setThemeMode] = useState<AppThemeMode>(() => readStoredThemeMode() || "light");
-  const [themeLockedByUser, setThemeLockedByUser] = useState<boolean>(true);
 
   const toggleTheme = () => {
     setThemeMode((prev) => {
@@ -35,7 +35,6 @@ export default function App(props: Readonly<AppProps>) {
       }
       return next;
     });
-    setThemeLockedByUser(true);
   };
 
   const theme = useMemo(() => createAppTheme(themeMode), [themeMode]);
@@ -61,15 +60,21 @@ export default function App(props: Readonly<AppProps>) {
 
   return (
     <ThemeProvider theme={theme}>
-      <AppContextProvider
-        session={session}
-        setSession={setSession}
-        themeMode={themeMode}
-        toggleTheme={toggleTheme}
+      <SnackbarProvider
+        maxSnack={4}
+        autoHideDuration={3500}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <CssBaseline />
-        <Suspense fallback={<AppPageLoader />}>{props.children ?? null}</Suspense>
-      </AppContextProvider>
+        <AppContextProvider
+          session={session}
+          setSession={setSession}
+          themeMode={themeMode}
+          toggleTheme={toggleTheme}
+        >
+          <CssBaseline />
+          <Suspense fallback={<AppPageLoader />}>{props.children ?? null}</Suspense>
+        </AppContextProvider>
+      </SnackbarProvider>
     </ThemeProvider>
   );
 }

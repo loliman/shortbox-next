@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import CardHeader from "@mui/material/CardHeader";
 import CardContent from "@mui/material/CardContent";
@@ -167,7 +169,13 @@ export default function PublisherDetails(props: Readonly<Record<string, unknown>
   const appContext = React.useContext(AppContext);
   const routeContext = useAppRouteContext();
 
-  return <PublisherDetailsView {...appContext} {...routeContext} {...props} />;
+  return (
+    <PublisherDetailsView
+      {...(appContext as unknown as PublisherDetailsProps)}
+      {...(routeContext as unknown as PublisherDetailsProps)}
+      {...(props as unknown as PublisherDetailsProps)}
+    />
+  );
 }
 
 function PublisherDetailsView(props: Readonly<PublisherDetailsProps>) {

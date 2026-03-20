@@ -1,3 +1,5 @@
+"use client";
+
 import Layout from "../Layout";
 import { useRouter } from "next/navigation";
 import QueryResult from "../generic/QueryResult";
@@ -71,6 +73,27 @@ function IssueDetails(props: IssueDetailsProps) {
   const [loadedIssue, setLoadedIssue] = React.useState<Issue | null>(null);
   const [loading, setLoading] = React.useState(Boolean(selected.issue));
   const [error, setError] = React.useState<unknown>(null);
+  const loadedIssueIdentityKey = React.useMemo(
+    () =>
+      [
+        us ? "us" : "de",
+        selected.issue?.series?.publisher?.name || "",
+        selected.issue?.series?.title || "",
+        selected.issue?.series?.volume || "",
+        selected.issue?.number || "",
+        selected.issue?.format || "",
+        selected.issue?.variant || "",
+      ].join("|"),
+    [
+      selected.issue?.format,
+      selected.issue?.number,
+      selected.issue?.series?.publisher?.name,
+      selected.issue?.series?.title,
+      selected.issue?.series?.volume,
+      selected.issue?.variant,
+      us,
+    ]
+  );
   const issueForVariants = loadedIssue ? toIssueWithMockVariants(loadedIssue) : null;
   const coverGalleryIssues = React.useMemo(
     () => (issueForVariants ? buildCoverGalleryIssues(issueForVariants) : []),
@@ -431,7 +454,7 @@ function IssueDetails(props: IssueDetailsProps) {
 
                   {props.bottom ? (
                     <Box sx={{ minWidth: 0, width: "100%", mt: 0 }}>
-                        {React.cloneElement(props.bottom, {
+                        {React.cloneElement(props.bottom as React.ReactElement<any>, {
                         query: props.query,
                         selected: issueForVariants,
                         issue: issueForVariants,
@@ -447,7 +470,7 @@ function IssueDetails(props: IssueDetailsProps) {
                   <Box sx={{ minWidth: 0, width: "100%" }}>
                     {props.bottom ? (
                       <Box sx={{ minWidth: 0, width: "100%", mt: 0 }}>
-                        {React.cloneElement(props.bottom, {
+                        {React.cloneElement(props.bottom as React.ReactElement<any>, {
                           query: props.query,
                           selected: issueForVariants,
                           issue: issueForVariants,
@@ -671,6 +694,10 @@ function coverGalleryArrowSx(side: "left" | "right") {
       bgcolor: "rgba(0,0,0,0.6)",
     },
   };
+}
+
+function getIssueVariantKey(issue: { format?: string | null; variant?: string | null }): string {
+  return [String(issue.format || "").trim(), String(issue.variant || "").trim()].join("|");
 }
 
 function buildCoverGalleryIssues(issue: Issue): PreviewIssue[] {

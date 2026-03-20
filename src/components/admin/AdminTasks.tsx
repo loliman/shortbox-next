@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import {
   Accordion,
@@ -31,6 +33,14 @@ type AdminTasksProps = {
   enqueueSnackbar?: (message: string, options?: { variant?: SnackbarVariant }) => void;
 };
 
+type AdminTaskItem = {
+  id?: string | number;
+  key?: string;
+  name?: string;
+  description?: string;
+  runs?: RunLike[];
+};
+
 const MAX_DETAIL_CHARS = 120000;
 
 const formatDateTime = (value?: string | null): string => {
@@ -53,9 +63,14 @@ const trimDetails = (value?: string | null): { text: string; truncated: boolean 
 };
 
 type RunLike = {
+  id?: string | number | null;
+  taskKey?: string | null;
+  taskName?: string | null;
+  dryRun?: boolean | null;
   status?: string | null;
   summary?: string | null;
   details?: string | null;
+  startedAt?: string | null;
   finishedAt?: string | null;
 };
 
@@ -190,7 +205,7 @@ const resolveAggregateTaskState = (runs: Array<RunLike | null | undefined>): Vis
 
 function AdminTasksPage(props: Readonly<AdminTasksProps>) {
   const [runningTaskKey, setRunningTaskKey] = React.useState<string | null>(null);
-  const [data, setData] = React.useState<{ adminTasks?: unknown[] }>({ adminTasks: [] });
+  const [data, setData] = React.useState<{ adminTasks?: AdminTaskItem[] }>({ adminTasks: [] });
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<unknown>(null);
   const [releasingLocks, setReleasingLocks] = React.useState(false);
@@ -204,7 +219,7 @@ function AdminTasksPage(props: Readonly<AdminTasksProps>) {
     try {
       const response = await fetch("/api/public-admin-tasks?limitRuns=10", { cache: "no-store" });
       if (!response.ok) throw new Error(`Admin tasks request failed: ${response.status}`);
-      const payload = (await response.json()) as { items?: unknown[] };
+      const payload = (await response.json()) as { items?: AdminTaskItem[] };
       setData({ adminTasks: Array.isArray(payload.items) ? payload.items : [] });
     } catch (nextError) {
       setData({ adminTasks: [] });

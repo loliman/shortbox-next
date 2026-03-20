@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import App from "@/src/components/App";
 
 export const metadata: Metadata = {
-  title: "Shortbox Next",
-  description: "Next.js migration workspace for Shortbox"
+  title: "Shortbox",
+  description: "Shortbox"
 };
 
 export default function RootLayout({
@@ -13,7 +14,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="de">
-      <body>{children}</body>
+      <body>
+        <App>{children}</App>
+      </body>
     </html>
   );
 }

@@ -1,3 +1,5 @@
+"use client";
+
 import Card from "@mui/material/Card";
 import React from "react";
 import TopBar from "./top-bar/TopBar";
@@ -141,7 +143,7 @@ export default function Layout(ownProps: Readonly<LayoutProps>) {
           </Card>
         </Box>
 
-      {session ? <AddFab us={us} /> : us ? null : <ErrorFab us={us} />}
+      {session ? <AddFab /> : us ? null : <ErrorFab />}
       </Box>
     </Box>
   );

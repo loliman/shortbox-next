@@ -1,9 +1,11 @@
+"use client";
+
+import React from "react";
+import { useRouter } from "next/navigation";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
-import React from "react";
-import { useRouter } from "next/navigation";
 import { Form, Formik } from "formik";
 import Layout from "../Layout";
 import QueryResult from "../generic/QueryResult";
@@ -149,7 +151,11 @@ function IssueReportView(props: Readonly<IssueReportProps>) {
                 <IssueEditorFormContent
                   values={values}
                   edit
-                  id={issueDetails.id ?? undefined}
+                  id={
+                    typeof issueDetails.id === "string" || typeof issueDetails.id === "number"
+                      ? issueDetails.id
+                      : undefined
+                  }
                   header="Fehler melden"
                   submitLabel="Fehler melden"
                   submitAndCopyLabel="Fehler melden"

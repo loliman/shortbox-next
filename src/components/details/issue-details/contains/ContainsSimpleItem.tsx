@@ -86,7 +86,7 @@ export function ContainsSimpleItem(props: Readonly<ContainsSimpleItemProps>) {
           },
         }}
       >
-        {React.cloneElement(props.itemTitle, {
+        {React.cloneElement(props.itemTitle as React.ReactElement<any>, {
           query: props.query,
           item: props.item,
           us: props.us,

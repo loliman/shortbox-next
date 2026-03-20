@@ -26,7 +26,7 @@ type IssueVariantsProps = {
   session?: unknown;
 };
 
-const NO_COVER_URL = `${import.meta.env.BASE_URL}nocover.png`;
+const NO_COVER_URL = "/nocover.png";
 const JUMP_BUTTON_HIDE_DELAY_MS = 140;
 const outlinedStatusIconSx = {
   fontSize: 20,

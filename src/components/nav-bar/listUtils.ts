@@ -1,5 +1,5 @@
 import { HierarchyLevel, type HierarchyLevelType } from "../../util/hierarchy";
-import type { Connection, QueryCollection } from "../../types/graphql";
+import type { Connection, QueryCollection } from "../../types/query-data";
 import type { SelectedRoot } from "../../types/domain";
 
 type ListNode = Record<string, unknown> & {

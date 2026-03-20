@@ -25,7 +25,7 @@ interface IssuePreviewSmallProps {
   isLast?: boolean;
 }
 
-const NO_COVER_URL = `${import.meta.env.BASE_URL}nocover.png`;
+const NO_COVER_URL = "/nocover.png";
 
 export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps>) {
   const us = Boolean(props.us);
