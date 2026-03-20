@@ -9,8 +9,8 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import RemoveContainsButton from "./RemoveContainsButton";
 import type { ContainsProps, FieldItem } from "./types";
-import {generateLabel} from "../../../../util/hierarchy";
-import {IssueReferenceInline} from "../../../generic/IssueNumberInline";
+import { generateLabel } from "../../../../util/hierarchy";
+import { IssueReferenceInline } from "../../../generic/IssueNumberInline";
 
 interface ContainsItemProps extends ContainsProps {
   item: FieldItem;
@@ -38,8 +38,6 @@ class ContainsItem extends React.Component<ContainsItemProps> {
       : 0;
     const isDisabled = childCount > 0;
     const isExpanded = Boolean(this.props.expanded);
-    const isDragOver = this.props.dragOverStoryIndex === this.props.index;
-    const isDragging = this.props.draggedStoryIndex === this.props.index;
 
       const parent = (this.props.item.parent || {}) as { title? : string;
           issue?: { number?: string | number; legacy_number?: string ; series?: { title?: string }};

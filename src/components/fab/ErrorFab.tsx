@@ -63,7 +63,6 @@ class ErrorFabBase extends React.Component<ErrorFabProps, ErrorFabState> {
 
   render() {
     const selected = this.props.selected || { us: Boolean(this.props.us) };
-    const us = Boolean(this.props.us);
     const mobileBottomOffset = this.getMobileBottomOffsetExpression();
 
     if (this.props.level !== HierarchyLevel.ISSUE || !selected.issue) return null;
@@ -154,7 +153,7 @@ class ErrorFabBase extends React.Component<ErrorFabProps, ErrorFabState> {
     );
   }
 
-  handleClick = (_event: React.MouseEvent<HTMLButtonElement>) => {
+  handleClick = () => {
     const selected = this.props.selected || { us: Boolean(this.props.us) };
     const us = Boolean(this.props.us);
     this.props.onNavigate?.("/report" + generateUrl(selected, us));

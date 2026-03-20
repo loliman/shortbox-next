@@ -1,7 +1,7 @@
 "use client";
 
-import Layout from "../Layout";
 import { useRouter } from "next/navigation";
+import Layout from "../Layout";
 import QueryResult from "../generic/QueryResult";
 import React from "react";
 import Box from "@mui/material/Box";
@@ -66,7 +66,6 @@ interface IssueDetailsProps {
 }
 
 function IssueDetails(props: IssueDetailsProps) {
-  const router = useRouter();
   const selected = props.selected || { us: Boolean(props.us) };
   const us = Boolean(props.us);
   const details = props.details || <React.Fragment />;

@@ -11,7 +11,6 @@ interface IssueEditorIdentifiersFieldsProps {
 
 function IssueEditorIdentifiersFields({
   values,
-  isDesktop: _isDesktop,
 }: IssueEditorIdentifiersFieldsProps) {
   return (
     <Grid container spacing={2}>

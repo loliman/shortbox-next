@@ -54,7 +54,7 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
   }, []);
 
   const onCancel = React.useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>) => {
+    () => {
       if (copyModeRef.current && selected) {
         router.push(generateUrl(selected, Boolean(selected.us)));
         return;

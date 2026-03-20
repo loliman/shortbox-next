@@ -132,7 +132,7 @@ function AppContextProvider({
   );
 
   const handleLogin = useCallback(
-    (_user: SessionValue) => {
+    () => {
       setSession?.({ loggedIn: true });
     },
     [setSession]

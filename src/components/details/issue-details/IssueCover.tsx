@@ -13,7 +13,7 @@ type IssueCoverProps = {
 
 export function IssueCover(props: Readonly<IssueCoverProps>) {
   const [isOpen, setIsOpen] = React.useState(false);
-  const { coverUrl, blurCover } = getIssueCoverSource(props.issue, props.us);
+  const { coverUrl, blurCover } = getIssueCoverSource(props.issue);
   const [displayUrl, setDisplayUrl] = React.useState(coverUrl);
   const issueLabel = getIssueLabel(props.issue);
   const fallbackUrl = "/nocover.png";
@@ -91,10 +91,7 @@ export function IssueCover(props: Readonly<IssueCoverProps>) {
   );
 }
 
-function getIssueCoverSource(
-  issue: PreviewIssue,
-  _us: boolean
-): { coverUrl: string; blurCover: boolean } {
+function getIssueCoverSource(issue: PreviewIssue): { coverUrl: string; blurCover: boolean } {
   const directCover = issue.cover?.url?.trim();
   if (directCover) return { coverUrl: directCover, blurCover: false };
 

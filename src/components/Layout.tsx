@@ -39,25 +39,29 @@ interface LayoutProps {
 export default function Layout(ownProps: Readonly<LayoutProps>) {
   const appContext = React.useContext(AppContext);
   const routeContext = ownProps.routeContext;
-  const props = React.useMemo(() => ({ ...appContext, ...routeContext, ...ownProps }), [appContext, routeContext, ownProps]);
+  const props = React.useMemo(
+    () => ({ ...appContext, ...routeContext, ...ownProps }),
+    [appContext, routeContext, ownProps]
+  );
   const { us, children, session, drawerOpen } = props;
+  const handleScroll = props.handleScroll;
   const temporaryDrawer =
     props.compactLayout ?? Boolean(props.isPhone || (props.isTablet && !props.isTabletLandscape));
   const drawerWidth = getNavDrawerWidth(temporaryDrawer);
   const contentOffset = !temporaryDrawer && drawerOpen ? `${drawerWidth}px` : 0;
 
   React.useEffect(() => {
-    if (!props.handleScroll) return;
+    if (!handleScroll) return;
 
     const onWindowScroll = () => {
-      props.handleScroll?.({
+      handleScroll({
         target: document.documentElement,
       } as unknown as React.UIEvent<HTMLDivElement>);
     };
 
     window.addEventListener("scroll", onWindowScroll, { passive: true });
     return () => window.removeEventListener("scroll", onWindowScroll);
-  }, [props.handleScroll]);
+  }, [handleScroll]);
 
   return (
     <Box

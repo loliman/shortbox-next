@@ -54,9 +54,7 @@ export function ContainsTitleSimple(props: Readonly<ContainsTitleSimpleProps>) {
   const subtitleText = props.us ? publicationFallback : item.addinfo || "";
   const actionChips = buildSimpleActionChips({
     item,
-    childrenCount: children.length,
     reprintsCount: reprints.length,
-    us: Boolean(props.us),
     hasSession: Boolean(props.session),
   });
 
@@ -175,91 +173,16 @@ function buildPublicationFallback({
   if (!us) return "Story";
   if (childrenCount <= 0) return "Nicht auf deutsch erschienen";
 
-  const word = toGermanOccurrenceWord(childrenCount);
   return childrenCount > 0 ? `Mehrfach auf deutsch erschienen`: 'Nicht auf deutsch erschienen';
-}
-
-function toGermanOccurrenceWord(count: number): string {
-  if (count <= 0) return "Nicht";
-  if (count == 1) return "Einmal";
-
-  const word = toGermanNumberWord(count);
-  return capitalizeFirst(`${word}fach`);
-}
-
-function toGermanNumberWord(value: number): string {
-  const ones = [
-    "",
-    "eins",
-    "zwei",
-    "drei",
-    "vier",
-    "fünf",
-    "sechs",
-    "sieben",
-    "acht",
-    "neun",
-    "zehn",
-    "elf",
-    "zwölf",
-    "dreizehn",
-    "vierzehn",
-    "fünfzehn",
-    "sechzehn",
-    "siebzehn",
-    "achtzehn",
-    "neunzehn",
-  ] as const;
-  const tens = [
-    "",
-    "",
-    "zwanzig",
-    "dreißig",
-    "vierzig",
-    "fünfzig",
-    "sechzig",
-    "siebzig",
-    "achtzig",
-    "neunzig",
-  ] as const;
-
-  const normalized = Math.floor(Math.abs(value));
-  if (normalized < 20) return ones[normalized];
-  if (normalized < 100) {
-    const ten = Math.floor(normalized / 10);
-    const one = normalized % 10;
-    if (one === 0) return tens[ten];
-    const oneWord = one === 1 ? "ein" : ones[one];
-    return `${oneWord}und${tens[ten]}`;
-  }
-
-  if (normalized < 1000) {
-    const hundred = Math.floor(normalized / 100);
-    const rest = normalized % 100;
-    const hundredWord = hundred === 1 ? "einhundert" : `${ones[hundred]}hundert`;
-    if (rest === 0) return hundredWord;
-    return `${hundredWord}${toGermanNumberWord(rest)}`;
-  }
-
-  return String(normalized);
-}
-
-function capitalizeFirst(value: string): string {
-  if (!value) return value;
-  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function buildSimpleActionChips({
   item,
-  childrenCount,
   reprintsCount,
-  us,
   hasSession,
 }: {
   item: ContainsTitleSimpleItem;
-  childrenCount: number;
   reprintsCount: number;
-  us: boolean;
   hasSession: boolean;
 }): React.ReactElement[] {
   const chips: React.ReactElement[] = [];

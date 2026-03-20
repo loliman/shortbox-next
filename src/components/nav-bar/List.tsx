@@ -19,7 +19,7 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { generateUrl } from "../../util/hierarchy";
 import { AppContext } from "../generic/AppContext";
 import { buildRouteHref } from "../generic/routeHref";
-import { NoEntries, TypeListEntryPlaceholder } from "./ListPlaceholders";
+import { TypeListEntryPlaceholder } from "./ListPlaceholders";
 import type { HierarchyLevelType } from "../../util/hierarchy";
 import type { Issue, SelectedRoot, Series } from "../../types/domain";
 import {
@@ -318,7 +318,7 @@ export default function List(ownProps: Readonly<Partial<ListProps>>) {
     maxWidth: "100%",
     top: drawerHeaderTopOffset,
     height: drawerHeaderAdjustedHeight,
-    backgroundColor: (theme: { palette: { mode: string } }) => "background.paper",
+    backgroundColor: "background.paper",
   };
 
   const handleNavScroll = React.useCallback(
@@ -478,11 +478,12 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
   const handleToggleSeries = React.useCallback((seriesKey: string) => {
     setExpandedSeries((prev) => ({ ...prev, [seriesKey]: !prev[seriesKey] }));
   }, []);
+  const pushSelection = props.pushSelection;
   const handleSeriesClick = React.useCallback(
     (event: React.MouseEvent<HTMLElement>, seriesKey: string) => {
       const selectedSeries = seriesSelectionByKey[seriesKey];
       if (!selectedSeries) return;
-      props.pushSelection(
+      pushSelection(
         event,
         {
           series: selectedSeries,
@@ -490,7 +491,7 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
         true
       );
     },
-    [props.pushSelection, seriesSelectionByKey]
+    [pushSelection, seriesSelectionByKey]
   );
 
   if (seriesLoading && seriesNodes.length === 0) return <NestedLoadingRow depth={1} />;
@@ -527,7 +528,7 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
                 series={seriesNode}
                 selectedIssue={props.selectedIssue}
                 session={props.session}
-                pushSelection={props.pushSelection}
+                pushSelection={pushSelection}
                 listRef={props.listRef}
                 navScrollContainerRef={props.navScrollContainerRef}
                 suppressAutoScrollRef={props.suppressAutoScrollRef}
@@ -782,15 +783,13 @@ type NestedRowProps = {
 };
 
 const NestedRow = React.memo(function NestedRow(props: Readonly<NestedRowProps>) {
-  const handleToggle = React.useCallback(() => {
-    props.onToggle(props.rowKey);
-  }, [props.onToggle, props.rowKey]);
-  const handleClick = React.useCallback(
-    (event: React.MouseEvent<HTMLElement>) => {
-      props.onClick(event, props.rowKey);
-    },
-    [props.onClick, props.rowKey]
-  );
+  const { onClick, onToggle, rowKey } = props;
+  const handleToggle = () => {
+    onToggle(rowKey);
+  };
+  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+    onClick(event, rowKey);
+  };
 
   return (
     <ListItemButton

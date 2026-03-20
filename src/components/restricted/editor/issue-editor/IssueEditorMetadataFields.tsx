@@ -51,7 +51,6 @@ interface TypedMetadataAutocompleteProps {
 
 function IssueEditorMetadataFields({
   values,
-  isDesktop: _isDesktop,
   setFieldValue,
   lockedFields,
 }: IssueEditorMetadataFieldsProps) {

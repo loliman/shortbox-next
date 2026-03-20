@@ -39,7 +39,6 @@ const TITLE_HINT = "Hinweis: Titel wird vererbt. Für Variants leer lassen.";
 
 function IssueEditorSeriesFields({
   values,
-  isDesktop: _isDesktop,
   setFieldValue,
   showHints = true,
   lockedFields,

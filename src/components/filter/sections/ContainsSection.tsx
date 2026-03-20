@@ -23,7 +23,6 @@ interface ContainsSectionProps {
 function ContainsSection({
   values,
   us,
-  isDesktop: _isDesktop,
   setFieldValue,
 }: ContainsSectionProps) {
   const switchGridSx = {

@@ -14,10 +14,7 @@ type CoverTooltipProps = {
   number?: string | number;
 };
 
-function getCoverSource(
-  issue: CoverTooltipIssue,
-  _us?: boolean
-): { coverUrl: string; blurCover: boolean } {
+function getCoverSource(issue: CoverTooltipIssue): { coverUrl: string; blurCover: boolean } {
   const directCover = issue.cover?.url?.trim();
   if (directCover) return { coverUrl: directCover, blurCover: false };
 
@@ -25,7 +22,7 @@ function getCoverSource(
 }
 
 function CoverTooltip(props: Readonly<CoverTooltipProps>) {
-  const { coverUrl, blurCover } = getCoverSource(props.issue, props.us);
+  const { coverUrl, blurCover } = getCoverSource(props.issue);
   const fallbackUrl = "/nocover.png";
   const [displayUrl, setDisplayUrl] = React.useState(coverUrl);
 

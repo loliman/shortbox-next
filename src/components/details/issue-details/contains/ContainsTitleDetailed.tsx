@@ -8,7 +8,6 @@ import IconButton from "@mui/material/IconButton";
 import SearchIcon from "@mui/icons-material/Search";
 import CoverTooltip from "../../../nav-bar/CoverTooltip";
 import { generateLabel, generateUrl } from "../../../../util/hierarchy";
-import { romanize } from "../../../../util/util";
 import type { SelectedRoot } from "../../../../types/domain";
 import { IssueReferenceInline } from "../../../generic/IssueNumberInline";
 import { buildRouteHref } from "../../../generic/routeHref";
@@ -195,7 +194,6 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
     ? toIssueSelection(item.parent.reprintOf.issue)
     : null;
   const hasIssueReference = Boolean(issue?.series);
-  const titleText = itemTitle || "";
   const actionChips = buildDetailedActionChips({
     item,
     isCover: props.isCover,
@@ -510,14 +508,4 @@ function buildDetailedActionChips({
 function normalizeDisplayStoryTitle(value: string | null | undefined): string {
   const normalized = String(value || "").trim();
   return normalized === "Untitled" ? "" : normalized;
-}
-
-function getStoryNumberBadge(item: ContainsItemLike): string {
-  const storyNumber = Number(item.parent?.number);
-  const storyCount = Array.isArray(item.parent?.issue?.stories)
-    ? item.parent.issue.stories.length
-    : 0;
-
-  if (!Number.isFinite(storyNumber) || storyNumber <= 0 || storyCount <= 1) return "";
-  return ` [${romanize(storyNumber)}]`;
 }

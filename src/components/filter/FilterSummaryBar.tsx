@@ -83,7 +83,7 @@ export default function FilterSummaryBar(props: Readonly<FilterSummaryBarProps>)
           <Button
             size="small"
             variant="contained"
-            onClick={(e) => {
+            onClick={() => {
               const target = props.selected || { us };
               if (!props.selected) {
                 router.push(us ? "/us" : "/de");

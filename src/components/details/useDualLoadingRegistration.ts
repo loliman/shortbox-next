@@ -11,23 +11,29 @@ type UseDualLoadingRegistrationArgs = {
 };
 
 export function useDualLoadingRegistration(args: Readonly<UseDualLoadingRegistrationArgs>) {
+  const {
+    registerLoadingComponent,
+    unregisterLoadingComponent,
+    detailsKey,
+    historyKey,
+  } = args;
   const registrationRef = React.useRef({ history: false, details: false });
 
   const markDetailsLoaded = React.useCallback(() => {
     if (!registrationRef.current.details) return;
     registrationRef.current.details = false;
-    args.unregisterLoadingComponent(args.detailsKey);
-  }, [args.detailsKey, args.unregisterLoadingComponent]);
+    unregisterLoadingComponent(detailsKey);
+  }, [detailsKey, unregisterLoadingComponent]);
 
   const markHistoryLoaded = React.useCallback(() => {
     if (!registrationRef.current.history) return;
     registrationRef.current.history = false;
-    args.unregisterLoadingComponent(args.historyKey);
-  }, [args.historyKey, args.unregisterLoadingComponent]);
+    unregisterLoadingComponent(historyKey);
+  }, [historyKey, unregisterLoadingComponent]);
 
   React.useEffect(() => {
-    args.registerLoadingComponent(args.historyKey);
-    args.registerLoadingComponent(args.detailsKey);
+    registerLoadingComponent(historyKey);
+    registerLoadingComponent(detailsKey);
     registrationRef.current.history = true;
     registrationRef.current.details = true;
 
@@ -36,9 +42,9 @@ export function useDualLoadingRegistration(args: Readonly<UseDualLoadingRegistra
       markDetailsLoaded();
     };
   }, [
-    args.detailsKey,
-    args.historyKey,
-    args.registerLoadingComponent,
+    detailsKey,
+    historyKey,
+    registerLoadingComponent,
     markDetailsLoaded,
     markHistoryLoaded,
   ]);

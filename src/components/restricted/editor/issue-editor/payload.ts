@@ -6,11 +6,6 @@ interface NamedTypeEntry {
   type?: string[] | string;
 }
 
-interface ArcEntry {
-  title?: string;
-  type?: string;
-}
-
 interface AppearanceEntry {
   name?: string;
   type?: string;
@@ -104,26 +99,6 @@ function normalizeIndividuals(value: unknown): NamedTypeEntry[] {
     name,
     type: Array.from(typeSet),
   }));
-}
-
-function normalizeArcs(value: unknown): ArcEntry[] {
-  const unique = new Set<string>();
-  const entries: ArcEntry[] = [];
-
-  asRecordArray(value).forEach((entry) => {
-    if (entry.pattern) return;
-
-    const title = toOptionalString(entry.title);
-    if (!title) return;
-    const type = toOptionalString(entry.type);
-    const key = `${title}::${type || ""}`;
-    if (unique.has(key)) return;
-
-    unique.add(key);
-    entries.push(type ? { title, type } : { title });
-  });
-
-  return entries;
 }
 
 function normalizeAppearances(value: unknown): AppearanceEntry[] {

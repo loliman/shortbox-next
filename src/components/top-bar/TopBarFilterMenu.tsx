@@ -168,7 +168,7 @@ export default function TopBarFilterMenu(props: Readonly<TopBarFilterMenuProps>)
       >
         <MenuItem
           key="edit"
-          onClick={(e) => {
+          onClick={() => {
             handleFilterMenuClose();
             router.push(us ? "/filter/us" : "/filter/de");
           }}
@@ -198,7 +198,7 @@ export default function TopBarFilterMenu(props: Readonly<TopBarFilterMenuProps>)
 
         <MenuItem
           key="reset"
-          onClick={(e) => {
+          onClick={() => {
             handleFilterMenuClose();
             router.push(buildRouteHref(generateUrl(selected, us), props.query, { filter: null }));
           }}

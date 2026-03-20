@@ -1,6 +1,5 @@
 import React from "react";
 import Grid from "@mui/material/Grid";
-import Typography from "@mui/material/Typography";
 import { FastField } from "formik";
 import { TextField } from "../../../generic/FormikTextField";
 import ExclusiveToggle from "./ExclusiveToggle";
@@ -19,9 +18,6 @@ function StoryFields(props: StoryFieldsProps) {
   const stories = props.items || [];
   const item = stories[index] || {};
   const isExclusive = Boolean(item.exclusive) || Boolean(props.us);
-
-  const parent = (item.parent || {}) as { title?: string };
-  const parentTitle = String(parent.title || "");
 
   return (
     <Grid container spacing={2}>

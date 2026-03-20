@@ -93,7 +93,7 @@ class AddFabBase extends React.Component<AddFabProps, AddFabState> {
             key="publisher"
             icon={<AccountBalanceIcon />}
             tooltipTitle="Verlag"
-            onClick={(e) => {
+            onClick={() => {
               this.props.onNavigate?.("/create/publisher");
               this.handleClose();
             }}
@@ -102,7 +102,7 @@ class AddFabBase extends React.Component<AddFabProps, AddFabState> {
             key="series"
             icon={<ListIcon />}
             tooltipTitle="Serie"
-            onClick={(e) => {
+            onClick={() => {
               this.props.onNavigate?.("/create/series");
               this.handleClose();
             }}
@@ -111,7 +111,7 @@ class AddFabBase extends React.Component<AddFabProps, AddFabState> {
             key="issue"
             icon={<BookIcon />}
             tooltipTitle="Ausgabe"
-            onClick={(e) => {
+            onClick={() => {
               this.props.onNavigate?.(getIssueCreatePath(this.props.level, selected, us));
               this.handleClose();
             }}
@@ -122,7 +122,7 @@ class AddFabBase extends React.Component<AddFabProps, AddFabState> {
               key="variant"
               icon={<FileCopyIcon />}
               tooltipTitle="Variant"
-              onClick={(e) => {
+              onClick={() => {
                 const selectedCopy: SelectedRoot = {
                   ...selected,
                   issue: selected.issue

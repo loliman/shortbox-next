@@ -111,7 +111,7 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
             })}
           >
             <Box
-              sx={(theme) => ({
+              sx={{
                 position: "absolute",
                 left: 0,
                 right: 0,
@@ -119,13 +119,13 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
                 p: 1.25,
                 background:
                   "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(5,7,10,0.92) 100%)",
-              })}
+              }}
             >
               <Stack spacing={0.4} sx={{ minWidth: 0 }}>
                 <Typography
                   variant="subtitle1"
                   noWrap
-                  sx={(theme) => ({
+                  sx={{
                     fontSize: "clamp(0.78rem, 0.7rem + 0.35vw, 1.05rem)",
                     display: "block",
                     minWidth: 0,
@@ -133,9 +133,9 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     fontWeight: 700,
-                    color: theme.palette.common.white,
+                    color: "#ffffff",
                     textShadow: "0 1px 2px rgba(0,0,0,0.7)",
-                  })}
+                  }}
                 >
                   {issueLabel}
                 </Typography>
@@ -145,10 +145,10 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
                     variant="caption"
                     color="text.secondary"
                     noWrap
-                    sx={(theme) => ({
+                    sx={{
                       fontSize: "clamp(0.6rem, 0.56rem + 0.18vw, 0.78rem)",
                       color: "rgba(255,255,255,0.78)",
-                    })}
+                    }}
                   >
                     {variant}
                   </Typography>

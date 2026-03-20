@@ -24,7 +24,6 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import Layout from "../Layout";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import { PlayArrowOutlined } from "@mui/icons-material";
-import {generateLabel} from "../../util/hierarchy";
 import { mutationRequest } from "../../lib/client/mutation-request";
 import type { AppRouteContextValue } from "../../app/routeContext";
 

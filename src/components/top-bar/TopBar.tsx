@@ -240,7 +240,7 @@ export default function TopBar(ownProps: TopBarProps) {
             component={Link}
             href={us ? "/us" : "/de"}
             aria-label="Zur Startseite"
-            onClick={(e) => {
+            onClick={() => {
               props.resetNavigationState?.();
             }}
             sx={{

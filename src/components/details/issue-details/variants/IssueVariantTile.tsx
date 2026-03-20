@@ -19,7 +19,7 @@ type IssueVariantTileProps = {
 };
 
 export function IssueVariantTile(props: Readonly<IssueVariantTileProps>) {
-  const { coverUrl, blurCover } = getVariantCoverSource(props.variant, props.us);
+  const { coverUrl, blurCover } = getVariantCoverSource(props.variant);
   const fallbackUrl = "/nocover_simple.png";
   const [displayUrl, setDisplayUrl] = React.useState(coverUrl);
   const isFallbackCover = displayUrl === fallbackUrl;
@@ -170,10 +170,7 @@ const statusChipSx = (theme: { palette: { mode: string } }) => ({
   }`,
 });
 
-function getVariantCoverSource(
-  variant: VariantIssue,
-  _us: boolean
-): { coverUrl: string; blurCover: boolean } {
+function getVariantCoverSource(variant: VariantIssue): { coverUrl: string; blurCover: boolean } {
   const directCover = variant.cover?.url?.trim();
   if (directCover) return { coverUrl: directCover, blurCover: false };
 

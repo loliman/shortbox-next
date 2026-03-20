@@ -41,7 +41,6 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
   );
   const flags = getIssuePreviewFlags(props.issue, us, hasSession);
   const url = getIssueUrl(props.issue, us);
-  const issueLabel = getIssueLabel(props.issue);
   const accentKey = flags.collected
     ? "success"
     : props.issue.verified

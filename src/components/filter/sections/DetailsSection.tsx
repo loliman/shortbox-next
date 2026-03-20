@@ -29,7 +29,6 @@ interface DetailsSectionProps {
 function DetailsSection({
   values,
   us,
-  isDesktop: _isDesktop,
   setFieldValue,
   hasSession,
 }: DetailsSectionProps) {

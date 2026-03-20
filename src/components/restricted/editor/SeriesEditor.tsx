@@ -285,10 +285,6 @@ interface SeriesPublisherAutocompleteProps {
   textFieldSx?: SxProps<Theme>;
 }
 
-interface SeriesGenreOption {
-  name: string;
-}
-
 interface SeriesGenreAutocompleteProps {
   genre: string;
   setFieldValue: (field: string, value: unknown, shouldValidate?: boolean) => void;
