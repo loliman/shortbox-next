@@ -5,10 +5,11 @@ import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 import Stack from "@mui/material/Stack";
 import Link from "@mui/material/Link";
+import type { AppRouteContextValue } from "../../app/routeContext";
 
-function About() {
+function About(props: Readonly<{ routeContext?: AppRouteContextValue }>) {
   return (
-    <Layout>
+    <Layout routeContext={props.routeContext}>
       <CardHeader title="Über" />
 
       <CardContent sx={{ pt: 1 }}>

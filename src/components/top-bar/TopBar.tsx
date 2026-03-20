@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 import { alpha, styled } from "@mui/material/styles";
 import type { HierarchyLevelType } from "../../util/hierarchy";
 import { AppContext } from "../generic/AppContext";
-import { useAppRouteContext, useSnackbarBridge } from "../generic";
+import { useSnackbarBridge } from "../generic";
 import IconButton from "@mui/material/IconButton";
 import Badge from "@mui/material/Badge";
 import ButtonBase from "@mui/material/ButtonBase";
@@ -32,8 +32,10 @@ import type { AppThemeMode } from "../../app/theme";
 import { isMockMode } from "../../app/mockMode";
 import { buildRouteHref } from "../generic/routeHref";
 import { mutationRequest } from "../../lib/client/mutation-request";
+import type { AppRouteContextValue } from "../../app/routeContext";
 
 interface TopBarProps {
+  routeContext?: AppRouteContextValue;
   toggleDrawer?: () => void;
   drawerOpen?: boolean;
   us?: boolean;
@@ -127,11 +129,10 @@ const Android12Switch = styled(Switch)(({ theme }) => ({
 export default function TopBar(ownProps: TopBarProps) {
   const router = useRouter();
   const appContext = React.useContext(AppContext);
-  const routeContext = useAppRouteContext();
   const snackbarBridge = useSnackbarBridge();
   const props = React.useMemo(
-    () => ({ ...routeContext, ...appContext, ...snackbarBridge, ...ownProps }),
-    [routeContext, appContext, snackbarBridge, ownProps]
+    () => ({ ...appContext, ...snackbarBridge, ...ownProps.routeContext, ...ownProps }),
+    [appContext, snackbarBridge, ownProps]
   );
   const { toggleDrawer, drawerOpen } = props;
   const us = Boolean(props.us);

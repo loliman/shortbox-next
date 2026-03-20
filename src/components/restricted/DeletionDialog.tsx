@@ -14,8 +14,8 @@ import {
   HierarchyLevel,
 } from "../../util/hierarchy";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
-import { useAppRouteContext } from "../generic";
 import { mutationRequest } from "../../lib/client/mutation-request";
+import type { AppRouteContextValue } from "../../app/routeContext";
 
 type VariantLike = {
   number?: string;
@@ -38,6 +38,7 @@ type DeletionDialogItem = {
 };
 
 type DeletionDialogProps = {
+  routeContext?: AppRouteContextValue;
   level?: string;
   item?: DeletionDialogItem | null;
   open?: boolean;
@@ -206,8 +207,7 @@ function getItemLabel(item: DeletionDialogItem): string {
 }
 
 export default function DeletionDialog(props: Readonly<DeletionDialogProps>) {
-  const routeContext = useAppRouteContext();
   const snackbarBridge = useSnackbarBridge();
 
-  return <DeletionDialogView {...routeContext} {...snackbarBridge} {...props} />;
+  return <DeletionDialogView {...props.routeContext} {...snackbarBridge} {...props} />;
 }

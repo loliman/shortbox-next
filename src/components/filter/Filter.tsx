@@ -2,12 +2,15 @@
 
 import React from "react";
 import { AppContext } from "../generic/AppContext";
-import { useAppRouteContext } from "../generic";
 import FilterPage from "./FilterPage";
+import type { AppRouteContextValue } from "../../app/routeContext";
 
-export default function Filter() {
+interface FilterProps {
+  routeContext: AppRouteContextValue;
+}
+
+export default function Filter(props: Readonly<FilterProps>) {
   const appContext = React.useContext(AppContext);
-  const routeContext = useAppRouteContext();
 
-  return <FilterPage {...appContext} {...routeContext} />;
+  return <FilterPage {...appContext} {...props.routeContext} routeContext={props.routeContext} />;
 }

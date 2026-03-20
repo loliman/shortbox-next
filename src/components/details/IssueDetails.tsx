@@ -34,6 +34,7 @@ import type { PreviewIssue } from "../issue-preview/utils/issuePreviewUtils";
 import { collectIssueArcs, getTodayLocalDate } from "./issue-details/utils/issueDetailsUtils";
 import { generateComicGuideUrl, generateMarvelDbUrl } from "./issue-details/utils/externalLinks";
 import { buildRouteHref } from "../generic/routeHref";
+import type { AppRouteContextValue } from "../../app/routeContext";
 
 export {
   AppearanceList,
@@ -47,6 +48,7 @@ export { toIsbn10, toIsbn13, toShortboxDate } from "./issue-details/utils/issueM
 export { DetailsRow } from "./issue-details/DetailsRow";
 
 interface IssueDetailsProps {
+  routeContext?: AppRouteContextValue;
   selected?: SelectedRoot;
   us?: boolean;
   appIsLoading?: boolean;
@@ -157,7 +159,7 @@ function IssueDetails(props: IssueDetailsProps) {
 
   if (loading && !loadedIssue) {
     return (
-      <Layout>
+      <Layout routeContext={props.routeContext}>
         <Box className="data-fade">
           <QueryResult
             data={undefined}
@@ -173,7 +175,7 @@ function IssueDetails(props: IssueDetailsProps) {
 
   if (error || !issueForVariants || !loadedIssue) {
     return (
-      <Layout>
+      <Layout routeContext={props.routeContext}>
         <Box className="data-fade">
           <QueryResult
             error={error}
@@ -262,7 +264,7 @@ function IssueDetails(props: IssueDetailsProps) {
   ) : null;
 
   return (
-    <Layout>
+    <Layout routeContext={props.routeContext}>
       <Box
         className="data-fade"
         key={loadedIssueIdentityKey || loadedIssue?.id || "issue-details"}
@@ -298,7 +300,12 @@ function IssueDetails(props: IssueDetailsProps) {
           subheader={props.subheader ? generateIssueSubHeader(loadedIssue) : ""}
           action={
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <EditButton item={loadedIssue} />
+              <EditButton
+                item={loadedIssue}
+                level={props.level}
+                us={props.us}
+                routeContext={props.routeContext}
+              />
             </Box>
           }
         />

@@ -2,13 +2,17 @@
 
 import React from "react";
 import Layout from "../../Layout";
-import { useAppRouteContext } from "../../generic";
 import QueryResult from "../../generic/QueryResult";
 import SeriesEditor from "../editor/SeriesEditor";
 import { EditorPagePlaceholder } from "../../placeholders/EditorPagePlaceholder";
+import type { AppRouteContextValue } from "../../../app/routeContext";
 
-function SeriesEdit() {
-  const { selected } = useAppRouteContext();
+interface SeriesEditProps {
+  routeContext: AppRouteContextValue;
+}
+
+function SeriesEdit(props: Readonly<SeriesEditProps>) {
+  const { selected } = props.routeContext;
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<unknown>(null);
   const [seriesDetails, setSeriesDetails] = React.useState<Record<string, unknown> | null>(null);
@@ -55,7 +59,7 @@ function SeriesEdit() {
   }, [selected.series?.publisher?.name, selected.series?.title, selected.series?.volume, selected.us]);
 
   return (
-    <Layout>
+    <Layout routeContext={props.routeContext}>
       {(() => {
         if (loading || error || !seriesDetails)
           return (

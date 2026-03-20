@@ -11,7 +11,6 @@ import FileCopyIcon from "@mui/icons-material/FileCopy";
 import { generateUrl, HierarchyLevel } from "../../util/hierarchy";
 import type { SelectedRoot } from "../../types/domain";
 import { AppContext } from "../generic/AppContext";
-import { useAppRouteContext } from "../generic";
 
 interface AddFabProps {
   session?: unknown;
@@ -231,12 +230,11 @@ function getIssueCreatePath(
   return "/create/issue";
 }
 
-export default function AddFab() {
+export default function AddFab(props: Readonly<AddFabProps>) {
   const router = useRouter();
   const appContext = React.useContext(AppContext);
-  const routeContext = useAppRouteContext();
 
-  return <AddFabView {...appContext} {...routeContext} onNavigate={(href) => router.push(href)} />;
+  return <AddFabView {...appContext} {...props} onNavigate={(href) => router.push(href)} />;
 }
 
 function AddFabView(props: Readonly<AddFabProps>) {

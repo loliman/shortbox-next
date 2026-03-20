@@ -14,9 +14,9 @@ import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
 import DeletionDialog from "./DeletionDialog";
 import { stripItem } from "../../util/util";
 import { AppContext } from "../generic/AppContext";
-import { useAppRouteContext } from "../generic";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import { mutationRequest } from "../../lib/client/mutation-request";
+import type { AppRouteContextValue } from "../../app/routeContext";
 
 const actionButtonSx = {
   border: "1px solid",
@@ -59,6 +59,7 @@ interface DropdownItem {
 }
 
 interface DropdownProps {
+  routeContext?: AppRouteContextValue;
   session?: unknown;
   level?: string;
   onNavigate?: (href: string) => void;
@@ -183,6 +184,7 @@ class DropdownBase extends React.Component<DropdownProps, DropdownState> {
         </Box>
 
         <DeletionDialog
+          routeContext={this.props.routeContext}
           handleClose={this.handleDeletionClose}
           open={this.state.deletionOpen}
           item={selectedItem}
@@ -447,13 +449,12 @@ function resolveItemUs(
 export default function Dropdown(props: Readonly<DropdownProps>) {
   const router = useRouter();
   const appContext = React.useContext(AppContext);
-  const routeContext = useAppRouteContext();
   const snackbarBridge = useSnackbarBridge();
 
   return (
     <DropdownBase
       {...appContext}
-      {...routeContext}
+      {...props.routeContext}
       {...snackbarBridge}
       {...props}
       onNavigate={(href) => router.push(href)}

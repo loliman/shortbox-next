@@ -6,7 +6,6 @@ import Button from "@mui/material/Button";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import React from "react";
 import Typography from "@mui/material/Typography";
-import { useAppRouteContext } from "../generic";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 
 type ExportType = "txt" | "csv";
@@ -74,10 +73,9 @@ async function triggerExport(
 }
 
 export default function ExportDialog(props: Readonly<ExportDialogProps>) {
-  const routeContext = useAppRouteContext();
   const snackbarBridge = useSnackbarBridge();
 
-  return <ExportDialogContent {...routeContext} {...snackbarBridge} {...props} />;
+  return <ExportDialogContent {...snackbarBridge} {...props} />;
 }
 
 function ExportDialogContent(props: Readonly<ExportDialogProps>) {

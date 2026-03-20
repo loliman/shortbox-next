@@ -18,7 +18,6 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { generateUrl } from "../../util/hierarchy";
 import { AppContext } from "../generic/AppContext";
-import { useAppRouteContext } from "../generic";
 import { buildRouteHref } from "../generic/routeHref";
 import { NoEntries, TypeListEntryPlaceholder } from "./ListPlaceholders";
 import type { HierarchyLevelType } from "../../util/hierarchy";
@@ -91,10 +90,9 @@ let navScrollTopCache: Record<string, number> = {};
 export default function List(ownProps: Readonly<Partial<ListProps>>) {
   const router = useRouter();
   const appContext = React.useContext(AppContext);
-  const routeContext = useAppRouteContext();
   const props = React.useMemo(
-    () => ({ ...routeContext, ...appContext, ...ownProps }) as ListProps,
-    [routeContext, appContext, ownProps]
+    () => ({ ...appContext, ...ownProps }) as ListProps,
+    [appContext, ownProps]
   );
   const { drawerOpen, toggleDrawer } = props;
   const temporaryDrawer =

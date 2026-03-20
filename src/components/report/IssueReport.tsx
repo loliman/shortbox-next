@@ -16,14 +16,15 @@ import IssueEditorFormContent from "../restricted/editor/issue-editor/IssueEdito
 import type { SelectedRoot } from "../../types/domain";
 import type { IssueEditorFormValues } from "../restricted/editor/issue-editor/types";
 import { EditorPagePlaceholder } from "../placeholders/EditorPagePlaceholder";
-import { useAppRouteContext } from "../generic";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import { mutationRequest } from "../../lib/client/mutation-request";
+import type { AppRouteContextValue } from "../../app/routeContext";
 
 const REPORT_NOTICE =
   "In diesem Editor können Sie Fehler melden. Beim Absenden wird ein serverseitiger Change Request erstellt und zur Prüfung gespeichert.";
 
 interface IssueReportProps {
+  routeContext: AppRouteContextValue;
   selected: SelectedRoot;
   enqueueSnackbar: (
     message: string,
@@ -83,7 +84,7 @@ function IssueReportView(props: Readonly<IssueReportProps>) {
   }, [selected]);
 
   return (
-    <Layout>
+    <Layout routeContext={props.routeContext}>
       {(() => {
         if (loading || error || !issueDetails) {
           return (
@@ -270,9 +271,14 @@ function sanitizeReportValues(
   return next;
 }
 
-export default function IssueReport() {
-  const routeContext = useAppRouteContext();
+export default function IssueReport(props: Readonly<{ routeContext: AppRouteContextValue }>) {
   const snackbarBridge = useSnackbarBridge();
 
-  return <IssueReportView selected={routeContext.selected} {...snackbarBridge} />;
+  return (
+    <IssueReportView
+      routeContext={props.routeContext}
+      selected={props.routeContext.selected}
+      {...snackbarBridge}
+    />
+  );
 }

@@ -21,10 +21,12 @@ import Layout from "../Layout";
 import {generateLabel} from "../../util/hierarchy";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import { mutationRequest } from "../../lib/client/mutation-request";
+import type { AppRouteContextValue } from "../../app/routeContext";
 
 type SnackbarVariant = "success" | "error" | "warning" | "info";
 
 interface ChangeRequestsProps {
+  routeContext?: AppRouteContextValue;
   enqueueSnackbar?: (message: string, options?: { variant?: SnackbarVariant }) => void;
 }
 
@@ -162,7 +164,7 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
   };
 
   return (
-    <Layout>
+    <Layout routeContext={props.routeContext}>
       <CardHeader title="Change Requests" />
       <CardContent sx={{ pt: 1 }}>
         {loading ? <Typography>Lade Change Requests...</Typography> : null}

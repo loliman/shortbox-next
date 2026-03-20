@@ -9,7 +9,6 @@ import QueryResult from "../generic/QueryResult";
 import { generateLabel } from "../../util/hierarchy";
 import EditButton from "../restricted/EditButton";
 import { AppContext } from "../generic/AppContext";
-import { useAppRouteContext } from "../generic";
 import TitleLine from "../generic/TitleLine";
 import { IssueHistoryList } from "./DetailsListingSections";
 import { DetailsPagePlaceholder } from "../placeholders/DetailsPagePlaceholder";
@@ -17,8 +16,10 @@ import { DetailsAddInfo } from "./DetailsAddInfo";
 import { useDualLoadingRegistration } from "./useDualLoadingRegistration";
 import type { SelectedRoot } from "../../types/domain";
 import SortContainer from "../SortContainer";
+import type { AppRouteContextValue } from "../../app/routeContext";
 
 interface PublisherDetailsProps {
+  routeContext: AppRouteContextValue;
   selected: SelectedRoot & {
     publisher: {
       name: string;
@@ -105,7 +106,7 @@ function PublisherDetailsContent(props: Readonly<PublisherDetailsProps>) {
   }, [details, detailsError, markDetailsLoaded, markHistoryLoaded]);
 
   return (
-    <Layout>
+    <Layout routeContext={props.routeContext}>
       {detailsError || !details ? (
         <QueryResult
           error={detailsError}
@@ -142,7 +143,12 @@ function PublisherDetailsContent(props: Readonly<PublisherDetailsProps>) {
             action={
               <Stack direction="row" spacing={1} alignItems="center">
                 {!compactLayout ? <SortContainer {...pageProps} /> : null}
-                <EditButton item={details} />
+                <EditButton
+                  item={details}
+                  level={props.level}
+                  us={props.us}
+                  routeContext={props.routeContext}
+                />
               </Stack>
             }
           />
@@ -165,14 +171,13 @@ function PublisherDetailsContent(props: Readonly<PublisherDetailsProps>) {
   );
 }
 
-export default function PublisherDetails(props: Readonly<Record<string, unknown>>) {
+export default function PublisherDetails(props: Readonly<{ routeContext: AppRouteContextValue }>) {
   const appContext = React.useContext(AppContext);
-  const routeContext = useAppRouteContext();
 
   return (
     <PublisherDetailsView
       {...(appContext as unknown as PublisherDetailsProps)}
-      {...(routeContext as unknown as PublisherDetailsProps)}
+      {...(props.routeContext as unknown as PublisherDetailsProps)}
       {...(props as unknown as PublisherDetailsProps)}
     />
   );

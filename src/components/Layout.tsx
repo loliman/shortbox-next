@@ -5,18 +5,19 @@ import React from "react";
 import TopBar from "./top-bar/TopBar";
 import List from "./nav-bar/List";
 import { AppContext } from "./generic/AppContext";
-import { useAppRouteContext } from "./generic";
 import AddFab from "./fab/AddFab";
 import ErrorFab from "./fab/ErrorFab";
 import Box from "@mui/material/Box";
 import FooterLinks from "./footer/FooterLinks";
 import { COMPACT_BOTTOM_BAR_CLEARANCE, getNavDrawerWidth } from "./layoutMetrics";
+import type { AppRouteContextValue } from "../app/routeContext";
 
 interface SessionData {
   loggedIn: boolean;
 }
 
 interface LayoutProps {
+  routeContext: AppRouteContextValue;
   us?: boolean;
   children?: React.ReactNode;
   drawerOpen?: boolean;
@@ -37,7 +38,7 @@ interface LayoutProps {
 
 export default function Layout(ownProps: Readonly<LayoutProps>) {
   const appContext = React.useContext(AppContext);
-  const routeContext = useAppRouteContext();
+  const routeContext = ownProps.routeContext;
   const props = React.useMemo(() => ({ ...appContext, ...routeContext, ...ownProps }), [appContext, routeContext, ownProps]);
   const { us, children, session, drawerOpen } = props;
   const temporaryDrawer =
@@ -66,10 +67,10 @@ export default function Layout(ownProps: Readonly<LayoutProps>) {
         flexDirection: "column",
       }}
     >
-      <TopBar />
+      <TopBar {...props} />
 
       <Box component="main" sx={{ display: "flex", flexGrow: 1, minHeight: 0 }}>
-        <List />
+        <List {...props} />
 
         <Box
           sx={{
@@ -143,7 +144,7 @@ export default function Layout(ownProps: Readonly<LayoutProps>) {
           </Card>
         </Box>
 
-      {session ? <AddFab /> : us ? null : <ErrorFab />}
+      {session ? <AddFab {...props} /> : us ? null : <ErrorFab {...props} />}
       </Box>
     </Box>
   );

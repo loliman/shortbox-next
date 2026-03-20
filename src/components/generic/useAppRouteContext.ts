@@ -2,55 +2,31 @@
 
 import { useEffect, useMemo } from "react";
 import { useParams, usePathname, useSearchParams } from "next/navigation";
-import queryString from "query-string";
-import type { SelectedRoot } from "../../types/domain";
-import {
-  generateLabel,
-  getHierarchyLevel,
-  getSelected,
-  HierarchyLevel,
-} from "../../util/hierarchy";
-
-type UnknownRecord = Record<string, unknown>;
-
-export type AppRouteContextValue = {
-  edit: boolean;
-  create: boolean;
-  us: boolean;
-  selected: SelectedRoot;
-  query: UnknownRecord | null;
-  level: string;
-};
+import { createAppRouteContext, type AppRouteContextValue } from "../../app/routeContext";
+import { generateLabel, HierarchyLevel } from "../../util/hierarchy";
 
 export function useAppRouteContext(): AppRouteContextValue {
   const pathname = usePathname();
   const params = useParams<Record<string, string | string[]>>();
   const searchParams = useSearchParams();
-  const search = searchParams?.toString() || "";
-  const normalizedParams = useMemo(
+
+  return useMemo(
     () =>
-      Object.fromEntries(
-        Object.entries(params).map(([key, value]) => [key, Array.isArray(value) ? value[0] : value])
-      ) as Record<string, string>,
-    [params]
+      createAppRouteContext({
+        params,
+        searchParams,
+        us:
+          pathname.indexOf("/us") === 0 ||
+          pathname.indexOf("/edit/us") === 0 ||
+          pathname.indexOf("/filter/us") === 0 ||
+          pathname.indexOf("/report/us") === 0 ||
+          pathname.indexOf("/copy/issue/us") === 0 ||
+          pathname.indexOf("/create/issue/us") === 0,
+        edit: pathname.indexOf("/edit") === 0,
+        create: pathname.indexOf("/create") === 0,
+      }),
+    [params, pathname, searchParams]
   );
-
-  const us =
-    pathname.indexOf("/us") === 0 ||
-    pathname.indexOf("/edit/us") === 0 ||
-    pathname.indexOf("/filter/us") === 0 ||
-    pathname.indexOf("/report/us") === 0;
-  const selected = getSelected(normalizedParams, us);
-  const currentQuery = search ? (queryString.parse(`?${search}`) as UnknownRecord) : null;
-
-  return {
-    edit: pathname.indexOf("/edit") === 0,
-    create: pathname.indexOf("/create") === 0,
-    us,
-    selected,
-    query: currentQuery,
-    level: getHierarchyLevel(selected),
-  };
 }
 
 export function useAppTitle(): string {

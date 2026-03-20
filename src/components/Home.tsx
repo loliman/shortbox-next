@@ -7,7 +7,6 @@ import Stack from "@mui/material/Stack";
 import Layout from "./Layout";
 import QueryResult from "./generic/QueryResult";
 import { AppContext } from "./generic/AppContext";
-import { useAppRouteContext } from "./generic";
 import IssuePreview from "./issue-preview/IssuePreview";
 import IssuePreviewSmall from "./issue-preview/IssuePreviewSmall";
 import LoadingDots from "./generic/LoadingDots";
@@ -20,6 +19,7 @@ import {
 } from "../util/listingQuery";
 import { HomeListingPlaceholder } from "./placeholders/HomeListingPlaceholder";
 import ListingToolbar from "./listing/ListingToolbar";
+import type { AppRouteContextValue } from "../app/routeContext";
 
 const HOME_SEO_SUMMARY =
   "Shortbox listet alle deutschen Marvel Veröffentlichungen detailliert auf und ordnet diese den entsprechenden US Geschichten zu.";
@@ -30,6 +30,7 @@ const GALLERY_GRID_SX = {
 } as const;
 
 interface HomeProps {
+  routeContext: AppRouteContextValue;
   registerLoadingComponent?: (component: string) => void;
   unregisterLoadingComponent?: (component: string) => void;
   query?: { filter?: string; order?: string; direction?: string; view?: string } | null;
@@ -42,10 +43,12 @@ interface HomeProps {
   [key: string]: unknown;
 }
 
-export default function Home() {
+export default function Home(routeProps: Readonly<HomeProps>) {
   const appContext = React.useContext(AppContext);
-  const routeContext = useAppRouteContext();
-  const props = React.useMemo(() => ({ ...appContext, ...routeContext }), [appContext, routeContext]);
+  const props = React.useMemo(
+    () => ({ ...appContext, ...routeProps.routeContext }),
+    [appContext, routeProps.routeContext]
+  );
   const homeLoadingRegisteredRef = React.useRef(false);
 
   const unregisterHomeLoading = React.useCallback(() => {
@@ -162,7 +165,7 @@ export default function Home() {
   const loadingIndicator = hasMore && fetchingMore ? <LoadingDots /> : null;
 
   return (
-    <Layout handleScroll={handleScroll}>
+    <Layout routeContext={routeProps.routeContext} handleScroll={handleScroll}>
       {props.appIsLoading || error || loading ? (
         <QueryResult
           error={error}

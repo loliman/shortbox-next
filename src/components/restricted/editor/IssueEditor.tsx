@@ -9,7 +9,6 @@ import { buildIssueEditorState } from "./issue-editor/state";
 import IssueEditorFormContent from "./issue-editor/IssueEditorFormContent";
 import type { IssueEditorFormValues, IssueEditorProps } from "./issue-editor/types";
 import { AppContext } from "../../generic/AppContext";
-import { useAppRouteContext } from "../../generic";
 import { useSnackbarBridge } from "../../generic/useSnackbarBridge";
 import { mutationRequest } from "../../../lib/client/mutation-request";
 
@@ -138,8 +137,7 @@ export { currencies, formats } from "./issue-editor/constants";
 export { getPattern, updateField } from "./IssueEditorSections";
 export default function IssueEditor(props: Readonly<Partial<IssueEditorProps>>) {
   const appContext = React.useContext(AppContext);
-  const routeContext = useAppRouteContext();
   const snackbarBridge = useSnackbarBridge();
 
-  return <IssueEditorView {...appContext} {...routeContext} {...snackbarBridge} {...props} />;
+  return <IssueEditorView {...appContext} {...props.routeContext} {...snackbarBridge} {...props} />;
 }

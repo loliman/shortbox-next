@@ -2,14 +2,18 @@
 
 import React from "react";
 import Layout from "../../Layout";
-import { useAppRouteContext } from "../../generic";
 import QueryResult from "../../generic/QueryResult";
 import IssueEditor from "../editor/IssueEditor";
 import { mapIssueToEditorDefaultValues } from "../editor/issue-editor/defaultValues";
 import { EditorPagePlaceholder } from "../../placeholders/EditorPagePlaceholder";
+import type { AppRouteContextValue } from "../../../app/routeContext";
 
-function IssueEdit() {
-  const { selected } = useAppRouteContext();
+interface IssueEditProps {
+  routeContext: AppRouteContextValue;
+}
+
+function IssueEdit(props: Readonly<IssueEditProps>) {
+  const { selected } = props.routeContext;
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<unknown>(null);
   const [issueDetails, setIssueDetails] = React.useState<Record<string, unknown> | null>(null);
@@ -59,7 +63,7 @@ function IssueEdit() {
   }, [selected]);
 
   return (
-    <Layout>
+    <Layout routeContext={props.routeContext}>
       {(() => {
         if (loading || error || !issueDetails)
           return (
@@ -77,6 +81,7 @@ function IssueEdit() {
 
         return (
           <IssueEditor
+            routeContext={props.routeContext}
             id={issueDetails.id}
             edit
             defaultValues={defaultValues}

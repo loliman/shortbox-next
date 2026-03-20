@@ -2,16 +2,23 @@
 
 import React from "react";
 import Layout from "../../Layout";
-import { useAppRouteContext } from "../../generic";
 import IssueEditor from "../editor/IssueEditor";
 import { buildIssueCreateDefaultValues } from "../editor/issue-editor/defaultValues";
-function IssueCreate() {
-  const { selected, level } = useAppRouteContext();
-  const defaultValues = buildIssueCreateDefaultValues(selected as any, level);
+import type { AppRouteContextValue } from "../../../app/routeContext";
+
+interface IssueCreateProps {
+  routeContext: AppRouteContextValue;
+}
+
+function IssueCreate(props: Readonly<IssueCreateProps>) {
+  const defaultValues = buildIssueCreateDefaultValues(
+    props.routeContext.selected as any,
+    props.routeContext.level
+  );
 
   return (
-    <Layout>
-      <IssueEditor defaultValues={defaultValues} />
+    <Layout routeContext={props.routeContext}>
+      <IssueEditor routeContext={props.routeContext} defaultValues={defaultValues} />
     </Layout>
   );
 }

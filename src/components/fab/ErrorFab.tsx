@@ -5,7 +5,6 @@ import Fab from "@mui/material/Fab";
 import BugReportIcon from "@mui/icons-material/BugReport";
 import { generateUrl, HierarchyLevel } from "../../util/hierarchy";
 import type { SelectedRoot } from "../../types/domain";
-import { useAppRouteContext } from "../generic";
 
 interface ErrorFabProps {
   onNavigate?: (href: string) => void;
@@ -229,11 +228,10 @@ class ErrorFabBase extends React.Component<ErrorFabProps, ErrorFabState> {
   }
 }
 
-export default function ErrorFab() {
+export default function ErrorFab(props: Readonly<ErrorFabProps>) {
   const router = useRouter();
-  const routeContext = useAppRouteContext();
 
-  return <ErrorFabView {...routeContext} onNavigate={(href) => router.push(href)} />;
+  return <ErrorFabView {...props} onNavigate={(href) => router.push(href)} />;
 }
 
 function ErrorFabView(props: Readonly<ErrorFabProps>) {

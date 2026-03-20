@@ -9,7 +9,6 @@ import Layout from "../Layout";
 import QueryResult from "../generic/QueryResult";
 import EditButton from "../restricted/EditButton";
 import { AppContext } from "../generic/AppContext";
-import { useAppRouteContext } from "../generic";
 import TitleLine from "../generic/TitleLine";
 import { IssueHistoryList } from "./DetailsListingSections";
 import { DetailsPagePlaceholder } from "../placeholders/DetailsPagePlaceholder";
@@ -17,8 +16,10 @@ import { DetailsAddInfo } from "./DetailsAddInfo";
 import { useDualLoadingRegistration } from "./useDualLoadingRegistration";
 import type { SelectedRoot } from "../../types/domain";
 import SortContainer from "../SortContainer";
+import type { AppRouteContextValue } from "../../app/routeContext";
 
 interface SeriesDetailsProps {
+  routeContext: AppRouteContextValue;
   selected: SelectedRoot & {
     series: {
       title: string;
@@ -119,7 +120,7 @@ function SeriesDetailsContent(props: Readonly<SeriesDetailsProps>) {
   }, [details, detailsError, markDetailsLoaded, markHistoryLoaded]);
 
   return (
-    <Layout>
+    <Layout routeContext={props.routeContext}>
       {detailsError || !details ? (
         <QueryResult
           error={detailsError}
@@ -156,7 +157,12 @@ function SeriesDetailsContent(props: Readonly<SeriesDetailsProps>) {
             action={
               <Stack direction="row" spacing={1} alignItems="center">
                 {!compactLayout ? <SortContainer {...pageProps} /> : null}
-                <EditButton item={details} />
+                <EditButton
+                  item={details}
+                  level={props.level}
+                  us={props.us}
+                  routeContext={props.routeContext}
+                />
               </Stack>
             }
           />
@@ -179,14 +185,13 @@ function SeriesDetailsContent(props: Readonly<SeriesDetailsProps>) {
   );
 }
 
-export default function SeriesDetails(props: Readonly<Record<string, unknown>>) {
+export default function SeriesDetails(props: Readonly<{ routeContext: AppRouteContextValue }>) {
   const appContext = React.useContext(AppContext);
-  const routeContext = useAppRouteContext();
 
   return (
     <SeriesDetailsView
       {...(appContext as unknown as SeriesDetailsProps)}
-      {...(routeContext as unknown as SeriesDetailsProps)}
+      {...(props.routeContext as unknown as SeriesDetailsProps)}
       {...(props as unknown as SeriesDetailsProps)}
     />
   );

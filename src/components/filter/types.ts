@@ -1,4 +1,5 @@
 import type { FieldItem } from "../../util/filterFieldHelpers";
+import type { AppRouteContextValue } from "../../app/routeContext";
 
 export type FilterFormatOption = { name: string };
 export type FilterDateOption = { date: string; compare: string };
@@ -88,6 +89,7 @@ export interface FilterPageProps {
   query?: { filter?: string } | null;
   session?: unknown;
   isDesktop?: boolean;
+  routeContext?: AppRouteContextValue;
 }
 
 export interface FilterFormikBag {

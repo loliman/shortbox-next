@@ -7,10 +7,11 @@ import Link from "@mui/material/Link";
 import Box from "@mui/material/Box";
 import { Stack } from "@mui/material";
 import NextLink from "next/link";
+import type { AppRouteContextValue } from "../../app/routeContext";
 
-function Privacy() {
+function Privacy(props: Readonly<{ routeContext?: AppRouteContextValue }>) {
   return (
-    <Layout>
+    <Layout routeContext={props.routeContext}>
       <CardHeader title="Datenschutzerklärung" />
 
       <CardContent sx={{ pt: 1 }}>

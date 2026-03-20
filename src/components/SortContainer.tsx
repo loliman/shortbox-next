@@ -1,6 +1,5 @@
 import { usePathname, useRouter } from "next/navigation";
 import { AppContext } from "./generic/AppContext";
-import { useAppRouteContext } from "./generic";
 import InputLabel from "@mui/material/InputLabel";
 import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
@@ -43,10 +42,9 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
   const router = useRouter();
   const pathname = usePathname();
   const appContext = React.useContext(AppContext);
-  const routeContext = useAppRouteContext();
   const props = React.useMemo(
-    () => ({ ...routeContext, ...appContext, ...ownProps }),
-    [routeContext, appContext, ownProps]
+    () => ({ ...appContext, ...ownProps }),
+    [appContext, ownProps]
   );
   const currentOrder = toValidSortOption(getListingOrder(props.query));
   const currentDirection = toDirection(getListingDirection(props.query));

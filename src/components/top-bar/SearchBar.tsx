@@ -10,7 +10,6 @@ import Typography from "@mui/material/Typography";
 import SearchIcon from "@mui/icons-material/Search";
 import { alpha } from "@mui/material/styles";
 import { AppContext } from "../generic/AppContext";
-import { useAppRouteContext } from "../generic";
 
 type SearchNode = {
   type?: string | null;
@@ -38,10 +37,9 @@ interface SearchBarProps {
 export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
   const router = useRouter();
   const appContext = React.useContext(AppContext);
-  const routeContext = useAppRouteContext();
   const props = React.useMemo(
-    () => ({ ...routeContext, ...appContext, ...ownProps }),
-    [routeContext, appContext, ownProps]
+    () => ({ ...appContext, ...ownProps }),
+    [appContext, ownProps]
   );
   const [pattern, setPattern] = useState("");
   const [debouncedPattern, setDebouncedPattern] = useState("");

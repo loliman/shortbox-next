@@ -2,14 +2,18 @@
 
 import React from "react";
 import Layout from "../../Layout";
-import { useAppRouteContext } from "../../generic";
 import QueryResult from "../../generic/QueryResult";
 import IssueEditor from "../editor/IssueEditor";
 import { mapIssueToEditorDefaultValues } from "../editor/issue-editor/defaultValues";
 import { EditorPagePlaceholder } from "../../placeholders/EditorPagePlaceholder";
+import type { AppRouteContextValue } from "../../../app/routeContext";
 
-function IssueCopy() {
-  const { selected } = useAppRouteContext();
+interface IssueCopyProps {
+  routeContext: AppRouteContextValue;
+}
+
+function IssueCopy(props: Readonly<IssueCopyProps>) {
+  const { selected } = props.routeContext;
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<unknown>(null);
   const [issueDetails, setIssueDetails] = React.useState<Record<string, unknown> | null>(null);
@@ -60,7 +64,7 @@ function IssueCopy() {
   }, [selected]);
 
   return (
-    <Layout>
+    <Layout routeContext={props.routeContext}>
       {(() => {
         if (loading || error || !issueDetails)
           return (
@@ -76,7 +80,7 @@ function IssueCopy() {
 
         const defaultValues = mapIssueToEditorDefaultValues(issueDetails as any, true);
 
-        return <IssueEditor copy defaultValues={defaultValues} />;
+        return <IssueEditor routeContext={props.routeContext} copy defaultValues={defaultValues} />;
       })()}
     </Layout>
   );

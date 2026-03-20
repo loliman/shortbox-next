@@ -26,10 +26,12 @@ import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import { PlayArrowOutlined } from "@mui/icons-material";
 import {generateLabel} from "../../util/hierarchy";
 import { mutationRequest } from "../../lib/client/mutation-request";
+import type { AppRouteContextValue } from "../../app/routeContext";
 
 type SnackbarVariant = "success" | "error" | "warning" | "info";
 
 type AdminTasksProps = {
+  routeContext?: AppRouteContextValue;
   enqueueSnackbar?: (message: string, options?: { variant?: SnackbarVariant }) => void;
 };
 
@@ -322,7 +324,7 @@ function AdminTasksPage(props: Readonly<AdminTasksProps>) {
   };
 
   return (
-    <Layout>
+    <Layout routeContext={props.routeContext}>
       <CardHeader
         title="Adminpanel"
         action={
