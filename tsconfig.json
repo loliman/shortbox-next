@@ -27,7 +27,6 @@
   "exclude": [
     "node_modules",
     "src/services/FilterService.ts",
-    "src/services/IssueService.ts",
     "src/services/MarvelCrawlerService.ts",
     "src/services/SeriesService.ts",
     "src/services/StoryService.ts",
