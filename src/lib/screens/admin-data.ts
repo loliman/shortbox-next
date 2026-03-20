@@ -1,34 +1,6 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma/client";
-
-const ADMIN_TASK_DEFINITIONS = [
-  {
-    key: "cleanup-db",
-    name: "Cleanup",
-    description: "Entfernt inkonsistente Daten in der Datenbank.",
-  },
-  {
-    key: "update-story-badges",
-    name: "Update Story Badges",
-    description: "Berechnet Story Badges für alle Issues neu.",
-  },
-  {
-    key: "reimport-us",
-    name: "Reimport US Issues",
-    description:
-      "Crawlt US-Issues neu, korrigiert normale Datenabweichungen und markiert manuelle Konflikte.",
-  },
-  {
-    key: "rebuild-search-index",
-    name: "Rebuild Search Index",
-    description: "Baut den QuickSearch-Index aus Publishern, Serien und Ausgaben neu auf.",
-  },
-  {
-    key: "update-de-series-genres",
-    name: "Update DE Series Genres",
-    description:
-      "Leitet Genres fuer DE-Serien aus verknuepften US-Stories und deren US-Serien ab.",
-  },
-] as const;
+import { ADMIN_TASK_DEFINITIONS, type AdminTaskName } from "../../worker/task-registry";
 
 type AdminTaskRun = {
   id: string;
@@ -42,34 +14,36 @@ type AdminTaskRun = {
   details: string | null;
 };
 
+type TaskResultRow = {
+  id: number;
+  job_id: string;
+  task_identifier: string;
+  result_json: string;
+  created_at: Date;
+};
+
+type JobViewRow = {
+  id: string | number;
+  task_identifier: string;
+  run_at: Date | null;
+  created_at: Date;
+  locked_at: Date | null;
+  attempts: number;
+  max_attempts: number;
+  last_error: string | null;
+};
+
 export async function getAdminTasks(limitRuns = 10) {
   try {
-    const rows = await prisma.adminTaskResult.findMany({
-      where: {
-        taskIdentifier: {
-          in: ADMIN_TASK_DEFINITIONS.map((entry) => entry.key),
-        },
-      },
-      orderBy: [{ taskIdentifier: "asc" }, { createdAt: "desc" }, { id: "desc" }],
-    });
-
-    const runsByTask = new Map<string, AdminTaskRun[]>();
-    ADMIN_TASK_DEFINITIONS.forEach((task) => runsByTask.set(task.key, []));
-
-    rows.forEach((row) => {
-      const taskRuns = runsByTask.get(row.taskIdentifier);
-      const task = ADMIN_TASK_DEFINITIONS.find((entry) => entry.key === row.taskIdentifier);
-      if (!taskRuns || !task) return;
-      if (taskRuns.length >= limitRuns) return;
-      taskRuns.push(mapResultRowToRun(task.key, task.name, row.jobId, row.createdAt, row.resultJson));
-    });
+    const normalizedLimitRuns = normalizeLimitRuns(limitRuns);
+    const runsByTask = await listTaskRuns(normalizedLimitRuns);
 
     return ADMIN_TASK_DEFINITIONS.map((task, index) => {
-      const runs = runsByTask.get(task.key) || [];
+      const runs = runsByTask.get(task.name) || [];
       return {
         id: String(index + 1),
-        key: task.key,
-        name: task.name,
+        key: task.name,
+        name: task.label,
         description: task.description,
         lastRun: runs[0] || null,
         runs,
@@ -78,8 +52,8 @@ export async function getAdminTasks(limitRuns = 10) {
   } catch {
     return ADMIN_TASK_DEFINITIONS.map((task, index) => ({
       id: String(index + 1),
-      key: task.key,
-      name: task.name,
+      key: task.name,
+      name: task.label,
       description: task.description,
       lastRun: null,
       runs: [],
@@ -88,22 +62,25 @@ export async function getAdminTasks(limitRuns = 10) {
 }
 
 function mapResultRowToRun(
-  taskKey: string,
-  taskName: string,
-  jobId: string,
-  createdAt: Date,
-  resultJson: string
+  task: (typeof ADMIN_TASK_DEFINITIONS)[number],
+  row: TaskResultRow
 ): AdminTaskRun {
-  const parsed = parseTaskResult(resultJson);
+  const parsed = parseTaskResult(row.result_json);
   const summaryLower = parsed.summary.toLowerCase();
-  const isPending = summaryLower.includes("queued") || summaryLower.includes("running");
+  const isPending =
+    parsed.workerState === "queued" ||
+    parsed.workerState === "running" ||
+    parsed.workerState === "failed-awaiting-retry" ||
+    summaryLower.includes("queued") ||
+    summaryLower.includes("running") ||
+    summaryLower.includes("waiting for retry");
 
   return {
-    id: String(jobId),
-    taskKey,
-    taskName,
-    startedAt: createdAt.toISOString(),
-    finishedAt: isPending ? null : createdAt.toISOString(),
+    id: String(row.job_id),
+    taskKey: task.name,
+    taskName: task.label,
+    startedAt: toIso(row.created_at) || new Date().toISOString(),
+    finishedAt: isPending ? null : toIso(row.created_at),
     dryRun: parsed.dryRun,
     status: parsed.status,
     summary: parsed.summary,
@@ -125,6 +102,7 @@ function parseTaskResult(resultJson: string) {
       dryRun: Boolean(parsed.dryRun),
       summary: String(parsed.summary || "Task completed"),
       details: toDetailsText(parsed.details),
+      workerState: extractWorkerState(parsed.details),
     };
   } catch {
     return {
@@ -132,8 +110,144 @@ function parseTaskResult(resultJson: string) {
       dryRun: false,
       summary: "Task completed",
       details: resultJson,
+      workerState: null,
     };
   }
+}
+
+function mapQueuedRowToRun(
+  task: (typeof ADMIN_TASK_DEFINITIONS)[number],
+  row: JobViewRow,
+  dryRun = false
+): AdminTaskRun {
+  const workerState = row.last_error
+    ? "failed-awaiting-retry"
+    : row.locked_at
+      ? "running"
+      : "queued";
+
+  return {
+    id: String(row.id),
+    taskKey: task.name,
+    taskName: task.label,
+    startedAt: toIso(row.run_at) || toIso(row.created_at) || new Date().toISOString(),
+    finishedAt: null,
+    dryRun,
+    status: row.last_error ? "FAILED" : "SUCCESS",
+    summary: row.last_error ? "Job failed and is waiting for retry" : row.locked_at ? "Job running" : "Job queued",
+    details: JSON.stringify(
+      {
+        state: workerState,
+        attempts: row.attempts,
+        maxAttempts: row.max_attempts,
+        lastError: row.last_error,
+      },
+      null,
+      2
+    ),
+  };
+}
+
+async function listTaskRuns(limitRuns: number) {
+  const taskNames = ADMIN_TASK_DEFINITIONS.map((task) => task.name);
+
+  const resultRows = await prisma.$queryRaw<TaskResultRow[]>(Prisma.sql`
+    SELECT id, job_id, task_identifier, result_json, created_at
+    FROM (
+      SELECT
+        id,
+        job_id,
+        task_identifier,
+        result_json,
+        created_at,
+        ROW_NUMBER() OVER (PARTITION BY task_identifier ORDER BY created_at DESC, id DESC) AS rn
+      FROM shortbox.admin_task_result
+      WHERE task_identifier IN (${Prisma.join(taskNames)})
+    ) ranked
+    WHERE ranked.rn <= ${limitRuns}
+    ORDER BY task_identifier ASC, created_at DESC, id DESC
+  `);
+
+  const runsByTask = new Map<AdminTaskName, AdminTaskRun[]>();
+  for (const task of ADMIN_TASK_DEFINITIONS) {
+    runsByTask.set(task.name, []);
+  }
+
+  for (const row of resultRows) {
+    const task = ADMIN_TASK_DEFINITIONS.find((entry) => entry.name === row.task_identifier);
+    if (!task) continue;
+    runsByTask.get(task.name)?.push(mapResultRowToRun(task, row));
+  }
+
+  try {
+    const queuedRows = await prisma.$queryRaw<JobViewRow[]>(Prisma.sql`
+      SELECT id, task_identifier, run_at, created_at, locked_at, attempts, max_attempts, last_error
+      FROM (
+        SELECT
+          id,
+          task_identifier,
+          run_at,
+          created_at,
+          locked_at,
+          attempts,
+          max_attempts,
+          last_error,
+          ROW_NUMBER() OVER (PARTITION BY task_identifier ORDER BY created_at DESC, id DESC) AS rn
+        FROM graphile_worker.jobs
+        WHERE task_identifier IN (${Prisma.join(taskNames)})
+      ) queued
+      WHERE queued.rn <= ${limitRuns}
+      ORDER BY task_identifier ASC, created_at DESC, id DESC
+    `);
+
+    for (const row of queuedRows) {
+      const task = ADMIN_TASK_DEFINITIONS.find((entry) => entry.name === row.task_identifier);
+      if (!task) continue;
+
+      const existingRuns = runsByTask.get(task.name) || [];
+      const existingRunIndex = existingRuns.findIndex((run) => run.id === String(row.id));
+
+      if (existingRunIndex >= 0) {
+        const existingRun = existingRuns[existingRunIndex];
+        if (existingRun.finishedAt === null) {
+          existingRuns[existingRunIndex] = mapQueuedRowToRun(task, row, existingRun.dryRun);
+        }
+        runsByTask.set(task.name, existingRuns);
+        continue;
+      }
+
+      existingRuns.push(mapQueuedRowToRun(task, row));
+      runsByTask.set(task.name, existingRuns);
+    }
+  } catch {
+    // graphile_worker may not be available in every local setup
+  }
+
+  for (const [taskName, runs] of runsByTask.entries()) {
+    runs.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
+    runsByTask.set(taskName, runs.slice(0, limitRuns));
+  }
+
+  return runsByTask;
+}
+
+function normalizeLimitRuns(limitRuns?: number): number {
+  if (!Number.isFinite(limitRuns) || Number(limitRuns) <= 0) return 10;
+  return Math.min(Math.trunc(Number(limitRuns)), 50);
+}
+
+function toIso(value: Date | string | null) {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function extractWorkerState(details: unknown) {
+  if (!details || typeof details !== "object") return null;
+  const rawState = (details as { state?: unknown }).state;
+  return rawState === "queued" || rawState === "running" || rawState === "failed-awaiting-retry"
+    ? rawState
+    : null;
 }
 
 function toDetailsText(value: unknown): string | null {

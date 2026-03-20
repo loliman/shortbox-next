@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/src/lib/prisma/client";
+import { IssueService } from "@/src/services/IssueService";
 
 export async function GET() {
   try {
-    const count = await prisma.changeRequest.count();
+    const count = await new IssueService().countChangeRequests();
     return NextResponse.json({ count });
   } catch {
     return NextResponse.json({ count: 0 });
