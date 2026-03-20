@@ -1,7 +1,6 @@
 import React from "react";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
-import { apps, individuals } from "../../../../graphql/queriesTyped";
 import type { ContainsProps, FieldItem } from "./types";
 import TypedRoleAutocomplete from "./TypedRoleAutocomplete";
 
@@ -57,7 +56,7 @@ function StoryFieldsExclusive(props: StoryFieldsExclusiveProps) {
       {individualFields.map((field) => (
         <Grid size={{ xs: 12, md: 6 }} key={field.type}>
           <TypedRoleAutocomplete
-            query={individuals}
+            source="individuals"
             field={`stories[${index}].individuals`}
             label={field.label}
             type={field.type}
@@ -76,7 +75,7 @@ function StoryFieldsExclusive(props: StoryFieldsExclusiveProps) {
       {appearanceFields.map((field) => (
         <Grid size={{ xs: 12, md: 6 }} key={field.type}>
           <TypedRoleAutocomplete
-            query={apps}
+            source="apps"
             field={`stories[${index}].appearances`}
             label={field.label}
             type={field.type}

@@ -1,6 +1,5 @@
 import React from "react";
 import { useRouter } from "next/navigation";
-import { gql, useMutation } from "@apollo/client";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
@@ -14,21 +13,11 @@ import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
 import DeletionDialog from "./DeletionDialog";
 import { stripItem } from "../../util/util";
-import { runAdminTask } from "../../graphql/mutationsTyped";
 import { ReimportScopeKind } from "../../graphql/typed-documents.generated";
 import { AppContext } from "../generic/AppContext";
 import { useAppRouteContext } from "../generic";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
-
-const EDIT_ISSUE_STATUS_MUTATION = gql`
-  mutation EditIssueStatus($old: IssueInput!, $item: IssueInput!) {
-    editIssue(old: $old, item: $item) {
-      id
-      verified
-      collected
-    }
-  }
-`;
+import { mutationRequest } from "../../lib/client/mutation-request";
 
 const actionButtonSx = {
   border: "1px solid",
@@ -258,12 +247,6 @@ function buildIssueMutationInput(item: DropdownItem): IssueMutationInput {
   return input;
 }
 
-function formatGraphQLErrorMessage(error: unknown): string {
-  const graphQLErrors = (error as { graphQLErrors?: Array<{ message?: string }> })?.graphQLErrors;
-  if (!graphQLErrors || graphQLErrors.length === 0 || !graphQLErrors[0]?.message) return "";
-  return ` [${graphQLErrors[0].message}]`;
-}
-
 function toPositiveId(value: unknown): string | null {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || Math.trunc(parsed) <= 0) return null;
@@ -302,7 +285,6 @@ function toReimportScopeInput(
 }
 
 function ReimportActionButton(props: Readonly<ActionMenuItemProps>) {
-  const [enqueueReimport] = useMutation(runAdminTask);
   const scopeInput = toReimportScopeInput(props.item, props.level);
 
   return (
@@ -318,8 +300,15 @@ function ReimportActionButton(props: Readonly<ActionMenuItemProps>) {
             }
 
             try {
-              const result = await enqueueReimport({
-                variables: {
+              const result = await mutationRequest<{
+                run?: {
+                  summary?: string | null;
+                };
+              }>({
+                url: "/api/admin-task-actions",
+                method: "POST",
+                body: {
+                  action: "run",
                   input: {
                     taskKey: "reimport-us",
                     dryRun: false,
@@ -328,13 +317,13 @@ function ReimportActionButton(props: Readonly<ActionMenuItemProps>) {
                 },
               });
 
-              const summary = result.data?.runAdminTask?.summary || "Reimport Job gestartet";
+              const summary = result.run?.summary || "Reimport Job gestartet";
               props.enqueueSnackbar?.(summary, { variant: "success" });
             } catch (error) {
-              props.enqueueSnackbar?.(
-                `Reimport konnte nicht gestartet werden${formatGraphQLErrorMessage(error)}`,
-                { variant: "error" }
-              );
+              const message = error instanceof Error ? error.message : "Unbekannter Fehler";
+              props.enqueueSnackbar?.(`Reimport konnte nicht gestartet werden: ${message}`, {
+                variant: "error",
+              });
             } finally {
               props.onClose?.();
             }
@@ -349,7 +338,6 @@ function ReimportActionButton(props: Readonly<ActionMenuItemProps>) {
 }
 
 function VerifyActionButton(props: Readonly<ActionMenuItemProps>) {
-  const [editIssue] = useMutation(EDIT_ISSUE_STATUS_MUTATION);
   const label = props.verified ? "Falsifizieren" : "Verifizieren";
 
   return (
@@ -364,8 +352,10 @@ function VerifyActionButton(props: Readonly<ActionMenuItemProps>) {
           };
 
           try {
-            await editIssue({
-              variables: {
+            await mutationRequest({
+              url: "/api/issues",
+              method: "PATCH",
+              body: {
                 old: oldInput,
                 item: nextInput,
               },
@@ -378,8 +368,9 @@ function VerifyActionButton(props: Readonly<ActionMenuItemProps>) {
               }
             );
           } catch (error) {
+            const message = error instanceof Error ? error.message : "Unbekannter Fehler";
             props.enqueueSnackbar?.(
-              `Ausgabe konnte nicht ${label.toLowerCase()} werden${formatGraphQLErrorMessage(error)}`,
+              `Ausgabe konnte nicht ${label.toLowerCase()} werden: ${message}`,
               { variant: "error" }
             );
           } finally {
@@ -395,7 +386,6 @@ function VerifyActionButton(props: Readonly<ActionMenuItemProps>) {
 }
 
 function CollectionActionButton(props: Readonly<ActionMenuItemProps>) {
-  const [editIssue] = useMutation(EDIT_ISSUE_STATUS_MUTATION);
   const label = props.collected ? "Aus Sammlung entfernen" : "Zur Sammlung hinzufügen";
 
   return (
@@ -410,8 +400,10 @@ function CollectionActionButton(props: Readonly<ActionMenuItemProps>) {
           };
 
           try {
-            await editIssue({
-              variables: {
+            await mutationRequest({
+              url: "/api/issues",
+              method: "PATCH",
+              body: {
                 old: oldInput,
                 item: nextInput,
               },
@@ -421,8 +413,9 @@ function CollectionActionButton(props: Readonly<ActionMenuItemProps>) {
               variant: "success",
             });
           } catch (error) {
+            const message = error instanceof Error ? error.message : "Unbekannter Fehler";
             props.enqueueSnackbar?.(
-              `Ausgabe konnte nicht ${label.toLowerCase()} werden${formatGraphQLErrorMessage(error)}`,
+              `Ausgabe konnte nicht ${label.toLowerCase()} werden: ${message}`,
               { variant: "error" }
             );
           } finally {

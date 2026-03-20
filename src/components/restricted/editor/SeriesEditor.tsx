@@ -1,4 +1,3 @@
-import { useMutation } from "@apollo/client";
 import { useRouter } from "next/navigation";
 import { SeriesSchema } from "../../../util/yupSchema";
 import { FastField, Form, Formik } from "formik";
@@ -6,11 +5,9 @@ import { TextField } from "../../generic/FormikTextField";
 import React from "react";
 import { generateLabel, generateUrl } from "../../../util/hierarchy";
 import Button from "@mui/material/Button";
-import { genres, publishers, series, seriesd } from "../../../graphql/queriesTyped";
-import { decapitalize, stripItem, wrapItem } from "../../../util/util";
+import { stripItem } from "../../../util/util";
 import AutocompleteBase from "../../generic/AutocompleteBase";
 import { useAutocompleteQuery } from "../../generic/useAutocompleteQuery";
-import { addToCache, removeFromCache, updateInCache } from "./Editor";
 import Box from "@mui/material/Box";
 import Tooltip from "@mui/material/Tooltip";
 import Switch from "@mui/material/Switch";
@@ -21,12 +18,12 @@ import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import CardContent from "@mui/material/CardContent";
 import CardHeader from "@mui/material/CardHeader";
-import type { DocumentNode } from "graphql";
 import type { FieldItem } from "../../../util/filterFieldHelpers";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { editorSectionSx } from "./editorLayout";
 import { AppContext } from "../../generic/AppContext";
 import { useSnackbarBridge } from "../../generic/useSnackbarBridge";
+import { mutationRequest } from "../../../lib/client/mutation-request";
 
 const MIN_QUERY_LENGTH = 2;
 const editorFieldSx = { width: "100%", maxWidth: { xs: "100%", md: 420 } } as const;
@@ -48,7 +45,6 @@ interface SeriesFormValues {
 interface SeriesEditorProps {
   defaultValues?: SeriesFormValues;
   edit?: boolean;
-  mutation: DocumentNode;
   id?: string | number;
   session?: unknown;
   isDesktop?: boolean;
@@ -82,14 +78,11 @@ function createInitialSeriesValues(defaultValues?: SeriesFormValues): SeriesForm
 
 function SeriesEditorView(props: Readonly<SeriesEditorProps>) {
   const router = useRouter();
-  const { enqueueSnackbar, edit = false, mutation } = props;
+  const { enqueueSnackbar, edit = false } = props;
 
   const [defaultValues, setDefaultValues] = React.useState<SeriesFormValues>(() =>
     createInitialSeriesValues(props.defaultValues)
   );
-
-  const mutationDefinition = mutation.definitions[0] as { name?: { value?: string } };
-  const mutationName = decapitalize(mutationDefinition.name?.value || "");
 
   const header = edit ? generateLabel(defaultValues) + " bearbeiten" : "Serie erstellen";
   const submitLabel = edit ? "Speichern" : "Erstellen";
@@ -97,64 +90,6 @@ function SeriesEditorView(props: Readonly<SeriesEditorProps>) {
   const errorMessage = edit
     ? generateLabel(defaultValues) + " konnte nicht gespeichert werden"
     : "Serie konnte nicht erstellt werden";
-
-  const [runMutation] = useMutation(mutation, {
-    update: (cache, result) => {
-      const payload = result.data as Record<string, unknown> | null | undefined;
-      const res = payload?.[mutationName] as SeriesMutationResult | undefined;
-      if (!res) return;
-
-      const newSeries = structuredClone(res);
-
-      try {
-        const publisher = structuredClone(res.publisher || {});
-        publisher.us = undefined;
-        addToCache(cache, series, stripItem(wrapItem(publisher)), newSeries);
-      } catch {
-        // ignore cache exception
-      }
-
-      if (!edit) return;
-
-      const publisherRef = {
-        name: defaultValues.publisher.name,
-      };
-
-      try {
-        const seriesRef = {
-          title: defaultValues.title,
-          volume: defaultValues.volume,
-          publisher: publisherRef,
-        };
-
-        updateInCache(cache, seriesd, { series: seriesRef }, defaultValues, {
-          seriesd: newSeries,
-        });
-      } catch {
-        // ignore cache exception
-      }
-
-      try {
-        removeFromCache(cache, series, { publisher: publisherRef }, defaultValues);
-      } catch {
-        // ignore cache exception
-      }
-    },
-    onCompleted: (data) => {
-      const result = (data as Record<string, unknown>)[mutationName] as SeriesMutationResult;
-      enqueueSnackbar(generateLabel(result) + successMessage, {
-        variant: "success",
-      });
-      router.push(generateUrl(result, Boolean(result.publisher?.us)));
-    },
-    onError: (errors) => {
-      const message =
-        errors.graphQLErrors && errors.graphQLErrors.length > 0
-          ? " [" + errors.graphQLErrors[0].message + "]"
-          : "";
-      enqueueSnackbar(errorMessage + message, { variant: "error" });
-    },
-  });
 
   const toggleUs = React.useCallback(() => {
     setDefaultValues((prevState) => ({
@@ -179,7 +114,22 @@ function SeriesEditorView(props: Readonly<SeriesEditorProps>) {
           variables.item = normalizeSeriesPayload(values);
           if (edit) variables.old = normalizeSeriesPayload(defaultValues);
 
-          await runMutation({ variables });
+          const result = await mutationRequest<{ item?: SeriesMutationResult }>({
+            url: "/api/series",
+            method: edit ? "PATCH" : "POST",
+            body: variables,
+          });
+
+          const nextItem = result.item;
+          if (!nextItem) throw new Error("Serie konnte nicht gespeichert werden");
+
+          enqueueSnackbar(generateLabel(nextItem) + successMessage, {
+            variant: "success",
+          });
+          router.push(generateUrl(nextItem, Boolean(nextItem.publisher?.us)));
+        } catch (error) {
+          const message = error instanceof Error && error.message ? ` [${error.message}]` : "";
+          enqueueSnackbar(errorMessage + message, { variant: "error" });
         } finally {
           actions.setSubmitting(false);
         }
@@ -352,7 +302,7 @@ function SeriesPublisherAutocomplete({
   textFieldSx,
 }: Readonly<SeriesPublisherAutocompleteProps>) {
   const query = useAutocompleteQuery<FieldItem>({
-    query: publishers,
+    source: "publishers",
     variables: {
       pattern: publisherName,
       us: publisherUs,
@@ -364,7 +314,7 @@ function SeriesPublisherAutocomplete({
 
   const currentValue =
     query.options.find((entry) => normalizeText(entry.name) === normalizeText(publisherName)) ||
-    (normalizeText(publisherName).length > 0 ? publisherName : null);
+    (normalizeText(publisherName).length > 0 ? { name: publisherName } : null);
 
   return (
     <AutocompleteBase
@@ -417,7 +367,7 @@ function SeriesGenreAutocomplete({
   const selectedGenreNames = React.useMemo(() => parseGenreString(genre), [genre]);
 
   const query = useAutocompleteQuery<string>({
-    query: genres,
+    source: "genres",
     variables: {
       pattern,
     },

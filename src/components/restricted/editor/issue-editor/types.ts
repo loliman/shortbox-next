@@ -1,4 +1,3 @@
-import type { DocumentNode } from "graphql";
 import type { SelectedRoot } from "../../../../types/domain";
 import type { MouseEvent, ReactNode } from "react";
 
@@ -33,7 +32,6 @@ export interface IssueEditorProps {
   defaultValues?: IssueEditorFormValues;
   edit?: boolean;
   copy?: boolean;
-  mutation: DocumentNode;
   id?: string | number;
   session?: unknown;
   isDesktop?: boolean;

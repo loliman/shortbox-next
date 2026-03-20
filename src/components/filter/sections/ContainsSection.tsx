@@ -8,7 +8,6 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import AutocompleteBase from "../../generic/AutocompleteBase";
 import { useAutocompleteQuery } from "../../generic/useAutocompleteQuery";
 import { FilterValues } from "../types";
-import { apps, arcs, realities } from "../../../graphql/queriesTyped";
 import type { FieldItem } from "../../../util/filterFieldHelpers";
 
 const MIN_QUERY_LENGTH = 2;
@@ -38,7 +37,7 @@ function ContainsSection({
   const [realityInput, setRealityInput] = React.useState("");
 
   const arcQuery = useAutocompleteQuery<{ title?: string; type?: string }>({
-    query: arcs,
+    source: "arcs",
     variables: { pattern: arcInput },
     searchText: arcInput,
     minQueryLength: MIN_QUERY_LENGTH,
@@ -46,7 +45,7 @@ function ContainsSection({
   });
 
   const appearanceQuery = useAutocompleteQuery<{ name?: string; type?: string }>({
-    query: apps,
+    source: "apps",
     variables: { pattern: appearanceInput },
     searchText: appearanceInput,
     minQueryLength: MIN_QUERY_LENGTH,
@@ -54,7 +53,7 @@ function ContainsSection({
   });
 
   const realityQuery = useAutocompleteQuery<{ name?: string }>({
-    query: realities,
+    source: "realities",
     variables: { pattern: realityInput },
     searchText: realityInput,
     minQueryLength: REALITY_MIN_QUERY_LENGTH,

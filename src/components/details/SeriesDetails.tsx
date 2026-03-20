@@ -4,16 +4,12 @@ import CardContent from "@mui/material/CardContent";
 import Stack from "@mui/material/Stack";
 import { generateLabel } from "../../util/hierarchy";
 import Layout from "../Layout";
-import { useQuery } from "@apollo/client";
 import QueryResult from "../generic/QueryResult";
-import { lastEdited, seriesd } from "../../graphql/queriesTyped";
 import EditButton from "../restricted/EditButton";
 import { AppContext } from "../generic/AppContext";
 import { useAppRouteContext } from "../generic";
-import PaginatedQuery from "../generic/PaginatedQuery";
 import TitleLine from "../generic/TitleLine";
 import { IssueHistoryList } from "./DetailsListingSections";
-import { getListingDirection, getListingOrder, parseListingFilter } from "../../util/listingQuery";
 import { DetailsPagePlaceholder } from "../placeholders/DetailsPagePlaceholder";
 import { DetailsAddInfo } from "./DetailsAddInfo";
 import { useDualLoadingRegistration } from "./useDualLoadingRegistration";
@@ -57,127 +53,127 @@ function SeriesDetailsContent(props: Readonly<SeriesDetailsProps>) {
     detailsKey: "SeriesDetails_details",
     historyKey: "SeriesDetails_history",
   });
-  const filter = React.useMemo(() => {
-    const parsed = parseListingFilter(props.query, us);
-    return {
-      ...parsed,
-      series: [
-        {
-          title: props.selected.series.title,
-          volume: props.selected.series.volume,
-          publisher: { us },
-        },
-      ],
-      publishers: [{ name: props.selected.series.publisher.name, us }],
+  const [details, setDetails] = React.useState<Record<string, unknown> | null>(null);
+  const [issues, setIssues] = React.useState<unknown[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [detailsError, setDetailsError] = React.useState<unknown>(null);
+  const endYearLabel =
+    details && (details.active || details.endyear === 0) ? "heute" : details?.endyear;
+  const genreLabel = String(details?.genre || "").trim();
+  const subheaderLabel = details
+    ? `${details.startyear}-${endYearLabel}${genreLabel ? ` | ${genreLabel}` : ""}`
+    : undefined;
+
+  React.useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setDetailsError(null);
+
+    const params = new URLSearchParams({
+      locale: us ? "us" : "de",
+      publisher: props.selected.series.publisher.name,
+      series: props.selected.series.title,
+      volume: String(props.selected.series.volume),
+    });
+
+    void fetch(`/api/public-series?${params.toString()}`, { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Series request failed: ${response.status}`);
+        return (await response.json()) as {
+          item?: { details?: Record<string, unknown>; issues?: unknown[] } | null;
+        };
+      })
+      .then((payload) => {
+        if (cancelled) return;
+        setDetails(payload.item?.details || null);
+        setIssues(payload.item?.issues || []);
+      })
+      .catch((nextError) => {
+        if (cancelled) return;
+        setDetails(null);
+        setIssues([]);
+        setDetailsError(nextError);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
     };
   }, [
-    props.query,
     props.selected.series.publisher.name,
     props.selected.series.title,
     props.selected.series.volume,
     us,
   ]);
 
-  const {
-    error: detailsError,
-    data: detailsData,
-    previousData: previousDetailsData,
-    loading,
-  } = useQuery(seriesd, {
-    variables: props.selected,
-    notifyOnNetworkStatusChange: true,
-    fetchPolicy: "cache-and-network",
-    nextFetchPolicy: "cache-first",
-  });
-  const details =
-    detailsData?.seriesDetails ?? (loading ? previousDetailsData?.seriesDetails : null);
-  const endYearLabel =
-    details && (details.active || details.endyear === 0) ? "heute" : details?.endyear;
-  const genreLabel = details?.genre?.trim();
-  const subheaderLabel = details
-    ? `${details.startyear}-${endYearLabel}${genreLabel ? ` | ${genreLabel}` : ""}`
-    : undefined;
-
   React.useEffect(() => {
     if (details || detailsError) {
       markDetailsLoaded();
+      markHistoryLoaded();
     }
-  }, [details, detailsError, markDetailsLoaded]);
+  }, [details, detailsError, markDetailsLoaded, markHistoryLoaded]);
 
   return (
-    <PaginatedQuery
-      query={lastEdited}
-      variables={{
-        filter,
-        order: getListingOrder(props.query),
-        direction: getListingDirection(props.query),
-      }}
-      onCompleted={markHistoryLoaded}
-    >
-      {({ error, data, fetchMore, hasMore, fetching }) => {
-        const issues = data ? data.lastEdited : [];
-        const combinedError = detailsError || error;
-
-        return (
-          <Layout handleScroll={fetchMore}>
-            {combinedError || !details ? (
-              <QueryResult
-                error={combinedError}
-                data={details || null}
-                selected={props.selected}
-                placeholder={
-                  <DetailsPagePlaceholder
-                    query={props.query}
-                    compactLayout={compactLayout}
-                    titleWidth="45%"
-                    subheaderWidth="30%"
-                  />
-                }
-                placeholderCount={1}
+    <Layout>
+      {detailsError || !details ? (
+        <QueryResult
+          error={detailsError}
+          data={details || null}
+          loading={loading}
+          selected={props.selected}
+          placeholder={
+            <DetailsPagePlaceholder
+              query={props.query}
+              compactLayout={compactLayout}
+              titleWidth="45%"
+              subheaderWidth="30%"
+            />
+          }
+          placeholderCount={1}
+        />
+      ) : (
+        <React.Fragment>
+          <CardHeader
+            sx={{
+              "& .MuiCardHeader-action": {
+                m: 0,
+                alignSelf: "center",
+              },
+            }}
+            title={
+              <TitleLine
+                title={generateLabel({ series: details as any, us })}
+                id={(details.id as string | undefined) ?? undefined}
+                session={props.session}
               />
-            ) : (
-              <React.Fragment>
-                <CardHeader
-                  sx={{
-                    "& .MuiCardHeader-action": {
-                      m: 0,
-                      alignSelf: "center",
-                    },
-                  }}
-                  title={
-                    <TitleLine
-                      title={generateLabel({ series: details as any, us })}
-                      id={details.id ?? undefined}
-                      session={props.session}
-                    />
-                  }
-                  subheader={subheaderLabel}
-                  action={
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      {!compactLayout ? <SortContainer {...pageProps} /> : null}
-                      <EditButton item={details} />
-                    </Stack>
-                  }
-                />
+            }
+            subheader={subheaderLabel}
+            action={
+              <Stack direction="row" spacing={1} alignItems="center">
+                {!compactLayout ? <SortContainer {...pageProps} /> : null}
+                <EditButton item={details} />
+              </Stack>
+            }
+          />
 
-                <CardContent sx={{ pt: 1 }}>
-                  <DetailsAddInfo addinfo={details.addinfo} />
+          <CardContent sx={{ pt: 1 }}>
+            <DetailsAddInfo addinfo={(details.addinfo as string | null | undefined) ?? undefined} />
 
-                  <IssueHistoryList
-                    query={props.query}
-                    compactLayout={compactLayout}
-                    issues={issues}
-                    loadingMore={Boolean(hasMore && fetching)}
-                    previewProps={pageProps}
-                    showSort={compactLayout}
-                  />
-                </CardContent>
-              </React.Fragment>
-            )}
-          </Layout>
-        );
-      }}
-    </PaginatedQuery>
+            <IssueHistoryList
+              query={props.query}
+              compactLayout={compactLayout}
+              issues={issues as any}
+              loadingMore={false}
+              previewProps={pageProps}
+              showSort={compactLayout}
+            />
+          </CardContent>
+        </React.Fragment>
+      )}
+    </Layout>
   );
 }
 

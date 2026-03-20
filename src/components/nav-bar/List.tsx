@@ -16,16 +16,6 @@ import Typography from "@mui/material/Typography";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import { useQuery } from "@apollo/client";
-import { issues, publishers, series } from "../../graphql/queriesTyped";
-import type {
-  IssuesQuery,
-  IssuesQueryVariables,
-  PublishersQuery,
-  PublishersQueryVariables,
-  SeriesQuery,
-  SeriesQueryVariables,
-} from "../../graphql/typed-documents.generated";
 import { generateUrl } from "../../util/hierarchy";
 import { AppContext } from "../generic/AppContext";
 import { useAppRouteContext } from "../generic";
@@ -39,11 +29,8 @@ import {
   drawerHeaderTopOffset,
   getNavDrawerWidth,
 } from "../layoutMetrics";
-import { parseFilter } from "./listUtils";
 import { getLegacyNumberLabel, getSeriesLabel } from "../../util/issuePresentation";
 import CoverTooltip from "./CoverTooltip";
-
-const LIST_PAGE_SIZE = 250;
 
 interface ListProps {
   drawerOpen?: boolean;
@@ -64,17 +51,37 @@ interface ListProps {
   [key: string]: unknown;
 }
 
-type PublisherNode = NonNullable<
-  NonNullable<NonNullable<NonNullable<PublishersQuery["publisherList"]>["edges"]>[number]>["node"]
->;
+type PublisherNode = {
+  id?: string | null;
+  name?: string | null;
+  us?: boolean | null;
+};
 
-type SeriesNode = NonNullable<
-  NonNullable<NonNullable<NonNullable<SeriesQuery["seriesList"]>["edges"]>[number]>["node"]
->;
+type SeriesNode = {
+  id?: string | null;
+  title?: string | null;
+  volume?: number | null;
+  startyear?: number | null;
+  endyear?: number | null;
+  publisher?: PublisherNode | null;
+};
 
-type IssueNode = NonNullable<
-  NonNullable<NonNullable<NonNullable<IssuesQuery["issueList"]>["edges"]>[number]>["node"]
->;
+type IssueNode = {
+  id?: string | null;
+  number?: string | null;
+  legacy_number?: string | null;
+  title?: string | null;
+  format?: string | null;
+  variant?: string | null;
+  collected?: boolean | null;
+  cover?: { url?: string | null } | null;
+  variants?: Array<{ collected?: boolean | null; format?: string | null; variant?: string | null } | null> | null;
+  series?: {
+    title?: string | null;
+    volume?: number | null;
+    publisher?: PublisherNode | null;
+  } | null;
+};
 
 let lastPublisherNodesCache: PublisherNode[] = [];
 let expandedPublishersCache: Record<string, Record<string, boolean>> = {};
@@ -94,10 +101,6 @@ export default function List(ownProps: Readonly<Partial<ListProps>>) {
     props.compactLayout ?? Boolean(props.isPhone || (props.isTablet && !props.isTabletLandscape));
   const drawerWidth = getNavDrawerWidth(temporaryDrawer);
   const filterQuery = props.query?.filter ?? null;
-  const filter = React.useMemo(
-    () => parseFilter(filterQuery) as PublishersQueryVariables["filter"],
-    [filterQuery]
-  );
   const us = Boolean(props.us);
   const navStateKey = React.useMemo(() => `${us}|${filterQuery || ""}`, [us, filterQuery]);
   const phonePortrait = props.isPhonePortrait ?? Boolean(props.isPhone && !props.isPhoneLandscape);
@@ -144,21 +147,48 @@ export default function List(ownProps: Readonly<Partial<ListProps>>) {
     if (listElement) listElement.scrollTop = 0;
   }, [props.navResetVersion]);
 
-  const {
-    data: publisherData,
-    error: publisherError,
-    networkStatus: publisherNetworkStatus,
-  } = useQuery<PublishersQuery, PublishersQueryVariables>(publishers, {
-    variables: { us, filter, first: LIST_PAGE_SIZE },
-    fetchPolicy: "cache-first",
-  });
-
-  const publisherNodes = React.useMemo(() => toPublisherNodes(publisherData), [publisherData]);
+  const [publisherNodes, setPublisherNodes] = React.useState<PublisherNode[]>([]);
+  const [publisherError, setPublisherError] = React.useState<unknown>(null);
+  const [publisherLoading, setPublisherLoading] = React.useState(true);
   if (publisherNodes.length > 0) {
     lastPublisherNodesCache = publisherNodes;
   }
   const visiblePublisherNodes =
     publisherNodes.length > 0 ? publisherNodes : lastPublisherNodesCache;
+
+  React.useEffect(() => {
+    let cancelled = false;
+    setPublisherLoading(true);
+    setPublisherError(null);
+
+    const params = new URLSearchParams({
+      locale: us ? "us" : "de",
+    });
+    if (filterQuery) params.set("filter", filterQuery);
+
+    void fetch(`/api/public-nav/publishers?${params.toString()}`, { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Publisher request failed: ${response.status}`);
+        return (await response.json()) as { items?: PublisherNode[] };
+      })
+      .then((payload) => {
+        if (cancelled) return;
+        setPublisherNodes((payload.items || []).filter((node) => Boolean(node?.name)));
+      })
+      .catch((nextError) => {
+        if (cancelled) return;
+        setPublisherNodes([]);
+        setPublisherError(nextError);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setPublisherLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [us, filterQuery]);
 
   React.useLayoutEffect(() => {
     const container = navScrollContainerRef.current;
@@ -180,7 +210,7 @@ export default function List(ownProps: Readonly<Partial<ListProps>>) {
   const selectedIssue = props.selected?.issue;
   // Keep nav loading isolated from content-area loading to avoid full-nav skeleton flashes
   // when switching detail routes from the list.
-  const isInitialLoading = publisherNetworkStatus === 1 && visiblePublisherNodes.length === 0;
+  const isInitialLoading = publisherLoading && visiblePublisherNodes.length === 0;
 
   React.useEffect(() => {
     if (selectedIssue?.number) return;
@@ -268,7 +298,7 @@ export default function List(ownProps: Readonly<Partial<ListProps>>) {
           <Collapse in={expanded} timeout="auto" unmountOnExit>
             <SeriesBranch
               us={us}
-              filter={filter as SeriesQueryVariables["filter"]}
+              filter={filterQuery}
               publisher={publisherNode}
               navStateKey={navStateKey}
               activeSeriesKey={selected ? selectedSeriesKey : null}
@@ -350,7 +380,7 @@ export default function List(ownProps: Readonly<Partial<ListProps>>) {
 
 type SeriesBranchProps = {
   us: boolean;
-  filter: SeriesQueryVariables["filter"];
+  filter?: string | null;
   publisher: PublisherNode;
   navStateKey: string;
   activeSeriesKey: string | null;
@@ -379,20 +409,44 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
     expandedSeriesCache[seriesStateKey] = expandedSeries;
   }, [expandedSeries, seriesStateKey]);
 
-  const {
-    data: seriesData,
-    error: seriesError,
-    loading: seriesLoading,
-  } = useQuery<SeriesQuery, SeriesQueryVariables>(series, {
-    variables: {
-      publisher: { name: publisherName, us: publisherUs },
-      filter,
-      first: LIST_PAGE_SIZE,
-    },
-    fetchPolicy: "cache-first",
-  });
+  const [seriesNodes, setSeriesNodes] = React.useState<SeriesNode[]>([]);
+  const [seriesError, setSeriesError] = React.useState<unknown>(null);
+  const [seriesLoading, setSeriesLoading] = React.useState(true);
 
-  const seriesNodes = React.useMemo(() => toSeriesNodes(seriesData), [seriesData]);
+  React.useEffect(() => {
+    let cancelled = false;
+    setSeriesLoading(true);
+    setSeriesError(null);
+
+    const params = new URLSearchParams({
+      locale: publisherUs ? "us" : "de",
+      publisher: publisherName,
+    });
+    if (filter) params.set("filter", filter);
+
+    void fetch(`/api/public-nav/series?${params.toString()}`, { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Series request failed: ${response.status}`);
+        return (await response.json()) as { items?: SeriesNode[] };
+      })
+      .then((payload) => {
+        if (cancelled) return;
+        setSeriesNodes((payload.items || []).filter((node) => Boolean(node?.title && node?.publisher?.name)));
+      })
+      .catch((nextError) => {
+        if (cancelled) return;
+        setSeriesNodes([]);
+        setSeriesError(nextError);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setSeriesLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [publisherName, publisherUs, filter]);
   const seriesSelectionByKey = React.useMemo(() => {
     const selection: Record<string, Series> = {};
     for (const seriesNode of seriesNodes) {
@@ -471,7 +525,7 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
             <Collapse in={expanded} timeout="auto" unmountOnExit>
               <IssuesBranch
                 us={us}
-                filter={filter as IssuesQueryVariables["filter"]}
+                filter={filter}
                 series={seriesNode}
                 selectedIssue={props.selectedIssue}
                 session={props.session}
@@ -490,7 +544,7 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
 
 type IssuesBranchProps = {
   us: boolean;
-  filter: IssuesQueryVariables["filter"];
+  filter?: string | null;
   series: SeriesNode;
   selectedIssue?: Issue;
   session?: unknown;
@@ -511,20 +565,46 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
   const skipSameIssueAutoScrollRef = React.useRef(false);
   const issueListRef = React.useRef<HTMLUListElement | null>(null);
 
-  const {
-    data: issuesData,
-    error: issuesError,
-    loading: issuesLoading,
-  } = useQuery<IssuesQuery, IssuesQueryVariables>(issues, {
-    variables: {
-      series: seriesInput,
-      filter,
-      first: LIST_PAGE_SIZE,
-    },
-    fetchPolicy: "cache-first",
-  });
+  const [issueNodes, setIssueNodes] = React.useState<IssueNode[]>([]);
+  const [issuesError, setIssuesError] = React.useState<unknown>(null);
+  const [issuesLoading, setIssuesLoading] = React.useState(true);
 
-  const issueNodes = React.useMemo(() => toIssueNodes(issuesData), [issuesData]);
+  React.useEffect(() => {
+    let cancelled = false;
+    setIssuesLoading(true);
+    setIssuesError(null);
+
+    const params = new URLSearchParams({
+      locale: us ? "us" : "de",
+      publisher: seriesInput.publisher.name || "",
+      series: seriesInput.title || "",
+      volume: String(seriesInput.volume || 1),
+    });
+    if (filter) params.set("filter", filter);
+
+    void fetch(`/api/public-nav/issues?${params.toString()}`, { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Issue request failed: ${response.status}`);
+        return (await response.json()) as { items?: IssueNode[] };
+      })
+      .then((payload) => {
+        if (cancelled) return;
+        setIssueNodes((payload.items || []).filter((node) => Boolean(node?.number && node?.series?.title)));
+      })
+      .catch((nextError) => {
+        if (cancelled) return;
+        setIssueNodes([]);
+        setIssuesError(nextError);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setIssuesLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [us, filter, seriesInput.publisher.name, seriesInput.title, seriesInput.volume]);
 
   React.useEffect(() => {
     skipSameIssueAutoScrollRef.current = Boolean(
@@ -817,24 +897,6 @@ function getVariantCount(issueNode: IssueNode): number {
   return total > 1 ? total - 1 : 0;
 }
 
-function toPublisherNodes(data?: PublishersQuery): PublisherNode[] {
-  return (data?.publisherList?.edges || [])
-    .map((edge) => edge?.node)
-    .filter((node): node is PublisherNode => Boolean(node?.name));
-}
-
-function toSeriesNodes(data?: SeriesQuery): SeriesNode[] {
-  return (data?.seriesList?.edges || [])
-    .map((edge) => edge?.node)
-    .filter((node): node is SeriesNode => Boolean(node?.title && node?.publisher?.name));
-}
-
-function toIssueNodes(data?: IssuesQuery): IssueNode[] {
-  return (data?.issueList?.edges || [])
-    .map((edge) => edge?.node)
-    .filter((node): node is IssueNode => Boolean(node?.number && node?.series?.title));
-}
-
 function createSeriesLabel(seriesNode: SeriesNode): string {
   return getSeriesLabel(seriesNode, { fallbackYear: "?" });
 }
@@ -894,7 +956,7 @@ function toSeriesSelected(seriesNode: SeriesNode, us: boolean): Series {
   };
 }
 
-function toSeriesInput(seriesNode: SeriesNode, us: boolean): IssuesQueryVariables["series"] {
+function toSeriesInput(seriesNode: SeriesNode, us: boolean) {
   return {
     title: seriesNode.title || "",
     volume: seriesNode.volume ?? 1,

@@ -1,8 +1,6 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import Button from "@mui/material/Button";
-import { login } from "../graphql/mutationsTyped";
-import { useApolloClient, useMutation } from "@apollo/client";
 import { Field, Form, Formik } from "formik";
 import { TextField } from "./generic/FormikTextField";
 import Card from "@mui/material/Card";
@@ -14,6 +12,7 @@ import { LoginSchema } from "../util/yupSchema";
 import { isMockMode } from "../app/mockMode";
 import { AppContext } from "./generic/AppContext";
 import { useSnackbarBridge } from "./generic/useSnackbarBridge";
+import { mutationRequest } from "../lib/client/mutation-request";
 
 interface LoginProps {
   enqueueSnackbar: (
@@ -25,22 +24,6 @@ interface LoginProps {
 
 function LoginView(props: Readonly<LoginProps>) {
   const router = useRouter();
-  const client = useApolloClient();
-  const [runLogin] = useMutation(login, {
-    onCompleted: (data) => {
-      props.enqueueSnackbar("Willkommen!", { variant: "success" });
-      props.handleLogin(data.login);
-      client.resetStore();
-      router.back();
-    },
-    onError: (errors) => {
-      let message =
-        errors.graphQLErrors && errors.graphQLErrors.length > 0
-          ? " [" + errors.graphQLErrors[0].message + "]"
-          : "";
-      props.enqueueSnackbar("Login fehlgeschlagen" + message, { variant: "error" });
-    },
-  });
 
   return (
     <Formik
@@ -53,20 +36,30 @@ function LoginView(props: Readonly<LoginProps>) {
         if (isMockMode) {
           props.enqueueSnackbar("Willkommen!", { variant: "success" });
           props.handleLogin({ loggedIn: true });
-          client.resetStore();
           router.back();
           actions.setSubmitting(false);
           return;
         }
 
-        await runLogin({
-          variables: {
-            credentials: {
-              name: values.name,
-              password: values.password,
+        try {
+          const result = await mutationRequest<{ user?: { id?: string; loggedIn?: boolean } }>({
+            url: "/api/auth/login",
+            method: "POST",
+            body: {
+              credentials: {
+                name: values.name,
+                password: values.password,
+              },
             },
-          },
-        });
+          });
+
+          props.enqueueSnackbar("Willkommen!", { variant: "success" });
+          props.handleLogin(result.user || { loggedIn: true });
+          router.back();
+        } catch (error) {
+          const message = error instanceof Error && error.message ? ` [${error.message}]` : "";
+          props.enqueueSnackbar("Login fehlgeschlagen" + message, { variant: "error" });
+        }
 
         actions.setSubmitting(false);
       }}

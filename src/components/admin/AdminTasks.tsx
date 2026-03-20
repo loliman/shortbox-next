@@ -19,13 +19,11 @@ import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { useMutation, useQuery } from "@apollo/client";
-import { adminTasks } from "../../graphql/queriesTyped";
-import { releaseAllAdminTaskLocks, runAdminTask } from "../../graphql/mutationsTyped";
 import Layout from "../Layout";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import { PlayArrowOutlined } from "@mui/icons-material";
 import {generateLabel} from "../../util/hierarchy";
+import { mutationRequest } from "../../lib/client/mutation-request";
 
 type SnackbarVariant = "success" | "error" | "warning" | "info";
 
@@ -192,17 +190,33 @@ const resolveAggregateTaskState = (runs: Array<RunLike | null | undefined>): Vis
 
 function AdminTasksPage(props: Readonly<AdminTasksProps>) {
   const [runningTaskKey, setRunningTaskKey] = React.useState<string | null>(null);
-
-  const { data, loading, error, refetch } = useQuery(adminTasks, {
-    variables: { limitRuns: 10 },
-    fetchPolicy: "network-only",
-    nextFetchPolicy: "network-only",
-  });
-
-  const [runTask] = useMutation(runAdminTask);
-  const [releaseLocks, { loading: releasingLocks }] = useMutation(releaseAllAdminTaskLocks);
+  const [data, setData] = React.useState<{ adminTasks?: unknown[] }>({ adminTasks: [] });
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<unknown>(null);
+  const [releasingLocks, setReleasingLocks] = React.useState(false);
 
   const tasks = data?.adminTasks || [];
+
+  const refetch = React.useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/public-admin-tasks?limitRuns=10", { cache: "no-store" });
+      if (!response.ok) throw new Error(`Admin tasks request failed: ${response.status}`);
+      const payload = (await response.json()) as { items?: unknown[] };
+      setData({ adminTasks: Array.isArray(payload.items) ? payload.items : [] });
+    } catch (nextError) {
+      setData({ adminTasks: [] });
+      setError(nextError);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void refetch();
+  }, [refetch]);
 
   const copyDetailsToClipboard = async (text: string) => {
     try {
@@ -218,8 +232,16 @@ function AdminTasksPage(props: Readonly<AdminTasksProps>) {
     setRunningTaskKey(taskKey + (dryRun ? ":dry" : ":run"));
 
     try {
-      const result = await runTask({
-        variables: {
+      const result = await mutationRequest<{
+        run?: {
+          status?: string | null;
+          summary?: string | null;
+        };
+      }>({
+        url: "/api/admin-task-actions",
+        method: "POST",
+        body: {
+          action: "run",
           input: {
             taskKey,
             dryRun,
@@ -227,7 +249,7 @@ function AdminTasksPage(props: Readonly<AdminTasksProps>) {
         },
       });
 
-      const run = result?.data?.runAdminTask;
+      const run = result?.run;
       const status = run?.status || "UNKNOWN";
       const summary = run?.summary || "";
 
@@ -247,14 +269,22 @@ function AdminTasksPage(props: Readonly<AdminTasksProps>) {
       });
     } finally {
       setRunningTaskKey(null);
-      await refetch({ limitRuns: 10 });
+      await refetch();
     }
   };
 
   const releaseAllLocksNow = async () => {
+    setReleasingLocks(true);
+
     try {
-      const result = await releaseLocks();
-      const removedJobs = Number(result?.data?.releaseAllAdminTaskLocks || 0);
+      const result = await mutationRequest<{ removedJobs?: number }>({
+        url: "/api/admin-task-actions",
+        method: "POST",
+        body: {
+          action: "release-locks",
+        },
+      });
+      const removedJobs = Number(result?.removedJobs || 0);
       if (removedJobs > 0) {
         props.enqueueSnackbar?.(
           `${removedJobs} Admin-Job(s) wurden freigegeben und aus der Queue entfernt.`,
@@ -271,7 +301,8 @@ function AdminTasksPage(props: Readonly<AdminTasksProps>) {
         variant: "error",
       });
     } finally {
-      await refetch({ limitRuns: 10 });
+      setReleasingLocks(false);
+      await refetch();
     }
   };
 

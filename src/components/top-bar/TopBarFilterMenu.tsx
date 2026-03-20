@@ -1,6 +1,5 @@
 import React from "react";
 import { useRouter } from "next/navigation";
-import { gql, useQuery } from "@apollo/client";
 import Tooltip from "@mui/material/Tooltip";
 import IconButton from "@mui/material/IconButton";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
@@ -43,13 +42,47 @@ export default function TopBarFilterMenu(props: Readonly<TopBarFilterMenuProps>)
     }
   }, [props.query?.filter, us]);
 
-  const { data, loading } = useQuery(FILTER_COUNT_QUERY, {
-    skip: !isFilterActive || !filterVariables,
-    variables: filterVariables || undefined,
-    fetchPolicy: "cache-and-network",
-    nextFetchPolicy: "cache-first",
-  });
-  const count = data?.filterCount;
+  const [count, setCount] = React.useState<number | undefined>(undefined);
+  const [loading, setLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!isFilterActive || !filterVariables) {
+      setCount(undefined);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+
+    void fetch("/api/public-filter-count", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(filterVariables),
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Filter count request failed: ${response.status}`);
+        return (await response.json()) as { count?: number };
+      })
+      .then((payload) => {
+        if (cancelled) return;
+        setCount(Number.isFinite(payload.count) ? Number(payload.count) : undefined);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setCount(undefined);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isFilterActive, filterVariables]);
   const tooltipTitle = React.useMemo(
     () => buildFilterTooltipTitle(Boolean(isFilterActive), props.query?.filter),
     [isFilterActive, props.query?.filter]
@@ -375,9 +408,3 @@ function toFilterLabel(item: unknown): string {
 
   return "";
 }
-
-const FILTER_COUNT_QUERY = gql`
-  query FilterCount($filter: Filter!) {
-    filterCount(filter: $filter)
-  }
-`;

@@ -6,13 +6,12 @@ import type {
   AutocompleteInputChangeReason,
 } from "@mui/material/Autocomplete";
 import { FastField } from "formik";
-import type { DocumentNode } from "graphql";
 import AutocompleteBase from "../../../generic/AutocompleteBase";
 import { TextField } from "../../../generic/FormikTextField";
 import { useAutocompleteQuery } from "../../../generic/useAutocompleteQuery";
-import { arcs, individuals } from "../../../../graphql/queriesTyped";
 import { currencies, formats } from "./constants";
 import type { IssueEditorFormValues } from "./types";
+import type { AutocompleteSource } from "../../../../lib/screens/autocomplete-data";
 
 const MIN_QUERY_LENGTH = 2;
 const DEBOUNCE_MS = 250;
@@ -40,7 +39,7 @@ interface IssueEditorMetadataFieldsProps {
 }
 
 interface TypedMetadataAutocompleteProps {
-  query: DocumentNode;
+  source: AutocompleteSource;
   field: MetadataField;
   label: string;
   type: string;
@@ -148,7 +147,7 @@ function IssueEditorMetadataFields({
         <React.Fragment>
           <Grid size={{ xs: 12, md: 6 }}>
             <TypedMetadataAutocomplete
-              query={individuals}
+              source="individuals"
               field="individuals"
               type="EDITOR"
               entryKey="name"
@@ -160,7 +159,7 @@ function IssueEditorMetadataFields({
 
           <Grid size={{ xs: 12, md: 6 }}>
             <TypedMetadataAutocomplete
-              query={arcs}
+              source="arcs"
               field="arcs"
               type="EVENT"
               entryKey="title"
@@ -173,7 +172,7 @@ function IssueEditorMetadataFields({
 
           <Grid size={{ xs: 12, md: 6 }}>
             <TypedMetadataAutocomplete
-              query={arcs}
+              source="arcs"
               field="arcs"
               type="STORYARC"
               entryKey="title"
@@ -186,7 +185,7 @@ function IssueEditorMetadataFields({
 
           <Grid size={{ xs: 12, md: 6 }}>
             <TypedMetadataAutocomplete
-              query={arcs}
+              source="arcs"
               field="arcs"
               type="STORYLINE"
               entryKey="title"
@@ -203,7 +202,7 @@ function IssueEditorMetadataFields({
 }
 
 function TypedMetadataAutocomplete({
-  query,
+  source,
   field,
   label,
   type,
@@ -215,7 +214,7 @@ function TypedMetadataAutocomplete({
   const pattern = getPattern(values, entryKey);
 
   const queryResult = useAutocompleteQuery<MetadataEntry>({
-    query,
+    source,
     variables: {
       ...variables,
       pattern,

@@ -4,7 +4,6 @@ import { FastField } from "formik";
 import AutocompleteBase from "../../../generic/AutocompleteBase";
 import { useAutocompleteQuery } from "../../../generic/useAutocompleteQuery";
 import { TextField } from "../../../generic/FormikTextField";
-import { individuals, series } from "../../../../graphql/queriesTyped";
 import type { ContainsProps, FieldItem } from "./types";
 import TypedRoleAutocomplete from "./TypedRoleAutocomplete";
 import { getSeriesLabel } from "../../../../util/issuePresentation";
@@ -30,7 +29,7 @@ function StoryFieldsNonExclusive(props: StoryFieldsNonExclusiveProps) {
   const seriesPattern = String(parentSeries.title || "");
 
   const seriesQuery = useAutocompleteQuery<FieldItem>({
-    query: series,
+    source: "series",
     variables: {
       pattern: seriesPattern,
       publisher: { name: "*", us: true },
@@ -119,7 +118,7 @@ function StoryFieldsNonExclusive(props: StoryFieldsNonExclusiveProps) {
 
       <Grid size={{ xs: 12, md: 6 }}>
         <TypedRoleAutocomplete
-          query={individuals}
+          source="individuals"
           field={`stories[${index}].individuals`}
           label="Übersetzer"
           type="TRANSLATOR"

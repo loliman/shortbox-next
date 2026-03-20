@@ -1,4 +1,3 @@
-import { useMutation, useQuery } from "@apollo/client";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -8,8 +7,6 @@ import { useRouter } from "next/navigation";
 import { Form, Formik } from "formik";
 import Layout from "../Layout";
 import QueryResult from "../generic/QueryResult";
-import { issue } from "../../graphql/queriesTyped";
-import { reportError } from "../../graphql/mutationsTyped";
 import { generateUrl } from "../../util/hierarchy";
 import { mapIssueToEditorDefaultValues } from "../restricted/editor/issue-editor/defaultValues";
 import { buildIssueMutationVariables } from "../restricted/editor/issue-editor/payload";
@@ -19,6 +16,7 @@ import type { IssueEditorFormValues } from "../restricted/editor/issue-editor/ty
 import { EditorPagePlaceholder } from "../placeholders/EditorPagePlaceholder";
 import { useAppRouteContext } from "../generic";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
+import { mutationRequest } from "../../lib/client/mutation-request";
 
 const REPORT_NOTICE =
   "In diesem Editor können Sie Fehler melden. Beim Absenden wird ein serverseitiger Change Request erstellt und zur Prüfung gespeichert.";
@@ -34,27 +32,63 @@ interface IssueReportProps {
 function IssueReportView(props: Readonly<IssueReportProps>) {
   const router = useRouter();
   const { selected, enqueueSnackbar } = props;
-  const variables = { ...selected, edit: true };
-  const { loading, error, data } = useQuery(issue, {
-    variables: variables as any,
-    fetchPolicy: "cache-and-network",
-    nextFetchPolicy: "cache-first",
-  });
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<unknown>(null);
+  const [issueDetails, setIssueDetails] = React.useState<Record<string, unknown> | null>(null);
 
-  const [runReportError] = useMutation(reportError, {
-    fetchPolicy: "no-cache",
-  });
-  const issueDetails = data?.issueDetails;
+  React.useEffect(() => {
+    if (!selected.issue?.series?.publisher?.name || !selected.issue?.series?.title || !selected.issue.number) {
+      setIssueDetails(null);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    const params = new URLSearchParams({
+      locale: selected.us ? "us" : "de",
+      publisher: selected.issue.series.publisher.name,
+      series: selected.issue.series.title,
+      volume: String(selected.issue.series.volume || 1),
+      number: selected.issue.number,
+    });
+    if (selected.issue.format) params.set("format", selected.issue.format);
+    if (selected.issue.variant) params.set("variant", selected.issue.variant);
+
+    void fetch(`/api/public-issue?${params.toString()}`, { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Issue request failed: ${response.status}`);
+        return (await response.json()) as { item?: Record<string, unknown> | null };
+      })
+      .then((payload) => {
+        if (cancelled) return;
+        setIssueDetails(payload.item || null);
+      })
+      .catch((nextError) => {
+        if (cancelled) return;
+        setIssueDetails(null);
+        setError(nextError);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selected]);
 
   return (
     <Layout>
       {(() => {
-        if (loading || error || !data || !issueDetails) {
+        if (loading || error || !issueDetails) {
           return (
             <QueryResult
               loading={loading}
               error={error}
-              data={data ? data.issueDetails : null}
+              data={issueDetails}
               selected={selected}
               placeholder={<EditorPagePlaceholder />}
               placeholderCount={1}
@@ -82,9 +116,11 @@ function IssueReportView(props: Readonly<IssueReportProps>) {
                   true
                 );
 
-                await runReportError({
-                  variables: {
-                    issue: { id: String(issueDetails.id || "") },
+                await mutationRequest({
+                  url: "/api/change-requests",
+                  method: "POST",
+                  body: {
+                    issue: payload.old || { id: String(issueDetails.id || "") },
                     item: payload.item,
                   },
                 });

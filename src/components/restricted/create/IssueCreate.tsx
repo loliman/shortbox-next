@@ -1,6 +1,5 @@
 import React from "react";
 import Layout from "../../Layout";
-import { createIssue } from "../../../graphql/mutationsTyped";
 import { useAppRouteContext } from "../../generic";
 import IssueEditor from "../editor/IssueEditor";
 import { buildIssueCreateDefaultValues } from "../editor/issue-editor/defaultValues";
@@ -10,7 +9,7 @@ function IssueCreate() {
 
   return (
     <Layout>
-      <IssueEditor mutation={createIssue} defaultValues={defaultValues} />
+      <IssueEditor defaultValues={defaultValues} />
     </Layout>
   );
 }

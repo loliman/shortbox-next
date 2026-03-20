@@ -7,7 +7,6 @@ import type {
 } from "@mui/material/Autocomplete";
 import AutocompleteBase from "../../generic/AutocompleteBase";
 import { useAutocompleteQuery } from "../../generic/useAutocompleteQuery";
-import { individuals } from "../../../graphql/queriesTyped";
 import { CONTRIBUTOR_FIELDS, TRANSLATOR_FIELD } from "../constants";
 import { FilterValues } from "../types";
 import { updateField } from "../queryHelpers";
@@ -67,7 +66,7 @@ function ContributorAutocomplete({
 }: Readonly<ContributorAutocompleteProps>) {
   const [inputValue, setInputValue] = React.useState("");
   const query = useAutocompleteQuery<FieldItem>({
-    query: individuals,
+    source: "individuals",
     variables: { pattern: inputValue },
     searchText: inputValue,
     minQueryLength: MIN_QUERY_LENGTH,

@@ -1,13 +1,10 @@
 import React from "react";
-import { useQuery } from "@apollo/client";
-import type { DocumentNode, OperationDefinitionNode } from "graphql";
-import type { Connection, QueryCollection } from "../../types/graphql";
+import type { AutocompleteSource } from "../../lib/screens/autocomplete-data";
 
 type QueryVariables = Record<string, unknown>;
-type QueryResultMap = Record<string, QueryCollection<unknown>>;
 
 interface UseAutocompleteQueryParams {
-  query: DocumentNode;
+  source: AutocompleteSource;
   variables?: QueryVariables;
   enabled?: boolean;
   debounceMs?: number;
@@ -26,7 +23,7 @@ interface UseAutocompleteQueryResult<TOption> {
 }
 
 export function useAutocompleteQuery<TOption>({
-  query,
+  source,
   variables: inputVariables = {},
   enabled = true,
   debounceMs = 250,
@@ -51,60 +48,80 @@ export function useAutocompleteQuery<TOption>({
     () => JSON.parse(debouncedInputKey) as QueryVariables,
     [debouncedInputKey]
   );
-  const queryName = React.useMemo(() => getQueryName(query), [query]);
-  const offsetMode = queryName === "nodes";
   const trimmedSearchText = searchText.trim();
   const isBelowMinLength = trimmedSearchText.length < minQueryLength;
-  const skip = !enabled || !queryName || isBelowMinLength;
-
-  const variables = React.useMemo(() => {
-    const next = { ...parsedInputVariables };
-    if (offsetMode) {
-      next.offset = 0;
-      if (!next.pattern) next.pattern = "";
-    } else {
-      next.after = null;
-      next.first = next.first || 50;
-    }
-    return next;
-  }, [parsedInputVariables, offsetMode]);
-
-  React.useEffect(() => {
-    setHasMore(true);
-  }, [debouncedInputKey, skip]);
-
-  const { loading, error, data, fetchMore } = useQuery<QueryResultMap, QueryVariables>(query, {
-    variables,
-    skip,
-    notifyOnNetworkStatusChange: true,
-  });
-
-  const rawResult = data ? (data as QueryResultMap)[queryName] : null;
-  const options = React.useMemo(
-    () => normalizeResult<TOption>(rawResult as QueryCollection<TOption> | null | undefined),
-    [rawResult]
-  );
+  const skip = !enabled || isBelowMinLength;
+  const [options, setOptions] = React.useState<TOption[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<unknown>(null);
   const offset = options.length;
-  const endCursor =
-    isConnection(rawResult) && rawResult.pageInfo ? rawResult.pageInfo.endCursor : null;
-  const remoteHasNextPage =
-    isConnection(rawResult) && rawResult.pageInfo ? Boolean(rawResult.pageInfo.hasNextPage) : false;
+
+  const loadPage = React.useCallback(
+    async (nextOffset: number, append: boolean) => {
+      if (skip) {
+        setOptions([]);
+        setHasMore(false);
+        setLoading(false);
+        setFetching(false);
+        return;
+      }
+
+      const response = await fetch("/api/public-autocomplete", {
+        method: "POST",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          source,
+          variables: parsedInputVariables,
+          offset: nextOffset,
+          limit: 50,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Autocomplete request failed: ${response.status}`);
+      }
+
+      const payload = (await response.json()) as { items?: TOption[]; hasMore?: boolean };
+      const items = Array.isArray(payload.items) ? payload.items : [];
+
+      setOptions((prev) => (append ? [...prev, ...items] : items));
+      setHasMore(Boolean(payload.hasMore));
+    },
+    [parsedInputVariables, skip, source]
+  );
 
   React.useEffect(() => {
-    if (!offsetMode && data) setHasMore(remoteHasNextPage);
-  }, [offsetMode, data, remoteHasNextPage]);
+    let cancelled = false;
+    setOptions([]);
+    setHasMore(true);
+    setError(null);
 
-  const fetchMoreVars = React.useMemo(() => {
-    const next = { ...parsedInputVariables };
-    if (offsetMode) {
-      next.offset = offset || 0;
-      if (!next.pattern) next.pattern = "";
-    } else {
-      next.after = endCursor || null;
-      next.first = next.first || 50;
+    if (skip) {
+      setLoading(false);
+      return;
     }
-    return next;
-  }, [parsedInputVariables, offset, offsetMode, endCursor]);
+
+    setLoading(true);
+
+    void loadPage(0, false)
+      .catch((nextError) => {
+        if (cancelled) return;
+        setOptions([]);
+        setHasMore(false);
+        setError(nextError);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedInputKey, loadPage, skip]);
 
   const onListboxScroll = (e: React.UIEvent<HTMLElement>) => {
     const element = e.target as HTMLElement | null;
@@ -118,58 +135,16 @@ export function useAutocompleteQuery<TOption>({
 
     fetchMoreInFlightRef.current = true;
     setFetching(true);
+    setError(null);
 
-    void fetchMore({
-      variables: fetchMoreVars,
-      updateQuery: (
-        prev: QueryResultMap,
-        { fetchMoreResult }: { fetchMoreResult?: QueryResultMap | null }
-      ) => {
-        if (!fetchMoreResult) return prev;
-
-        if (offsetMode) {
-          const previousList = Array.isArray(prev[queryName])
-            ? prev[queryName].filter(Boolean)
-            : [];
-          const nextList = Array.isArray(fetchMoreResult[queryName])
-            ? fetchMoreResult[queryName].filter(Boolean)
-            : [];
-          const expectedOffset = Number(fetchMoreVars.offset || 0);
-
-          if (previousList.length !== expectedOffset) return prev;
-          if (nextList.length === 0) setHasMore(false);
-
-          return {
-            ...prev,
-            [queryName]: [...previousList, ...nextList],
-          };
-        }
-
-        const previousConnection = prev && prev[queryName] ? prev[queryName] : null;
-        const nextConnection = fetchMoreResult[queryName];
-        if (!isConnection(previousConnection) || !isConnection(nextConnection)) return prev;
-
-        const nextEdges = nextConnection.edges || [];
-        const mergedEdges = [...(previousConnection.edges || []), ...nextEdges];
-        const nextPageInfo = nextConnection.pageInfo
-          ? nextConnection.pageInfo
-          : previousConnection.pageInfo;
-
-        setHasMore(Boolean(nextPageInfo && nextPageInfo.hasNextPage));
-
-        return {
-          ...prev,
-          [queryName]: {
-            ...previousConnection,
-            edges: mergedEdges,
-            pageInfo: nextPageInfo,
-          },
-        };
-      },
-    }).finally(() => {
-      fetchMoreInFlightRef.current = false;
-      setFetching(false);
-    });
+    void loadPage(offset, true)
+      .catch((nextError) => {
+        setError(nextError);
+      })
+      .finally(() => {
+        fetchMoreInFlightRef.current = false;
+        setFetching(false);
+      });
   };
 
   return {
@@ -181,33 +156,4 @@ export function useAutocompleteQuery<TOption>({
     isBelowMinLength,
     onListboxScroll,
   };
-}
-
-function getQueryName(query: DocumentNode): string {
-  const operation = query.definitions.find(
-    (definition): definition is OperationDefinitionNode =>
-      Boolean(definition) && definition.kind === "OperationDefinition"
-  );
-  if (!operation) return "";
-
-  const firstSelection = operation.selectionSet?.selections?.[0];
-  if (firstSelection && firstSelection.kind === "Field") {
-    if (firstSelection.alias?.value) return firstSelection.alias.value;
-    return firstSelection.name.value;
-  }
-
-  return "";
-}
-
-function isConnection<T>(value: QueryCollection<T> | null | undefined): value is Connection<T> {
-  return !!value && !Array.isArray(value) && "edges" in value && "pageInfo" in value;
-}
-
-function normalizeResult<T>(value: QueryCollection<T> | null | undefined): T[] {
-  if (!value) return [];
-  if (Array.isArray(value)) return value.filter(Boolean) as T[];
-
-  return value.edges
-    .map((edge: { node?: T | null } | null) => edge && edge.node)
-    .filter(Boolean) as T[];
 }

@@ -1,8 +1,7 @@
 import Button from "@mui/material/Button";
 import Link from "next/link";
-import { useApolloClient, useMutation } from "@apollo/client";
-import { logout } from "../../graphql/mutationsTyped";
 import { isMockMode } from "../../app/mockMode";
+import { mutationRequest } from "../../lib/client/mutation-request";
 
 type FooterAuthLinkProps = {
   loggedIn?: boolean;
@@ -35,26 +34,6 @@ export default function FooterAuthLink(props: Readonly<FooterAuthLinkProps>) {
 }
 
 function LogoutLink(props: Readonly<FooterAuthLinkProps>) {
-  const client = useApolloClient();
-  const [runLogout] = useMutation(logout, {
-    onCompleted: (data) => {
-      if (!data.logout) {
-        props.enqueueSnackbar?.("Logout fehlgeschlagen", { variant: "error" });
-      } else {
-        props.enqueueSnackbar?.("Auf Wiedersehen!", { variant: "success" });
-        client.resetStore();
-        props.handleLogout?.();
-      }
-    },
-    onError: (errors) => {
-      const message =
-        errors.graphQLErrors && errors.graphQLErrors.length > 0
-          ? " [" + errors.graphQLErrors[0].message + "]"
-          : "";
-      props.enqueueSnackbar?.("Logout fehlgeschlagen" + message, { variant: "error" });
-    },
-  });
-
   return (
     <Button
       type="button"
@@ -62,15 +41,30 @@ function LogoutLink(props: Readonly<FooterAuthLinkProps>) {
       size="small"
       color="inherit"
       sx={authButtonSx}
-      onClick={() => {
+      onClick={async () => {
         if (isMockMode) {
           props.enqueueSnackbar?.("Auf Wiedersehen!", { variant: "success" });
-          client.resetStore();
           props.handleLogout?.();
           return;
         }
 
-        runLogout();
+        try {
+          const result = await mutationRequest<{ success?: boolean }>({
+            url: "/api/auth/logout",
+            method: "POST",
+          });
+
+          if (!result.success) {
+            props.enqueueSnackbar?.("Logout fehlgeschlagen", { variant: "error" });
+            return;
+          }
+
+          props.enqueueSnackbar?.("Auf Wiedersehen!", { variant: "success" });
+          props.handleLogout?.();
+        } catch (error) {
+          const message = error instanceof Error && error.message ? ` [${error.message}]` : "";
+          props.enqueueSnackbar?.("Logout fehlgeschlagen" + message, { variant: "error" });
+        }
       }}
     >
       Logout

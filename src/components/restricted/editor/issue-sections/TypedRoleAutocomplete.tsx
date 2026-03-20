@@ -3,17 +3,17 @@ import type {
   AutocompleteChangeReason,
   AutocompleteInputChangeReason,
 } from "@mui/material/Autocomplete";
-import type { DocumentNode } from "graphql";
 import AutocompleteBase from "../../../generic/AutocompleteBase";
 import { useAutocompleteQuery } from "../../../generic/useAutocompleteQuery";
 import { getPattern, updateField } from "./helpers";
 import type { ChangePayload, FieldItem } from "./types";
+import type { AutocompleteSource } from "../../../../lib/screens/autocomplete-data";
 
 const MIN_QUERY_LENGTH = 2;
 const DEBOUNCE_MS = 250;
 
 interface TypedRoleAutocompleteProps {
-  query: DocumentNode;
+  source: AutocompleteSource;
   label: string;
   field: string;
   type: string;
@@ -24,7 +24,7 @@ interface TypedRoleAutocompleteProps {
 }
 
 function TypedRoleAutocomplete({
-  query,
+  source,
   label,
   field,
   type,
@@ -37,7 +37,7 @@ function TypedRoleAutocomplete({
   const pattern = String(getPattern(selectedValues, "name") || "");
 
   const queryResult = useAutocompleteQuery<FieldItem>({
-    query,
+    source,
     variables: {
       ...variables,
       pattern,

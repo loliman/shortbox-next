@@ -12,7 +12,6 @@ import { TextField } from "../../generic/FormikTextField";
 import FilterSwitch from "../FilterSwitch";
 import { FORMAT_OPTIONS } from "../constants";
 import { FilterValues } from "../types";
-import { genres as genresQuery, publishers, series } from "../../../graphql/queriesTyped";
 import type { FieldItem } from "../../../util/filterFieldHelpers";
 import { getSeriesLabel } from "../../../util/issuePresentation";
 
@@ -46,7 +45,7 @@ function DetailsSection({
   } as const;
 
   const publisherQuery = useAutocompleteQuery<FieldItem>({
-    query: publishers,
+    source: "publishers",
     variables: { pattern: publisherInput, us },
     searchText: publisherInput,
     minQueryLength: MIN_QUERY_LENGTH,
@@ -54,7 +53,7 @@ function DetailsSection({
   });
 
   const seriesQuery = useAutocompleteQuery<FieldItem>({
-    query: series,
+    source: "series",
     variables: {
       pattern: seriesInput,
       publisher: { name: "*", us },
@@ -65,7 +64,7 @@ function DetailsSection({
   });
 
   const genreQuery = useAutocompleteQuery<string>({
-    query: genresQuery,
+    source: "genres",
     variables: { pattern: genreInput },
     searchText: genreInput,
     minQueryLength: GENRE_MIN_QUERY_LENGTH,

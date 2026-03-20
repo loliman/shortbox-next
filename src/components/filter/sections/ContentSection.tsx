@@ -3,7 +3,6 @@ import Typography from "@mui/material/Typography";
 import Stack from "@mui/material/Stack";
 import AutocompleteBase from "../../generic/AutocompleteBase";
 import { useAutocompleteQuery } from "../../generic/useAutocompleteQuery";
-import { apps, arcs } from "../../../graphql/queriesTyped";
 import type { FilterValues } from "../types";
 
 interface ContentSectionProps {
@@ -19,7 +18,7 @@ function ContentSection({ values, isDesktop: _isDesktop, setFieldValue }: Conten
   const [appearanceInput, setAppearanceInput] = React.useState("");
 
   const arcQuery = useAutocompleteQuery<{ title?: string; type?: string }>({
-    query: arcs,
+    source: "arcs",
     variables: { pattern: arcInput },
     searchText: arcInput,
     minQueryLength: MIN_QUERY_LENGTH,
@@ -27,7 +26,7 @@ function ContentSection({ values, isDesktop: _isDesktop, setFieldValue }: Conten
   });
 
   const appearanceQuery = useAutocompleteQuery<{ name?: string; type?: string }>({
-    query: apps,
+    source: "apps",
     variables: { pattern: appearanceInput },
     searchText: appearanceInput,
     minQueryLength: MIN_QUERY_LENGTH,

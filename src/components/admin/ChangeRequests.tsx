@@ -13,14 +13,12 @@ import {
   Typography,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { useMutation, useQuery, useApolloClient } from "@apollo/client";
 import { JsonDiffComponent } from "json-diff-react";
 import type { JsonValue } from "json-diff-react";
 import Layout from "../Layout";
-import { changeRequests } from "../../graphql/queriesTyped";
-import { discardChangeRequest, editIssue } from "../../graphql/mutationsTyped";
 import {generateLabel} from "../../util/hierarchy";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
+import { mutationRequest } from "../../lib/client/mutation-request";
 
 type SnackbarVariant = "success" | "error" | "warning" | "info";
 
@@ -34,15 +32,34 @@ interface ParsedChangeRequest {
 }
 
 function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
-  const client = useApolloClient();
   const [hiddenIds, setHiddenIds] = React.useState<Record<string, boolean>>({});
-  const { data, loading, error, refetch } = useQuery(changeRequests, {
-    variables: { order: "createdAt", direction: "asc" },
-    fetchPolicy: "network-only",
-    nextFetchPolicy: "network-only",
-  });
-  const [runDiscard] = useMutation(discardChangeRequest);
-  const [runEditIssue, { loading: accepting }] = useMutation(editIssue);
+  const [data, setData] = React.useState<{ changeRequests?: unknown[] }>({ changeRequests: [] });
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<unknown>(null);
+  const [accepting, setAccepting] = React.useState(false);
+
+  const refetch = React.useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/public-change-requests?order=createdAt&direction=asc", {
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error(`Change requests request failed: ${response.status}`);
+      const payload = (await response.json()) as { items?: unknown[] };
+      setData({ changeRequests: Array.isArray(payload.items) ? payload.items : [] });
+    } catch (nextError) {
+      setData({ changeRequests: [] });
+      setError(nextError);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void refetch();
+  }, [refetch]);
 
   const visibleChangeRequests = React.useMemo(() => {
     const entries = data?.changeRequests || [];
@@ -59,10 +76,13 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
   const handleDiscard = async (id: string) => {
     setHiddenIds((prev) => ({ ...prev, [id]: true }));
     try {
-      await runDiscard({ variables: { id } });
+      await mutationRequest({
+        url: "/api/change-requests",
+        method: "DELETE",
+        body: { id },
+      });
       props.enqueueSnackbar?.("Change Request verworfen.", { variant: "success" });
-      client.refetchQueries({ include: ["ChangeRequestCount"] });
-      await refetch({ order: "createdAt", direction: "asc" });
+      await refetch();
     } catch (discardError) {
       setHiddenIds((prev) => {
         const next = { ...prev };
@@ -88,13 +108,16 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
     }
 
     try {
+      setAccepting(true);
       const oldInput = sanitizeIssueInputForMutation(parsed.issue);
       const fallbackReleaseDate =
         typeof oldInput.releasedate === "string" ? oldInput.releasedate : undefined;
       const itemInput = sanitizeIssueInputForMutation(parsed.item, fallbackReleaseDate);
 
-      await runEditIssue({
-        variables: {
+      await mutationRequest({
+        url: "/api/issues",
+        method: "PATCH",
+        body: {
           old: oldInput,
           item: itemInput,
         },
@@ -106,7 +129,11 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
       });
 
       try {
-        await runDiscard({ variables: { id } });
+        await mutationRequest({
+          url: "/api/change-requests",
+          method: "DELETE",
+          body: { id },
+        });
       } catch {
         props.enqueueSnackbar?.(
           "Issue aktualisiert. Der Change Request konnte nicht gelöscht werden.",
@@ -114,12 +141,13 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
         );
       }
 
-      client.refetchQueries({ include: ["ChangeRequestCount"] });
-      await refetch({ order: "createdAt", direction: "asc" });
+      await refetch();
     } catch (acceptError) {
       const message =
         acceptError instanceof Error && acceptError.message ? `: ${acceptError.message}` : "";
       props.enqueueSnackbar?.(`Akzeptieren fehlgeschlagen${message}`, { variant: "error" });
+    } finally {
+      setAccepting(false);
     }
   };
 

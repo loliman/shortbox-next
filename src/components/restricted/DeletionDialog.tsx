@@ -6,20 +6,16 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Button from "@mui/material/Button";
 import WarningIcon from "@mui/icons-material/Warning";
-import { getDeleteMutation } from "../../graphql/mutationsTyped";
-import { useMutation } from "@apollo/client";
 import Typography from "@mui/material/Typography";
 import { stripItem } from "../../util/util";
-import { getListQuery, issue } from "../../graphql/queriesTyped";
 import {
   generateLabel,
   generateUrl,
-  getHierarchyLevel,
   HierarchyLevel,
 } from "../../util/hierarchy";
-import { removeFromCache, updateInCache } from "./editor/Editor";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import { useAppRouteContext } from "../generic";
+import { mutationRequest } from "../../lib/client/mutation-request";
 
 type VariantLike = {
   number?: string;
@@ -62,94 +58,7 @@ function DeletionDialogView(props: Readonly<DeletionDialogProps>) {
   const parentRef = React.useRef(toParent(itemOrFallback));
   const parent = toParent(itemOrFallback);
   parentRef.current = parent;
-
-  const deleteMutation = getDeleteMutation(level || "");
-  const listQuery = getListQuery(getHierarchyLevel(parent as never));
-  const mutationName = getMutationName(deleteMutation);
   const itemLabel = getItemLabel(itemOrFallback);
-
-  const [runDeleteMutation] = useMutation(deleteMutation, {
-    update: (cache) => {
-      if (
-        level === HierarchyLevel.ISSUE &&
-        Array.isArray(itemOrFallback.variants) &&
-        itemOrFallback.variants.length > 1
-      ) {
-        const currentVariantKey = toVariantKey(itemOrFallback);
-        const variants = itemOrFallback.variants.filter(
-          (variant) => toVariantKey(variant) !== currentVariantKey
-        );
-
-        try {
-          itemOrFallback.variants?.forEach((variant) => {
-            let oldVariant: { issue: Record<string, unknown> } = { issue: {} };
-            const variantSeries = structuredClone(variant.series || { publisher: {} }) as Record<
-              string,
-              unknown
-            > & { publisher?: { us?: boolean } };
-            if (!variantSeries.publisher) {
-              variantSeries.publisher = {};
-            }
-            const oldSeries = stripItem(variantSeries) as {
-              publisher?: { us?: boolean };
-            } & Record<string, unknown>;
-            oldVariant.issue.series = oldSeries;
-            if (oldSeries.publisher) {
-              oldSeries.publisher.us = undefined;
-            }
-            oldVariant.issue.number = variant.number;
-            oldVariant.issue.format = variant.format;
-            if (variant.variant !== "") oldVariant.issue.variant = variant.variant;
-
-            let newVariant: { issue: Record<string, unknown> } = {
-              issue: structuredClone(variant),
-            };
-            newVariant.issue.variants = variants;
-
-            updateInCache(cache, issue, oldVariant, oldVariant, newVariant);
-          });
-        } catch {
-          //ignore cache exception;
-        }
-
-        if (variants[0]) {
-          parentRef.current = { issue: stripItem(variants[0]) };
-        }
-      } else {
-        try {
-          removeFromCache(cache, listQuery, parentRef.current, itemOrFallback);
-        } catch {
-          //ignore cache exception;
-        }
-      }
-    },
-    onCompleted: (data) => {
-      router.push(generateUrl(parentRef.current as never, Boolean(props.us)));
-      const mutationResult = mutationName
-        ? (data as Record<string, unknown>)[mutationName]
-        : undefined;
-
-      if (mutationResult) {
-        enqueueSnackbar?.(itemLabel + " erfolgreich gelöscht", { variant: "success" });
-      } else {
-        enqueueSnackbar?.(itemLabel + " konnte nicht gelöscht werden", {
-          variant: "error",
-        });
-      }
-
-      handleClose?.();
-    },
-    onError: (errors) => {
-      const message =
-        errors.graphQLErrors && errors.graphQLErrors.length > 0
-          ? " [" + errors.graphQLErrors[0].message + "]"
-          : "";
-      enqueueSnackbar?.(itemLabel + " konnte nicht gelöscht werden" + message, {
-        variant: "error",
-      });
-      handleClose?.();
-    },
-  });
 
   if (!item) return null;
 
@@ -168,12 +77,39 @@ function DeletionDialogView(props: Readonly<DeletionDialogProps>) {
         <Button
           color="error"
           variant="contained"
-          onClick={() => {
-            runDeleteMutation({
-              variables: {
-                item: stripItem(toDeletePayload(level, item)),
-              },
-            });
+          onClick={async () => {
+            try {
+              const url =
+                level === HierarchyLevel.PUBLISHER
+                  ? "/api/publishers"
+                  : level === HierarchyLevel.SERIES
+                    ? "/api/series"
+                    : "/api/issues";
+              const result = await mutationRequest<{ success?: boolean }>({
+                url,
+                method: "DELETE",
+                body: {
+                  item: stripItem(toDeletePayload(level, item)),
+                },
+              });
+
+              router.push(generateUrl(parentRef.current as never, Boolean(props.us)));
+
+              if (result.success) {
+                enqueueSnackbar?.(itemLabel + " erfolgreich gelöscht", { variant: "success" });
+              } else {
+                enqueueSnackbar?.(itemLabel + " konnte nicht gelöscht werden", {
+                  variant: "error",
+                });
+              }
+              handleClose?.();
+            } catch (error) {
+              const message = error instanceof Error && error.message ? ` [${error.message}]` : "";
+              enqueueSnackbar?.(itemLabel + " konnte nicht gelöscht werden" + message, {
+                variant: "error",
+              });
+              handleClose?.();
+            }
           }}
         >
           Löschen
@@ -204,21 +140,6 @@ function toParent(item: DeletionDialogItem): Record<string, unknown> {
   }
 
   return stripItem({ us: Boolean(item.us) });
-}
-
-function getMutationName(mutation: unknown) {
-  const value =
-    (
-      mutation as {
-        definitions?: ReadonlyArray<{ name?: { value?: string } }>;
-      }
-    ).definitions?.[0]?.name?.value || "";
-  if (!value) return "";
-  return value.slice(0, 1).toLowerCase() + value.slice(1);
-}
-
-function toVariantKey(item: { number?: string; format?: string; variant?: string }): string {
-  return `${item.number || ""}|${item.format || ""}|${item.variant || ""}`.toLowerCase();
 }
 
 function toDeletePayload(

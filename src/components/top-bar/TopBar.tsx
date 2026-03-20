@@ -7,7 +7,6 @@ import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { alpha, styled } from "@mui/material/styles";
-import { useApolloClient, useMutation, useQuery } from "@apollo/client";
 import type { HierarchyLevelType } from "../../util/hierarchy";
 import { AppContext } from "../generic/AppContext";
 import { useAppRouteContext, useSnackbarBridge } from "../generic";
@@ -28,10 +27,9 @@ import BugReportOutlinedIcon from "@mui/icons-material/BugReportOutlined";
 import LoginIcon from "@mui/icons-material/Login";
 import LogoutIcon from "@mui/icons-material/Logout";
 import type { AppThemeMode } from "../../app/theme";
-import { logout } from "../../graphql/mutationsTyped";
-import { changeRequestCount } from "../../graphql/queriesTyped";
 import { isMockMode } from "../../app/mockMode";
 import { buildRouteHref } from "../generic/routeHref";
+import { mutationRequest } from "../../lib/client/mutation-request";
 
 interface TopBarProps {
   toggleDrawer?: () => void;
@@ -134,25 +132,6 @@ export default function TopBar(ownProps: TopBarProps) {
     [routeContext, appContext, snackbarBridge, ownProps]
   );
   const { toggleDrawer, drawerOpen } = props;
-  const client = useApolloClient();
-  const [runLogout] = useMutation(logout, {
-    onCompleted: (data) => {
-      if (!data.logout) {
-        props.enqueueSnackbar?.("Logout fehlgeschlagen", { variant: "error" });
-      } else {
-        props.enqueueSnackbar?.("Auf Wiedersehen!", { variant: "success" });
-        client.resetStore();
-        props.handleLogout?.();
-      }
-    },
-    onError: (errors) => {
-      const message =
-        errors.graphQLErrors && errors.graphQLErrors.length > 0
-          ? " [" + errors.graphQLErrors[0].message + "]"
-          : "";
-      props.enqueueSnackbar?.("Logout fehlgeschlagen" + message, { variant: "error" });
-    },
-  });
   const us = Boolean(props.us);
   const selected = props.selected || { us };
   const compactLayout =
@@ -161,25 +140,59 @@ export default function TopBar(ownProps: TopBarProps) {
   const isFilter = props.query?.filter;
   const darkModeEnabled = props.themeMode === "dark";
   const localeSwitchAriaLabel = us ? "Zu Deutsch wechseln" : "Zu US wechseln";
-  const { data: changeRequestCountData } = useQuery(changeRequestCount, {
-    skip: !props.session?.loggedIn,
-    fetchPolicy: "cache-and-network",
-    nextFetchPolicy: "cache-first",
-  });
-  const changeRequestsCountRaw = changeRequestCountData?.changeRequestCount;
-  const changeRequestsCount = Number.isFinite(changeRequestsCountRaw)
-    ? Number(changeRequestsCountRaw)
-    : 0;
+  const [changeRequestsCount, setChangeRequestsCount] = React.useState(0);
   const hasChangeRequests = changeRequestsCount > 0;
 
-  const onLogout = () => {
+  React.useEffect(() => {
+    if (!props.session?.loggedIn) {
+      setChangeRequestsCount(0);
+      return;
+    }
+
+    let cancelled = false;
+    void fetch("/api/public-change-request-count", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Change request count failed: ${response.status}`);
+        return (await response.json()) as { count?: number };
+      })
+      .then((payload) => {
+        if (cancelled) return;
+        setChangeRequestsCount(Number.isFinite(payload.count) ? Number(payload.count) : 0);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setChangeRequestsCount(0);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [props.session?.loggedIn]);
+
+  const onLogout = async () => {
     if (isMockMode) {
       props.enqueueSnackbar?.("Auf Wiedersehen!", { variant: "success" });
-      client.resetStore();
       props.handleLogout?.();
       return;
     }
-    runLogout();
+
+    try {
+      const result = await mutationRequest<{ success?: boolean }>({
+        url: "/api/auth/logout",
+        method: "POST",
+      });
+
+      if (!result.success) {
+        props.enqueueSnackbar?.("Logout fehlgeschlagen", { variant: "error" });
+        return;
+      }
+
+      props.enqueueSnackbar?.("Auf Wiedersehen!", { variant: "success" });
+      props.handleLogout?.();
+    } catch (error) {
+      const message = error instanceof Error && error.message ? ` [${error.message}]` : "";
+      props.enqueueSnackbar?.("Logout fehlgeschlagen" + message, { variant: "error" });
+    }
   };
 
   return (

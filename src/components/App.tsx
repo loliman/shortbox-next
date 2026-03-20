@@ -3,13 +3,11 @@
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { type ReactNode, Suspense, useEffect, useMemo, useState } from "react";
-import { useApolloClient } from "@apollo/client";
 import AppContextProvider from "./generic/AppContext";
 import { createAppTheme, type AppThemeMode } from "../app/theme";
 import { type SessionData } from "../app/session";
 import { isMockMode } from "../app/mockMode";
 import { subscribeSessionInvalid } from "../app/authEvents";
-import { me } from "../graphql/queriesTyped";
 import { AppPageLoader } from "./generic/loading";
 
 const THEME_MODE_STORAGE_KEY = "shortbox_theme_mode";
@@ -25,9 +23,7 @@ type AppProps = {
 };
 
 export default function App(props: Readonly<AppProps>) {
-  const client = useApolloClient();
   const [session, setSession] = useState<SessionData | null>(null);
-  const loggedIn = Boolean(session?.loggedIn);
   const [themeMode, setThemeMode] = useState<AppThemeMode>(() => readStoredThemeMode() || "light");
   const [themeLockedByUser, setThemeLockedByUser] = useState<boolean>(true);
 
@@ -54,39 +50,14 @@ export default function App(props: Readonly<AppProps>) {
       setSession({ loggedIn: true });
       return;
     }
-
-    let mounted = true;
-
-    client
-      .query({
-        query: me,
-        fetchPolicy: "network-only",
-      })
-      .then(({ data }) => {
-        if (!mounted) return;
-
-        if (data?.me) {
-          if (!loggedIn) setSession({ loggedIn: true });
-        } else {
-          setSession(null);
-        }
-      })
-      .catch(() => {
-        if (!mounted) return;
-        setSession(null);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, [client, loggedIn]);
+    setSession(null);
+  }, []);
 
   useEffect(() => {
     return subscribeSessionInvalid(() => {
       setSession(null);
-      client.clearStore();
     });
-  }, [client]);
+  }, []);
 
   return (
     <ThemeProvider theme={theme}>

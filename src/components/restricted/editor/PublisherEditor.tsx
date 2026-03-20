@@ -1,4 +1,3 @@
-import { useMutation } from "@apollo/client";
 import { useRouter } from "next/navigation";
 import { PublisherSchema } from "../../../util/yupSchema";
 import { FastField, Form, Formik } from "formik";
@@ -6,9 +5,7 @@ import { TextField } from "../../generic/FormikTextField";
 import React from "react";
 import { generateLabel, generateUrl } from "../../../util/hierarchy";
 import Button from "@mui/material/Button";
-import { publisher, publishers } from "../../../graphql/queriesTyped";
-import { decapitalize, stripItem } from "../../../util/util";
-import { addToCache, updateInCache } from "./Editor";
+import { stripItem } from "../../../util/util";
 import Box from "@mui/material/Box";
 import Switch from "@mui/material/Switch";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -19,10 +16,10 @@ import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import CardContent from "@mui/material/CardContent";
 import CardHeader from "@mui/material/CardHeader";
-import type { DocumentNode } from "graphql";
 import { editorSectionSx } from "./editorLayout";
 import { AppContext } from "../../generic/AppContext";
 import { useSnackbarBridge } from "../../generic/useSnackbarBridge";
+import { mutationRequest } from "../../../lib/client/mutation-request";
 
 const editorFieldSx = { width: "100%", maxWidth: { xs: "100%", md: 420 } } as const;
 const editorTextAreaSx = { width: "100%", maxWidth: { xs: "100%", md: 640 } } as const;
@@ -38,7 +35,6 @@ interface PublisherFormValues {
 interface PublisherEditorProps {
   defaultValues?: PublisherFormValues;
   edit?: boolean;
-  mutation: DocumentNode;
   id?: string | number;
   session?: unknown;
   isDesktop?: boolean;
@@ -68,14 +64,11 @@ function createInitialPublisherValues(defaultValues?: PublisherFormValues): Publ
 
 function PublisherEditorView(props: Readonly<PublisherEditorProps>) {
   const router = useRouter();
-  const { enqueueSnackbar, edit = false, mutation } = props;
+  const { enqueueSnackbar, edit = false } = props;
 
   const [defaultValues, setDefaultValues] = React.useState<PublisherFormValues>(() =>
     createInitialPublisherValues(props.defaultValues)
   );
-
-  const mutationDefinition = mutation.definitions[0] as { name?: { value?: string } };
-  const mutationName = decapitalize(mutationDefinition.name?.value || "");
 
   const header = edit ? generateLabel(defaultValues) + " bearbeiten" : "Verlag erstellen";
   const submitLabel = edit ? "Speichern" : "Erstellen";
@@ -83,57 +76,6 @@ function PublisherEditorView(props: Readonly<PublisherEditorProps>) {
   const errorMessage = edit
     ? generateLabel(defaultValues) + " konnte nicht gespeichert werden"
     : "Verlag konnte nicht erstellt werden";
-
-  const [runMutation] = useMutation(mutation, {
-    update: (cache, result) => {
-      const payload = result.data as Record<string, unknown> | null | undefined;
-      const res = payload?.[mutationName] as PublisherMutationResult | undefined;
-      if (!res) return;
-
-      if (!edit) {
-        try {
-          addToCache(cache, publishers, { us: res.us }, res);
-        } catch {
-          // ignore cache exception
-        }
-        return;
-      }
-
-      try {
-        const publisherRef = {
-          name: defaultValues.name,
-          startyear: defaultValues.startyear,
-          endyear: defaultValues.endyear,
-        };
-
-        updateInCache(cache, publisher, { publisher: publisherRef }, defaultValues, {
-          publisher: res,
-        });
-      } catch {
-        // ignore cache exception
-      }
-
-      try {
-        updateInCache(cache, publishers, { us: res.us }, defaultValues, res);
-      } catch {
-        // ignore cache exception
-      }
-    },
-    onCompleted: (data) => {
-      const result = (data as Record<string, unknown>)[mutationName] as PublisherMutationResult;
-      enqueueSnackbar(generateLabel(result) + successMessage, {
-        variant: "success",
-      });
-      router.push(generateUrl(result, Boolean(result.us)));
-    },
-    onError: (errors) => {
-      const message =
-        errors.graphQLErrors && errors.graphQLErrors.length > 0
-          ? " [" + errors.graphQLErrors[0].message + "]"
-          : "";
-      enqueueSnackbar(errorMessage + message, { variant: "error" });
-    },
-  });
 
   const toggleUs = React.useCallback(() => {
     setDefaultValues((prevState) => ({
@@ -155,7 +97,22 @@ function PublisherEditorView(props: Readonly<PublisherEditorProps>) {
           variables.item = stripItem(values);
           if (edit) variables.old = stripItem(defaultValues);
 
-          await runMutation({ variables });
+          const result = await mutationRequest<{ item?: PublisherMutationResult }>({
+            url: "/api/publishers",
+            method: edit ? "PATCH" : "POST",
+            body: variables,
+          });
+
+          const nextItem = result.item;
+          if (!nextItem) throw new Error("Publisher konnte nicht gespeichert werden");
+
+          enqueueSnackbar(generateLabel(nextItem) + successMessage, {
+            variant: "success",
+          });
+          router.push(generateUrl(nextItem, Boolean(nextItem.us)));
+        } catch (error) {
+          const message = error instanceof Error && error.message ? ` [${error.message}]` : "";
+          enqueueSnackbar(errorMessage + message, { variant: "error" });
         } finally {
           actions.setSubmitting(false);
         }

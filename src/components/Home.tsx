@@ -3,13 +3,11 @@ import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Layout from "./Layout";
-import { lastEdited } from "../graphql/queriesTyped";
 import QueryResult from "./generic/QueryResult";
 import { AppContext } from "./generic/AppContext";
 import { useAppRouteContext } from "./generic";
 import IssuePreview from "./issue-preview/IssuePreview";
 import IssuePreviewSmall from "./issue-preview/IssuePreviewSmall";
-import PaginatedQuery from "./generic/PaginatedQuery";
 import LoadingDots from "./generic/LoadingDots";
 import type { PreviewIssue } from "./issue-preview/utils/issuePreviewUtils";
 import {
@@ -81,133 +79,192 @@ export default function Home() {
     ...GALLERY_GRID_SX,
     gridTemplateColumns: galleryGridColumns,
   } as const;
-
-  return (
-    <PaginatedQuery
-      query={lastEdited}
-      variables={{
-        filter,
+  const [items, setItems] = React.useState<PreviewIssue[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [fetchingMore, setFetchingMore] = React.useState(false);
+  const [error, setError] = React.useState<unknown>(null);
+  const [hasMore, setHasMore] = React.useState(false);
+  const requestKey = React.useMemo(
+    () =>
+      JSON.stringify({
+        us: Boolean(props.us),
         order: getListingOrder(props.query),
         direction: getListingDirection(props.query),
-      }}
-      onCompleted={unregisterHomeLoading}
-    >
-      {({ error, data, fetchMore, fetching, hasMore, networkStatus }) => {
-        const loading = hasMore && fetching ? <LoadingDots /> : null;
+        filter,
+      }),
+    [props.us, props.query, filter]
+  );
 
-        return (
-          <Layout handleScroll={fetchMore}>
-            {props.appIsLoading || error || !data.lastEdited || networkStatus === 2 ? (
-              <QueryResult
-                error={error}
-                loading={networkStatus === 2}
-                placeholder={
-                  <HomeListingPlaceholder query={props.query} compactLayout={compactLayout} />
-                }
-                placeholderCount={1}
-              />
-            ) : (
-              <React.Fragment>
-                <Stack spacing={3} sx={{ p: { xs: 1.5, sm: 2 } }}>
-                  <Box>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        alignItems: "flex-start",
-                        justifyContent: "space-between",
-                        gap: 1.5,
-                      }}
-                    >
-                      <Box sx={{ minWidth: 0 }}>
-                        <Typography variant="h5">All-New, All-Different Shortbox</Typography>
-                        <Typography color="text.secondary">
-                          Das deutsche Archiv für Marvel Comics
-                        </Typography>
-                      </Box>
-                      {!compactLayout ? (
-                        <Box sx={{ display: "flex", justifyContent: "flex-end", flexGrow: 1 }}>
-                          <ListingToolbar
-                            query={props.query}
-                            previewProps={props as any}
-                            compactLayout={compactLayout}
-                            showSort
-                          />
-                        </Box>
-                      ) : null}
-                    </Box>
-                    <Typography
-                      component="p"
-                      sx={{
-                        position: "absolute",
-                        width: 1,
-                        height: 1,
-                        p: 0,
-                        m: -1,
-                        overflow: "hidden",
-                        clip: "rect(0 0 0 0)",
-                        whiteSpace: "nowrap",
-                        border: 0,
-                      }}
-                    >
-                      {HOME_SEO_SUMMARY}
-                    </Typography>
-                  </Box>
+  const loadPage = React.useCallback(
+    async (offset: number, append: boolean) => {
+      if (append) setFetchingMore(true);
+      else setLoading(true);
 
-                  {compactLayout ? (
+      try {
+        const params = new URLSearchParams({
+          locale: props.us ? "us" : "de",
+          offset: String(offset),
+          limit: "50",
+          order: getListingOrder(props.query),
+          direction: getListingDirection(props.query),
+        });
+        const response = await fetch(`/api/public-home?${params.toString()}`, { cache: "no-store" });
+        if (!response.ok) throw new Error(`Home request failed: ${response.status}`);
+
+        const payload = (await response.json()) as {
+          items?: PreviewIssue[];
+          hasMore?: boolean;
+        };
+
+        setItems((prev) => (append ? [...prev, ...((payload.items || []) as PreviewIssue[])] : ((payload.items || []) as PreviewIssue[])));
+        setHasMore(Boolean(payload.hasMore));
+        setError(null);
+      } catch (nextError) {
+        setError(nextError);
+        if (!append) setItems([]);
+        setHasMore(false);
+      } finally {
+        if (append) setFetchingMore(false);
+        else {
+          setLoading(false);
+          unregisterHomeLoading();
+        }
+      }
+    },
+    [props.us, props.query, unregisterHomeLoading]
+  );
+
+  React.useEffect(() => {
+    setItems([]);
+    setHasMore(false);
+    setError(null);
+    void loadPage(0, false);
+  }, [requestKey, loadPage]);
+
+  const handleScroll = React.useCallback(
+    (event: React.UIEvent<HTMLElement>) => {
+      if (loading || fetchingMore || !hasMore) return;
+
+      const element = event.target as HTMLElement | null;
+      if (!element) return;
+
+      const remaining = element.scrollHeight - element.scrollTop - element.clientHeight;
+      const prefetchPx = Math.max(200, Math.floor(element.clientHeight * 0.5));
+      if (remaining > prefetchPx) return;
+
+      void loadPage(items.length, true);
+    },
+    [loading, fetchingMore, hasMore, loadPage, items.length]
+  );
+
+  const loadingIndicator = hasMore && fetchingMore ? <LoadingDots /> : null;
+
+  return (
+    <Layout handleScroll={handleScroll}>
+      {props.appIsLoading || error || loading ? (
+        <QueryResult
+          error={error}
+          loading={loading}
+          placeholder={
+            <HomeListingPlaceholder query={props.query} compactLayout={compactLayout} />
+          }
+          placeholderCount={1}
+        />
+      ) : (
+        <React.Fragment>
+          <Stack spacing={3} sx={{ p: { xs: 1.5, sm: 2 } }}>
+            <Box>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  gap: 1.5,
+                }}
+              >
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="h5">All-New, All-Different Shortbox</Typography>
+                  <Typography color="text.secondary">
+                    Das deutsche Archiv für Marvel Comics
+                  </Typography>
+                </Box>
+                {!compactLayout ? (
+                  <Box sx={{ display: "flex", justifyContent: "flex-end", flexGrow: 1 }}>
                     <ListingToolbar
                       query={props.query}
                       previewProps={props as any}
                       compactLayout={compactLayout}
                       showSort
                     />
-                  ) : null}
-
-                  <Box
-                    key={listingView}
-                    sx={{
-                      animation: "listingViewSwap 220ms ease-in-out",
-                      "@keyframes listingViewSwap": {
-                        "0%": { opacity: 0, transform: "translateY(4px)" },
-                        "100%": { opacity: 1, transform: "translateY(0)" },
-                      },
-                    }}
-                  >
-                    {listingView === "gallery" ? (
-                      <Box sx={galleryGridSx}>
-                        {data.lastEdited
-                          ? data.lastEdited.map((i: Record<string, unknown>, idx: number) => (
-                              <IssuePreviewSmall
-                                {...props}
-                                key={buildIssueKey(i as PreviewIssue, idx)}
-                                issue={i as PreviewIssue}
-                              />
-                            ))
-                          : null}
-                      </Box>
-                    ) : (
-                      <Stack spacing={1.5}>
-                        {data.lastEdited
-                          ? data.lastEdited.map((i: Record<string, unknown>, idx: number) => (
-                              <IssuePreview
-                                {...props}
-                                key={buildIssueKey(i as PreviewIssue, idx)}
-                                issue={i as PreviewIssue}
-                              />
-                            ))
-                          : null}
-                      </Stack>
-                    )}
                   </Box>
+                ) : null}
+              </Box>
+              <Typography
+                component="p"
+                sx={{
+                  position: "absolute",
+                  width: 1,
+                  height: 1,
+                  p: 0,
+                  m: -1,
+                  overflow: "hidden",
+                  clip: "rect(0 0 0 0)",
+                  whiteSpace: "nowrap",
+                  border: 0,
+                }}
+              >
+                {HOME_SEO_SUMMARY}
+              </Typography>
+            </Box>
 
-                  {loading}
+            {compactLayout ? (
+              <ListingToolbar
+                query={props.query}
+                previewProps={props as any}
+                compactLayout={compactLayout}
+                showSort
+              />
+            ) : null}
+
+            <Box
+              key={listingView}
+              sx={{
+                animation: "listingViewSwap 220ms ease-in-out",
+                "@keyframes listingViewSwap": {
+                  "0%": { opacity: 0, transform: "translateY(4px)" },
+                  "100%": { opacity: 1, transform: "translateY(0)" },
+                },
+              }}
+            >
+              {listingView === "gallery" ? (
+                <Box sx={galleryGridSx}>
+                  {items.map((item, idx) => (
+                    <IssuePreviewSmall
+                      {...props}
+                      key={buildIssueKey(item, idx)}
+                      issue={item}
+                    />
+                  ))}
+                </Box>
+              ) : (
+                <Stack spacing={1.5}>
+                  {items.map((item, idx) => (
+                    <IssuePreview
+                      {...props}
+                      key={buildIssueKey(item, idx)}
+                      issue={item}
+                    />
+                  ))}
                 </Stack>
-              </React.Fragment>
-            )}
-          </Layout>
-        );
-      }}
-    </PaginatedQuery>
+              )}
+            </Box>
+
+            {loadingIndicator}
+          </Stack>
+        </React.Fragment>
+      )}
+    </Layout>
   );
 }
 

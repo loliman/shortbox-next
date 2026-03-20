@@ -1,5 +1,3 @@
-import { getListQuery } from "../../graphql/queriesTyped";
-import type { DocumentNode, OperationDefinitionNode } from "graphql";
 import { HierarchyLevel, type HierarchyLevelType } from "../../util/hierarchy";
 import type { Connection, QueryCollection } from "../../types/graphql";
 import type { SelectedRoot } from "../../types/domain";
@@ -77,9 +75,7 @@ export function scrollToSelectedIssue(
   if (!level || !selected?.issue?.number || !listElement) return;
   if (level !== HierarchyLevel.SERIES && level !== HierarchyLevel.ISSUE) return;
   const selectedIssueNumber = selected.issue.number;
-
-  const query = getListQuery(level);
-  const queryName = getQueryName(query);
+  const queryName = level === HierarchyLevel.SERIES ? "issueList" : "issueList";
   const items = toNodeList(data, queryName);
   if (!items) return;
 
@@ -139,20 +135,4 @@ export function getItemKey(item: ListNode, fallbackIndex: number): string {
 
 function isConnection(value: QueryCollection<unknown>): value is Connection<unknown> {
   return !!value && !Array.isArray(value) && "edges" in value && "pageInfo" in value;
-}
-
-export function getQueryName(query: Pick<DocumentNode, "definitions">): string {
-  const operation = query.definitions.find(
-    (definition): definition is OperationDefinitionNode =>
-      Boolean(definition) && definition.kind === "OperationDefinition"
-  );
-  if (!operation) return "";
-
-  const firstSelection = operation.selectionSet?.selections?.[0];
-  if (firstSelection && firstSelection.kind === "Field") {
-    if (firstSelection.alias?.value) return firstSelection.alias.value;
-    return firstSelection.name.value;
-  }
-
-  return "";
 }

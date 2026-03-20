@@ -8,14 +8,15 @@ import TextField from "@mui/material/TextField";
 import InputAdornment from "@mui/material/InputAdornment";
 import Typography from "@mui/material/Typography";
 import SearchIcon from "@mui/icons-material/Search";
-import { useQuery } from "@apollo/client";
 import { alpha } from "@mui/material/styles";
-import { search } from "../../graphql/queriesTyped";
-import type { NodesQuery } from "../../graphql/typed-documents.generated";
 import { AppContext } from "../generic/AppContext";
 import { useAppRouteContext } from "../generic";
 
-type SearchNode = NonNullable<NonNullable<NodesQuery["nodes"]>[number]>;
+type SearchNode = {
+  type?: string | null;
+  label?: string | null;
+  url?: string | null;
+};
 const MIN_QUERY_LENGTH = 2;
 const RESULT_ROW_HEIGHT = 44;
 const RESULT_PANEL_MAX_HEIGHT = 911;
@@ -72,24 +73,54 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
     };
   }, []);
 
-  const { data, loading, error } = useQuery(search, {
-    variables: { pattern: queryPattern, us },
-    skip: queryPattern.length < MIN_QUERY_LENGTH,
-    // Always hit the API after debounce, no client cache short-circuit.
-    fetchPolicy: "no-cache",
-  });
+  const [options, setOptions] = useState<SearchNode[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<unknown>(null);
 
-  const options = useMemo<SearchNode[]>(
-    () =>
-      queryPattern.length < MIN_QUERY_LENGTH
-        ? []
-        : (data?.nodes || [])
-            .filter((node: SearchNode | null | undefined): node is SearchNode =>
-              Boolean(node?.label && node?.url)
-            )
-            .slice(0, 50),
-    [data?.nodes, queryPattern.length]
-  );
+  useEffect(() => {
+    if (queryPattern.length < MIN_QUERY_LENGTH) {
+      setOptions([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    const params = new URLSearchParams({
+      locale: us ? "us" : "de",
+      pattern: queryPattern,
+    });
+
+    void fetch(`/api/public-search?${params.toString()}`, { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Search request failed: ${response.status}`);
+        return (await response.json()) as { items?: SearchNode[] };
+      })
+      .then((payload) => {
+        if (cancelled) return;
+        setOptions(
+          (payload.items || [])
+            .filter((node): node is SearchNode => Boolean(node?.label && node?.url))
+            .slice(0, 50)
+        );
+      })
+      .catch((nextError) => {
+        if (cancelled) return;
+        setOptions([]);
+        setError(nextError);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [queryPattern, us]);
   const resultRows = Math.max(1, options.length);
   const resultsPanelHeight = Math.min(
     RESULT_PANEL_MAX_HEIGHT,

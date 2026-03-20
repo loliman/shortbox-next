@@ -1,25 +1,23 @@
-import { useMutation } from "@apollo/client";
 import { useRouter } from "next/navigation";
 import { IssueSchema } from "../../../util/yupSchema";
 import { Form, Formik } from "formik";
 import React from "react";
 import { generateLabel, generateUrl } from "../../../util/hierarchy";
-import { decapitalize } from "../../../util/util";
 import { createEmptyIssueValues } from "./issue-editor/constants";
 import { buildIssueMutationVariables } from "./issue-editor/payload";
-import { updateIssueEditorCache } from "./issue-editor/cache";
 import { buildIssueEditorState } from "./issue-editor/state";
 import IssueEditorFormContent from "./issue-editor/IssueEditorFormContent";
 import type { IssueEditorFormValues, IssueEditorProps } from "./issue-editor/types";
 import { AppContext } from "../../generic/AppContext";
 import { useAppRouteContext } from "../../generic";
 import { useSnackbarBridge } from "../../generic/useSnackbarBridge";
+import { mutationRequest } from "../../../lib/client/mutation-request";
 
 type IssueMutationResult = Record<string, unknown>;
 
 function IssueEditorView(props: Readonly<IssueEditorProps>) {
   const router = useRouter();
-  const { enqueueSnackbar, edit, mutation, selected } = props;
+  const { enqueueSnackbar, edit, selected } = props;
 
   const [defaultValues, setDefaultValues] = React.useState<IssueEditorFormValues>(() => {
     return props.defaultValues || createEmptyIssueValues();
@@ -42,50 +40,6 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
       ),
     [defaultValues, edit, props.copy]
   );
-
-  const mutationDefinition = mutation.definitions[0] as { name?: { value?: string } };
-  const mutationName = decapitalize(mutationDefinition.name?.value || "");
-
-  const [runMutation] = useMutation(mutation, {
-    update: (cache, result) => {
-      updateIssueEditorCache(
-        cache,
-        (result.data as Record<string, Record<string, unknown>> | undefined) || {},
-        mutationName,
-        edit,
-        defaultValues
-      );
-    },
-    onCompleted: (data) => {
-      const result = (data as Record<string, IssueMutationResult | undefined>)[mutationName];
-      if (!result) return;
-
-      enqueueSnackbar(generateLabel(result) + successMessage, {
-        variant: "success",
-      });
-
-      if (!copyModeRef.current) {
-        router.push(generateUrl(result, Boolean((result.series as any)?.publisher?.us)));
-        return;
-      }
-
-      const copiedSelection = structuredClone(result) as Record<string, unknown>;
-      copiedSelection.format = undefined;
-      copiedSelection.variant = undefined;
-      router.push(
-        "/copy/issue" +
-          generateUrl(copiedSelection, Boolean((copiedSelection.series as any)?.publisher?.us))
-      );
-    },
-    onError: (errors) => {
-      const message =
-        errors.graphQLErrors && errors.graphQLErrors.length > 0
-          ? " [" + errors.graphQLErrors[0].message + "]"
-          : "";
-
-      enqueueSnackbar(errorMessage + message, { variant: "error" });
-    },
-  });
 
   const toggleUs = React.useCallback(() => {
     setDefaultValues((prevState) => ({
@@ -121,7 +75,33 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
         actions.setSubmitting(true);
         try {
           const variables = buildIssueMutationVariables(values, defaultValues, edit);
-          await runMutation({ variables });
+          const result = await mutationRequest<{ item?: IssueMutationResult }>({
+            url: "/api/issues",
+            method: edit ? "PATCH" : "POST",
+            body: variables,
+          });
+          const nextItem = result.item;
+          if (!nextItem) throw new Error("Ausgabe konnte nicht gespeichert werden");
+
+          enqueueSnackbar(generateLabel(nextItem) + successMessage, {
+            variant: "success",
+          });
+
+          if (!copyModeRef.current) {
+            router.push(generateUrl(nextItem, Boolean((nextItem.series as any)?.publisher?.us)));
+            return;
+          }
+
+          const copiedSelection = structuredClone(nextItem) as Record<string, unknown>;
+          copiedSelection.format = undefined;
+          copiedSelection.variant = undefined;
+          router.push(
+            "/copy/issue" +
+              generateUrl(copiedSelection, Boolean((copiedSelection.series as any)?.publisher?.us))
+          );
+        } catch (error) {
+          const message = error instanceof Error && error.message ? ` [${error.message}]` : "";
+          enqueueSnackbar(errorMessage + message, { variant: "error" });
         } finally {
           actions.setSubmitting(false);
         }

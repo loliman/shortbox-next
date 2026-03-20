@@ -1,7 +1,5 @@
 import Layout from "../Layout";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@apollo/client";
-import { issue } from "../../graphql/queriesTyped";
 import QueryResult from "../generic/QueryResult";
 import React from "react";
 import Box from "@mui/material/Box";
@@ -62,56 +60,6 @@ interface IssueDetailsProps {
   [key: string]: unknown;
 }
 
-function getIssueSelectionKey(
-  issueLike?: {
-    number?: string | null;
-    format?: string | null;
-    variant?: string | null;
-    series?: {
-      title?: string | null;
-      volume?: number | null;
-      publisher?: { name?: string | null };
-    } | null;
-  } | null
-) {
-  if (!issueLike) return "";
-  return [
-    String(issueLike.series?.publisher?.name || ""),
-    String(issueLike.series?.title || ""),
-    String(issueLike.series?.volume || ""),
-    String(issueLike.number || ""),
-    String(issueLike.format || ""),
-    String(issueLike.variant || ""),
-  ].join("|");
-}
-
-function getIssueVariantKey(
-  issueLike?: { format?: string | null; variant?: string | null } | null
-) {
-  return [String(issueLike?.format || "").trim(), String(issueLike?.variant || "").trim()].join(
-    "|"
-  );
-}
-
-function getIssueIdentityKey(
-  issueLike?: {
-    number?: string | null;
-    series?: {
-      title?: string | null;
-      volume?: number | null;
-      publisher?: { name?: string | null };
-    } | null;
-  } | null
-) {
-  if (!issueLike) return "";
-  return [
-    String(issueLike.series?.publisher?.name || ""),
-    String(issueLike.series?.title || ""),
-    String(issueLike.series?.volume || ""),
-    String(issueLike.number || ""),
-  ].join("|");
-}
-
 function IssueDetails(props: IssueDetailsProps) {
   const router = useRouter();
   const selected = props.selected || { us: Boolean(props.us) };
@@ -120,71 +68,71 @@ function IssueDetails(props: IssueDetailsProps) {
   const compactLayout =
     props.compactLayout ?? Boolean(props.isPhone || (props.isTablet && !props.isTabletLandscape));
   const [coverExpanded, setCoverExpanded] = React.useState(true);
-  const issueVariables = React.useMemo(
-    () =>
-      selected.issue
-        ? {
-            issue: {
-              number: selected.issue.number,
-              format: selected.issue.format,
-              variant: selected.issue.variant,
-              series: {
-                title: selected.issue.series.title,
-                volume: selected.issue.series.volume,
-                publisher: { name: selected.issue.series.publisher.name },
-              },
-            },
-          }
-        : undefined,
-    [
-      selected.issue?.number,
-      selected.issue?.format,
-      selected.issue?.variant,
-      selected.issue?.series.title,
-      selected.issue?.series.volume,
-      selected.issue?.series.publisher.name,
-    ]
-  );
-  const issueQueryOptions = React.useMemo(
-    () => ({
-      variables: issueVariables,
-      skip: !issueVariables,
-      notifyOnNetworkStatusChange: true,
-      fetchPolicy: "cache-first" as const,
-      nextFetchPolicy: "cache-first" as const,
-    }),
-    [issueVariables]
-  );
-  const { networkStatus, error, data, previousData, loading } = useQuery(issue, issueQueryOptions);
-  const requestedIssueKey = getIssueSelectionKey(selected.issue as unknown as any);
-  const currentIssue = data?.issueDetails ?? null;
-  const previousIssue = previousData?.issueDetails ?? null;
-  const currentIssueKey = getIssueSelectionKey(currentIssue as unknown as any);
-  const hasRequestedIssueData = currentIssueKey === requestedIssueKey;
-  const resolvedIssue = (
-    currentIssue && hasRequestedIssueData ? currentIssue : null
-  ) as Issue | null;
-  const fallbackIssue = (currentIssue || previousIssue || null) as Issue | null;
-  const loadedIssue = (resolvedIssue || fallbackIssue) as Issue | null;
+  const [loadedIssue, setLoadedIssue] = React.useState<Issue | null>(null);
+  const [loading, setLoading] = React.useState(Boolean(selected.issue));
+  const [error, setError] = React.useState<unknown>(null);
   const issueForVariants = loadedIssue ? toIssueWithMockVariants(loadedIssue) : null;
-  const isIssueTransitioning =
-    Boolean(issueVariables) && !hasRequestedIssueData && (loading || networkStatus < 7);
-  const isIssueMissing = Boolean(issueVariables) && !loading && networkStatus >= 7 && !currentIssue;
-  const requestedIssueIdentityKey = getIssueIdentityKey(selected.issue as unknown as any);
-  const requestedVariantKey = getIssueVariantKey(selected.issue as unknown as any);
-  const loadedIssueIdentityKey = getIssueIdentityKey(loadedIssue as unknown as any);
-  const loadedVariantKey = getIssueVariantKey(loadedIssue as unknown as any);
-  const isVariantTransition =
-    Boolean(issueVariables) &&
-    requestedIssueIdentityKey !== "" &&
-    requestedIssueIdentityKey === loadedIssueIdentityKey &&
-    requestedVariantKey !== loadedVariantKey &&
-    !isIssueMissing;
   const coverGalleryIssues = React.useMemo(
     () => (issueForVariants ? buildCoverGalleryIssues(issueForVariants) : []),
     [issueForVariants]
   );
-  if (isIssueTransitioning && !error && !isVariantTransition) {
+
+  React.useEffect(() => {
+    if (!selected.issue?.series?.publisher?.name || !selected.issue?.series?.title || !selected.issue.number) {
+      setLoadedIssue(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    const params = new URLSearchParams({
+      locale: us ? "us" : "de",
+      publisher: selected.issue.series.publisher.name,
+      series: selected.issue.series.title,
+      volume: String(selected.issue.series.volume || 1),
+      number: selected.issue.number,
+    });
+
+    if (selected.issue.format) params.set("format", selected.issue.format);
+    if (selected.issue.variant) params.set("variant", selected.issue.variant);
+
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    void fetch(`/api/public-issue?${params.toString()}`, { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Issue request failed: ${response.status}`);
+        return (await response.json()) as { item?: Issue | null };
+      })
+      .then((payload) => {
+        if (cancelled) return;
+        setLoadedIssue((payload.item || null) as Issue | null);
+      })
+      .catch((nextError) => {
+        if (cancelled) return;
+        setLoadedIssue(null);
+        setError(nextError);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    selected.issue?.number,
+    selected.issue?.format,
+    selected.issue?.variant,
+    selected.issue?.series?.title,
+    selected.issue?.series?.volume,
+    selected.issue?.series?.publisher?.name,
+    us,
+  ]);
+
+  if (loading && !loadedIssue) {
     return (
       <Layout>
         <Box className="data-fade">
@@ -200,14 +148,14 @@ function IssueDetails(props: IssueDetailsProps) {
     );
   }
 
-  if (error || isIssueMissing || !issueForVariants || !loadedIssue) {
+  if (error || !issueForVariants || !loadedIssue) {
     return (
       <Layout>
         <Box className="data-fade">
           <QueryResult
             error={error}
-            data={isIssueMissing ? null : resolvedIssue}
-            loading={loading || networkStatus < 7}
+            data={loadedIssue}
+            loading={loading}
             selected={selected}
             placeholder={<IssueDetailsPreview />}
             placeholderCount={1}

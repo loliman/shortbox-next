@@ -5,7 +5,6 @@ import { FastField } from "formik";
 import { TextField } from "../../../generic/FormikTextField";
 import AutocompleteBase from "../../../generic/AutocompleteBase";
 import { useAutocompleteQuery } from "../../../generic/useAutocompleteQuery";
-import { publishers, series } from "../../../../graphql/queriesTyped";
 import type { IssueEditorFormValues } from "./types";
 import { getSeriesLabel } from "../../../../util/issuePresentation";
 
@@ -54,7 +53,7 @@ function IssueEditorSeriesFields({
   const numberLocked = Boolean(lockedFields?.number);
 
   const publisherQuery = useAutocompleteQuery<PublisherOption>({
-    query: publishers,
+    source: "publishers",
     variables: {
       pattern: publisherPattern,
       us: publisherUs,
@@ -65,7 +64,7 @@ function IssueEditorSeriesFields({
   });
 
   const seriesQuery = useAutocompleteQuery<SeriesOption>({
-    query: series,
+    source: "series",
     variables: {
       pattern: seriesPattern,
       publisher: { name: publisherPattern },
@@ -79,7 +78,7 @@ function IssueEditorSeriesFields({
   const publisherValue =
     publisherQuery.options.find(
       (entry) => normalizeText(entry.name) === normalizeText(values.series.publisher.name)
-    ) || (publisherPattern.trim().length > 0 ? publisherPattern : null);
+    ) || (publisherPattern.trim().length > 0 ? { name: publisherPattern } : null);
 
   const seriesValue =
     seriesQuery.options.find(
