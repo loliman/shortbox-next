@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma/client";
 
 const AUTOCOMPLETE_PAGE_SIZE = 50;
@@ -144,8 +145,46 @@ async function getGenreItems(
   offset: number,
   limit: number
 ) {
-  void variables;
-  return sliceItems([], offset, limit);
+  const pattern = normalizePattern(variables?.pattern);
+  const likePattern = `%${pattern.replace(/\s/g, "%")}%`;
+
+  try {
+    const rows = await prisma.$queryRaw<Array<{ genre: string | null }>>(
+      pattern
+        ? Prisma.sql`
+            SELECT genre
+            FROM shortbox.series
+            WHERE genre ILIKE ${likePattern}
+            ORDER BY genre ASC, id ASC
+          `
+        : Prisma.sql`
+            SELECT genre
+            FROM shortbox.series
+            ORDER BY genre ASC, id ASC
+          `
+    );
+
+    const unique = new Map<string, string>();
+    rows.forEach((row) => {
+      splitGenres(row.genre).forEach((genre) => {
+        if (!matchesGenrePattern(genre, pattern)) return;
+        const key = genre.toLowerCase();
+        if (!unique.has(key)) unique.set(key, genre);
+      });
+    });
+
+    const sortedGenres = [...unique.values()].sort((left, right) =>
+      left.localeCompare(right, undefined, { sensitivity: "base" })
+    );
+
+    return sliceItems(
+      sortedGenres.map((name) => ({ name })),
+      offset,
+      limit
+    );
+  } catch {
+    return { items: [], hasMore: false };
+  }
 }
 
 async function getArcItems(
@@ -310,6 +349,33 @@ function dedupeStrings(values: string[]) {
     if (!unique.has(key)) unique.set(key, normalized);
   });
   return [...unique.values()];
+}
+
+function splitGenres(value: unknown): string[] {
+  return String(value || "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+}
+
+function matchesGenrePattern(genre: string, pattern: string): boolean {
+  if (!pattern) return true;
+
+  const parts = pattern
+    .toLowerCase()
+    .split(/\s+/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  if (parts.length === 0) return true;
+
+  const normalizedGenre = genre.toLowerCase();
+  let index = 0;
+  for (const part of parts) {
+    const next = normalizedGenre.indexOf(part, index);
+    if (next < 0) return false;
+    index = next + part.length;
+  }
+  return true;
 }
 
 function sliceItems<T>(items: T[], offset: number, limit: number) {
