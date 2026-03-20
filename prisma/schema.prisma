@@ -1,0 +1,332 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["shortbox"]
+}
+
+enum ChangeRequestType {
+  SERIES
+  ISSUE
+  PUBLISHER
+
+  @@schema("shortbox")
+}
+
+enum SearchIndexNodeType {
+  publisher
+  series
+  issue
+
+  @@schema("shortbox")
+}
+
+model User {
+  id        BigInt   @id @default(autoincrement()) @db.BigInt
+  name      String   @default("") @db.VarChar(255)
+  password  String   @default("") @db.VarChar(255)
+  sessionId String?  @map("sessionid") @db.VarChar(255)
+  createdAt DateTime @map("createdat") @db.Timestamptz(6)
+  updatedAt DateTime @map("updatedat") @db.Timestamptz(6)
+
+  @@map("user")
+  @@schema("shortbox")
+}
+
+model StoryAppearance {
+  fkAppearance BigInt     @map("fk_appearance") @db.BigInt
+  fkStory      BigInt     @map("fk_story") @db.BigInt
+  role         String     @default("") @db.VarChar(255)
+  createdAt    DateTime   @map("createdat") @db.Timestamptz(6)
+  updatedAt    DateTime   @map("updatedat") @db.Timestamptz(6)
+  appearance   Appearance @relation(fields: [fkAppearance], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  story        Story      @relation(fields: [fkStory], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([fkAppearance, fkStory, role])
+  @@index([fkAppearance, role, fkStory], map: "idx_story_appearance_rev")
+  @@map("story_appearance")
+  @@schema("shortbox")
+}
+
+model StoryIndividual {
+  fkStory      BigInt     @map("fk_story") @db.BigInt
+  fkIndividual BigInt     @map("fk_individual") @db.BigInt
+  type         String     @default("") @db.VarChar(255)
+  createdAt    DateTime   @map("createdat") @db.Timestamptz(6)
+  updatedAt    DateTime   @map("updatedat") @db.Timestamptz(6)
+  story        Story      @relation(fields: [fkStory], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  individual   Individual @relation(fields: [fkIndividual], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([fkStory, fkIndividual, type])
+  @@index([fkIndividual, type, fkStory], map: "idx_story_individual_rev")
+  @@map("story_individual")
+  @@schema("shortbox")
+}
+
+model ChangeRequest {
+  id            Int               @id @default(autoincrement())
+  fkIssue       Int               @map("fk_issue")
+  createdAt     DateTime          @default(now()) @map("createdat") @db.Timestamptz(6)
+  type          ChangeRequestType
+  changeRequest Json              @map("changerequest") @db.JsonB
+
+  @@index([fkIssue], map: "changerequests_fk_issue_idx")
+  @@index([createdAt], map: "changerequests_createdat_idx")
+  @@index([type, createdAt], map: "changerequests_type_createdat_idx")
+  @@map("changerequests")
+  @@schema("shortbox")
+}
+
+model Series {
+  id          BigInt   @id @default(autoincrement()) @db.BigInt
+  title       String?  @db.VarChar(255)
+  startYear   BigInt   @default(0) @map("startyear") @db.BigInt
+  endYear     BigInt?  @default(0) @map("endyear") @db.BigInt
+  volume      BigInt   @db.BigInt
+  addInfo     String   @default("") @map("addinfo") @db.VarChar(1000)
+  createdAt   DateTime @map("createdat") @db.Timestamptz(6)
+  updatedAt   DateTime @map("updatedat") @db.Timestamptz(6)
+  fkPublisher BigInt?  @map("fk_publisher") @db.BigInt
+  genre       String?  @db.VarChar(255)
+  publisher   Publisher? @relation(fields: [fkPublisher], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  issues      Issue[]
+
+  @@index([fkPublisher], map: "idx_series_fk_publisher")
+  @@map("series")
+  @@schema("shortbox")
+}
+
+model Story {
+  id                     BigInt            @id @default(autoincrement()) @db.BigInt
+  title                  String            @default("") @db.VarChar(255)
+  number                 BigInt            @db.BigInt
+  addInfo                String            @default("") @map("addinfo") @db.VarChar(255)
+  createdAt              DateTime          @map("createdat") @db.Timestamptz(6)
+  updatedAt              DateTime          @map("updatedat") @db.Timestamptz(6)
+  fkIssue                BigInt?           @map("fk_issue") @db.BigInt
+  fkParent               BigInt?           @map("fk_parent") @db.BigInt
+  fkReprint              BigInt?           @map("fk_reprint") @db.BigInt
+  onlyApp                Boolean           @default(false) @map("onlyapp")
+  onlyTb                 Boolean           @default(false) @map("onlytb")
+  otherOnlyTb            Boolean           @default(false) @map("otheronlytb")
+  onlyOnePrint           Boolean           @default(false) @map("onlyoneprint")
+  collected              Boolean           @default(false)
+  collectedMultipleTimes Boolean           @default(false) @map("collectedmultipletimes")
+  firstApp               Boolean           @default(false) @map("firstapp")
+  part                   String            @db.VarChar(255)
+  issue                  Issue?            @relation(fields: [fkIssue], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  parent                 Story?            @relation("StoryParent", fields: [fkParent], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children               Story[]           @relation("StoryParent")
+  reprint                Story?            @relation("StoryReprint", fields: [fkReprint], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  reprintedBy            Story[]           @relation("StoryReprint")
+  appearances            StoryAppearance[]
+  individuals            StoryIndividual[]
+
+  @@index([fkIssue, number, id], map: "idx_story_fk_issue_number_id")
+  @@index([fkParent], map: "idx_story_fk_parent")
+  @@index([fkReprint], map: "idx_story_fk_reprint")
+  @@map("story")
+  @@schema("shortbox")
+}
+
+model AdminTaskResult {
+  id             Int      @id
+  jobId          String   @unique(map: "admin_task_result_job_id_key") @map("job_id") @db.VarChar(64)
+  taskIdentifier String   @map("task_identifier") @db.VarChar(128)
+  resultJson     String   @map("result_json")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([taskIdentifier, createdAt(sort: Desc)], map: "admin_task_result_task_identifier_created_at_idx")
+  @@map("admin_task_result")
+  @@schema("shortbox")
+}
+
+model Issue {
+  id            BigInt            @id @default(autoincrement()) @db.BigInt
+  title         String            @default("") @db.VarChar(255)
+  number        String            @default("") @db.VarChar(255)
+  format        String            @default("") @db.VarChar(255)
+  limitation    BigInt?           @default(0) @db.BigInt
+  variant       String?           @db.VarChar(255)
+  releaseDate   DateTime?         @map("releasedate") @db.Timestamptz(6)
+  pages         BigInt?           @default(0) @db.BigInt
+  price         Float?            @db.DoublePrecision
+  currency      String?           @db.VarChar(255)
+  addInfo       String?           @map("addinfo") @db.VarChar(1000)
+  verified      Boolean           @default(false)
+  createdAt     DateTime          @map("createdat") @db.Timestamptz(6)
+  updatedAt     DateTime          @map("updatedat") @db.Timestamptz(6)
+  fkSeries      BigInt?           @map("fk_series") @db.BigInt
+  comicGuideId  BigInt?           @map("comicguideid") @db.BigInt
+  collected     Boolean?
+  isbn          String?           @db.VarChar(255)
+  legacyNumber  String            @default("") @map("legacy_number") @db.VarChar(255)
+  series        Series?           @relation(fields: [fkSeries], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  stories       Story[]
+  arcs          IssueArc[]
+  individuals   IssueIndividual[]
+  covers        Cover[]
+
+  @@index([fkSeries], map: "idx_issue_fk_series")
+  @@index([fkSeries, number, format, variant], map: "idx_issue_series_number_format_variant")
+  @@map("issue")
+  @@schema("shortbox")
+}
+
+model IssueArc {
+  fkIssue   BigInt   @map("fk_issue") @db.BigInt
+  fkArc     BigInt   @map("fk_arc") @db.BigInt
+  createdAt DateTime @map("createdat") @db.Timestamptz(6)
+  updatedAt DateTime @map("updatedat") @db.Timestamptz(6)
+  issue     Issue    @relation(fields: [fkIssue], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  arc       Arc      @relation(fields: [fkArc], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([fkIssue, fkArc])
+  @@index([fkArc, fkIssue], map: "idx_issue_arc_rev")
+  @@map("issue_arc")
+  @@schema("shortbox")
+}
+
+model IssueIndividual {
+  fkIssue      BigInt     @map("fk_issue") @db.BigInt
+  fkIndividual BigInt     @map("fk_individual") @db.BigInt
+  type         String     @default("") @db.VarChar(255)
+  createdAt    DateTime   @map("createdat") @db.Timestamptz(6)
+  updatedAt    DateTime   @map("updatedat") @db.Timestamptz(6)
+  issue        Issue      @relation(fields: [fkIssue], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  individual   Individual @relation(fields: [fkIndividual], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([fkIssue, fkIndividual, type])
+  @@index([fkIndividual, type, fkIssue], map: "idx_issue_individual_rev")
+  @@map("issue_individual")
+  @@schema("shortbox")
+}
+
+model Publisher {
+  id        BigInt   @id @default(autoincrement()) @db.BigInt
+  name      String   @db.VarChar(255)
+  original  Boolean  @default(false)
+  addInfo   String   @default("") @map("addinfo") @db.VarChar(255)
+  createdAt DateTime @map("createdat") @db.Timestamptz(6)
+  updatedAt DateTime @map("updatedat") @db.Timestamptz(6)
+  startYear BigInt   @default(0) @map("startyear") @db.BigInt
+  endYear   BigInt?  @default(0) @map("endyear") @db.BigInt
+  series    Series[]
+
+  @@map("publisher")
+  @@schema("shortbox")
+}
+
+model Session {
+  sid       String    @id @db.VarChar(36)
+  expires   DateTime? @db.Timestamptz(6)
+  data      String?
+  createdAt DateTime  @map("createdat") @db.Timestamptz(6)
+  updatedAt DateTime  @map("updatedat") @db.Timestamptz(6)
+
+  @@map("sessions")
+  @@schema("shortbox")
+}
+
+model SearchIndex {
+  id              BigInt              @id @default(autoincrement()) @db.BigInt
+  nodeType        SearchIndexNodeType @map("node_type")
+  sourceId        BigInt              @map("source_id") @db.BigInt
+  us              Boolean
+  publisherName   String?             @map("publisher_name")
+  seriesTitle     String?             @map("series_title")
+  seriesVolume    Int?                @map("series_volume")
+  seriesStartYear Int?                @map("series_startyear")
+  seriesEndYear   Int?                @map("series_endyear")
+  seriesKey       String?             @map("series_key")
+  issueNumber     String?             @map("issue_number")
+  issueFormat     String?             @map("issue_format")
+  issueVariant    String?             @map("issue_variant")
+  issueTitle      String?             @map("issue_title")
+  label           String
+  url             String
+  searchText      String              @map("search_text")
+  searchTsv       Unsupported("tsvector") @default(dbgenerated("''::tsvector")) @map("search_tsv")
+
+  @@unique([nodeType, sourceId], map: "search_index_node_type_source_id_key")
+  @@index([us, issueNumber], map: "idx_search_index_issue_number")
+  @@index([us, seriesTitle, seriesVolume, seriesStartYear], map: "idx_search_index_series_fields")
+  @@index([seriesKey], map: "idx_search_index_series_key")
+  @@index([us, nodeType], map: "idx_search_index_us_type")
+  @@map("search_index")
+  @@schema("shortbox")
+}
+
+model Appearance {
+  id          BigInt            @id @default(autoincrement()) @db.BigInt
+  name        String            @db.VarChar(255)
+  type        String            @db.VarChar(255)
+  createdAt   DateTime          @map("createdat") @db.Timestamptz(6)
+  updatedAt   DateTime          @map("updatedat") @db.Timestamptz(6)
+  storyLinks  StoryAppearance[]
+
+  @@map("appearance")
+  @@schema("shortbox")
+}
+
+model Arc {
+  id        BigInt     @id @default(autoincrement()) @db.BigInt
+  title     String     @default("") @db.VarChar(255)
+  type      String     @default("") @db.VarChar(255)
+  createdAt DateTime   @map("createdat") @db.Timestamptz(6)
+  updatedAt DateTime   @map("updatedat") @db.Timestamptz(6)
+  issues    IssueArc[]
+
+  @@map("arc")
+  @@schema("shortbox")
+}
+
+model Cover {
+  id          BigInt            @id @default(autoincrement()) @db.BigInt
+  url         String            @default("") @db.VarChar(255)
+  number      BigInt            @db.BigInt
+  addInfo     String            @default("") @map("addinfo") @db.VarChar(255)
+  createdAt   DateTime          @map("createdat") @db.Timestamptz(6)
+  updatedAt   DateTime          @map("updatedat") @db.Timestamptz(6)
+  fkParent    BigInt?           @map("fk_parent") @db.BigInt
+  fkIssue     BigInt?           @map("fk_issue") @db.BigInt
+  parent      Cover?            @relation("CoverParent", fields: [fkParent], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children    Cover[]           @relation("CoverParent")
+  issue       Issue?            @relation(fields: [fkIssue], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  individuals CoverIndividual[]
+
+  @@index([fkIssue, number], map: "idx_cover_fk_issue_number")
+  @@index([fkParent], map: "idx_cover_fk_parent")
+  @@map("cover")
+  @@schema("shortbox")
+}
+
+model CoverIndividual {
+  fkCover      BigInt     @map("fk_cover") @db.BigInt
+  fkIndividual BigInt     @map("fk_individual") @db.BigInt
+  type         String     @default("") @db.VarChar(255)
+  createdAt    DateTime   @map("createdat") @db.Timestamptz(6)
+  updatedAt    DateTime   @map("updatedat") @db.Timestamptz(6)
+  cover        Cover      @relation(fields: [fkCover], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  individual   Individual @relation(fields: [fkIndividual], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([fkCover, fkIndividual, type])
+  @@index([fkIndividual, type, fkCover], map: "idx_cover_individual_rev")
+  @@map("cover_individual")
+  @@schema("shortbox")
+}
+
+model Individual {
+  id          BigInt            @id @default(autoincrement()) @db.BigInt
+  name        String            @default("") @db.VarChar(255)
+  createdAt   DateTime          @map("createdat") @db.Timestamptz(6)
+  updatedAt   DateTime          @map("updatedat") @db.Timestamptz(6)
+  storyLinks  StoryIndividual[]
+  issueLinks  IssueIndividual[]
+  coverLinks  CoverIndividual[]
+
+  @@map("individual")
+  @@schema("shortbox")
+}
