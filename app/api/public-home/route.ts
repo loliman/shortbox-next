@@ -9,13 +9,17 @@ export async function GET(request: Request) {
   const order = searchParams.get("order");
   const direction = searchParams.get("direction");
 
-  const data = await getHomePageData({
-    us,
-    offset,
-    limit,
-    order,
-    direction,
-  });
+  try {
+    const data = await getHomePageData({
+      us,
+      offset,
+      limit,
+      order,
+      direction,
+    });
 
-  return NextResponse.json(data);
+    return NextResponse.json(data);
+  } catch {
+    return NextResponse.json({ items: [], hasMore: false });
+  }
 }

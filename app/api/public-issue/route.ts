@@ -11,15 +11,19 @@ export async function GET(request: Request) {
   const variant = searchParams.get("variant");
   const us = searchParams.get("locale") === "us";
 
-  const data = await getIssueScreenData({
-    us,
-    publisher,
-    series,
-    volume,
-    number,
-    format,
-    variant,
-  });
+  try {
+    const data = await getIssueScreenData({
+      us,
+      publisher,
+      series,
+      volume,
+      number,
+      format,
+      variant,
+    });
 
-  return NextResponse.json({ item: data });
+    return NextResponse.json({ item: data });
+  } catch {
+    return NextResponse.json({ item: null });
+  }
 }

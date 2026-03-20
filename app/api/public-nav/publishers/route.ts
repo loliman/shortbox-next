@@ -6,6 +6,10 @@ export async function GET(request: Request) {
   const us = searchParams.get("locale") === "us";
   const filter = searchParams.get("filter");
 
-  const data = await getNavigationPublishers({ us, filter });
-  return NextResponse.json({ items: data });
+  try {
+    const data = await getNavigationPublishers({ us, filter });
+    return NextResponse.json({ items: data });
+  } catch {
+    return NextResponse.json({ items: [] });
+  }
 }

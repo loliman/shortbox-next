@@ -1,5 +1,6 @@
 "use client";
 
+import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { SnackbarProvider } from "notistack";
@@ -59,22 +60,24 @@ export default function App(props: Readonly<AppProps>) {
   }, []);
 
   return (
-    <ThemeProvider theme={theme}>
-      <SnackbarProvider
-        maxSnack={4}
-        autoHideDuration={3500}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <AppContextProvider
-          session={session}
-          setSession={setSession}
-          themeMode={themeMode}
-          toggleTheme={toggleTheme}
+    <AppRouterCacheProvider options={{ key: "mui" }}>
+      <ThemeProvider theme={theme}>
+        <SnackbarProvider
+          maxSnack={4}
+          autoHideDuration={3500}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         >
-          <CssBaseline />
-          <Suspense fallback={<AppPageLoader />}>{props.children ?? null}</Suspense>
-        </AppContextProvider>
-      </SnackbarProvider>
-    </ThemeProvider>
+          <AppContextProvider
+            session={session}
+            setSession={setSession}
+            themeMode={themeMode}
+            toggleTheme={toggleTheme}
+          >
+            <CssBaseline />
+            <Suspense fallback={<AppPageLoader />}>{props.children ?? null}</Suspense>
+          </AppContextProvider>
+        </SnackbarProvider>
+      </ThemeProvider>
+    </AppRouterCacheProvider>
   );
 }

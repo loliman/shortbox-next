@@ -27,6 +27,13 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch {
-    return NextResponse.json({ items: [], hasMore: false }, { status: 500 });
+    return NextResponse.json(
+      { items: [], hasMore: false },
+      {
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      }
+    );
   }
 }

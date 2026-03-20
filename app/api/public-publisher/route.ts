@@ -6,6 +6,10 @@ export async function GET(request: Request) {
   const us = searchParams.get("locale") === "us";
   const publisher = searchParams.get("publisher") || "";
 
-  const data = await getPublisherScreenData({ us, publisher });
-  return NextResponse.json({ item: data });
+  try {
+    const data = await getPublisherScreenData({ us, publisher });
+    return NextResponse.json({ item: data });
+  } catch {
+    return NextResponse.json({ item: null });
+  }
 }
