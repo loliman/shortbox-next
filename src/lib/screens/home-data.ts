@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma/client";
 
 const DEFAULT_HOME_PAGE_SIZE = 50;
@@ -145,19 +146,23 @@ export async function getHomePageData(options: HomeDataOptions) {
   }
 }
 
-function resolveIssueOrder(order?: string | null, direction?: string | null) {
+function resolveIssueOrder(
+  order?: string | null,
+  direction?: string | null
+): Prisma.IssueOrderByWithRelationInput[] {
   const orderKey = String(order || "updatedat").trim().toLowerCase();
-  const sortDirection = String(direction || "desc").trim().toLowerCase() === "asc" ? "asc" : "desc";
+  const sortDirection: Prisma.SortOrder =
+    String(direction || "desc").trim().toLowerCase() === "asc" ? "asc" : "desc";
 
   switch (orderKey) {
     case "releasedate":
-      return [{ releaseDate: sortDirection }, { id: sortDirection }] as const;
+      return [{ releaseDate: sortDirection }, { id: sortDirection }];
     case "createdat":
-      return [{ createdAt: sortDirection }, { id: sortDirection }] as const;
+      return [{ createdAt: sortDirection }, { id: sortDirection }];
     case "number":
-      return [{ number: sortDirection }, { id: sortDirection }] as const;
+      return [{ number: sortDirection }, { id: sortDirection }];
     default:
-      return [{ updatedAt: sortDirection }, { id: sortDirection }] as const;
+      return [{ updatedAt: sortDirection }, { id: sortDirection }];
   }
 }
 

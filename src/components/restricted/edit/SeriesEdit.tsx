@@ -11,11 +11,19 @@ interface SeriesEditProps {
   routeContext: AppRouteContextValue;
 }
 
+type SeriesEditRecord = Record<string, unknown> & {
+  id?: string | number;
+};
+
+type SeriesEditorDefaultValues = NonNullable<
+  React.ComponentProps<typeof SeriesEditor>["defaultValues"]
+>;
+
 function SeriesEdit(props: Readonly<SeriesEditProps>) {
   const { selected } = props.routeContext;
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<unknown>(null);
-  const [seriesDetails, setSeriesDetails] = React.useState<Record<string, unknown> | null>(null);
+  const [seriesDetails, setSeriesDetails] = React.useState<SeriesEditRecord | null>(null);
 
   React.useEffect(() => {
     if (!selected.series?.publisher?.name || !selected.series?.title) {
@@ -37,7 +45,7 @@ function SeriesEdit(props: Readonly<SeriesEditProps>) {
     void fetch(`/api/public-series?${params.toString()}`, { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) throw new Error(`Series request failed: ${response.status}`);
-        return (await response.json()) as { item?: { details?: Record<string, unknown> } | null };
+        return (await response.json()) as { item?: { details?: SeriesEditRecord } | null };
       })
       .then((payload) => {
         if (cancelled) return;
@@ -73,7 +81,8 @@ function SeriesEdit(props: Readonly<SeriesEditProps>) {
             />
           );
 
-        let defaultValues = structuredClone(seriesDetails) as Record<string, unknown>;
+        const defaultValues = structuredClone(seriesDetails) as SeriesEditorDefaultValues &
+          Record<string, unknown>;
 
         defaultValues.issueCount = undefined;
         defaultValues.active = undefined;

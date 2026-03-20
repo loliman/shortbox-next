@@ -35,7 +35,7 @@ import { mutationRequest } from "../../lib/client/mutation-request";
 import type { AppRouteContextValue } from "../../app/routeContext";
 
 interface TopBarProps {
-  routeContext?: AppRouteContextValue;
+  routeContext: AppRouteContextValue;
   toggleDrawer?: () => void;
   drawerOpen?: boolean;
   us?: boolean;
@@ -140,7 +140,8 @@ export default function TopBar(ownProps: TopBarProps) {
   const compactLayout =
     props.compactLayout ?? Boolean(props.isPhone || (props.isTablet && !props.isTabletLandscape));
   const [mobileSearchOpen, setMobileSearchOpen] = React.useState(false);
-  const isFilter = props.query?.filter;
+  const isFilter =
+    typeof props.query?.filter === "string" ? props.query.filter : props.query?.filter ? String(props.query.filter) : null;
   const darkModeEnabled = props.themeMode === "dark";
   const localeSwitchAriaLabel = us ? "Zu Deutsch wechseln" : "Zu US wechseln";
   const [changeRequestsCount, setChangeRequestsCount] = React.useState(0);

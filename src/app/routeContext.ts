@@ -1,5 +1,5 @@
 import type { SelectedRoot } from "../types/domain";
-import { getHierarchyLevel, getSelected } from "../util/hierarchy";
+import { getHierarchyLevel, getSelected, type HierarchyLevelType } from "../util/hierarchy";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -9,7 +9,7 @@ export type AppRouteContextValue = {
   us: boolean;
   selected: SelectedRoot;
   query: UnknownRecord | null;
-  level: string;
+  level: HierarchyLevelType;
 };
 
 export type NextPageParams = Promise<Record<string, string>>;

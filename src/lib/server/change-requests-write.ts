@@ -1,4 +1,4 @@
-import { ChangeRequestType } from "@prisma/client";
+import { ChangeRequestType, Prisma } from "@prisma/client";
 import { prisma } from "../prisma/client";
 
 type ChangeRequestInput = {
@@ -17,9 +17,9 @@ export async function createIssueChangeRequest(input: ChangeRequestInput) {
       fkIssue: issueId,
       type: ChangeRequestType.ISSUE,
       changeRequest: {
-        issue: input.issue || {},
-        item: input.item || {},
-      },
+        issue: (input.issue || {}) as Prisma.InputJsonValue,
+        item: (input.item || {}) as Prisma.InputJsonValue,
+      } as Prisma.InputJsonValue,
       createdAt: new Date(),
     },
   });

@@ -48,8 +48,9 @@ export { toIsbn10, toIsbn13, toShortboxDate } from "./issue-details/utils/issueM
 export { DetailsRow } from "./issue-details/DetailsRow";
 
 interface IssueDetailsProps {
-  routeContext?: AppRouteContextValue;
+  routeContext: AppRouteContextValue;
   selected?: SelectedRoot;
+  level?: string;
   us?: boolean;
   appIsLoading?: boolean;
   session?: unknown;

@@ -1,13 +1,13 @@
 import Box from "@mui/material/Box";
 import React from "react";
 import { AppContext } from "../generic/AppContext";
-import Dropdown from "./Dropdown";
+import Dropdown, { type DropdownItem } from "./Dropdown";
 import type { AppRouteContextValue } from "../../app/routeContext";
 
 interface EditButtonProps {
   session?: unknown;
   item?: unknown;
-  routeContext?: AppRouteContextValue;
+  routeContext: AppRouteContextValue;
   level?: string;
   us?: boolean;
 }
@@ -21,7 +21,7 @@ function EditButton(props: Readonly<EditButtonProps>) {
   return (
     <Box sx={{ display: "inline-flex" }}>
       <Dropdown
-        item={props.item}
+        item={props.item as DropdownItem | null | undefined}
         level={props.level}
         us={props.us}
         routeContext={props.routeContext}

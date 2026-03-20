@@ -77,7 +77,7 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
           const result = await mutationRequest<{ item?: IssueMutationResult }>({
             url: "/api/issues",
             method: edit ? "PATCH" : "POST",
-            body: variables,
+            body: variables as unknown as Record<string, unknown>,
           });
           const nextItem = result.item;
           if (!nextItem) throw new Error("Ausgabe konnte nicht gespeichert werden");

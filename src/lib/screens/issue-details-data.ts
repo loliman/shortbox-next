@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma/client";
 
 type IssueSelectionInput = {
@@ -77,7 +78,7 @@ export async function getIssueScreenData(selection: IssueSelectionInput) {
   }
 }
 
-const storyInclude = {
+const storyInclude = Prisma.validator<Prisma.StoryInclude>()({
   issue: {
     include: {
       series: {
@@ -252,10 +253,10 @@ const storyInclude = {
       appearance: true,
     },
   },
-} as const;
+});
 
 function createIssueInclude() {
-  return {
+  return Prisma.validator<Prisma.IssueInclude>()({
     series: {
       include: {
         publisher: true,
@@ -285,7 +286,7 @@ function createIssueInclude() {
         },
       },
     },
-  } as const;
+  });
 }
 
 function toIssueDetailsShape(issue: any, variants: any[]) {

@@ -12,11 +12,15 @@ interface IssueEditProps {
   routeContext: AppRouteContextValue;
 }
 
+type IssueEditRecord = Record<string, unknown> & {
+  id?: string | number;
+};
+
 function IssueEdit(props: Readonly<IssueEditProps>) {
   const { selected } = props.routeContext;
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<unknown>(null);
-  const [issueDetails, setIssueDetails] = React.useState<Record<string, unknown> | null>(null);
+  const [issueDetails, setIssueDetails] = React.useState<IssueEditRecord | null>(null);
 
   React.useEffect(() => {
     if (!selected.issue?.series?.publisher?.name || !selected.issue?.series?.title || !selected.issue.number) {
@@ -41,7 +45,7 @@ function IssueEdit(props: Readonly<IssueEditProps>) {
     void fetch(`/api/public-issue?${params.toString()}`, { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) throw new Error(`Issue request failed: ${response.status}`);
-        return (await response.json()) as { item?: Record<string, unknown> | null };
+        return (await response.json()) as { item?: IssueEditRecord | null };
       })
       .then((payload) => {
         if (cancelled) return;

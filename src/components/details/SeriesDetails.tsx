@@ -29,6 +29,7 @@ interface SeriesDetailsProps {
       };
     };
   };
+  level?: string;
   us?: boolean;
   query?: Record<string, unknown> | null;
   session?: unknown;

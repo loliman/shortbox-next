@@ -11,11 +11,19 @@ interface PublisherEditProps {
   routeContext: AppRouteContextValue;
 }
 
+type PublisherEditRecord = Record<string, unknown> & {
+  id?: string | number;
+};
+
+type PublisherEditorDefaultValues = NonNullable<
+  React.ComponentProps<typeof PublisherEditor>["defaultValues"]
+>;
+
 function PublisherEdit(props: Readonly<PublisherEditProps>) {
   const { selected } = props.routeContext;
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<unknown>(null);
-  const [publisherDetails, setPublisherDetails] = React.useState<Record<string, unknown> | null>(null);
+  const [publisherDetails, setPublisherDetails] = React.useState<PublisherEditRecord | null>(null);
 
   React.useEffect(() => {
     if (!selected.publisher?.name) {
@@ -35,7 +43,7 @@ function PublisherEdit(props: Readonly<PublisherEditProps>) {
     void fetch(`/api/public-publisher?${params.toString()}`, { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) throw new Error(`Publisher request failed: ${response.status}`);
-        return (await response.json()) as { item?: { details?: Record<string, unknown> } | null };
+        return (await response.json()) as { item?: { details?: PublisherEditRecord } | null };
       })
       .then((payload) => {
         if (cancelled) return;
@@ -71,7 +79,8 @@ function PublisherEdit(props: Readonly<PublisherEditProps>) {
             />
           );
 
-        let defaultValues = structuredClone(publisherDetails) as Record<string, unknown>;
+        const defaultValues = structuredClone(publisherDetails) as PublisherEditorDefaultValues &
+          Record<string, unknown>;
 
         defaultValues.seriesCount = undefined;
         defaultValues.issueCount = undefined;

@@ -35,7 +35,7 @@ interface DropdownStory {
   children?: unknown[];
 }
 
-interface DropdownItem {
+export interface DropdownItem {
   id?: string | number;
   series?: { publisher?: { us?: boolean; name?: string }; title?: string; volume?: number };
   publisher?: { us?: boolean; name?: string };
@@ -59,7 +59,7 @@ interface DropdownItem {
 }
 
 interface DropdownProps {
-  routeContext?: AppRouteContextValue;
+  routeContext: AppRouteContextValue;
   session?: unknown;
   level?: string;
   onNavigate?: (href: string) => void;

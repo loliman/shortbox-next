@@ -89,7 +89,7 @@ export interface FilterPageProps {
   query?: { filter?: string } | null;
   session?: unknown;
   isDesktop?: boolean;
-  routeContext?: AppRouteContextValue;
+  routeContext: AppRouteContextValue;
 }
 
 export interface FilterFormikBag {

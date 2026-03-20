@@ -27,7 +27,7 @@ type VariantLike = {
 
 type DeletionDialogItem = {
   __typename?: string;
-  us?: boolean;
+  us?: boolean | null;
   number?: string;
   format?: string;
   variant?: string;
@@ -38,7 +38,7 @@ type DeletionDialogItem = {
 };
 
 type DeletionDialogProps = {
-  routeContext?: AppRouteContextValue;
+  routeContext: AppRouteContextValue;
   level?: string;
   item?: DeletionDialogItem | null;
   open?: boolean;

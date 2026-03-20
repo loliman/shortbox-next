@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma/client";
 
 export async function getPublisherScreenData(input: { us: boolean; publisher: string }) {
@@ -106,7 +107,7 @@ export async function getSeriesScreenData(input: {
   }
 }
 
-const previewIssueInclude = {
+const previewIssueInclude = Prisma.validator<Prisma.IssueInclude>()({
   series: {
     include: {
       publisher: true,
@@ -150,7 +151,7 @@ const previewIssueInclude = {
     orderBy: [{ number: "asc" }, { id: "asc" }],
     take: 1,
   },
-} as const;
+});
 
 function toPreviewIssue(issue: any) {
   return {

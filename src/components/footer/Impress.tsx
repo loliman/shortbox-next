@@ -7,7 +7,7 @@ import Stack from "@mui/material/Stack";
 import Link from "@mui/material/Link";
 import type { AppRouteContextValue } from "../../app/routeContext";
 
-function Impress(props: Readonly<{ routeContext?: AppRouteContextValue }>) {
+function Impress(props: Readonly<{ routeContext: AppRouteContextValue }>) {
   return (
     <Layout routeContext={props.routeContext}>
       <CardHeader title="Impressum" />

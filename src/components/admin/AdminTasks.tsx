@@ -31,7 +31,7 @@ import type { AppRouteContextValue } from "../../app/routeContext";
 type SnackbarVariant = "success" | "error" | "warning" | "info";
 
 type AdminTasksProps = {
-  routeContext?: AppRouteContextValue;
+  routeContext: AppRouteContextValue;
   enqueueSnackbar?: (message: string, options?: { variant?: SnackbarVariant }) => void;
 };
 
