@@ -144,36 +144,8 @@ async function getGenreItems(
   offset: number,
   limit: number
 ) {
-  const pattern = normalizePattern(variables?.pattern);
-
-  try {
-    const rows = await prisma.series.findMany({
-      where: {
-        genre: {
-          not: null,
-          ...(pattern
-            ? {
-                contains: pattern,
-                mode: "insensitive",
-              }
-            : {}),
-        },
-      },
-      select: {
-        genre: true,
-      },
-      orderBy: [{ genre: "asc" }, { id: "asc" }],
-      take: 500,
-    });
-
-    const genres = dedupeStrings(
-      rows.flatMap((row) => String(row.genre || "").split(",")).map((entry) => entry.trim())
-    );
-
-    return sliceItems(genres, offset, limit);
-  } catch {
-    return { items: [], hasMore: false };
-  }
+  void variables;
+  return sliceItems([], offset, limit);
 }
 
 async function getArcItems(

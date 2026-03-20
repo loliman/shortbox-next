@@ -130,7 +130,6 @@ function serializeSeries(row: {
   volume: bigint;
   startYear: bigint;
   endYear: bigint | null;
-  genre: string | null;
   addInfo: string;
   publisher: {
     id: bigint;
@@ -144,7 +143,7 @@ function serializeSeries(row: {
     volume: Number(row.volume),
     startyear: Number(row.startYear),
     endyear: row.endYear === null ? null : Number(row.endYear),
-    genre: row.genre || "",
+    genre: "",
     addinfo: row.addInfo,
     publisher: serializePublisher(row.publisher) || { name: "", us: false },
   };
@@ -488,7 +487,7 @@ export class SeriesService {
         startyear: Number(series.startYear),
         endyear: series.endYear === null ? null : Number(series.endYear),
         volume: Number(series.volume),
-        genre: series.genre || null,
+        genre: null,
         addinfo: series.addInfo || null,
         issueCount,
         active: series.endYear === null || Number(series.endYear) === 0,

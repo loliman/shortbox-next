@@ -90,7 +90,6 @@ model Series {
   createdAt   DateTime @map("createdat") @db.Timestamptz(6)
   updatedAt   DateTime @map("updatedat") @db.Timestamptz(6)
   fkPublisher BigInt?  @map("fk_publisher") @db.BigInt
-  genre       String?  @db.VarChar(255)
   publisher   Publisher? @relation(fields: [fkPublisher], references: [id], onDelete: NoAction, onUpdate: NoAction)
   issues      Issue[]
 

@@ -348,7 +348,7 @@ function toSeriesShape(series: any) {
     startyear: serializeNullableNumber(series.startYear),
     endyear: serializeNullableNumber(series.endYear),
     volume: serializeNullableNumber(series.volume),
-    genre: series.genre || null,
+    genre: null,
     addinfo: series.addInfo || null,
     publisher: series.publisher
       ? {

@@ -30,7 +30,6 @@ export async function createSeries(item: SeriesInput) {
       startYear: BigInt(Number(item.startyear ?? 0)),
       endYear: normalizeYear(item.endyear),
       volume: BigInt(Number(item.volume ?? 0)),
-      genre: normalizeGenre(item.genre),
       addInfo: String(item.addinfo || ""),
       fkPublisher: publisher.id,
       createdAt: now,
@@ -70,7 +69,6 @@ export async function editSeries(oldItem: SeriesInput, item: SeriesInput) {
       volume: BigInt(Number(item.volume ?? 0)),
       startYear: BigInt(Number(item.startyear ?? 0)),
       endYear: normalizeYear(item.endyear),
-      genre: normalizeGenre(item.genre),
       addInfo: String(item.addinfo || ""),
       fkPublisher: newPublisher.id,
       updatedAt: new Date(),
@@ -146,7 +144,6 @@ function toSeriesPayload(series: {
   startYear: bigint;
   endYear: bigint | null;
   volume: bigint;
-  genre: string | null;
   addInfo: string;
   publisher: { id: bigint; name: string; original: boolean } | null;
 }) {
@@ -156,7 +153,7 @@ function toSeriesPayload(series: {
     startyear: Number(series.startYear),
     endyear: series.endYear === null ? null : Number(series.endYear),
     volume: Number(series.volume),
-    genre: series.genre || "",
+    genre: "",
     addinfo: series.addInfo,
     publisher: series.publisher
       ? {
@@ -170,15 +167,6 @@ function toSeriesPayload(series: {
 
 function normalizeText(value: unknown) {
   return String(value || "").trim();
-}
-
-function normalizeGenre(value: unknown) {
-  const text = String(value || "")
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter(Boolean)
-    .join(", ");
-  return text || "";
 }
 
 function normalizeYear(value: unknown) {
