@@ -1,36 +1,130 @@
-/* eslint-disable */
-import {
-  FindOptions,
-  Includeable,
-  Op,
-  Order,
-  ProjectionAlias,
-  Sequelize,
-  WhereOptions,
-} from 'sequelize';
-import models from '../models';
-import { naturalCompare, generateLabel, asyncForEach } from '../util/util';
-import { GraphQLError } from 'graphql';
-import type { Filter } from '@loliman/shortbox-contract';
-import logger from '../util/logger';
-const dateFormat = require('dateformat');
-const alphaCompare = (a: string, b: string): number => a.localeCompare(b);
+import { Prisma } from "@prisma/client";
+import { prisma } from "../lib/prisma/client";
+import type { Filter, NumberFilter } from "../types/query-data";
+import { generateLabel } from "../util/hierarchy";
+
 const MULTI_FILTER_SEPARATOR_REGEX = /\s*\|\|\s*/g;
+const TRANSLATOR_STORY_INDIVIDUAL_TYPE = "TRANSLATOR";
 
-const dedupeTerms = (values: string[]): string[] =>
-  values
-    .map((value) => value.trim())
-    .filter((value, index, arr) => value.length > 0 && arr.indexOf(value) === index);
-
-const splitFilterTerms = (value: string | null | undefined): string[] => {
-  if (!value) return [];
-  return dedupeTerms(value.split(MULTI_FILTER_SEPARATOR_REGEX));
+type RuntimeFilter = Filter & {
+  noComicguideId?: boolean;
+  noContent?: boolean;
+  firstPrint?: boolean;
+  notFirstPrint?: boolean;
+  onlyPrint?: boolean;
+  notOnlyPrint?: boolean;
+  onlyTb?: boolean;
+  notOnlyTb?: boolean;
+  exclusive?: boolean;
+  notExclusive?: boolean;
+  reprint?: boolean;
+  notReprint?: boolean;
+  otherOnlyTb?: boolean;
+  notOtherOnlyTb?: boolean;
+  noPrint?: boolean;
+  notNoPrint?: boolean;
+  onlyOnePrint?: boolean;
+  notOnlyOnePrint?: boolean;
+  onlyCollected?: boolean;
+  onlyNotCollected?: boolean;
+  onlyNotCollectedNoOwnedVariants?: boolean;
+  individuals?: Array<{ name?: string | null; type?: Array<string | null> | string | null } | null>;
+  appearances?: Array<{ name?: string | null } | null> | string | null;
+  realities?: Array<{ name?: string | null } | null> | string | null;
+  arcs?: Array<{ title?: string | null } | null> | string | null;
+  numbers?: Array<(NumberFilter & { variant?: string | null }) | null>;
 };
 
-const escapeLikeValue = (value: string): string => value.replace(/[\\%_]/g, '\\$&');
+const filterIssueInclude = {
+  series: {
+    include: {
+      publisher: true,
+    },
+  },
+  covers: {
+    orderBy: [{ number: "asc" }, { id: "asc" }],
+    select: {
+      id: true,
+      url: true,
+      number: true,
+    },
+  },
+  arcs: {
+    include: {
+      arc: true,
+    },
+  },
+  stories: {
+    include: {
+      reprint: {
+        select: {
+          id: true,
+        },
+      },
+      reprintedBy: {
+        select: {
+          id: true,
+        },
+      },
+      appearances: {
+        include: {
+          appearance: true,
+        },
+      },
+      individuals: {
+        include: {
+          individual: true,
+        },
+      },
+      parent: {
+        include: {
+          children: {
+            select: {
+              id: true,
+            },
+          },
+          issue: {
+            include: {
+              arcs: {
+                include: {
+                  arc: true,
+                },
+              },
+            },
+          },
+          appearances: {
+            include: {
+              appearance: true,
+            },
+          },
+          individuals: {
+            include: {
+              individual: true,
+            },
+          },
+        },
+      },
+      children: {
+        include: {
+          issue: {
+            select: {
+              collected: true,
+            },
+          },
+          appearances: {
+            include: {
+              appearance: true,
+            },
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.IssueInclude;
 
-const isNumericFilterValue = (value: string): boolean => /^\d+(\.\d+)?$/.test(value.trim());
-const TRANSLATOR_STORY_INDIVIDUAL_TYPE = 'TRANSLATOR';
+type FilterIssueRecord = Prisma.IssueGetPayload<{
+  include: typeof filterIssueInclude;
+}>;
 
 type ExportPublisher = { name: string };
 type ExportSeries = {
@@ -52,828 +146,536 @@ type ExportIssueData = {
 };
 type ExportResponse = Record<string, Record<string, ExportIssueData[]>>;
 type SortedExportResponse = Array<[string, Array<[string, ExportIssueData[]]>]>;
-type ExportIssueRecord = {
-  number: string;
-  format: string;
-  variant: string;
-  pages: number;
-  releasedate: string;
-  price: number;
-  currency: string;
-  series: {
-    title: string;
-    volume: number;
-    startyear: number;
-    endyear: number;
-    publisher: {
-      name: string;
-    };
-  };
-};
 
-type RuntimeFilter = Filter & {
-  noComicguideId?: boolean;
-  onlyNotCollectedNoOwnedVariants?: boolean;
-  notFirstPrint?: boolean;
-  notOnlyPrint?: boolean;
-  notOnlyTb?: boolean;
-  notExclusive?: boolean;
-  notReprint?: boolean;
-  notOtherOnlyTb?: boolean;
-  notNoPrint?: boolean;
-  notOnlyOnePrint?: boolean;
-  genres?: Array<string | null> | null;
-  arcs?: Array<{ title?: string | null }> | string | null;
-  appearances?: Array<{ name?: string | null }> | string | null;
-  realities?: Array<{ name?: string | null }> | string | null;
-};
+function dedupeTerms(values: string[]): string[] {
+  return values
+    .map((value) => value.trim())
+    .filter((value, index, allValues) => value.length > 0 && allValues.indexOf(value) === index);
+}
 
-const buildSeriesExportLabel = async (series: ExportSeries): Promise<string> => {
-  const generated = await generateLabel(series);
-  if (generated.trim().length > 0) return generated;
+function splitFilterTerms(value: string | null | undefined): string[] {
+  if (!value) return [];
+  return dedupeTerms(value.split(MULTI_FILTER_SEPARATOR_REGEX));
+}
 
-  const title = (series.title || '').trim();
-  if (title.length === 0) return 'Unbekannte Serie';
+function containsInsensitive(haystack: string | null | undefined, needle: string): boolean {
+  return String(haystack || "").toLocaleLowerCase("de-DE").includes(needle.toLocaleLowerCase("de-DE"));
+}
 
-  let label = title;
-  if (series.volume && series.volume > 0) {
-    label += ` (Vol. ${series.volume})`;
+function alphaCompare(a: string, b: string): number {
+  return a.localeCompare(b, "de-DE", { sensitivity: "base" });
+}
+
+function naturalCompare(a: string, b: string): number {
+  return a.localeCompare(b, "de-DE", { numeric: true, sensitivity: "base" });
+}
+
+function isNumericFilterValue(value: string): boolean {
+  return /^\d+(\.\d+)?$/.test(value.trim());
+}
+
+function parseFilterDate(raw: string | null | undefined): Date | null {
+  const value = String(raw || "").trim();
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function toDayKey(date: Date | null | undefined): string | null {
+  if (!date) return null;
+  return date.toISOString().slice(0, 10);
+}
+
+function compareValues(left: string, right: string, compare: string): boolean {
+  switch (compare) {
+    case ">":
+      return left > right;
+    case ">=":
+      return left >= right;
+    case "<":
+      return left < right;
+    case "<=":
+      return left <= right;
+    default:
+      return left === right;
   }
-  if (series.startyear && series.startyear > 0) {
-    const endyear =
-      !series.endyear || series.endyear <= 0 || series.endyear === series.startyear
-        ? `${series.startyear}`
-        : `${series.startyear} - ${series.endyear}`;
-    label += ` (${endyear})`;
+}
+
+function compareNumericValues(left: number, right: number, compare: string): boolean {
+  switch (compare) {
+    case ">":
+      return left > right;
+    case ">=":
+      return left >= right;
+    case "<":
+      return left < right;
+    case "<=":
+      return left <= right;
+    default:
+      return left === right;
+  }
+}
+
+function formatRank(format: string | null | undefined): number {
+  switch (String(format || "").trim().toLocaleLowerCase("de-DE")) {
+    case "heft":
+      return 1;
+    case "softcover":
+      return 2;
+    case "taschenbuch":
+      return 3;
+    case "hardcover":
+      return 4;
+    default:
+      return 5;
+  }
+}
+
+function getStoryAppearanceNames(issue: FilterIssueRecord, us: boolean): string[] {
+  const values = new Set<string>();
+  for (const story of issue.stories) {
+    for (const link of story.appearances) values.add(link.appearance.name);
+    for (const child of story.children) {
+      for (const link of child.appearances) values.add(link.appearance.name);
+    }
+    if (!us && story.parent) {
+      for (const link of story.parent.appearances) values.add(link.appearance.name);
+    }
+  }
+  return [...values];
+}
+
+function getArcTitles(issue: FilterIssueRecord, us: boolean): string[] {
+  const values = new Set<string>();
+  if (us) {
+    for (const link of issue.arcs) values.add(link.arc.title);
+    return [...values];
   }
 
-  return label;
-};
+  for (const story of issue.stories) {
+    if (!story.parent?.issue) continue;
+    for (const link of story.parent.issue.arcs) values.add(link.arc.title);
+  }
+  return [...values];
+}
+
+function matchesReleasedates(issue: FilterIssueRecord, releasedates: RuntimeFilter["releasedates"]): boolean {
+  if (!releasedates || releasedates.length === 0) return true;
+  const issueDay = toDayKey(issue.releaseDate);
+  if (!issueDay) return false;
+
+  return releasedates.every((entry) => {
+    const filterDate = parseFilterDate(entry?.date);
+    const filterDay = toDayKey(filterDate);
+    if (!filterDay) return true;
+    return compareValues(issueDay, filterDay, String(entry?.compare || "="));
+  });
+}
+
+function matchesNumbers(issue: FilterIssueRecord, numbers: RuntimeFilter["numbers"]): boolean {
+  if (!numbers || numbers.length === 0) return true;
+
+  return numbers.every((entry) => {
+    const rawNumber = String(entry?.number || "").trim();
+    if (!rawNumber) return true;
+
+    const compare = String(entry?.compare || "=");
+    const variant =
+      entry && typeof entry === "object" && "variant" in entry
+        ? String(entry.variant || "").trim()
+        : "";
+    const hasVariant = variant.length > 0;
+
+    const candidates = [issue.number, issue.legacyNumber || ""].filter((value) => value.trim().length > 0);
+    const numeric = isNumericFilterValue(rawNumber);
+    const matched = candidates.some((candidate) => {
+      if (numeric && isNumericFilterValue(candidate)) {
+        return compareNumericValues(Number(candidate), Number(rawNumber), compare);
+      }
+      return compareValues(candidate, rawNumber, compare);
+    });
+
+    if (!matched) return false;
+    if (hasVariant && String(issue.variant || "") !== variant) return false;
+    return true;
+  });
+}
+
+function matchesIndividuals(issue: FilterIssueRecord, individuals: RuntimeFilter["individuals"]): boolean {
+  if (!individuals || individuals.length === 0) return true;
+
+  return individuals.every((entry) => {
+    const name = String(entry?.name || "").trim();
+    if (!name) return true;
+
+    const rawTypes = Array.isArray(entry?.type) ? entry.type : entry?.type ? [entry.type] : [];
+    const normalizedTypes = dedupeTerms(
+      rawTypes
+        .filter((type): type is string => typeof type === "string")
+        .map((type) => type.trim().toUpperCase())
+        .filter((type) => type.length > 0)
+    );
+    const nonTranslatorTypes = normalizedTypes.filter((type) => type !== TRANSLATOR_STORY_INDIVIDUAL_TYPE);
+    const includesTranslator = normalizedTypes.includes(TRANSLATOR_STORY_INDIVIDUAL_TYPE);
+
+    return issue.stories.some((story) => {
+      const storyIndividuals = story.individuals;
+      const parentIndividuals = story.parent?.individuals || [];
+
+      const matchesStory = (types: string[]) =>
+        storyIndividuals.some(
+          (link) =>
+            link.individual.name === name &&
+            (types.length === 0 || types.includes(String(link.type || "").toUpperCase()))
+        );
+
+      const matchesParent = (types: string[]) =>
+        parentIndividuals.some(
+          (link) =>
+            link.individual.name === name &&
+            (types.length === 0 || types.includes(String(link.type || "").toUpperCase()))
+        );
+
+      if (normalizedTypes.length === 0) return matchesStory([]) || matchesParent([]);
+      if (includesTranslator && matchesStory([TRANSLATOR_STORY_INDIVIDUAL_TYPE])) return true;
+
+      if (nonTranslatorTypes.length === 0) return false;
+      if (matchesParent(nonTranslatorTypes)) return true;
+      if (!story.parent && matchesStory(nonTranslatorTypes)) return true;
+      return false;
+    });
+  });
+}
+
+function matchesStorySwitches(issue: FilterIssueRecord, filter: RuntimeFilter): boolean {
+  if (!issue.stories.length) {
+    if (filter.reprint) return false;
+    if (filter.notReprint) return true;
+    if (filter.noPrint) return true;
+    if (filter.notNoPrint) return false;
+  }
+
+  const storyConditions: boolean[] = [];
+  if (filter.firstPrint) storyConditions.push(issue.stories.some((story) => story.firstApp));
+  if (filter.notFirstPrint) storyConditions.push(issue.stories.some((story) => !story.firstApp));
+  if (filter.onlyPrint) storyConditions.push(issue.stories.some((story) => story.onlyApp));
+  if (filter.notOnlyPrint) storyConditions.push(issue.stories.some((story) => !story.onlyApp));
+  if (filter.onlyTb) storyConditions.push(issue.stories.some((story) => story.onlyTb));
+  if (filter.notOnlyTb) storyConditions.push(issue.stories.some((story) => !story.onlyTb));
+  if (filter.exclusive) storyConditions.push(issue.stories.some((story) => !story.parent));
+  if (filter.notExclusive) storyConditions.push(issue.stories.some((story) => Boolean(story.parent)));
+  if (filter.reprint) storyConditions.push(issue.stories.length > 0 && issue.stories.every((story) => !story.firstApp));
+  if (filter.notReprint)
+    storyConditions.push(issue.stories.length === 0 || issue.stories.some((story) => story.firstApp));
+  if (filter.otherOnlyTb) storyConditions.push(issue.stories.some((story) => story.otherOnlyTb));
+  if (filter.notOtherOnlyTb) storyConditions.push(issue.stories.some((story) => !story.otherOnlyTb));
+  if (filter.noPrint)
+    storyConditions.push(issue.stories.length === 0 || issue.stories.some((story) => !story.firstApp && !story.onlyApp));
+  if (filter.notNoPrint)
+    storyConditions.push(issue.stories.some((story) => story.firstApp || story.onlyApp));
+  if (filter.onlyOnePrint) storyConditions.push(issue.stories.some((story) => story.onlyOnePrint));
+  if (filter.notOnlyOnePrint) storyConditions.push(issue.stories.some((story) => !story.onlyOnePrint));
+
+  return storyConditions.every(Boolean);
+}
+
+function reduceOwnedVariantGroups(issues: FilterIssueRecord[]): FilterIssueRecord[] {
+  const groups = new Map<string, FilterIssueRecord[]>();
+  for (const issue of issues) {
+    const key = `${issue.fkSeries ?? "x"}::${issue.number}`;
+    const bucket = groups.get(key);
+    if (bucket) bucket.push(issue);
+    else groups.set(key, [issue]);
+  }
+
+  const reduced: FilterIssueRecord[] = [];
+  for (const group of groups.values()) {
+    if (group.some((issue) => issue.collected === true)) continue;
+    const preferred = [...group].sort((left, right) => {
+      const formatCompare = formatRank(left.format) - formatRank(right.format);
+      if (formatCompare !== 0) return formatCompare;
+      return Number(left.id) - Number(right.id);
+    })[0];
+    if (preferred) reduced.push(preferred);
+  }
+  return reduced;
+}
 
 export class FilterService {
-  constructor(
-    private models: typeof import('../models').default,
-    private requestId?: string,
-  ) {}
+  private requestId?: string;
 
-  private log(message: string, level: 'info' | 'warn' | 'error' = 'info') {
-    if (level === 'error') {
-      logger.error(message, { requestId: this.requestId });
-      return;
-    }
-    if (level === 'warn') {
-      logger.warn(message, { requestId: this.requestId });
-      return;
-    }
-    logger.info(message, { requestId: this.requestId });
+  constructor(requestId?: string) {
+    this.requestId = requestId;
+    void this.requestId;
   }
 
   public async export(filter: Filter, type: string, loggedIn: boolean) {
-    if (type !== 'txt' && type !== 'csv') {
-      throw new GraphQLError('Gültige Export Typen: txt, csv', {
-        extensions: { code: 'BAD_USER_INPUT' },
-      });
+    if (type !== "txt" && type !== "csv") {
+      throw new Error("Gültige Export Typen: txt, csv");
     }
 
-    const options = this.getFilterOptions(loggedIn, filter, true);
-    const issues = await this.models.Issue.findAll(options);
-
+    const issues = await this.getFilteredIssues(filter, loggedIn);
     const response: ExportResponse = {};
-    await asyncForEach(issues, async (issue) => {
-      const issueRecord = issue as unknown as ExportIssueRecord;
-      const p = issueRecord.series.publisher;
-      const s = issueRecord.series;
 
-      const publisher: ExportPublisher = { name: p.name };
+    for (const issue of issues) {
+      const publisherName = issue.series?.publisher?.name || "Unbekannter Verlag";
+      const publisher: ExportPublisher = { name: publisherName };
       const series: ExportSeries = {
-        title: s.title,
-        volume: s.volume,
-        startyear: s.startyear,
-        endyear: s.endyear,
+        title: issue.series?.title || "",
+        volume: Number(issue.series?.volume || 0),
+        startyear: Number(issue.series?.startYear || 0),
+        endyear: Number(issue.series?.endYear || 0),
         publisher,
       };
       const issueData: ExportIssueData = {
-        number: issueRecord.number,
-        format: issueRecord.format,
-        variant: issueRecord.variant,
-        pages: issueRecord.pages,
-        releasedate: issueRecord.releasedate,
-        price: issueRecord.price,
-        currency: issueRecord.currency,
-        series: series,
+        number: issue.number,
+        format: issue.format || "",
+        variant: issue.variant || "",
+        pages: Number(issue.pages || 0),
+        releasedate: toDayKey(issue.releaseDate) || "",
+        price: Number(issue.price || 0),
+        currency: issue.currency || "",
+        series,
       };
 
-      const publisherLabel = await generateLabel(publisher);
-      const seriesLabel = await buildSeriesExportLabel(series);
+      const publisherLabel = publisher.name;
+      const seriesLabel = generateLabel({
+        series: {
+          title: series.title,
+          volume: series.volume,
+          startyear: series.startyear,
+          endyear: series.endyear,
+          publisher: {
+            name: publisher.name,
+            us: null,
+          },
+        },
+      } as never);
 
-      if (publisherLabel in response) {
-        if (seriesLabel in response[publisherLabel])
-          response[publisherLabel][seriesLabel].push(issueData);
-        else {
-          response[publisherLabel][seriesLabel] = [issueData];
-        }
-      } else {
-        response[publisherLabel] = { [seriesLabel]: [issueData] };
-      }
-    });
+      if (!response[publisherLabel]) response[publisherLabel] = {};
+      if (!response[publisherLabel][seriesLabel]) response[publisherLabel][seriesLabel] = [];
+      response[publisherLabel][seriesLabel].push(issueData);
+    }
 
     const sortedResponse: SortedExportResponse = Object.keys(response)
-      .map((key) => {
-        const publisherGroups = response[key];
-        return [
-          key,
-          Object.keys(publisherGroups)
-            .map((key) => {
-              const issuesForSeries = publisherGroups[key];
-              return [key, issuesForSeries.sort((a, b) => naturalCompare(a.number, b.number))] as [
-                string,
-                ExportIssueData[],
-              ];
-            })
-            .sort((left, right) => alphaCompare(left[0], right[0])),
-        ] as [string, Array<[string, ExportIssueData[]]>];
-      })
+      .map((publisherLabel) => [
+        publisherLabel,
+        Object.keys(response[publisherLabel] || {})
+          .map((seriesLabel) => [
+            seriesLabel,
+            [...(response[publisherLabel]?.[seriesLabel] || [])].sort((left, right) =>
+              naturalCompare(left.number, right.number)
+            ),
+          ] as [string, ExportIssueData[]])
+          .sort((left, right) => alphaCompare(left[0], right[0])),
+      ] as [string, Array<[string, ExportIssueData[]]>])
       .sort((left, right) => alphaCompare(left[0], right[0]));
 
-    if (type === 'txt') {
+    if (type === "txt") {
       return (
-        'Anzahl Ergebnisse: ' +
+        "Anzahl Ergebnisse: " +
         issues.length +
-        '\n\n' +
+        "\n\n" +
         (await this.convertFilterToTxt(filter, loggedIn)) +
         (await this.resultsToTxt(sortedResponse))
       );
-    } else if (type === 'csv') {
-      return await this.resultsToCsv(sortedResponse, loggedIn);
     }
+
+    return this.resultsToCsv(sortedResponse);
   }
 
   public async count(filter: Filter, loggedIn: boolean): Promise<number> {
-    const options = this.getFilterOptions(loggedIn, filter);
-    const count = await this.models.Issue.count({
-      where: options.where,
-      include: options.include,
-      distinct: true,
-      col: 'id',
-    });
-    return typeof count === 'number' ? count : 0;
+    const issues = await this.getFilteredIssues(filter, loggedIn);
+    return issues.length;
   }
 
-  public getFilterOptions(
-    loggedIn: boolean,
-    filter: Filter,
-    isExport = false,
-    orderField: string | boolean = false,
-    sortDirection: string | boolean = false,
-  ): FindOptions {
-    type IncludeMap = {
-      as?: string;
-      include?: Includeable[];
-      required?: boolean;
-      where?: Record<string | symbol, unknown>;
-    };
-
+  private async getFilteredIssues(filter: Filter, loggedIn: boolean): Promise<FilterIssueRecord[]> {
+    void loggedIn;
     const runtimeFilter = filter as RuntimeFilter;
-    const us = Boolean(runtimeFilter.us);
+    const where = this.buildBaseWhere(runtimeFilter);
 
-    const where: WhereOptions = {};
-    const andConditions: unknown[] = [];
-    const appendAndCondition = (condition: unknown) => {
-      andConditions.push(condition);
-    };
+    const issues = await prisma.issue.findMany({
+      where,
+      include: filterIssueInclude,
+    });
 
-    const include: Includeable[] = [
+    const filtered = issues.filter((issue) => this.matchesIssue(issue, runtimeFilter));
+    if (runtimeFilter.onlyNotCollectedNoOwnedVariants) {
+      return reduceOwnedVariantGroups(filtered);
+    }
+    return filtered;
+  }
+
+  private buildBaseWhere(filter: RuntimeFilter): Prisma.IssueWhereInput {
+    const and: Prisma.IssueWhereInput[] = [
       {
-        model: this.models.Series,
-        as: 'series',
-        required: true,
-        include: [
-          {
-            model: this.models.Publisher,
-            as: 'publisher',
-            required: true,
-            where: { original: us },
+        series: {
+          publisher: {
+            original: Boolean(filter.us),
           },
-        ],
+        },
       },
     ];
 
-    const ensureInclude = (
-      list: Includeable[],
-      as: string,
-      factory: () => Includeable,
-    ): IncludeMap => {
-      const existing = list.find((entry) => (entry as IncludeMap).as === as) as
-        | IncludeMap
-        | undefined;
-      if (existing) {
-        if (!Array.isArray(existing.include)) existing.include = [];
-        return existing;
-      }
-      const created = factory() as IncludeMap;
-      if (!Array.isArray(created.include)) created.include = [];
-      list.push(created as Includeable);
-      return created;
-    };
+    const formats = (filter.formats || [])
+      .map((format) => String(format || "").trim())
+      .filter((format) => format.length > 0);
+    if (formats.length > 0) and.push({ format: { in: formats } });
 
-    const ensureStoriesInclude = () =>
-      ensureInclude(include, 'stories', () => ({
-        model: this.models.Story,
-        as: 'stories',
-        required: true,
-        include: [],
-      }));
-
-    if (runtimeFilter.formats && runtimeFilter.formats.length > 0) {
-      appendAndCondition({ format: { [Op.in]: runtimeFilter.formats } });
-    }
-
-    if (runtimeFilter.releasedates && runtimeFilter.releasedates.length > 0) {
-      runtimeFilter.releasedates.forEach((rd) => {
-        if (!rd || !rd.date) return;
-        const dateStr = dateFormat(new Date(rd.date), 'yyyy-mm-dd');
-        const op =
-          rd.compare === '>='
-            ? Op.gte
-            : rd.compare === '<='
-              ? Op.lte
-              : rd.compare === '>'
-                ? Op.gt
-                : rd.compare === '<'
-                  ? Op.lt
-                  : Op.eq;
-        appendAndCondition({ releasedate: { [op]: dateStr } });
+    if (filter.withVariants && !filter.onlyCollected) {
+      and.push({
+        NOT: {
+          OR: [{ variant: null }, { variant: "" }],
+        },
       });
     }
 
-    if (!runtimeFilter.onlyCollected && runtimeFilter.withVariants) {
-      appendAndCondition({ variant: { [Op.ne]: '' } });
-    }
+    if (filter.onlyCollected) and.push({ collected: true });
+    if (filter.onlyNotCollected || filter.onlyNotCollectedNoOwnedVariants) and.push({ collected: false });
 
-    if (runtimeFilter.onlyCollected) {
-      appendAndCondition({ collected: true });
-    }
-
-    if (runtimeFilter.onlyNotCollected) {
-      appendAndCondition({ collected: false });
-    }
-
-    if (runtimeFilter.onlyNotCollectedNoOwnedVariants) {
-      const hasNoCollectedSiblingVariants = Sequelize.literal(
-        'NOT EXISTS (SELECT 1 FROM "issue" AS i2 WHERE i2."fk_series" = "issue"."fk_series" AND i2."number" = "issue"."number" AND i2."collected" = TRUE)',
-      );
-      const formatRankSql = (tableAlias: string) =>
-        `CASE LOWER(COALESCE(${tableAlias}."format", ''))
-          WHEN 'heft' THEN 1
-          WHEN 'softcover' THEN 2
-          WHEN 'taschenbuch' THEN 3
-          WHEN 'hardcover' THEN 4
-          ELSE 5
-        END`;
-      const currentFormatRank = formatRankSql('"issue"');
-      const siblingFormatRank = formatRankSql('i2');
-
-      const isPreferredRepresentativeForUnownedGroup = Sequelize.literal(
-        `NOT EXISTS (
-          SELECT 1
-          FROM "issue" AS i2
-          WHERE i2."fk_series" = "issue"."fk_series"
-            AND i2."number" = "issue"."number"
-            AND i2."collected" = FALSE
-            AND (
-              (${siblingFormatRank}) < (${currentFormatRank})
-              OR ((${siblingFormatRank}) = (${currentFormatRank}) AND i2."id" < "issue"."id")
-            )
-        )`,
-      );
-
-      appendAndCondition({
-        [Op.and]: [
-          { collected: false },
-          hasNoCollectedSiblingVariants,
-          isPreferredRepresentativeForUnownedGroup,
-        ],
+    const publisherNames = (filter.publishers || [])
+      .map((publisher) => String(publisher?.name || "").trim())
+      .filter((name) => name.length > 0);
+    if (publisherNames.length > 0) {
+      and.push({
+        series: {
+          publisher: {
+            name: {
+              in: publisherNames,
+            },
+          },
+        },
       });
     }
 
-    // Story-based filters
-    const storySwitchOrConditions: Array<Record<string, unknown>> = [];
-
-    const appearanceTerms = Array.isArray(runtimeFilter.appearances)
-      ? dedupeTerms(
-          runtimeFilter.appearances
-            .map((entry) => String(entry?.name || '').trim())
-            .filter((entry) => entry.length > 0),
-        )
-      : splitFilterTerms(runtimeFilter.appearances as string | null | undefined);
-    const realityTerms = Array.isArray(runtimeFilter.realities)
-      ? dedupeTerms(
-          runtimeFilter.realities
-            .map((entry) => String(entry?.name || '').trim())
-            .filter((entry) => entry.length > 0),
-        )
-      : splitFilterTerms(runtimeFilter.realities as string | null | undefined);
-    let needsStoryIndividualJoin = false;
-    let needsParentIndividualJoin = false;
-
-    if (appearanceTerms.length > 0) {
-      appendAndCondition({
-        [Op.or]: appearanceTerms.flatMap((term) => {
-          const conditions: Array<Record<string, unknown>> = [
-            { '$stories.appearances.name$': { [Op.iLike]: `%${term}%` } },
-            { '$stories.children.appearances.name$': { [Op.iLike]: `%${term}%` } },
-          ];
-          if (!us) {
-            conditions.push({ '$stories.parent.appearances.name$': { [Op.iLike]: `%${term}%` } });
-          }
-          return conditions;
-        }),
+    const seriesConditions = (filter.series || [])
+      .map((series) => {
+        const title = String(series?.title || "").trim();
+        const volume = typeof series?.volume === "number" ? series.volume : null;
+        if (!title || volume === null) return null;
+        return {
+          title,
+          volume: BigInt(volume),
+        };
+      })
+      .filter((entry): entry is { title: string; volume: bigint } => Boolean(entry));
+    if (seriesConditions.length > 0) {
+      and.push({
+        OR: seriesConditions.map((series) => ({
+          series: {
+            title: series.title,
+            volume: series.volume,
+          },
+        })),
       });
     }
 
-    if (realityTerms.length > 0) {
-      appendAndCondition({
-        [Op.or]: realityTerms.flatMap((term) => {
-          const realityMarker = `(${term})`;
-          const conditions: Array<Record<string, unknown>> = [
-            { '$stories.appearances.name$': { [Op.iLike]: `%${realityMarker}%` } },
-            { '$stories.children.appearances.name$': { [Op.iLike]: `%${realityMarker}%` } },
-          ];
-          if (!us) {
-            conditions.push({
-              '$stories.parent.appearances.name$': { [Op.iLike]: `%${realityMarker}%` },
-            });
-          }
-          return conditions;
-        }),
+    if (filter.noComicguideId) {
+      and.push({
+        OR: [{ comicGuideId: null }, { comicGuideId: BigInt(0) }],
       });
     }
 
-    if (runtimeFilter.individuals && runtimeFilter.individuals.length > 0) {
-      const individualConditions = runtimeFilter.individuals
-        .flatMap((ind) => {
-          const name = typeof ind?.name === 'string' ? ind.name.trim() : '';
-          if (!name) return [];
-
-          const rawTypes = Array.isArray(ind?.type) ? ind.type : [];
-          const normalizedTypes = dedupeTerms(
-            rawTypes
-              .filter((type): type is string => typeof type === 'string' && !!type)
-              .map((type) => type.trim().toUpperCase()),
-          );
-          const nonTranslatorTypes = normalizedTypes.filter(
-            (type) => type !== TRANSLATOR_STORY_INDIVIDUAL_TYPE,
-          );
-          const includesTranslatorType = normalizedTypes.includes(TRANSLATOR_STORY_INDIVIDUAL_TYPE);
-
-          const buildStoryIndividualCondition = (types: string[]): Record<string, unknown> => {
-            const condition: Record<string, unknown> = {
-              '$stories.individuals.name$': name,
-            };
-            if (types.length > 0) {
-              condition['$stories.individuals.story_individual.type$'] = { [Op.in]: types };
-            }
-            needsStoryIndividualJoin = true;
-            return condition;
-          };
-
-          const buildParentStoryIndividualCondition = (types: string[]): Record<string, unknown> => {
-            const condition: Record<string, unknown> = {
-              '$stories.parent.individuals.name$': name,
-            };
-            if (types.length > 0) {
-              condition['$stories.parent.individuals.story_individual.type$'] = { [Op.in]: types };
-            }
-            needsParentIndividualJoin = true;
-            return condition;
-          };
-
-          const conditions: Array<Record<string, unknown>> = [];
-          if (normalizedTypes.length === 0) {
-            conditions.push(buildParentStoryIndividualCondition([]));
-            conditions.push({
-              [Op.and]: [{ '$stories.parent.id$': null }, buildStoryIndividualCondition([])],
-            });
-            return conditions;
-          }
-
-          if (nonTranslatorTypes.length > 0) {
-            conditions.push(buildParentStoryIndividualCondition(nonTranslatorTypes));
-            conditions.push({
-              [Op.and]: [
-                { '$stories.parent.id$': null },
-                buildStoryIndividualCondition(nonTranslatorTypes),
-              ],
-            });
-          }
-
-          if (includesTranslatorType) {
-            conditions.push(buildStoryIndividualCondition([TRANSLATOR_STORY_INDIVIDUAL_TYPE]));
-          }
-
-          return conditions;
-        });
-
-      if (individualConditions.length > 0) appendAndCondition({ [Op.or]: individualConditions });
-    }
-
-    if (runtimeFilter.firstPrint) storySwitchOrConditions.push({ '$stories.firstapp$': true });
-    if (runtimeFilter.notFirstPrint) storySwitchOrConditions.push({ '$stories.firstapp$': false });
-    if (runtimeFilter.exclusive) {
-      if (us) {
-        storySwitchOrConditions.push({ '$stories.exclusive$': true });
-      } else {
-        storySwitchOrConditions.push({ '$stories.parent.id$': null });
-      }
-    }
-    if (runtimeFilter.notExclusive) {
-      if (us) {
-        storySwitchOrConditions.push({ '$stories.exclusive$': false });
-      } else {
-        storySwitchOrConditions.push({ '$stories.parent.id$': { [Op.ne]: null } });
-      }
-    }
-    if (runtimeFilter.onlyPrint) storySwitchOrConditions.push({ '$stories.onlyapp$': true });
-    if (runtimeFilter.notOnlyPrint) storySwitchOrConditions.push({ '$stories.onlyapp$': false });
-    if (runtimeFilter.onlyTb) storySwitchOrConditions.push({ '$stories.onlytb$': true });
-    if (runtimeFilter.notOnlyTb) storySwitchOrConditions.push({ '$stories.onlytb$': false });
-    if (runtimeFilter.reprint) {
-      const hasAnyStory = Sequelize.literal(
-        'EXISTS (SELECT 1 FROM "story" AS s WHERE s."fk_issue" = "issue"."id")',
-      );
-      const hasNoFirstPrintStory = Sequelize.literal(
-        'NOT EXISTS (SELECT 1 FROM "story" AS s WHERE s."fk_issue" = "issue"."id" AND s."firstapp" = TRUE)',
-      );
-      storySwitchOrConditions.push({ [Op.and]: [hasAnyStory, hasNoFirstPrintStory] });
-    }
-    if (runtimeFilter.notReprint) {
-      const hasNoStories = Sequelize.literal(
-        'NOT EXISTS (SELECT 1 FROM "story" AS s WHERE s."fk_issue" = "issue"."id")',
-      );
-      const hasAnyFirstPrintStory = Sequelize.literal(
-        'EXISTS (SELECT 1 FROM "story" AS s WHERE s."fk_issue" = "issue"."id" AND s."firstapp" = TRUE)',
-      );
-      storySwitchOrConditions.push({ [Op.or]: [hasNoStories, hasAnyFirstPrintStory] });
-    }
-    if (runtimeFilter.otherOnlyTb) storySwitchOrConditions.push({ '$stories.otheronlytb$': true });
-    if (runtimeFilter.notOtherOnlyTb)
-      storySwitchOrConditions.push({ '$stories.otheronlytb$': false });
-    if (runtimeFilter.noPrint)
-      storySwitchOrConditions.push({ '$stories.firstapp$': false, '$stories.onlyapp$': false });
-    if (runtimeFilter.notNoPrint)
-      storySwitchOrConditions.push({
-        [Op.or]: [{ '$stories.firstapp$': true }, { '$stories.onlyapp$': true }],
-      });
-    if (runtimeFilter.onlyOnePrint)
-      storySwitchOrConditions.push({ '$stories.onlyoneprint$': true });
-    if (runtimeFilter.notOnlyOnePrint)
-      storySwitchOrConditions.push({ '$stories.onlyoneprint$': false });
-
-    const needsStorySwitches = storySwitchOrConditions.length > 0;
-    const needsAppearanceJoin = appearanceTerms.length > 0 || realityTerms.length > 0;
-    const needsIndividualJoin = needsStoryIndividualJoin || needsParentIndividualJoin;
-    const needsParentJoinForExclusive = Boolean(
-      (runtimeFilter.exclusive || runtimeFilter.notExclusive) && !us,
-    );
-
-    if (
-      needsStorySwitches ||
-      needsAppearanceJoin ||
-      needsIndividualJoin ||
-      needsParentJoinForExclusive
-    ) {
-      const storyInclude = ensureStoriesInclude();
-      storyInclude.required = true;
-
-      if (needsAppearanceJoin) {
-        ensureInclude(storyInclude.include || [], 'appearances', () => ({
-          model: this.models.Appearance,
-          as: 'appearances',
-          required: false,
-        }));
-
-        if (!us) {
-          const parentInclude = ensureInclude(storyInclude.include || [], 'parent', () => ({
-            model: this.models.Story,
-            as: 'parent',
-            required: false,
-            include: [],
-          }));
-          const parentNested = parentInclude.include || [];
-          ensureInclude(parentNested, 'appearances', () => ({
-            model: this.models.Appearance,
-            as: 'appearances',
-            required: false,
-          }));
-        }
-      }
-
-      if (needsStoryIndividualJoin) {
-        ensureInclude(storyInclude.include || [], 'individuals', () => ({
-          model: this.models.Individual,
-          as: 'individuals',
-          required: false,
-        }));
-      }
-
-      if (needsParentIndividualJoin) {
-        const parentInclude = ensureInclude(storyInclude.include || [], 'parent', () => ({
-          model: this.models.Story,
-          as: 'parent',
-          required: false,
-          include: [],
-        }));
-        const parentNested = parentInclude.include || [];
-        ensureInclude(parentNested, 'individuals', () => ({
-          model: this.models.Individual,
-          as: 'individuals',
-          required: false,
-        }));
-      }
-
-      if (needsParentJoinForExclusive) {
-        const parentInclude = ensureInclude(storyInclude.include || [], 'parent', () => ({
-          model: this.models.Story,
-          as: 'parent',
-          required: false,
-          include: [],
-        }));
-        parentInclude.required = false;
-      }
-
-      if (needsAppearanceJoin) {
-        const childrenInclude = ensureInclude(storyInclude.include || [], 'children', () => ({
-          model: this.models.Story,
-          as: 'children',
-          required: false,
-          include: [],
-        }));
-        childrenInclude.required = false;
-        const childInclude = childrenInclude.include || [];
-        ensureInclude(childInclude, 'appearances', () => ({
-          model: this.models.Appearance,
-          as: 'appearances',
-          required: false,
-        }));
-      }
-
-      if (needsStorySwitches) appendAndCondition({ [Op.or]: storySwitchOrConditions });
-    }
-
-    const arcTerms = Array.isArray(runtimeFilter.arcs)
-      ? dedupeTerms(
-          runtimeFilter.arcs
-            .map((entry) => String(entry?.title || '').trim())
-            .filter((entry) => entry.length > 0),
-        )
-      : splitFilterTerms(runtimeFilter.arcs as string | null | undefined);
-
-    if (arcTerms.length > 0) {
-      const arcWhere =
-        arcTerms.length === 1
-          ? { title: { [Op.iLike]: `%${arcTerms[0]}%` } }
-          : {
-              [Op.or]: arcTerms.map((term) => ({
-                title: { [Op.iLike]: `%${term}%` },
-              })),
-            };
-
-      if (us) {
-        const arcsInclude = ensureInclude(include, 'arcs', () => ({
-          model: this.models.Arc,
-          as: 'arcs',
-          required: true,
-          where: arcWhere,
-          include: [],
-        }));
-        arcsInclude.required = true;
-        arcsInclude.where = arcWhere;
-      } else {
-        const storiesInclude = ensureStoriesInclude();
-        storiesInclude.required = true;
-        const parentInclude = ensureInclude(storiesInclude.include || [], 'parent', () => ({
-          model: this.models.Story,
-          as: 'parent',
-          required: true,
-          include: [],
-        }));
-        parentInclude.required = true;
-
-        const parentIssueInclude = ensureInclude(parentInclude.include || [], 'issue', () => ({
-          model: this.models.Issue,
-          as: 'issue',
-          required: true,
-          include: [],
-        }));
-        parentIssueInclude.required = true;
-
-        const parentArcsInclude = ensureInclude(parentIssueInclude.include || [], 'arcs', () => ({
-          model: this.models.Arc,
-          as: 'arcs',
-          required: true,
-          where: arcWhere,
-          include: [],
-        }));
-        parentArcsInclude.required = true;
-        parentArcsInclude.where = arcWhere;
-      }
-    }
-
-    if (runtimeFilter.publishers && runtimeFilter.publishers.length > 0) {
-      const names = runtimeFilter.publishers
-        .map((p) => p?.name)
-        .filter((name): name is string => typeof name === 'string');
-      const condition = { '$series.publisher.name$': { [Op.in]: names } };
-      appendAndCondition(condition);
-    }
-
-    if (runtimeFilter.series && runtimeFilter.series.length > 0) {
-      const conditions = runtimeFilter.series
-        .filter((s) => !!s)
-        .map((s) => {
-          const title = typeof s?.title === 'string' ? s.title.trim() : '';
-          const volume =
-            typeof s?.volume === 'number' && Number.isFinite(s.volume) ? s.volume : undefined;
-          if (!title || volume === undefined) return null;
-          return {
-            '$series.title$': title,
-            '$series.volume$': volume,
-          };
-        })
-        .filter((s): s is { '$series.title$': string; '$series.volume$': number } => Boolean(s));
-      if (conditions.length > 0) appendAndCondition({ [Op.or]: conditions });
-    }
-
-    const genreTerms = (() => {
-      const uniqueTerms = new Map<string, string>();
-      (Array.isArray(runtimeFilter.genres) ? runtimeFilter.genres : []).forEach((genre) => {
-        const value = typeof genre === 'string' ? genre.trim() : '';
-        if (!value) return;
-
-        const key = value.toLowerCase();
-        if (!uniqueTerms.has(key)) uniqueTerms.set(key, value);
-      });
-      return [...uniqueTerms.values()];
-    })();
-
-    if (genreTerms.length > 0) {
-      const normalizedSeriesGenreWithDelimiters = Sequelize.fn(
-        'concat',
-        ',',
-        Sequelize.fn(
-          'regexp_replace',
-          Sequelize.fn('lower', Sequelize.fn('coalesce', Sequelize.col('series.genre'), '')),
-          '\\s*,\\s*',
-          ',',
-          'g',
-        ),
-        ',',
-      );
-
-      appendAndCondition({
-        [Op.or]: genreTerms.map((genre) =>
-          Sequelize.where(normalizedSeriesGenreWithDelimiters, {
-            [Op.like]: `%,${escapeLikeValue(genre.toLowerCase())},%`,
-          }),
-        ),
+    if (filter.noContent) {
+      and.push({
+        stories: {
+          none: {},
+        },
       });
     }
 
-    if (runtimeFilter.numbers && runtimeFilter.numbers.length > 0) {
-      runtimeFilter.numbers.forEach((n) => {
-        if (!n || typeof n.number !== 'string') return;
-        const op =
-          n.compare === '>='
-            ? Op.gte
-            : n.compare === '<='
-              ? Op.lte
-              : n.compare === '>'
-                ? Op.gt
-                : n.compare === '<'
-                  ? Op.lt
-                  : Op.eq;
-
-        const hasVariant = typeof n.variant === 'string' && n.variant.length > 0;
-        const rawNumber = n.number.trim();
-
-        if (op === Op.eq) {
-          const equalConditions: Record<string, unknown>[] = [{ number: rawNumber }, { legacy_number: rawNumber }];
-          if (hasVariant) {
-            equalConditions.forEach((condition) => {
-              condition.variant = n.variant;
-            });
-          }
-          appendAndCondition({ [Op.or]: equalConditions });
-          return;
-        }
-
-        let comparisonCondition: unknown;
-        if (isNumericFilterValue(rawNumber)) {
-          const numericIssueNumber = Sequelize.literal(
-            `CASE WHEN "issue"."number" ~ '^[0-9]+(\\.[0-9]+)?$' THEN CAST("issue"."number" AS DECIMAL) END`,
-          );
-          const numericLegacyIssueNumber = Sequelize.literal(
-            `CASE WHEN "issue"."legacy_number" ~ '^[0-9]+(\\.[0-9]+)?$' THEN CAST("issue"."legacy_number" AS DECIMAL) END`,
-          );
-          comparisonCondition = {
-            [Op.or]: [
-              Sequelize.where(numericIssueNumber, {
-                [op]: Number(rawNumber),
-              }),
-              Sequelize.where(numericLegacyIssueNumber, {
-                [op]: Number(rawNumber),
-              }),
-            ],
-          };
-        } else {
-          comparisonCondition = {
-            [Op.or]: [{ number: { [op]: rawNumber } }, { legacy_number: { [op]: rawNumber } }],
-          };
-        }
-
-        if (hasVariant) {
-          appendAndCondition({ [Op.and]: [comparisonCondition, { variant: n.variant }] });
-          return;
-        }
-        appendAndCondition(comparisonCondition);
-      });
-    }
-
-    if (runtimeFilter.noComicguideId) {
-      appendAndCondition({
-        [Op.or]: [{ comicguideid: '0' }, { comicguideid: 0 }, { comicguideid: null }],
-      });
-    }
-
-    if (runtimeFilter.noContent) {
-      if (!include.find((inc) => (inc as { as?: string }).as === 'stories')) {
-        include.push({ model: this.models.Story, as: 'stories', required: false });
-      }
-      const condition = { '$stories.id$': null };
-      appendAndCondition(condition);
-    }
-
-    if (andConditions.length > 0) {
-      (where as Record<symbol, unknown>)[Op.and] = andConditions;
-    }
-
-    let order: Order = [];
-    if (orderField) {
-      order = [[String(orderField), String(sortDirection || 'ASC')]];
-    } else if (isExport) {
-      order = [
-        [
-          { model: this.models.Series, as: 'series' },
-          { model: this.models.Publisher, as: 'publisher' },
-          'name',
-          'ASC',
-        ],
-        [{ model: this.models.Series, as: 'series' }, 'title', 'ASC'],
-        [{ model: this.models.Series, as: 'series' }, 'volume', 'ASC'],
-        ['number', 'ASC'],
-      ];
-    }
-
-    return {
-      where,
-      include,
-      order,
-      subQuery: false, // Essential when using limit with includes
-    };
+    return and.length === 1 ? and[0] : { AND: and };
   }
 
-  private async resultsToCsv(results: SortedExportResponse, loggedIn: boolean) {
-    let responseString =
-      'Verlag;Series;Volume;Start;Ende;Nummer;Variante;Format;Seiten;Erscheinungsdaten;Preis;Währung\n';
+  private matchesIssue(issue: FilterIssueRecord, filter: RuntimeFilter): boolean {
+    if (!matchesReleasedates(issue, filter.releasedates)) return false;
+    if (!matchesNumbers(issue, filter.numbers)) return false;
+    if (!matchesIndividuals(issue, filter.individuals)) return false;
+    if (!matchesStorySwitches(issue, filter)) return false;
 
-    results.forEach((p) => {
-      p[1].forEach((s) => {
-        s[1].forEach((i) => {
+    const arcTerms = Array.isArray(filter.arcs)
+      ? dedupeTerms(
+          filter.arcs
+            .map((arc) => String(arc?.title || "").trim())
+            .filter((arc) => arc.length > 0)
+        )
+      : splitFilterTerms(filter.arcs as string | null | undefined);
+    if (arcTerms.length > 0) {
+      const arcTitles = getArcTitles(issue, Boolean(filter.us));
+      const matchesArcs = arcTerms.every((term) =>
+        arcTitles.some((title) => containsInsensitive(title, term))
+      );
+      if (!matchesArcs) return false;
+    }
+
+    const appearanceTerms = Array.isArray(filter.appearances)
+      ? dedupeTerms(
+          filter.appearances
+            .map((appearance) => String(appearance?.name || "").trim())
+            .filter((appearance) => appearance.length > 0)
+        )
+      : splitFilterTerms(filter.appearances as string | null | undefined);
+    const realityTerms = Array.isArray(filter.realities)
+      ? dedupeTerms(
+          filter.realities
+            .map((reality) => String(reality?.name || "").trim())
+            .filter((reality) => reality.length > 0)
+        )
+      : splitFilterTerms(filter.realities as string | null | undefined);
+    if (appearanceTerms.length > 0 || realityTerms.length > 0) {
+      const appearanceNames = getStoryAppearanceNames(issue, Boolean(filter.us));
+      if (
+        appearanceTerms.some(
+          (term) => !appearanceNames.some((appearanceName) => containsInsensitive(appearanceName, term))
+        )
+      ) {
+        return false;
+      }
+      if (
+        realityTerms.some((term) => {
+          const marker = `(${term})`;
+          return !appearanceNames.some((appearanceName) => containsInsensitive(appearanceName, marker));
+        })
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private async resultsToCsv(results: SortedExportResponse) {
+    let responseString =
+      "Verlag;Series;Volume;Start;Ende;Nummer;Variante;Format;Seiten;Erscheinungsdaten;Preis;Währung\n";
+
+    results.forEach((publisherEntry) => {
+      publisherEntry[1].forEach((seriesEntry) => {
+        seriesEntry[1].forEach((issueEntry) => {
           responseString +=
-            i.series.publisher.name +
-            '\t;' +
-            i.series.title +
-            '\t;' +
-            i.series.volume +
-            '\t;' +
-            i.series.startyear +
-            '\t;' +
-            i.series.endyear +
-            '\t;' +
-            i.number +
-            '\t;' +
-            i.variant +
-            '\t;' +
-            i.format +
-            '\t;' +
-            i.pages +
-            '\t;' +
-            i.releasedate +
-            '\t;' +
-            (i.price + '').replace('.', ',') +
-            '\t;' +
-            i.currency +
-            '\n';
+            issueEntry.series.publisher.name +
+            "\t;" +
+            issueEntry.series.title +
+            "\t;" +
+            issueEntry.series.volume +
+            "\t;" +
+            issueEntry.series.startyear +
+            "\t;" +
+            issueEntry.series.endyear +
+            "\t;" +
+            issueEntry.number +
+            "\t;" +
+            issueEntry.variant +
+            "\t;" +
+            issueEntry.format +
+            "\t;" +
+            issueEntry.pages +
+            "\t;" +
+            issueEntry.releasedate +
+            "\t;" +
+            String(issueEntry.price).replace(".", ",") +
+            "\t;" +
+            issueEntry.currency +
+            "\n";
         });
       });
     });
@@ -882,137 +684,136 @@ export class FilterService {
   }
 
   private async resultsToTxt(results: SortedExportResponse) {
-    let responseString = '';
+    let responseString = "";
 
-    results.forEach((p) => {
-      responseString += p[0] + '\n';
-      p[1].forEach((s) => {
-        responseString += '\t' + s[0] + '\n';
-        s[1].forEach((i) => {
-          responseString += '\t\t#' + i.number + '\n';
+    results.forEach((publisherEntry) => {
+      responseString += publisherEntry[0] + "\n";
+      publisherEntry[1].forEach((seriesEntry) => {
+        responseString += "\t" + seriesEntry[0] + "\n";
+        seriesEntry[1].forEach((issueEntry) => {
+          responseString += "\t\t#" + issueEntry.number + "\n";
         });
       });
-      responseString += '\n';
+      responseString += "\n";
     });
 
     return responseString;
   }
 
   private async convertFilterToTxt(filter: Filter, loggedIn: boolean) {
+    void loggedIn;
     const runtimeFilter = filter as RuntimeFilter;
-    let s = 'Aktive Filter\n';
-    s += '\t' + (runtimeFilter.us ? 'Original Ausgaben' : 'Deutsche Ausgaben') + '\n';
-    s += '\tDetails\n';
+    let s = "Aktive Filter\n";
+    s += "\t" + (runtimeFilter.us ? "Original Ausgaben" : "Deutsche Ausgaben") + "\n";
+    s += "\tDetails\n";
 
     if (runtimeFilter.formats) {
-      s += '\t\tFormat: ';
-      runtimeFilter.formats.forEach((f: string | null) => (s += (f || '') + ', '));
-      s = s.substr(0, s.length - 2) + '\n';
+      s += "\t\tFormat: ";
+      runtimeFilter.formats.forEach((format) => (s += String(format || "") + ", "));
+      s = s.substring(0, s.length - 2) + "\n";
     }
 
-    if (runtimeFilter.withVariants) s += '\t\tmit Varianten\n';
+    if (runtimeFilter.withVariants) s += "\t\tmit Varianten\n";
 
     if (runtimeFilter.releasedates) {
-      s += '\t\tErscheinungsdatum: ';
-      runtimeFilter.releasedates.forEach((r) => {
-        if (r?.date) s += dateFormat(new Date(r.date), 'dd.mm.yyyy') + ' ' + r.compare + ', ';
+      s += "\t\tErscheinungsdatum: ";
+      runtimeFilter.releasedates.forEach((releasedate) => {
+        if (releasedate?.date) s += String(releasedate.date) + " " + String(releasedate.compare || "=") + ", ";
       });
-      s = s.substr(0, s.length - 2) + '\n';
+      s = s.substring(0, s.length - 2) + "\n";
     }
 
-    if (!runtimeFilter.formats && !runtimeFilter.withVariants && !runtimeFilter.releasedates)
-      s += '\t\t-\n';
-    if (runtimeFilter.noComicguideId) s += '\tOhne Comicguide ID\n';
-    if (runtimeFilter.noContent) s += '\tOhne Inhalt\n';
+    if (!runtimeFilter.formats && !runtimeFilter.withVariants && !runtimeFilter.releasedates) s += "\t\t-\n";
+    if (runtimeFilter.noComicguideId) s += "\tOhne Comicguide ID\n";
+    if (runtimeFilter.noContent) s += "\tOhne Inhalt\n";
 
-    s += '\tEnthält\n';
-    if (runtimeFilter.firstPrint) s += '\t\tErstausgabe\n';
-    if (runtimeFilter.notFirstPrint) s += '\t\tNicht Erstausgabe\n';
-    if (runtimeFilter.onlyPrint) s += '\t\tEinzige Ausgabe\n';
-    if (runtimeFilter.notOnlyPrint) s += '\t\tNicht einzige Ausgabe\n';
-    if (runtimeFilter.onlyTb) s += '\t\tNur in TB\n';
-    if (runtimeFilter.notOnlyTb) s += '\t\tNicht nur in TB\n';
-    if (runtimeFilter.exclusive) s += '\t\tExclusiv\n';
-    if (runtimeFilter.notExclusive) s += '\t\tNicht exklusiv\n';
-    if (runtimeFilter.reprint) s += '\t\tReiner Nachdruck\n';
-    if (runtimeFilter.notReprint) s += '\t\tNicht reiner Nachdruck\n';
-    if (runtimeFilter.otherOnlyTb) s += '\t\tNur in TB\n';
-    if (runtimeFilter.notOtherOnlyTb) s += '\t\tNicht sonst nur in TB\n';
-    if (runtimeFilter.noPrint) s += '\t\tKeine Ausgabe\n';
-    if (runtimeFilter.notNoPrint) s += '\t\tMindestens eine Ausgabe\n';
-    if (runtimeFilter.onlyOnePrint) s += '\t\tEinzige Ausgabe\n';
-    if (runtimeFilter.notOnlyOnePrint) s += '\t\tNicht nur einmal erschienen\n';
-    if (runtimeFilter.onlyCollected) s += '\t\tGesammelt\n';
-    if (runtimeFilter.onlyNotCollected) s += '\t\tNicht gesammelt\n';
-    if (runtimeFilter.onlyNotCollectedNoOwnedVariants)
-      s += '\t\tNicht gesammelt (keine Variante gesammelt)\n';
+    s += "\tEnthält\n";
+    if (runtimeFilter.firstPrint) s += "\t\tErstausgabe\n";
+    if (runtimeFilter.notFirstPrint) s += "\t\tNicht Erstausgabe\n";
+    if (runtimeFilter.onlyPrint) s += "\t\tEinzige Ausgabe\n";
+    if (runtimeFilter.notOnlyPrint) s += "\t\tNicht einzige Ausgabe\n";
+    if (runtimeFilter.onlyTb) s += "\t\tNur in TB\n";
+    if (runtimeFilter.notOnlyTb) s += "\t\tNicht nur in TB\n";
+    if (runtimeFilter.exclusive) s += "\t\tExclusiv\n";
+    if (runtimeFilter.notExclusive) s += "\t\tNicht exklusiv\n";
+    if (runtimeFilter.reprint) s += "\t\tReiner Nachdruck\n";
+    if (runtimeFilter.notReprint) s += "\t\tNicht reiner Nachdruck\n";
+    if (runtimeFilter.otherOnlyTb) s += "\t\tNur in TB\n";
+    if (runtimeFilter.notOtherOnlyTb) s += "\t\tNicht sonst nur in TB\n";
+    if (runtimeFilter.noPrint) s += "\t\tKeine Ausgabe\n";
+    if (runtimeFilter.notNoPrint) s += "\t\tMindestens eine Ausgabe\n";
+    if (runtimeFilter.onlyOnePrint) s += "\t\tEinzige Ausgabe\n";
+    if (runtimeFilter.notOnlyOnePrint) s += "\t\tNicht nur einmal erschienen\n";
+    if (runtimeFilter.onlyCollected) s += "\t\tGesammelt\n";
+    if (runtimeFilter.onlyNotCollected) s += "\t\tNicht gesammelt\n";
+    if (runtimeFilter.onlyNotCollectedNoOwnedVariants) s += "\t\tNicht gesammelt (keine Variante gesammelt)\n";
 
     if (runtimeFilter.publishers) {
-      s += '\tVerlag: ';
-      runtimeFilter.publishers.forEach((p) => {
-        if (p?.name) s += p.name + ', ';
+      s += "\tVerlag: ";
+      runtimeFilter.publishers.forEach((publisher) => {
+        if (publisher?.name) s += publisher.name + ", ";
       });
-      s = s.substr(0, s.length - 2) + '\n';
+      s = s.substring(0, s.length - 2) + "\n";
     }
 
     if (runtimeFilter.series) {
-      s += '\tSerie: ';
-      runtimeFilter.series.forEach((n) => {
-        if (n?.title && n?.volume) s += n.title + ' (Vol. ' + n.volume + '), ';
+      s += "\tSerie: ";
+      runtimeFilter.series.forEach((series) => {
+        if (series?.title && series?.volume) s += series.title + " (Vol. " + series.volume + "), ";
       });
-      s = s.substr(0, s.length - 2) + '\n';
+      s = s.substring(0, s.length - 2) + "\n";
     }
 
     if (runtimeFilter.genres && runtimeFilter.genres.length > 0) {
       const genres = dedupeTerms(
         runtimeFilter.genres
-          .map((genre) => (typeof genre === 'string' ? genre.trim() : ''))
-          .filter((genre) => genre.length > 0),
+          .map((genre) => (typeof genre === "string" ? genre.trim() : ""))
+          .filter((genre) => genre.length > 0)
       );
-      if (genres.length > 0) s += '\tGenre: ' + genres.join(', ') + '\n';
+      if (genres.length > 0) s += "\tGenre: " + genres.join(", ") + "\n";
     }
 
     if (runtimeFilter.numbers) {
-      s += '\tNummer: ';
-      runtimeFilter.numbers.forEach((n) => {
-        if (!n) return;
-        s += '#' + n.number;
-        if (n.variant) s += ' (' + n.variant + ')';
-        s += ' ' + n.compare + ', ';
+      s += "\tNummer: ";
+      runtimeFilter.numbers.forEach((numberFilter) => {
+        if (!numberFilter) return;
+        s += "#" + numberFilter.number;
+        if ("variant" in numberFilter && numberFilter.variant) s += " (" + numberFilter.variant + ")";
+        s += " " + String(numberFilter.compare || "=") + ", ";
       });
-      s = s.substr(0, s.length - 2) + '\n';
+      s = s.substring(0, s.length - 2) + "\n";
     }
 
     if (Array.isArray(runtimeFilter.arcs) && runtimeFilter.arcs.length > 0) {
-      s += '\tStory Arc: ';
+      s += "\tStory Arc: ";
       runtimeFilter.arcs.forEach((arc) => {
-        if (arc?.title) s += arc.title + ', ';
+        if (arc?.title) s += arc.title + ", ";
       });
-      s = s.substr(0, s.length - 2) + '\n';
+      s = s.substring(0, s.length - 2) + "\n";
     }
 
     if (runtimeFilter.individuals) {
-      s += '\tMitwirkende: ';
-      runtimeFilter.individuals.forEach((i) => {
-        if (i?.name) s += i.name + ', ';
+      s += "\tMitwirkende: ";
+      runtimeFilter.individuals.forEach((individual) => {
+        if (individual?.name) s += individual.name + ", ";
       });
-      s = s.substr(0, s.length - 2) + '\n';
+      s = s.substring(0, s.length - 2) + "\n";
     }
 
     if (Array.isArray(runtimeFilter.appearances) && runtimeFilter.appearances.length > 0) {
-      s += '\tAuftritte: ';
+      s += "\tAuftritte: ";
       runtimeFilter.appearances.forEach((appearance) => {
-        if (appearance?.name) s += appearance.name + ', ';
+        if (appearance?.name) s += appearance.name + ", ";
       });
-      s = s.substr(0, s.length - 2) + '\n';
+      s = s.substring(0, s.length - 2) + "\n";
     }
 
     if (Array.isArray(runtimeFilter.realities) && runtimeFilter.realities.length > 0) {
-      s += '\tRealität: ';
+      s += "\tRealität: ";
       runtimeFilter.realities.forEach((reality) => {
-        if (reality?.name) s += reality.name + ', ';
+        if (reality?.name) s += reality.name + ", ";
       });
-      s = s.substr(0, s.length - 2) + '\n';
+      s = s.substring(0, s.length - 2) + "\n";
     }
 
     return s;

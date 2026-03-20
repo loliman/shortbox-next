@@ -17,7 +17,6 @@ const eslintConfig = [
       "next-env.d.ts",
       "**/*.test.ts",
       "**/*.test.tsx",
-      "src/services/FilterService.ts",
       "src/services/MarvelCrawlerService.ts",
       "src/services/SeriesService.ts",
       "src/services/StoryService.ts",
