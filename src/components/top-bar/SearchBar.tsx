@@ -255,7 +255,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
             </Box>
           ) : error ? (
             <Typography component="span" noWrap sx={{ fontSize: "1rem", color: "text.primary" }}>
-              Fehler!
+              Suche aktuell nicht verfügbar
             </Typography>
           ) : (
             <Typography component="span" noWrap sx={{ fontSize: "1rem", color: "text.primary" }}>

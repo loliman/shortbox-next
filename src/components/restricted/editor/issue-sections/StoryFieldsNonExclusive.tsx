@@ -62,7 +62,7 @@ function StoryFieldsNonExclusive(props: StoryFieldsNonExclusiveProps) {
             seriesQuery.isBelowMinLength
               ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
               : seriesQuery.error
-                ? "Fehler!"
+                ? "Daten aktuell nicht verfügbar"
                 : "Keine Ergebnisse gefunden"
           }
           onListboxScroll={seriesQuery.onListboxScroll}

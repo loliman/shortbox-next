@@ -50,7 +50,7 @@ function ContentSection({ values, isDesktop: _isDesktop, setFieldValue }: Conten
           arcQuery.isBelowMinLength
             ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
             : arcQuery.error
-              ? "Fehler!"
+              ? "Daten aktuell nicht verfügbar"
               : "Keine Ergebnisse gefunden"
         }
         onListboxScroll={arcQuery.onListboxScroll}
@@ -82,7 +82,7 @@ function ContentSection({ values, isDesktop: _isDesktop, setFieldValue }: Conten
           appearanceQuery.isBelowMinLength
             ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
             : appearanceQuery.error
-              ? "Fehler!"
+              ? "Daten aktuell nicht verfügbar"
               : "Keine Ergebnisse gefunden"
         }
         onListboxScroll={appearanceQuery.onListboxScroll}

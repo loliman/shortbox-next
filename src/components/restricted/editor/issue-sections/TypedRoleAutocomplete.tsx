@@ -52,7 +52,7 @@ function TypedRoleAutocomplete({
   const noOptionsText = queryResult.isBelowMinLength
     ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
     : queryResult.error
-      ? "Fehler!"
+      ? "Daten aktuell nicht verfügbar"
       : "Keine Ergebnisse gefunden";
 
   return (

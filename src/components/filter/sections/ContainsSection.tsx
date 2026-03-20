@@ -190,7 +190,7 @@ function ContainsSection({
           arcQuery.isBelowMinLength
             ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
             : arcQuery.error
-              ? "Fehler!"
+              ? "Daten aktuell nicht verfügbar"
               : "Keine Ergebnisse gefunden"
         }
         onListboxScroll={arcQuery.onListboxScroll}
@@ -224,7 +224,7 @@ function ContainsSection({
           appearanceQuery.isBelowMinLength
             ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
             : appearanceQuery.error
-              ? "Fehler!"
+              ? "Daten aktuell nicht verfügbar"
               : "Keine Ergebnisse gefunden"
         }
         onListboxScroll={appearanceQuery.onListboxScroll}
@@ -258,7 +258,7 @@ function ContainsSection({
           realityQuery.isBelowMinLength
             ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
             : realityQuery.error
-              ? "Fehler!"
+              ? "Daten aktuell nicht verfügbar"
               : "Keine Ergebnisse gefunden"
         }
         onListboxScroll={realityQuery.onListboxScroll}

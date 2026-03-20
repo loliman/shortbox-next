@@ -227,7 +227,7 @@ function DetailsSection({
           publisherQuery.isBelowMinLength
             ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
             : publisherQuery.error
-              ? "Fehler!"
+              ? "Daten aktuell nicht verfügbar"
               : "Keine Ergebnisse gefunden"
         }
         onListboxScroll={publisherQuery.onListboxScroll}
@@ -257,7 +257,7 @@ function DetailsSection({
           seriesQuery.isBelowMinLength
             ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
             : seriesQuery.error
-              ? "Fehler!"
+              ? "Daten aktuell nicht verfügbar"
               : "Keine Ergebnisse gefunden"
         }
         onListboxScroll={seriesQuery.onListboxScroll}
@@ -290,7 +290,7 @@ function DetailsSection({
           genreQuery.isBelowMinLength
             ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
             : genreQuery.error
-              ? "Fehler!"
+              ? "Daten aktuell nicht verfügbar"
               : "Keine Ergebnisse gefunden"
         }
         onListboxScroll={genreQuery.onListboxScroll}

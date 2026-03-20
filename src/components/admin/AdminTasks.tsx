@@ -236,6 +236,13 @@ function AdminTasksPage(props: Readonly<AdminTasksProps>) {
   }, [refetch]);
 
   const copyDetailsToClipboard = async (text: string) => {
+    if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
+      props.enqueueSnackbar?.("Kopieren ist in dieser Umgebung nicht verfügbar.", {
+        variant: "warning",
+      });
+      return;
+    }
+
     try {
       await navigator.clipboard.writeText(text || "");
       props.enqueueSnackbar?.("Log kopiert.", { variant: "success" });

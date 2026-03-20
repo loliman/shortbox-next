@@ -90,7 +90,7 @@ function IssueEditorSeriesFields({
   const publisherNoOptionsText = publisherQuery.isBelowMinLength
     ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
     : publisherQuery.error
-      ? "Fehler!"
+      ? "Daten aktuell nicht verfügbar"
       : "Keine Ergebnisse gefunden";
 
   const seriesNoOptionsText = isSeriesDisabled
@@ -98,7 +98,7 @@ function IssueEditorSeriesFields({
     : seriesQuery.isBelowMinLength
       ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
       : seriesQuery.error
-        ? "Fehler!"
+        ? "Daten aktuell nicht verfügbar"
         : "Keine Ergebnisse gefunden";
 
   return (

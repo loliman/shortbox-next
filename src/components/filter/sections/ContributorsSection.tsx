@@ -90,7 +90,7 @@ function ContributorAutocomplete({
         query.isBelowMinLength
           ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
           : query.error
-            ? "Fehler!"
+            ? "Daten aktuell nicht verfügbar"
             : "Keine Ergebnisse gefunden"
       }
       onListboxScroll={query.onListboxScroll}
