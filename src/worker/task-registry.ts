@@ -83,3 +83,12 @@ export const ADMIN_TASK_DEFINITION_BY_NAME: Record<AdminTaskName, AdminTaskDefin
 export const isAdminTaskName = (value: string): value is AdminTaskName =>
   ADMIN_TASK_DEFINITIONS.some((task) => task.name === value);
 
+export const MAX_TASK_DETAILS_CHARS = 1_000_000;
+
+export const toStoredDetails = (details: string): string => {
+  if (details.length <= MAX_TASK_DETAILS_CHARS) return details;
+  return (
+    details.slice(0, MAX_TASK_DETAILS_CHARS) +
+    "\n\n[truncated] details exceeded storage limit and were truncated."
+  );
+};
