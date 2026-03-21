@@ -5,7 +5,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { SnackbarProvider } from "notistack";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
-import AppContextProvider from "./generic/AppContext";
+import AppShellContextsProvider from "./generic/AppContext";
 import { createAppTheme, type AppThemeMode } from "../app/theme";
 import { type SessionData } from "../app/session";
 import { isMockMode } from "../app/mockMode";
@@ -67,7 +67,7 @@ export default function AppProviders(props: Readonly<AppProvidersProps>) {
           autoHideDuration={3500}
           anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         >
-          <AppContextProvider
+          <AppShellContextsProvider
             session={session}
             setSession={setSession}
             themeMode={themeMode}
@@ -76,7 +76,7 @@ export default function AppProviders(props: Readonly<AppProvidersProps>) {
           >
             <CssBaseline />
             {props.children ?? null}
-          </AppContextProvider>
+          </AppShellContextsProvider>
         </SnackbarProvider>
       </ThemeProvider>
     </AppRouterCacheProvider>

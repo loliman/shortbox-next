@@ -1,6 +1,6 @@
 import { act, render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import AppContextProvider, {
+import AppShellContextsProvider, {
   NavigationUiContext,
   ResponsiveContext,
   SessionContext,
@@ -24,7 +24,7 @@ vi.mock("../../app/useResponsive", () => ({
   useResponsive: () => mocks.responsive,
 }));
 
-describe("AppContextProvider", () => {
+describe("AppShellContextsProvider", () => {
   it("manages drawer, loading registry and auth helpers", () => {
     const setSession = vi.fn();
     let sessionValue: any;
@@ -39,9 +39,9 @@ describe("AppContextProvider", () => {
     }
 
     const { rerender } = render(
-      <AppContextProvider session={null} setSession={setSession}>
+      <AppShellContextsProvider session={null} setSession={setSession}>
         <TestConsumer />
-      </AppContextProvider>
+      </AppShellContextsProvider>
     );
 
     expect(navigationValue.drawerOpen).toBe(true);
@@ -81,9 +81,9 @@ describe("AppContextProvider", () => {
 
     mocks.responsive = { ...mocks.responsive, navWide: false };
     rerender(
-      <AppContextProvider session={null} setSession={setSession}>
+      <AppShellContextsProvider session={null} setSession={setSession}>
         <TestConsumer />
-      </AppContextProvider>
+      </AppShellContextsProvider>
     );
     expect(navigationValue.drawerOpen).toBe(false);
   });

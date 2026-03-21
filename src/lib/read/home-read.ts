@@ -2,7 +2,7 @@ import { IssueService } from "../../services/IssueService";
 
 const DEFAULT_HOME_PAGE_SIZE = 50;
 
-type HomeDataOptions = {
+type HomeReadOptions = {
   us: boolean;
   offset?: number;
   limit?: number;
@@ -11,7 +11,7 @@ type HomeDataOptions = {
   filter?: Record<string, unknown> | null;
 };
 
-export async function getHomePageData(options: HomeDataOptions) {
+export async function readHomeFeed(options: HomeReadOptions) {
   const limit = normalizePositiveInt(options.limit, DEFAULT_HOME_PAGE_SIZE);
   const offset = normalizePositiveInt(options.offset, 0);
 

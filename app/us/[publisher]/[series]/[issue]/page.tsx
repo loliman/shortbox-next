@@ -1,7 +1,7 @@
 import IssueDetailsUS from "@/src/components/details/IssueDetailsUS";
 import { createAppRouteContext, type NextPageParams, type NextPageSearchParams } from "@/src/app/routeContext";
-import { IssueService } from "@/src/services/IssueService";
-import { getInitialNavigationData } from "@/src/lib/screens/navigation-data";
+import { readIssueDetails } from "@/src/lib/read/issue-read";
+import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
 
 export default async function UsIssuePage({
   params,
@@ -16,7 +16,7 @@ export default async function UsIssuePage({
   const selectedIssue = routeContext.selected.issue;
   const initialIssue =
     selectedIssue?.series?.publisher?.name && selectedIssue?.series?.title && selectedIssue?.number
-      ? await new IssueService().getIssueDetails({
+      ? await readIssueDetails({
           us: true,
           publisher: selectedIssue.series.publisher.name,
           series: selectedIssue.series.title,
@@ -26,7 +26,7 @@ export default async function UsIssuePage({
           variant: selectedIssue.variant || undefined,
         })
       : null;
-  const navigationData = await getInitialNavigationData(routeContext);
+  const navigationData = await readInitialNavigationData(routeContext);
   routeContext.initialFilterCount = navigationData.initialFilterCount;
 
   return (

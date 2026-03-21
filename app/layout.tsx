@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import "./globals.css";
-import App from "@/src/components/App";
-import { IssueService } from "@/src/services/IssueService";
+import AppProviders from "@/src/components/AppProviders";
+import { AppPageLoader } from "@/src/components/generic/loading";
+import { countChangeRequests } from "@/src/lib/read/issue-read";
 
 export const metadata: Metadata = {
   title: "Shortbox",
@@ -13,12 +15,14 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const changeRequestsCount = await new IssueService().countChangeRequests().catch(() => 0);
+  const changeRequestsCount = await countChangeRequests().catch(() => 0);
 
   return (
     <html lang="de" suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <App changeRequestsCount={changeRequestsCount}>{children}</App>
+        <AppProviders changeRequestsCount={changeRequestsCount}>
+          <Suspense fallback={<AppPageLoader />}>{children}</Suspense>
+        </AppProviders>
       </body>
     </html>
   );

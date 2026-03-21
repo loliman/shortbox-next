@@ -4,31 +4,27 @@ import Toolbar from "@mui/material/Toolbar";
 import Switch from "@mui/material/Switch";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
 import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { alpha, styled } from "@mui/material/styles";
 import type { HierarchyLevelType } from "../../util/hierarchy";
 import IconButton from "@mui/material/IconButton";
-import Badge from "@mui/material/Badge";
 import ButtonBase from "@mui/material/ButtonBase";
 import SearchBar from "./SearchBar";
 import type { SelectedRoot } from "../../types/domain";
 import TopBarFilterMenu from "./TopBarFilterMenu";
+import {
+  AuthActionGroup,
+  LocaleSwitch,
+  MobileBottomBar,
+} from "./TopBarControls";
 import Tooltip from "@mui/material/Tooltip";
-import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
-import WatchLaterIcon from "@mui/icons-material/WatchLater";
-import BugReportIcon from "@mui/icons-material/BugReport";
-import BugReportOutlinedIcon from "@mui/icons-material/BugReportOutlined";
-import LoginIcon from "@mui/icons-material/Login";
-import LogoutIcon from "@mui/icons-material/Logout";
 import type { AppThemeMode } from "../../app/theme";
 import { isMockMode } from "../../app/mockMode";
-import { buildRouteHref } from "../generic/routeHref";
 import { mutationRequest } from "../../lib/client/mutation-request";
 import type { AppRouteContextValue } from "../../app/routeContext";
 
@@ -144,7 +140,6 @@ export default function TopBar(ownProps: TopBarProps) {
   const darkModeEnabled = ownProps.themeMode === "dark";
   const localeSwitchAriaLabel = us ? "Zu Deutsch wechseln" : "Zu US wechseln";
   const changeRequestsCount = ownProps.changeRequestsCount ?? 0;
-  const hasChangeRequests = changeRequestsCount > 0;
 
   const onLogout = async () => {
     if (isMockMode) {
@@ -287,124 +282,20 @@ export default function TopBar(ownProps: TopBarProps) {
               justifySelf: "end",
             }}
           >
-            {ownProps.session?.loggedIn ? (
-              <Tooltip title="Change Requests">
-                <Badge
-                  color="secondary"
-                  overlap="circular"
-                  showZero={false}
-                  badgeContent={hasChangeRequests ? changeRequestsCount : undefined}
-                  invisible={!hasChangeRequests}
-                  slotProps={{
-                    badge: {
-                      sx: {
-                        fontSize: "0.62rem",
-                        minWidth: 17,
-                        height: 17,
-                        px: 0.45,
-                      },
-                    },
-                  }}
-                >
-                  <IconButton
-                    color={hasChangeRequests ? "secondary" : "inherit"}
-                    aria-label="Change Requests"
-                    onClick={() => router.push("/admin/change-requests")}
-                  >
-                    {hasChangeRequests ? (
-                      <BugReportIcon sx={{ color: "common.white" }} />
-                    ) : (
-                      <BugReportOutlinedIcon />
-                    )}
-                  </IconButton>
-                </Badge>
-              </Tooltip>
-            ) : null}
-            {ownProps.session?.loggedIn ? (
-              <Tooltip title="Adminpanel">
-                <IconButton
-                  color="inherit"
-                  aria-label="Adminpanel"
-                  onClick={() => router.push("/admin/tasks")}
-                >
-                  <WatchLaterIcon />
-                </IconButton>
-              </Tooltip>
-            ) : null}
-            {!ownProps.session?.loggedIn ? (
-              <Tooltip title="Login">
-                <IconButton
-                  color="inherit"
-                  aria-label="Login"
-                  onClick={() => router.push("/login")}
-                >
-                  <LoginIcon />
-                </IconButton>
-              </Tooltip>
-            ) : (
-              <Tooltip title="Logout">
-                <IconButton color="inherit" aria-label="Logout" onClick={onLogout}>
-                  <LogoutIcon />
-                </IconButton>
-              </Tooltip>
-            )}
-
-            <Box
-              sx={{
-                ml: 0.75,
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 0.75,
-                px: 1,
-                py: 0.5,
-                borderRadius: 999,
-                border: "1px solid",
-                borderColor: (theme) =>
-                  us
-                    ? theme.palette.mode === "dark"
-                      ? "rgba(96, 165, 250, 0.6)"
-                      : "rgba(59, 130, 246, 0.28)"
-                    : theme.palette.divider,
-                backgroundColor: (theme) =>
-                  us
-                    ? theme.palette.mode === "dark"
-                      ? "rgba(30, 64, 175, 0.25)"
-                      : "rgba(191, 219, 254, 0.2)"
-                    : theme.palette.mode === "dark"
-                      ? "rgba(255,255,255,0.04)"
-                      : "rgba(0,0,0,0.02)",
-              }}
-            >
-              <Typography
-                sx={{
-                  fontSize: "0.74rem",
-                  fontWeight: us ? 500 : 700,
-                  opacity: us ? 0.65 : 1,
-                }}
-              >
-                DE
-              </Typography>
-              <Tooltip title={"Wechseln zu " + (us ? "Deutsch" : "US")}>
-                <Android12Switch
-                  checked={us}
-                  color="primary"
-                  inputProps={{ "aria-label": localeSwitchAriaLabel }}
-                  onChange={() => {
-                    ownProps.resetNavigationState?.();
-                    router.push(buildRouteHref(us ? "/de" : "/us", query, { filter: null }));
-                  }}
-                />
-              </Tooltip>
-              <Typography
-                sx={{
-                  fontSize: "0.74rem",
-                  fontWeight: us ? 700 : 500,
-                  opacity: us ? 1 : 0.65,
-                }}
-              >
-                US
-              </Typography>
-            </Box>
+            <AuthActionGroup
+              loggedIn={Boolean(ownProps.session?.loggedIn)}
+              changeRequestsCount={changeRequestsCount}
+              onNavigate={(href) => router.push(href)}
+              onLogout={onLogout}
+            />
+            <LocaleSwitch
+              us={us}
+              query={query}
+              localeSwitchAriaLabel={localeSwitchAriaLabel}
+              resetNavigationState={ownProps.resetNavigationState}
+              onNavigate={(href) => router.push(href)}
+              SwitchComponent={Android12Switch as any}
+            />
             <Tooltip title={darkModeEnabled ? "Zu hellem Modus wechseln" : "Zu dunklem Modus wechseln"}>
               <IconButton
                 color="inherit"
@@ -486,118 +377,25 @@ export default function TopBar(ownProps: TopBarProps) {
       ) : null}
 
       {compactLayout ? (
-        <Box
-          data-testid="mobile-bottom-bar"
-          sx={{
-            position: "fixed",
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: (theme) => theme.zIndex.drawer + 2,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-around",
-            gap: 0.25,
-            px: 0.75,
-            pt: 0.5,
-            pb: "calc(0.5rem + env(safe-area-inset-bottom))",
-            bgcolor: "common.black",
-            color: "common.white",
-            borderTop: "1px solid rgba(255,255,255,0.2)",
-            boxShadow: "0 -6px 18px rgba(0,0,0,0.12)",
-          }}
-        >
-          <IconButton color="inherit" aria-label="Navigation umschalten" onClick={() => toggleDrawer?.()}>
-            <HamburgerIcon open={Boolean(drawerOpen)} />
-          </IconButton>
-          <IconButton color="inherit" aria-label="Suche öffnen" onClick={() => setMobileSearchOpen(true)}>
-            <SearchIcon />
-          </IconButton>
-          <TopBarFilterMenu
-            us={us}
-            selected={selected}
-            isFilterActive={isFilter}
-            query={query}
-            session={ownProps.session}
-            initialCount={ownProps.initialFilterCount}
-          />
-          {ownProps.session?.loggedIn ? (
-            <Tooltip title="Change Requests">
-              <Badge
-                color="secondary"
-                overlap="circular"
-                showZero={false}
-                badgeContent={hasChangeRequests ? changeRequestsCount : undefined}
-                invisible={!hasChangeRequests}
-                slotProps={{
-                  badge: {
-                    sx: {
-                      fontSize: "0.62rem",
-                      minWidth: 17,
-                      height: 17,
-                      px: 0.45,
-                    },
-                  },
-                }}
-              >
-                <IconButton
-                  color={hasChangeRequests ? "secondary" : "inherit"}
-                  aria-label="Change Requests"
-                  onClick={() => router.push("/admin/change-requests")}
-                >
-                  {hasChangeRequests ? (
-                    <BugReportIcon sx={{ color: "common.white" }} />
-                  ) : (
-                    <BugReportOutlinedIcon />
-                  )}
-                </IconButton>
-              </Badge>
-            </Tooltip>
-          ) : null}
-          {ownProps.session?.loggedIn ? (
-            <Tooltip title="Adminpanel">
-              <IconButton
-                color="inherit"
-                aria-label="Adminpanel"
-                onClick={() => router.push("/admin/tasks")}
-              >
-                <WatchLaterIcon />
-              </IconButton>
-            </Tooltip>
-          ) : null}
-          {!ownProps.session?.loggedIn ? (
-            <Tooltip title="Login">
-              <IconButton
-                color="inherit"
-                aria-label="Login"
-                onClick={() => router.push("/login")}
-              >
-                <LoginIcon />
-              </IconButton>
-            </Tooltip>
-          ) : (
-            <Tooltip title="Logout">
-              <IconButton color="inherit" aria-label="Logout" onClick={onLogout}>
-                <LogoutIcon />
-              </IconButton>
-            </Tooltip>
-          )}
-          <Box sx={{ ml: 0.25, display: "inline-flex", alignItems: "center", gap: 0.35 }}>
-            <Typography sx={{ fontSize: "0.74rem", fontWeight: 700, opacity: us ? 0.7 : 1 }}>DE</Typography>
-            <Tooltip title={"Wechseln zu " + (us ? "Deutsch" : "US")}>
-              <Android12Switch
-                checked={us}
-                color="primary"
-                inputProps={{ "aria-label": localeSwitchAriaLabel }}
-                onChange={() => {
-                  ownProps.resetNavigationState?.();
-                  router.push(buildRouteHref(us ? "/de" : "/us", query, { filter: null }));
-                }}
-              />
-            </Tooltip>
-            <Typography sx={{ fontSize: "0.74rem", fontWeight: 700, opacity: us ? 1 : 0.7 }}>US</Typography>
-          </Box>
-        </Box>
+        <MobileBottomBar
+          us={us}
+          session={ownProps.session}
+          query={query}
+          selected={selected}
+          isFilterActive={isFilter}
+          initialFilterCount={ownProps.initialFilterCount}
+          localeSwitchAriaLabel={localeSwitchAriaLabel}
+          changeRequestsCount={changeRequestsCount}
+          onOpenSearch={() => setMobileSearchOpen(true)}
+          onToggleDrawer={() => toggleDrawer?.()}
+          onNavigate={(href) => router.push(href)}
+          onLogout={onLogout}
+          resetNavigationState={ownProps.resetNavigationState}
+          SwitchComponent={Android12Switch as any}
+          HamburgerIconComponent={HamburgerIcon}
+          drawerOpen={drawerOpen}
+          FilterButton={TopBarFilterMenu as any}
+        />
       ) : null}
 
     </AppBar>

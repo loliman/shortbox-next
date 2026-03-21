@@ -1,7 +1,7 @@
 import SeriesDetails from "@/src/components/details/SeriesDetails";
 import { createAppRouteContext, type NextPageParams, type NextPageSearchParams } from "@/src/app/routeContext";
-import { SeriesService } from "@/src/services/SeriesService";
-import { getInitialNavigationData } from "@/src/lib/screens/navigation-data";
+import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
+import { readSeriesDetails } from "@/src/lib/read/series-read";
 
 export default async function UsSeriesPage({
   params,
@@ -16,14 +16,14 @@ export default async function UsSeriesPage({
   const selectedSeries = routeContext.selected.series;
   const initialData =
     selectedSeries?.publisher?.name && selectedSeries?.title
-      ? await new SeriesService().getSeriesDetails({
+      ? await readSeriesDetails({
           us: true,
           publisher: selectedSeries.publisher.name,
           series: selectedSeries.title,
           volume: Number(selectedSeries.volume || 0),
         })
       : null;
-  const navigationData = await getInitialNavigationData(routeContext);
+  const navigationData = await readInitialNavigationData(routeContext);
   routeContext.initialFilterCount = navigationData.initialFilterCount;
 
   return (

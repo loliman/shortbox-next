@@ -1,13 +1,13 @@
 import AdminTasks from "@/src/components/admin/AdminTasks";
 import { createAppRouteContext } from "@/src/app/routeContext";
-import { getAdminTasks } from "@/src/lib/screens/admin-data";
-import { getInitialNavigationData } from "@/src/lib/screens/navigation-data";
+import { readAdminTasks } from "@/src/lib/read/admin-read";
+import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
 
 export default async function AdminTasksPage() {
   const routeContext = createAppRouteContext({});
-  const navigationData = await getInitialNavigationData(routeContext);
+  const navigationData = await readInitialNavigationData(routeContext);
   routeContext.initialFilterCount = navigationData.initialFilterCount;
-  const initialItems = await getAdminTasks(10);
+  const initialItems = await readAdminTasks(10);
 
   return (
     <AdminTasks

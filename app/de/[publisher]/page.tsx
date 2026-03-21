@@ -1,7 +1,7 @@
 import PublisherDetails from "@/src/components/details/PublisherDetails";
 import { createAppRouteContext, type NextPageParams, type NextPageSearchParams } from "@/src/app/routeContext";
-import { PublisherService } from "@/src/services/PublisherService";
-import { getInitialNavigationData } from "@/src/lib/screens/navigation-data";
+import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
+import { readPublisherDetails } from "@/src/lib/read/publisher-read";
 
 export default async function DePublisherPage({
   params,
@@ -15,9 +15,9 @@ export default async function DePublisherPage({
   const routeContext = createAppRouteContext({ params: resolvedParams, searchParams: resolvedSearchParams, us: false });
   const publisherName = routeContext.selected.publisher?.name || "";
   const initialData = publisherName
-    ? await new PublisherService().getPublisherDetails({ us: false, publisher: publisherName })
+    ? await readPublisherDetails({ us: false, publisher: publisherName })
     : null;
-  const navigationData = await getInitialNavigationData(routeContext);
+  const navigationData = await readInitialNavigationData(routeContext);
   routeContext.initialFilterCount = navigationData.initialFilterCount;
 
   return (

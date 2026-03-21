@@ -1,7 +1,7 @@
 import Home from "@/src/components/Home";
 import { createAppRouteContext, type NextPageSearchParams } from "@/src/app/routeContext";
-import { getHomePageData } from "@/src/lib/screens/home-data";
-import { getInitialNavigationData } from "@/src/lib/screens/navigation-data";
+import { readHomeFeed } from "@/src/lib/read/home-read";
+import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
 import { parseFilter } from "@/src/components/nav-bar/listUtils";
 import type { PreviewIssue } from "@/src/components/issue-preview/utils/issuePreviewUtils";
 
@@ -13,7 +13,7 @@ export default async function DeHomePage({
   const resolvedSearchParams = await searchParams;
   const routeContext = createAppRouteContext({ searchParams: resolvedSearchParams, us: false });
   const filterQuery = typeof routeContext.query?.filter === "string" ? routeContext.query.filter : null;
-  const initialHomeData = await getHomePageData({
+  const initialHomeData = await readHomeFeed({
     us: false,
     offset: 0,
     limit: 50,
@@ -21,7 +21,7 @@ export default async function DeHomePage({
     direction: typeof routeContext.query?.direction === "string" ? routeContext.query.direction : null,
     filter: parseFilter(filterQuery),
   });
-  const navigationData = await getInitialNavigationData(routeContext);
+  const navigationData = await readInitialNavigationData(routeContext);
   routeContext.initialFilterCount = navigationData.initialFilterCount;
 
   return (

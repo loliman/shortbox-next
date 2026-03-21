@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getHomePageData } from "@/src/lib/screens/home-data";
+import { readHomeFeed } from "@/src/lib/read/home-read";
 import { parseFilter } from "@/src/components/nav-bar/listUtils";
 
 export async function GET(request: Request) {
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   const filter = parseFilter(searchParams.get("filter"));
 
   try {
-    const data = await getHomePageData({
+    const data = await readHomeFeed({
       us,
       offset,
       limit,

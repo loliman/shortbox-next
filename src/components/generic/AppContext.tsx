@@ -109,7 +109,7 @@ export const ThemeModeContext = React.createContext<ThemeContextValue>(defaultTh
 export const AdminMetaContext =
   React.createContext<AdminMetaContextValue>(defaultAdminMetaContextValue);
 
-function AppContextProvider({
+function AppShellContextsProvider({
   children,
   session,
   setSession,
@@ -307,4 +307,4 @@ export function useAdminMetaContext() {
   return React.useContext(AdminMetaContext);
 }
 
-export default AppContextProvider;
+export default AppShellContextsProvider;
