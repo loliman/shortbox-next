@@ -66,6 +66,33 @@ function dedupeTerms(values: string[]): string[] {
     .filter((value, index, allValues) => value.length > 0 && allValues.indexOf(value) === index);
 }
 
+function splitGenres(value: string | null | undefined): string[] {
+  return String(value || "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+}
+
+function matchesGenrePattern(genre: string, pattern: string): boolean {
+  if (!pattern) return true;
+
+  const parts = pattern
+    .toLowerCase()
+    .split(/\s+/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  if (parts.length === 0) return true;
+
+  const normalizedGenre = genre.toLowerCase();
+  let index = 0;
+  for (const part of parts) {
+    const next = normalizedGenre.indexOf(part, index);
+    if (next < 0) return false;
+    index = next + part.length;
+  }
+  return true;
+}
+
 function splitFilterTerms(value: string | null | undefined): string[] {
   if (!value) return [];
   return dedupeTerms(value.split(MULTI_FILTER_SEPARATOR_REGEX));
@@ -439,7 +466,8 @@ function matchesStorySwitches(issue: FilterIssueRecord, filter: RuntimeFilter): 
   if (filter.onlyOnePrint) storyConditions.push(stories.some((story) => story.onlyOnePrint));
   if (filter.notOnlyOnePrint) storyConditions.push(stories.some((story) => !story.onlyOnePrint));
 
-  return storyConditions.every(Boolean);
+  if (storyConditions.length === 0) return true;
+  return storyConditions.some(Boolean);
 }
 
 function reduceOwnedVariantGroups(issues: FilterIssueRecord[]): FilterIssueRecord[] {
@@ -701,6 +729,26 @@ export class FilterService {
       });
     }
 
+    const genreTerms = Array.isArray(filter.genres)
+      ? dedupeTerms(
+          filter.genres
+            .map((genre) => (typeof genre === "string" ? genre.trim() : ""))
+            .filter((genre) => genre.length > 0)
+        )
+      : [];
+    if (genreTerms.length > 0) {
+      and.push({
+        OR: genreTerms.map((genre) => ({
+          series: {
+            genre: {
+              contains: genre,
+              mode: "insensitive",
+            },
+          },
+        })),
+      });
+    }
+
     if (filter.noComicguideId) {
       and.push({
         OR: [{ comicGuideId: null }, { comicGuideId: BigInt(0) }],
@@ -770,6 +818,21 @@ export class FilterService {
       ) {
         return false;
       }
+    }
+
+    const genreTerms = Array.isArray(filter.genres)
+      ? dedupeTerms(
+          filter.genres
+            .map((genre) => (typeof genre === "string" ? genre.trim() : ""))
+            .filter((genre) => genre.length > 0)
+        )
+      : [];
+    if (genreTerms.length > 0) {
+      const issueGenres = splitGenres(issue.series?.genre);
+      const matchesGenres = genreTerms.every((term) =>
+        issueGenres.some((genre) => matchesGenrePattern(genre, term))
+      );
+      if (!matchesGenres) return false;
     }
 
     return true;

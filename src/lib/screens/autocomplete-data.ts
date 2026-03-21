@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma/client";
 
 const AUTOCOMPLETE_PAGE_SIZE = 50;
+const REALITY_EXTRACT_PATTERN = /\((earth-[^)]+)\)/gi;
 
 export type AutocompleteSource =
   | "publishers"
@@ -50,24 +51,29 @@ async function getPublisherItems(
 ) {
   const pattern = normalizePattern(variables?.pattern);
   const us = typeof variables?.us === "boolean" ? variables.us : undefined;
+  const likePattern = toLikePattern(pattern);
 
   try {
-    const rows = await prisma.publisher.findMany({
-      where: {
-        ...(us === undefined ? {} : { original: us }),
-        ...(pattern
-          ? {
-              name: {
-                contains: pattern,
-                mode: "insensitive",
-              },
-            }
-          : {}),
-      },
-      orderBy: [{ name: "asc" }, { id: "asc" }],
-      skip: offset,
-      take: limit + 1,
-    });
+    const rows = await prisma.$queryRaw<Array<{ name: string; original: boolean }>>(
+      pattern
+        ? Prisma.sql`
+            SELECT name, original
+            FROM shortbox.publisher
+            WHERE ${us === undefined ? Prisma.sql`TRUE` : Prisma.sql`original = ${us}`}
+              AND name ILIKE ${likePattern}
+            ORDER BY name ASC, id ASC
+            OFFSET ${offset}
+            LIMIT ${limit + 1}
+          `
+        : Prisma.sql`
+            SELECT name, original
+            FROM shortbox.publisher
+            WHERE ${us === undefined ? Prisma.sql`TRUE` : Prisma.sql`original = ${us}`}
+            ORDER BY name ASC, id ASC
+            OFFSET ${offset}
+            LIMIT ${limit + 1}
+          `
+    );
 
     return {
       items: rows.slice(0, limit).map((entry) => ({
@@ -90,46 +96,55 @@ async function getSeriesItems(
   const publisher = asRecord(variables?.publisher);
   const publisherName = normalizePattern(publisher?.name);
   const publisherUs = typeof publisher?.us === "boolean" ? publisher.us : undefined;
+  const likePattern = toLikePattern(pattern);
 
   try {
-    const rows = await prisma.series.findMany({
-      where: {
-        ...(pattern
-          ? {
-              title: {
-                contains: pattern,
-                mode: "insensitive",
-              },
-            }
-          : {}),
-        publisher: {
-          ...(publisherName && publisherName !== "*" ? { name: publisherName } : {}),
-          ...(publisherUs === undefined ? {} : { original: publisherUs }),
-        },
-      },
-      include: {
-        publisher: true,
-      },
-      orderBy: [
-        { title: "asc" },
-        { volume: "asc" },
-        { startYear: "asc" },
-        { id: "asc" },
-      ],
-      skip: offset,
-      take: limit + 1,
-    });
+    const rows = await prisma.$queryRaw<
+      Array<{
+        title: string | null;
+        volume: bigint | number;
+        startyear: bigint | number;
+        endyear: bigint | number | null;
+        publisher_name: string | null;
+        publisher_original: boolean | null;
+      }>
+    >(
+      Prisma.sql`
+        SELECT
+          s.title,
+          s.volume,
+          s.startyear,
+          s.endyear,
+          p.name AS publisher_name,
+          p.original AS publisher_original
+        FROM shortbox.series s
+        LEFT JOIN shortbox.publisher p
+          ON p.id = s.fk_publisher
+        WHERE ${pattern ? Prisma.sql`s.title ILIKE ${likePattern}` : Prisma.sql`TRUE`}
+          AND ${
+            publisherName && publisherName !== "*"
+              ? Prisma.sql`p.name = ${publisherName}`
+              : Prisma.sql`TRUE`
+          }
+          AND ${
+            publisherUs === undefined ? Prisma.sql`TRUE` : Prisma.sql`p.original = ${publisherUs}`
+          }
+        ORDER BY s.title ASC, s.volume ASC, s.startyear ASC, s.id ASC
+        OFFSET ${offset}
+        LIMIT ${limit + 1}
+      `
+    );
 
     return {
       items: rows.slice(0, limit).map((entry) => ({
         title: entry.title || "",
         volume: Number(entry.volume),
-        startyear: Number(entry.startYear),
-        endyear: entry.endYear === null ? null : Number(entry.endYear),
-        publisher: entry.publisher
+        startyear: Number(entry.startyear),
+        endyear: entry.endyear === null ? null : Number(entry.endyear),
+        publisher: entry.publisher_name
           ? {
-              name: entry.publisher.name,
-              us: entry.publisher.original,
+              name: entry.publisher_name,
+              us: Boolean(entry.publisher_original),
             }
           : undefined,
       })),
@@ -193,25 +208,29 @@ async function getArcItems(
   limit: number
 ) {
   const pattern = normalizePattern(variables?.pattern);
-  const type = normalizePattern(variables?.type);
+  const type = normalizePattern(variables?.type).toUpperCase();
+  const likePattern = toLikePattern(pattern);
 
   try {
-    const rows = await prisma.arc.findMany({
-      where: {
-        ...(type ? { type } : {}),
-        ...(pattern
-          ? {
-              title: {
-                contains: pattern,
-                mode: "insensitive",
-              },
-            }
-          : {}),
-      },
-      orderBy: [{ title: "asc" }, { type: "asc" }, { id: "asc" }],
-      skip: offset,
-      take: limit + 1,
-    });
+    const rows = await prisma.$queryRaw<Array<{ title: string; type: string }>>(
+      pattern || type
+        ? Prisma.sql`
+            SELECT title, type
+            FROM shortbox.arc
+            WHERE ${type ? Prisma.sql`type = ${type}` : Prisma.sql`TRUE`}
+              AND ${pattern ? Prisma.sql`title ILIKE ${likePattern}` : Prisma.sql`TRUE`}
+            ORDER BY title ASC, type ASC, id ASC
+            OFFSET ${offset}
+            LIMIT ${limit + 1}
+          `
+        : Prisma.sql`
+            SELECT title, type
+            FROM shortbox.arc
+            ORDER BY title ASC, type ASC, id ASC
+            OFFSET ${offset}
+            LIMIT ${limit + 1}
+          `
+    );
 
     return {
       items: rows.slice(0, limit).map((entry) => ({
@@ -231,23 +250,27 @@ async function getIndividualItems(
   limit: number
 ) {
   const pattern = normalizePattern(variables?.pattern);
+  const likePattern = toLikePattern(pattern);
 
   try {
-    const rows = await prisma.individual.findMany({
-      where: {
-        ...(pattern
-          ? {
-              name: {
-                contains: pattern,
-                mode: "insensitive",
-              },
-            }
-          : {}),
-      },
-      orderBy: [{ name: "asc" }, { id: "asc" }],
-      skip: offset,
-      take: limit + 1,
-    });
+    const rows = await prisma.$queryRaw<Array<{ name: string }>>(
+      pattern
+        ? Prisma.sql`
+            SELECT name
+            FROM shortbox.individual
+            WHERE name ILIKE ${likePattern}
+            ORDER BY name ASC, id ASC
+            OFFSET ${offset}
+            LIMIT ${limit + 1}
+          `
+        : Prisma.sql`
+            SELECT name
+            FROM shortbox.individual
+            ORDER BY name ASC, id ASC
+            OFFSET ${offset}
+            LIMIT ${limit + 1}
+          `
+    );
 
     return {
       items: rows.slice(0, limit).map((entry) => ({
@@ -266,25 +289,29 @@ async function getAppearanceItems(
   limit: number
 ) {
   const pattern = normalizePattern(variables?.pattern);
-  const type = normalizePattern(variables?.type);
+  const type = normalizePattern(variables?.type).toUpperCase();
+  const likePattern = toLikePattern(pattern);
 
   try {
-    const rows = await prisma.appearance.findMany({
-      where: {
-        ...(type ? { type } : {}),
-        ...(pattern
-          ? {
-              name: {
-                contains: pattern,
-                mode: "insensitive",
-              },
-            }
-          : {}),
-      },
-      orderBy: [{ name: "asc" }, { type: "asc" }, { id: "asc" }],
-      skip: offset,
-      take: limit + 1,
-    });
+    const rows = await prisma.$queryRaw<Array<{ name: string; type: string }>>(
+      pattern || type
+        ? Prisma.sql`
+            SELECT name, type
+            FROM shortbox.appearance
+            WHERE ${type ? Prisma.sql`type ILIKE ${type}` : Prisma.sql`TRUE`}
+              AND ${pattern ? Prisma.sql`name ILIKE ${likePattern}` : Prisma.sql`TRUE`}
+            ORDER BY name ASC, id ASC
+            OFFSET ${offset}
+            LIMIT ${limit + 1}
+          `
+        : Prisma.sql`
+            SELECT name, type
+            FROM shortbox.appearance
+            ORDER BY name ASC, id ASC
+            OFFSET ${offset}
+            LIMIT ${limit + 1}
+          `
+    );
 
     return {
       items: rows.slice(0, limit).map((entry) => ({
@@ -307,12 +334,6 @@ async function getRealityItems(
 
   try {
     const rows = await prisma.appearance.findMany({
-      where: {
-        name: {
-          contains: "Earth-",
-          mode: "insensitive",
-        },
-      },
       select: {
         name: true,
       },
@@ -335,9 +356,28 @@ async function getRealityItems(
 }
 
 function extractRealitiesFromAppearanceName(name: string): string[] {
-  const matches = name.match(/Earth-\d+[A-Za-z-]*/gi);
-  if (!matches) return [];
-  return dedupeStrings(matches.map((entry) => entry.trim()));
+  const source = typeof name === "string" ? name : "";
+  if (!source) return [];
+
+  const matches: string[] = [];
+  let match: RegExpExecArray | null = REALITY_EXTRACT_PATTERN.exec(source);
+  while (match) {
+    const normalized = normalizeRealityName(match[1] || "");
+    if (normalized) matches.push(normalized);
+    match = REALITY_EXTRACT_PATTERN.exec(source);
+  }
+  REALITY_EXTRACT_PATTERN.lastIndex = 0;
+
+  return dedupeStrings(matches);
+}
+
+function normalizeRealityName(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (trimmed.toLowerCase().startsWith("earth-")) {
+    return `Earth-${trimmed.slice(6)}`;
+  }
+  return trimmed;
 }
 
 function dedupeStrings(values: string[]) {
@@ -394,6 +434,10 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 function normalizePattern(value: unknown) {
   const text = String(value || "").trim();
   return text.length > 0 ? text : "";
+}
+
+function toLikePattern(value: string) {
+  return `%${value.replace(/\s/g, "%")}%`;
 }
 
 function normalizePositiveInt(value: unknown, fallback: number) {

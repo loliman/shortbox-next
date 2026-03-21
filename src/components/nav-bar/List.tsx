@@ -32,6 +32,9 @@ import { getLegacyNumberLabel, getSeriesLabel } from "../../util/issuePresentati
 import CoverTooltip from "./CoverTooltip";
 
 interface ListProps {
+  initialPublisherNodes?: PublisherNode[];
+  initialSeriesNodesByPublisher?: Record<string, SeriesNode[]>;
+  initialIssueNodesBySeriesKey?: Record<string, IssueNode[]>;
   drawerOpen?: boolean;
   toggleDrawer?: () => void;
   compactLayout?: boolean;
@@ -145,9 +148,13 @@ export default function List(ownProps: Readonly<Partial<ListProps>>) {
     if (listElement) listElement.scrollTop = 0;
   }, [props.navResetVersion]);
 
-  const [publisherNodes, setPublisherNodes] = React.useState<PublisherNode[]>([]);
+  const hasInitialPublisherNodes = Array.isArray(props.initialPublisherNodes);
+  const [publisherNodes, setPublisherNodes] = React.useState<PublisherNode[]>(
+    () => props.initialPublisherNodes || []
+  );
   const [publisherError, setPublisherError] = React.useState<unknown>(null);
-  const [publisherLoading, setPublisherLoading] = React.useState(true);
+  const [publisherLoading, setPublisherLoading] = React.useState(!hasInitialPublisherNodes);
+  const skipInitialPublisherFetchRef = React.useRef(hasInitialPublisherNodes);
   if (publisherNodes.length > 0) {
     lastPublisherNodesCache = publisherNodes;
   }
@@ -155,6 +162,14 @@ export default function List(ownProps: Readonly<Partial<ListProps>>) {
     publisherNodes.length > 0 ? publisherNodes : lastPublisherNodesCache;
 
   React.useEffect(() => {
+    if (skipInitialPublisherFetchRef.current) {
+      skipInitialPublisherFetchRef.current = false;
+      setPublisherLoading(false);
+      setPublisherError(null);
+      setPublisherNodes(props.initialPublisherNodes || []);
+      return;
+    }
+
     let cancelled = false;
     setPublisherLoading(true);
     setPublisherError(null);
@@ -186,7 +201,7 @@ export default function List(ownProps: Readonly<Partial<ListProps>>) {
     return () => {
       cancelled = true;
     };
-  }, [us, filterQuery]);
+  }, [filterQuery, props.initialPublisherNodes, us]);
 
   React.useLayoutEffect(() => {
     const container = navScrollContainerRef.current;
@@ -298,6 +313,8 @@ export default function List(ownProps: Readonly<Partial<ListProps>>) {
               us={us}
               filter={filterQuery}
               publisher={publisherNode}
+              initialSeriesNodes={props.initialSeriesNodesByPublisher?.[publisherName] || []}
+              initialIssueNodesBySeriesKey={props.initialIssueNodesBySeriesKey}
               navStateKey={navStateKey}
               activeSeriesKey={selected ? selectedSeriesKey : null}
               selectedIssue={selectedIssue}
@@ -380,6 +397,8 @@ type SeriesBranchProps = {
   us: boolean;
   filter?: string | null;
   publisher: PublisherNode;
+  initialSeriesNodes?: SeriesNode[];
+  initialIssueNodesBySeriesKey?: Record<string, IssueNode[]>;
   navStateKey: string;
   activeSeriesKey: string | null;
   selectedIssue?: Issue;
@@ -407,11 +426,21 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
     expandedSeriesCache[seriesStateKey] = expandedSeries;
   }, [expandedSeries, seriesStateKey]);
 
-  const [seriesNodes, setSeriesNodes] = React.useState<SeriesNode[]>([]);
+  const hasInitialSeriesNodes = Array.isArray(props.initialSeriesNodes);
+  const [seriesNodes, setSeriesNodes] = React.useState<SeriesNode[]>(() => props.initialSeriesNodes || []);
   const [seriesError, setSeriesError] = React.useState<unknown>(null);
-  const [seriesLoading, setSeriesLoading] = React.useState(true);
+  const [seriesLoading, setSeriesLoading] = React.useState(!hasInitialSeriesNodes);
+  const skipInitialSeriesFetchRef = React.useRef(hasInitialSeriesNodes);
 
   React.useEffect(() => {
+    if (skipInitialSeriesFetchRef.current) {
+      skipInitialSeriesFetchRef.current = false;
+      setSeriesLoading(false);
+      setSeriesError(null);
+      setSeriesNodes(props.initialSeriesNodes || []);
+      return;
+    }
+
     let cancelled = false;
     setSeriesLoading(true);
     setSeriesError(null);
@@ -444,7 +473,7 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
     return () => {
       cancelled = true;
     };
-  }, [publisherName, publisherUs, filter]);
+  }, [publisherName, publisherUs, filter, props.initialSeriesNodes]);
   const seriesSelectionByKey = React.useMemo(() => {
     const selection: Record<string, Series> = {};
     for (const seriesNode of seriesNodes) {
@@ -526,6 +555,7 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
                 us={us}
                 filter={filter}
                 series={seriesNode}
+                initialIssueNodes={props.initialIssueNodesBySeriesKey?.[seriesKey] || []}
                 selectedIssue={props.selectedIssue}
                 session={props.session}
                 pushSelection={pushSelection}
@@ -545,6 +575,7 @@ type IssuesBranchProps = {
   us: boolean;
   filter?: string | null;
   series: SeriesNode;
+  initialIssueNodes?: IssueNode[];
   selectedIssue?: Issue;
   session?: unknown;
   pushSelection: (event: unknown, item: SelectedRoot, closeOnPhone?: boolean) => void;
@@ -564,11 +595,21 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
   const skipSameIssueAutoScrollRef = React.useRef(false);
   const issueListRef = React.useRef<HTMLUListElement | null>(null);
 
-  const [issueNodes, setIssueNodes] = React.useState<IssueNode[]>([]);
+  const hasInitialIssueNodes = Array.isArray(props.initialIssueNodes);
+  const [issueNodes, setIssueNodes] = React.useState<IssueNode[]>(() => props.initialIssueNodes || []);
   const [issuesError, setIssuesError] = React.useState<unknown>(null);
-  const [issuesLoading, setIssuesLoading] = React.useState(true);
+  const [issuesLoading, setIssuesLoading] = React.useState(!hasInitialIssueNodes);
+  const skipInitialIssuesFetchRef = React.useRef(hasInitialIssueNodes);
 
   React.useEffect(() => {
+    if (skipInitialIssuesFetchRef.current) {
+      skipInitialIssuesFetchRef.current = false;
+      setIssuesLoading(false);
+      setIssuesError(null);
+      setIssueNodes(props.initialIssueNodes || []);
+      return;
+    }
+
     let cancelled = false;
     setIssuesLoading(true);
     setIssuesError(null);
@@ -603,7 +644,7 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
     return () => {
       cancelled = true;
     };
-  }, [us, filter, seriesInput.publisher.name, seriesInput.title, seriesInput.volume]);
+  }, [us, filter, seriesInput.publisher.name, seriesInput.title, seriesInput.volume, props.initialIssueNodes]);
 
   React.useEffect(() => {
     skipSameIssueAutoScrollRef.current = Boolean(

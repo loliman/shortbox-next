@@ -1,21 +1,315 @@
 import type { PrismaClient, Prisma } from "@prisma/client";
 import { prisma } from "../prisma/client";
+import { updateStoryFilterFlagsForIssue } from "../../util/filter-updater";
+import { MarvelCrawlerService } from "../../services/MarvelCrawlerService";
 
 type PrismaExecutor = Prisma.TransactionClient | PrismaClient;
 
-type IssueInput = {
-  number?: string;
-  format?: string;
-  variant?: string;
+type PublisherRef = {
+  name?: string | null;
+  us?: boolean | null;
+};
+
+type StoryParentIssueRef = {
+  number?: string | null;
   series?: {
-    title?: string;
-    volume?: number;
-    publisher?: {
-      name?: string;
-      us?: boolean;
-    };
+    title?: string | null;
+    volume?: number | null;
   };
 };
+
+type StoryParentRef = {
+  number?: number | null;
+  issue?: StoryParentIssueRef;
+};
+
+type StoryIndividualInput = {
+  name?: string | null;
+  type?: string | string[] | null;
+};
+
+type StoryAppearanceInput = {
+  name?: string | null;
+  type?: string | null;
+  role?: string | null;
+};
+
+type CrawledNamedType = {
+  name?: string;
+  type?: string | string[];
+};
+
+type CrawledArcLike = {
+  title?: string;
+  type?: string;
+};
+
+type CrawledAppearanceLike = {
+  name?: string;
+  type?: string;
+  role?: string;
+};
+
+type CrawledCoverLike = {
+  number?: number;
+  url?: string;
+  individuals?: CrawledNamedType[];
+};
+
+type CrawledStoryLike = {
+  number?: number;
+  title?: string;
+  addinfo?: string;
+  part?: string;
+  individuals?: CrawledNamedType[];
+  appearances?: CrawledAppearanceLike[];
+};
+
+type CrawledVariantLike = {
+  number?: string;
+  legacyNumber?: string;
+  format?: string;
+  variant?: string;
+  releasedate?: string;
+  price?: number;
+  currency?: string;
+  cover?: CrawledCoverLike;
+};
+
+type CrawledIssueLike = {
+  legacyNumber?: string;
+  releasedate?: string;
+  price?: number;
+  currency?: string;
+  cover?: CrawledCoverLike;
+  stories?: CrawledStoryLike[];
+  individuals?: CrawledNamedType[];
+  arcs?: CrawledArcLike[];
+  variants?: CrawledVariantLike[];
+  collectedIssues?: Array<{
+    number?: string;
+    storyTitle?: string;
+    series?: {
+      title?: string;
+      volume?: number;
+    };
+  }>;
+  containedIssues?: Array<{
+    number?: string;
+    storyTitle?: string;
+    series?: {
+      title?: string;
+      volume?: number;
+    };
+  }>;
+};
+
+type StoryInput = {
+  number?: number | null;
+  title?: string | null;
+  addinfo?: string | null;
+  part?: string | null;
+  individuals?: StoryIndividualInput[];
+  appearances?: StoryAppearanceInput[];
+  parent?: StoryParentRef;
+};
+
+const crawler = new MarvelCrawlerService();
+
+type ParentIssueRef = {
+  issueId: bigint;
+  storyTitle?: string;
+};
+
+type IssueInput = {
+  id?: string | number | null;
+  title?: string | null;
+  number?: string | null;
+  format?: string | null;
+  variant?: string | null;
+  releasedate?: string | null;
+  pages?: number | null;
+  price?: number | null;
+  currency?: string | null;
+  comicguideid?: string | number | null;
+  legacy_number?: string | null;
+  isbn?: string | null;
+  limitation?: string | null;
+  addinfo?: string | null;
+  verified?: boolean;
+  collected?: boolean;
+  stories?: StoryInput[];
+  series?: {
+    title?: string | null;
+    volume?: number | null;
+    publisher?: PublisherRef | null;
+  } | null;
+};
+
+export async function createIssue(item: IssueInput) {
+  return prisma.$transaction(async (tx) => {
+    const publisher = await findPublisher(item.series?.publisher, tx);
+    if (!publisher) throw new Error("Publisher not found");
+
+    const series = await tx.series.findFirst({
+      where: {
+        title: normalizeText(item.series?.title),
+        volume: BigInt(Number(item.series?.volume ?? 0)),
+        fkPublisher: publisher.id,
+      },
+      include: {
+        publisher: true,
+      },
+    });
+    if (!series) throw new Error("Series not found");
+
+    const now = new Date();
+    const created = await tx.issue.create({
+      data: {
+        title: normalizeText(item.title),
+        number: normalizeText(item.number),
+        format: normalizeText(item.format),
+        variant: normalizeOptionalText(item.variant),
+        releaseDate: coerceReleaseDateForDb(item.releasedate),
+        legacyNumber: normalizeText(item.legacy_number),
+        pages: normalizeBigInt(item.pages),
+        price: normalizeFloat(item.price),
+        currency: normalizeOptionalText(item.currency),
+        comicGuideId: normalizeBigInt(item.comicguideid),
+        fkSeries: series.id,
+        isbn: normalizeOptionalText(item.isbn),
+        limitation: normalizeBigInt(item.limitation),
+        addInfo: normalizeOptionalText(item.addinfo),
+        verified: Boolean(item.verified),
+        collected: typeof item.collected === "boolean" ? item.collected : null,
+        createdAt: now,
+        updatedAt: now,
+      },
+      include: {
+        series: {
+          include: {
+            publisher: true,
+          },
+        },
+      },
+    });
+
+    await syncStoriesFromParentRefs(Number(created.id), item, tx);
+    await updateStoryFilterFlagsForIssue(Number(created.id));
+
+    return toIssuePayload(created);
+  });
+}
+
+export async function editIssue(oldItem: IssueInput, item: IssueInput) {
+  return prisma.$transaction(async (tx) => {
+    const oldPublisher = await findPublisher(oldItem.series?.publisher, tx);
+    if (!oldPublisher) throw new Error("Publisher not found");
+
+    const oldSeries = await tx.series.findFirst({
+      where: {
+        title: normalizeText(oldItem.series?.title),
+        volume: BigInt(Number(oldItem.series?.volume ?? 0)),
+        fkPublisher: oldPublisher.id,
+      },
+    });
+    if (!oldSeries) throw new Error("Series not found");
+
+    const existing = await tx.issue.findFirst({
+      where: {
+        fkSeries: oldSeries.id,
+        number: normalizeText(oldItem.number),
+        variant: normalizeOptionalText(oldItem.variant) ?? "",
+        ...(normalizeText(oldItem.format) ? { format: normalizeText(oldItem.format) } : {}),
+      },
+    });
+    if (!existing) throw new Error("Issue not found");
+
+    const newPublisher = await findPublisher(item.series?.publisher, tx);
+    if (!newPublisher) throw new Error("Publisher not found");
+
+    const newSeries = await tx.series.findFirst({
+      where: {
+        title: normalizeText(item.series?.title),
+        volume: BigInt(Number(item.series?.volume ?? 0)),
+        fkPublisher: newPublisher.id,
+      },
+      include: {
+        publisher: true,
+      },
+    });
+    if (!newSeries) throw new Error("Series not found");
+
+    const oldNumber = normalizeText(oldItem.number);
+    const seriesChanged = oldSeries.id !== newSeries.id;
+    const siblingIssuesToMove = seriesChanged
+      ? await tx.issue.findMany({
+          where: {
+            number: oldNumber,
+            fkSeries: oldSeries.id,
+          },
+        })
+      : [];
+
+    const updated = await tx.issue.update({
+      where: {
+        id: existing.id,
+      },
+      data: {
+        title: normalizeText(item.title),
+        number: normalizeText(item.number),
+        format: normalizeText(item.format),
+        variant: normalizeOptionalText(item.variant),
+        releaseDate: coerceReleaseDateForDb(item.releasedate),
+        legacyNumber: normalizeText(item.legacy_number),
+        pages: normalizeBigInt(item.pages) ?? BigInt(0),
+        price: normalizeFloat(item.price),
+        currency: normalizeOptionalText(item.currency) ?? "",
+        isbn: normalizeOptionalText(item.isbn) ?? "",
+        limitation: normalizeBigInt(item.limitation),
+        addInfo: normalizeOptionalText(item.addinfo) ?? "",
+        fkSeries: newSeries.id,
+        updatedAt: new Date(),
+        ...(typeof item.verified === "boolean" ? { verified: item.verified } : {}),
+        ...(typeof item.collected === "boolean" ? { collected: item.collected } : {}),
+        ...(item.comicguideid !== undefined
+          ? { comicGuideId: normalizeBigInt(item.comicguideid) }
+          : {}),
+      },
+      include: {
+        series: {
+          include: {
+            publisher: true,
+          },
+        },
+      },
+    });
+
+    if (seriesChanged) {
+      for (const siblingIssue of siblingIssuesToMove) {
+        if (siblingIssue.id === updated.id) continue;
+        await tx.issue.update({
+          where: { id: siblingIssue.id },
+          data: { fkSeries: newSeries.id, updatedAt: new Date() },
+        });
+      }
+    }
+
+    const shouldSyncStories =
+      typeof item === "object" && item !== null && Object.prototype.hasOwnProperty.call(item, "stories");
+
+    if (!newPublisher.original && shouldSyncStories) {
+      const removedUsParentStoryIds = await syncStoriesFromParentRefs(Number(updated.id), item, tx);
+      await updateStoryFilterFlagsForIssue(Number(updated.id));
+      const removedUsIssueIds = await resolveIssueIdsFromStoryIds(removedUsParentStoryIds, tx);
+      for (const removedUsIssueId of removedUsIssueIds) {
+        await updateStoryFilterFlagsForIssue(removedUsIssueId);
+      }
+    }
+
+    return toIssuePayload(updated);
+  });
+}
 
 export async function deleteIssueByLookup(item: IssueInput, executor: PrismaExecutor = prisma) {
   const runDelete = async (tx: PrismaExecutor) => {
@@ -181,6 +475,795 @@ export async function deleteIssueByLookup(item: IssueInput, executor: PrismaExec
   return true;
 }
 
+async function syncStoriesFromParentRefs(
+  issueId: number,
+  item: IssueInput,
+  executor: PrismaExecutor
+) {
+  const inputStories = Array.isArray(item.stories) ? item.stories : [];
+
+  const existingStories = await executor.story.findMany({
+    where: { fkIssue: BigInt(issueId) },
+    orderBy: [{ number: "asc" }, { id: "asc" }],
+    select: { id: true, fkParent: true },
+  });
+
+  const oldParentStoryIds = existingStories
+    .map((story) => Number(story.fkParent || 0))
+    .filter((id) => id > 0);
+  const oldUsParentStoryIds = await filterUsParentStoryIds(oldParentStoryIds, executor);
+  const newlyLinkedParentStoryIds = new Set<number>();
+  const existingStoryIds = existingStories.map((story) => story.id);
+
+  if (existingStoryIds.length > 0) {
+    await executor.storyAppearance.deleteMany({
+      where: { fkStory: { in: existingStoryIds } },
+    });
+    await executor.storyIndividual.deleteMany({
+      where: { fkStory: { in: existingStoryIds } },
+    });
+    await executor.story.deleteMany({
+      where: { id: { in: existingStoryIds } },
+    });
+  }
+
+  if (inputStories.length === 0) {
+    return Array.from(oldUsParentStoryIds);
+  }
+
+  const parentIssueCache = new Map<string, ParentIssueRef[]>();
+  let nextStoryNumber = 1;
+
+  for (const story of inputStories) {
+    const requestedStoryNumber = Number(story.number || 0);
+    const resolvedStoryNumber = requestedStoryNumber > 0 ? requestedStoryNumber : nextStoryNumber++;
+    if (resolvedStoryNumber >= nextStoryNumber) nextStoryNumber = resolvedStoryNumber + 1;
+
+    const createStoryRow = async (parentStoryId: number | null) => {
+      if (typeof parentStoryId === "number" && parentStoryId > 0) {
+        newlyLinkedParentStoryIds.add(parentStoryId);
+      }
+
+      const createdStory = await executor.story.create({
+        data: {
+          fkIssue: BigInt(issueId),
+          fkParent: parentStoryId ? BigInt(parentStoryId) : null,
+          number: BigInt(resolvedStoryNumber),
+          title: normalizeText(story.title),
+          addInfo: normalizeText(story.addinfo),
+          part: normalizeText(story.part),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+
+      await linkStoryIndividuals(Number(createdStory.id), story.individuals || [], executor);
+      await linkStoryAppearances(Number(createdStory.id), story.appearances || [], executor);
+    };
+
+    let hasCreatedStory = false;
+      const parentTitle = normalizeText(story.parent?.issue?.series?.title);
+    const parentVolume = Number(story.parent?.issue?.series?.volume || 0);
+    const parentNumber = normalizeText(story.parent?.issue?.number);
+
+    if (parentTitle && parentVolume > 0 && parentNumber) {
+      const cacheKey = `${parentTitle}::${parentVolume}::${parentNumber}`;
+      let parentIssueRefs = parentIssueCache.get(cacheKey);
+
+      if (!parentIssueRefs) {
+        parentIssueRefs = await findOrCrawlParentIssueRefs(
+          {
+            title: parentTitle,
+            volume: parentVolume,
+            number: parentNumber,
+          },
+          executor
+        );
+        parentIssueCache.set(cacheKey, parentIssueRefs);
+      }
+
+      if (parentIssueRefs.length > 0) {
+        const requestedParentStoryNumber = Number(story.parent?.number || 0);
+        const requestedStoryTitle = normalizeStoryTitleKey(story.title);
+        const matchedParentRefsByTitle =
+          requestedStoryTitle === ""
+            ? []
+            : parentIssueRefs.filter(
+                (entry) => normalizeStoryTitleKey(entry.storyTitle) === requestedStoryTitle
+              );
+
+        const parentIssueIds = parentIssueRefs.map((entry) => entry.issueId);
+        const parentStories = await executor.story.findMany({
+          where: {
+            fkIssue: { in: parentIssueIds },
+            ...(requestedParentStoryNumber > 0
+              ? { number: BigInt(requestedParentStoryNumber) }
+              : {}),
+          },
+          orderBy: [{ fkIssue: "asc" }, { number: "asc" }, { id: "asc" }],
+          select: { id: true, fkIssue: true, title: true, number: true },
+        });
+
+        const matchesResolvedParentStory = (parentStory: {
+          fkIssue: bigint | null;
+          title: string;
+        }) =>
+          matchedParentRefsByTitle.some(
+            (entry) =>
+              entry.issueId === parentStory.fkIssue &&
+              normalizeStoryTitleKey(entry.storyTitle) === normalizeStoryTitleKey(parentStory.title)
+          );
+
+        const selectedParentStories =
+          requestedParentStoryNumber > 0
+            ? parentStories.filter(
+                (entry) =>
+                  Number(entry.number || 0) === requestedParentStoryNumber &&
+                  (matchedParentRefsByTitle.length === 0 || matchesResolvedParentStory(entry))
+              )
+            : matchedParentRefsByTitle.length > 0
+              ? parentStories.filter((entry) => matchesResolvedParentStory(entry))
+              : parentStories;
+
+        for (const parentStory of selectedParentStories) {
+          await createStoryRow(Number(parentStory.id));
+          hasCreatedStory = true;
+        }
+      }
+    }
+
+    if (!hasCreatedStory) {
+      await createStoryRow(null);
+    }
+  }
+
+  return Array.from(oldUsParentStoryIds).filter((id) => !newlyLinkedParentStoryIds.has(id));
+}
+
+async function filterUsParentStoryIds(storyIds: readonly number[], executor: PrismaExecutor) {
+  const numericStoryIds = normalizeDbIds(storyIds);
+  if (numericStoryIds.length === 0) return new Set<number>();
+
+  const stories = await executor.story.findMany({
+    where: { id: { in: numericStoryIds.map((id) => BigInt(id)) } },
+    select: {
+      id: true,
+      issue: {
+        select: {
+          series: {
+            select: {
+              publisher: {
+                select: {
+                  original: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const usStoryIds = new Set<number>();
+  for (const story of stories) {
+    if (!story.issue?.series?.publisher?.original) continue;
+    const storyId = Number(story.id || 0);
+    if (storyId > 0) usStoryIds.add(storyId);
+  }
+
+  return usStoryIds;
+}
+
+async function resolveIssueIdsFromStoryIds(storyIds: readonly number[], executor: PrismaExecutor) {
+  const numericStoryIds = normalizeDbIds(storyIds);
+  if (numericStoryIds.length === 0) return [];
+
+  const stories = await executor.story.findMany({
+    where: { id: { in: numericStoryIds.map((id) => BigInt(id)) } },
+    select: { fkIssue: true },
+  });
+
+  return Array.from(
+    new Set(stories.map((story) => Number(story.fkIssue || 0)).filter((id) => id > 0))
+  );
+}
+
+async function linkStoryIndividuals(
+  storyId: number,
+  individuals: StoryIndividualInput[],
+  executor: PrismaExecutor
+) {
+  for (const entry of individuals) {
+    const name = normalizeText(entry?.name);
+    if (!name) continue;
+
+    let individual = await executor.individual.findFirst({ where: { name } });
+    if (!individual) {
+      individual = await executor.individual.create({
+        data: {
+          name,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+    }
+
+    const types = normalizeTypeList(entry?.type);
+    for (const type of types) {
+      await executor.storyIndividual.create({
+        data: {
+          fkStory: BigInt(storyId),
+          fkIndividual: individual.id,
+          type,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+    }
+  }
+}
+
+async function linkStoryAppearances(
+  storyId: number,
+  appearances: StoryAppearanceInput[],
+  executor: PrismaExecutor
+) {
+  for (const entry of appearances) {
+    const name = normalizeText(entry?.name);
+    const type = normalizeText(entry?.type);
+    const role = normalizeText(entry?.role);
+    if (!name || !type) continue;
+
+    let appearance = await executor.appearance.findFirst({
+      where: {
+        name,
+        type,
+      },
+    });
+    if (!appearance) {
+      appearance = await executor.appearance.create({
+        data: {
+          name,
+          type,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+    }
+
+    await executor.storyAppearance.create({
+      data: {
+        fkStory: BigInt(storyId),
+        fkAppearance: appearance.id,
+        role,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+  }
+}
+
+async function linkIssueIndividuals(
+  issueId: bigint,
+  individuals: CrawledNamedType[],
+  executor: PrismaExecutor
+) {
+  for (const entry of individuals) {
+    const name = normalizeText(entry?.name);
+    if (!name) continue;
+
+    let individual = await executor.individual.findFirst({ where: { name } });
+    if (!individual) {
+      individual = await executor.individual.create({
+        data: {
+          name,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+    }
+
+    for (const type of normalizeTypeList(entry?.type)) {
+      await executor.issueIndividual.upsert({
+        where: {
+          fkIssue_fkIndividual_type: {
+            fkIssue: issueId,
+            fkIndividual: individual.id,
+            type,
+          },
+        },
+        update: {
+          updatedAt: new Date(),
+        },
+        create: {
+          fkIssue: issueId,
+          fkIndividual: individual.id,
+          type,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+    }
+  }
+}
+
+async function linkCoverIndividuals(
+  coverId: bigint,
+  individuals: CrawledNamedType[],
+  executor: PrismaExecutor
+) {
+  for (const entry of individuals) {
+    const name = normalizeText(entry?.name);
+    if (!name) continue;
+
+    let individual = await executor.individual.findFirst({ where: { name } });
+    if (!individual) {
+      individual = await executor.individual.create({
+        data: {
+          name,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+    }
+
+    for (const type of normalizeTypeList(entry?.type)) {
+      await executor.coverIndividual.upsert({
+        where: {
+          fkCover_fkIndividual_type: {
+            fkCover: coverId,
+            fkIndividual: individual.id,
+            type,
+          },
+        },
+        update: {
+          updatedAt: new Date(),
+        },
+        create: {
+          fkCover: coverId,
+          fkIndividual: individual.id,
+          type,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+    }
+  }
+}
+
+async function linkIssueArcs(
+  issueId: bigint,
+  arcs: CrawledArcLike[],
+  executor: PrismaExecutor
+) {
+  for (const rawArc of arcs) {
+    const title = normalizeText(rawArc?.title);
+    const type = normalizeText(rawArc?.type);
+    if (!title || !type) continue;
+
+    let arc = await executor.arc.findFirst({
+      where: {
+        title,
+        type,
+      },
+    });
+
+    if (!arc) {
+      arc = await executor.arc.create({
+        data: {
+          title,
+          type,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+    }
+
+    await executor.issueArc.upsert({
+      where: {
+        fkIssue_fkArc: {
+          fkIssue: issueId,
+          fkArc: arc.id,
+        },
+      },
+      update: {
+        updatedAt: new Date(),
+      },
+      create: {
+        fkIssue: issueId,
+        fkArc: arc.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+  }
+}
+
+async function findOrCrawlParentIssueRefs(
+  parent: { title: string; volume: number; number: string },
+  executor: PrismaExecutor
+): Promise<ParentIssueRef[]> {
+  const localIssues = await executor.issue.findMany({
+    where: {
+      number: parent.number,
+      variant: "",
+      series: {
+        title: parent.title,
+        volume: BigInt(parent.volume),
+        publisher: {
+          original: true,
+        },
+      },
+    },
+    orderBy: [{ id: "asc" }],
+    select: { id: true },
+  });
+
+  if (localIssues.length > 0) {
+    return localIssues.map((entry) => ({ issueId: entry.id }));
+  }
+
+  const crawledSeries = await crawler.crawlSeries(parent.title, parent.volume);
+  let publisher = await executor.publisher.findFirst({
+    where: {
+      name: normalizeText(crawledSeries.publisherName) || "Marvel Comics",
+      original: true,
+    },
+  });
+
+  if (!publisher) {
+    publisher = await executor.publisher.create({
+      data: {
+        name: normalizeText(crawledSeries.publisherName) || "Marvel Comics",
+        original: true,
+        addInfo: "",
+        startYear: BigInt(0),
+        endYear: BigInt(0),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  let series = await executor.series.findFirst({
+    where: {
+      title: parent.title,
+      volume: BigInt(parent.volume),
+      fkPublisher: publisher.id,
+    },
+  });
+
+  if (!series) {
+    series = await executor.series.create({
+      data: {
+        title: crawledSeries.title,
+        volume: BigInt(crawledSeries.volume),
+        startYear: BigInt(crawledSeries.startyear || 0),
+        endYear: BigInt(crawledSeries.endyear || 0),
+        addInfo: "",
+        fkPublisher: publisher.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  const issue = await executor.issue.findFirst({
+    where: {
+      number: parent.number,
+      variant: "",
+      fkSeries: series.id,
+    },
+    select: { id: true },
+  });
+  if (issue) return [{ issueId: issue.id }];
+
+  const crawledIssue = (await crawler.crawlIssue(
+    parent.title,
+    parent.volume,
+    parent.number
+  )) as CrawledIssueLike;
+
+  const normalizedCollectedIssues = Array.isArray(crawledIssue.collectedIssues)
+    ? crawledIssue.collectedIssues
+        .map((entry) => ({
+          number: normalizeText(entry?.number),
+          storyTitle: normalizeText(entry?.storyTitle),
+          seriesTitle: normalizeText(entry?.series?.title),
+          seriesVolume: Number(entry?.series?.volume || 0),
+        }))
+        .filter((entry) => entry.number && entry.seriesTitle && entry.seriesVolume > 0)
+    : Array.isArray(crawledIssue.containedIssues)
+      ? crawledIssue.containedIssues
+          .map((entry) => ({
+            number: normalizeText(entry?.number),
+            storyTitle: normalizeText(entry?.storyTitle),
+            seriesTitle: normalizeText(entry?.series?.title),
+            seriesVolume: Number(entry?.series?.volume || 0),
+          }))
+          .filter((entry) => entry.number && entry.seriesTitle && entry.seriesVolume > 0)
+      : [];
+
+  if (normalizedCollectedIssues.length > 0) {
+    const containedIssueRefs = new Map<string, ParentIssueRef>();
+    for (const containedIssue of normalizedCollectedIssues) {
+      const refs = await findOrCrawlParentIssueRefs(
+        {
+          title: containedIssue.seriesTitle,
+          volume: containedIssue.seriesVolume,
+          number: containedIssue.number,
+        },
+        executor
+      );
+      refs.forEach((ref) => {
+        const key = `${String(ref.issueId)}::${normalizeStoryTitleKey(containedIssue.storyTitle || ref.storyTitle)}`;
+        containedIssueRefs.set(key, {
+          issueId: ref.issueId,
+          storyTitle: containedIssue.storyTitle || ref.storyTitle,
+        });
+      });
+    }
+    if (containedIssueRefs.size > 0) return Array.from(containedIssueRefs.values());
+  }
+
+  const createdIssue = await executor.issue.create({
+    data: {
+      title: "",
+      number: parent.number,
+      format: "Heft",
+      variant: "",
+      releaseDate: coerceReleaseDateForDb(crawledIssue.releasedate),
+      legacyNumber: normalizeText(crawledIssue.legacyNumber),
+      pages: BigInt(0),
+      price: normalizeFloat(crawledIssue.price),
+      currency: normalizeOptionalText(crawledIssue.currency) ?? "USD",
+      comicGuideId: BigInt(0),
+      isbn: "",
+      limitation: null,
+      addInfo: "",
+      fkSeries: series.id,
+      verified: false,
+      collected: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  });
+
+  const mainCover = crawledIssue.cover || {
+    number: 0,
+    url: "",
+    individuals: [],
+  };
+
+  const createdMainCover = await executor.cover.create({
+    data: {
+      fkIssue: createdIssue.id,
+      fkParent: null,
+      number: BigInt(Number(mainCover.number || 0)),
+      url: normalizeOptionalText(mainCover.url) ?? "",
+      addInfo: "",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  });
+
+  await linkCoverIndividuals(createdMainCover.id, mainCover.individuals || [], executor);
+  await linkIssueIndividuals(createdIssue.id, crawledIssue.individuals || [], executor);
+  await linkIssueArcs(createdIssue.id, crawledIssue.arcs || [], executor);
+
+  for (const crawledStory of crawledIssue.stories || []) {
+    const createdStory = await executor.story.create({
+      data: {
+        fkIssue: createdIssue.id,
+        number: BigInt(Number(crawledStory.number || 0) || 1),
+        title: normalizeText(crawledStory.title),
+        addInfo: normalizeText(crawledStory.addinfo),
+        part: normalizeText(crawledStory.part),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+    await linkStoryIndividuals(Number(createdStory.id), crawledStory.individuals || [], executor);
+    await linkStoryAppearances(Number(createdStory.id), crawledStory.appearances || [], executor);
+  }
+
+  for (const crawledVariant of crawledIssue.variants || []) {
+    const variantNumber = normalizeText(crawledVariant.number || createdIssue.number || parent.number);
+    const variantName = normalizeText(crawledVariant.variant);
+    if (!variantName) continue;
+
+    const variantFormat = normalizeText(crawledVariant.format || "Heft");
+    const existingVariantIssue = await executor.issue.findFirst({
+      where: {
+        fkSeries: series.id,
+        number: variantNumber,
+        format: variantFormat,
+        variant: variantName,
+      },
+    });
+
+    const variantIssue = existingVariantIssue
+      ? await executor.issue.update({
+          where: {
+            id: existingVariantIssue.id,
+          },
+          data: {
+            releaseDate: coerceReleaseDateForDb(
+              crawledVariant.releasedate || crawledIssue.releasedate || ""
+            ),
+            legacyNumber: normalizeText(crawledVariant.legacyNumber || crawledIssue.legacyNumber),
+            price: normalizeFloat(crawledVariant.price),
+            currency: normalizeOptionalText(crawledVariant.currency || crawledIssue.currency) ?? "USD",
+            updatedAt: new Date(),
+          },
+        })
+      : await executor.issue.create({
+          data: {
+            title: "",
+            number: variantNumber,
+            format: variantFormat,
+            variant: variantName,
+            releaseDate: coerceReleaseDateForDb(
+              crawledVariant.releasedate || crawledIssue.releasedate || ""
+            ),
+            legacyNumber: normalizeText(crawledVariant.legacyNumber || crawledIssue.legacyNumber),
+            pages: BigInt(0),
+            price: normalizeFloat(crawledVariant.price),
+            currency: normalizeOptionalText(crawledVariant.currency || crawledIssue.currency) ?? "USD",
+            comicGuideId: BigInt(0),
+            isbn: "",
+            limitation: null,
+            addInfo: "",
+            fkSeries: series.id,
+            verified: false,
+            collected: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        });
+
+    const variantCover = crawledVariant.cover;
+    if (!variantCover) continue;
+
+    const createdVariantCover = await executor.cover.create({
+      data: {
+        fkIssue: variantIssue.id,
+        fkParent: null,
+        number: BigInt(Number(variantCover.number || 0)),
+        url: normalizeOptionalText(variantCover.url) ?? "",
+        addInfo: "",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+    await linkCoverIndividuals(createdVariantCover.id, variantCover.individuals || [], executor);
+  }
+
+  return [{ issueId: createdIssue.id }];
+}
+
+async function findPublisher(publisher: PublisherRef | null | undefined, executor: PrismaExecutor) {
+  return executor.publisher.findFirst({
+    where: {
+      name: normalizeText(publisher?.name),
+      ...(typeof publisher?.us === "boolean" ? { original: publisher.us } : {}),
+    },
+  });
+}
+
+function toIssuePayload(issue: {
+  id: bigint;
+  title: string;
+  number: string;
+  format: string;
+  variant: string | null;
+  releaseDate: Date | null;
+  pages: bigint | null;
+  price: number | null;
+  currency: string | null;
+  comicGuideId: bigint | null;
+  isbn: string | null;
+  limitation: bigint | null;
+  addInfo: string | null;
+  verified: boolean;
+  collected: boolean | null;
+  series: {
+    id: bigint;
+    title: string | null;
+    volume: bigint;
+    publisher: {
+      id: bigint;
+      name: string;
+      original: boolean;
+    } | null;
+  } | null;
+}) {
+  return {
+    id: String(issue.id),
+    title: issue.title || "",
+    number: issue.number || "",
+    format: issue.format || "",
+    variant: issue.variant || "",
+    releasedate: issue.releaseDate ? issue.releaseDate.toISOString().slice(0, 10) : "",
+    pages: issue.pages === null ? 0 : Number(issue.pages),
+    price: issue.price ?? 0,
+    currency: issue.currency || "",
+    comicguideid: issue.comicGuideId === null ? 0 : Number(issue.comicGuideId),
+    isbn: issue.isbn || "",
+    limitation: issue.limitation === null ? "" : String(issue.limitation),
+    addinfo: issue.addInfo || "",
+    verified: issue.verified,
+    collected: issue.collected ?? false,
+    series: issue.series
+      ? {
+          id: String(issue.series.id),
+          title: issue.series.title || "",
+          volume: Number(issue.series.volume),
+          publisher: issue.series.publisher
+            ? {
+                id: String(issue.series.publisher.id),
+                name: issue.series.publisher.name,
+                us: issue.series.publisher.original,
+              }
+            : undefined,
+        }
+      : undefined,
+  };
+}
+
 function normalizeText(value: unknown) {
   return String(value || "").trim();
+}
+
+function normalizeOptionalText(value: unknown) {
+  const normalized = normalizeText(value);
+  return normalized === "" ? null : normalized;
+}
+
+function normalizeBigInt(value: unknown) {
+  if (value === null || value === undefined || value === "") return null;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return null;
+  return BigInt(Math.trunc(numeric));
+}
+
+function normalizeFloat(value: unknown) {
+  if (value === null || value === undefined || value === "") return null;
+  const numeric = typeof value === "number" ? value : Number(String(value).replace(",", ".").trim());
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function normalizeTypeList(raw: unknown): string[] {
+  if (Array.isArray(raw)) {
+    return raw.map((entry) => normalizeText(entry)).filter((entry) => entry.length > 0);
+  }
+  const normalized = normalizeText(raw);
+  return normalized ? [normalized] : [];
+}
+
+function normalizeDbIds(values: readonly number[]) {
+  return Array.from(new Set(values.filter((id) => Number.isFinite(id) && Math.trunc(id) > 0))).map((id) =>
+    Math.trunc(id)
+  );
+}
+
+function normalizeStoryTitleKey(value: unknown): string {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_:;,.!?'"()\-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function coerceReleaseDateForDb(value: unknown) {
+  const normalized = normalizeText(value);
+  if (!normalized) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return new Date(`${normalized}T00:00:00.000Z`);
+  }
+
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }

@@ -29,6 +29,19 @@ export async function getNavigationPublishers(scope: NavigationScope) {
   }
 }
 
+export function getNavigationSeriesKey(input: {
+  publisher?: string | null;
+  title?: string | null;
+  volume?: number | string | null;
+}) {
+  const numericVolume = Number(input.volume ?? 0);
+  return [
+    input.publisher || "",
+    input.title || "",
+    Number.isFinite(numericVolume) ? String(numericVolume) : "",
+  ].join("|");
+}
+
 export async function getNavigationSeries(scope: NavigationScope & { publisher: string }) {
   void scope.filter;
 

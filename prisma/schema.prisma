@@ -86,6 +86,7 @@ model Series {
   startYear   BigInt   @default(0) @map("startyear") @db.BigInt
   endYear     BigInt?  @default(0) @map("endyear") @db.BigInt
   volume      BigInt   @db.BigInt
+  genre       String   @default("") @db.VarChar(255)
   addInfo     String   @default("") @map("addinfo") @db.VarChar(1000)
   createdAt   DateTime @map("createdat") @db.Timestamptz(6)
   updatedAt   DateTime @map("updatedat") @db.Timestamptz(6)

@@ -9,6 +9,10 @@ import type { AppRouteContextValue } from "../../app/routeContext";
 
 interface IssueDetailsUSProps {
   routeContext: AppRouteContextValue;
+  initialIssue?: unknown;
+  initialPublisherNodes?: Array<{ id?: string | null; name?: string | null; us?: boolean | null }>;
+  initialSeriesNodesByPublisher?: Record<string, unknown[]>;
+  initialIssueNodesBySeriesKey?: Record<string, unknown[]>;
 }
 
 function IssueDetailsUS(props: Readonly<IssueDetailsUSProps>) {
@@ -18,6 +22,10 @@ function IssueDetailsUS(props: Readonly<IssueDetailsUSProps>) {
   return (
     <IssueDetails
       routeContext={props.routeContext}
+      initialIssue={props.initialIssue as any}
+      initialPublisherNodes={props.initialPublisherNodes}
+      initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher}
+      initialIssueNodesBySeriesKey={props.initialIssueNodesBySeriesKey}
       {...contextProps}
       bottom={<IssueDetailsUSBottom {...contextProps} />}
       details={<IssueDetailsUSDetails />}

@@ -18,6 +18,37 @@ interface SessionData {
 
 interface LayoutProps {
   routeContext: AppRouteContextValue;
+  initialPublisherNodes?: Array<{ id?: string | null; name?: string | null; us?: boolean | null }>;
+  initialSeriesNodesByPublisher?: Record<
+    string,
+    Array<{
+      id?: string | null;
+      title?: string | null;
+      volume?: number | null;
+      startyear?: number | null;
+      endyear?: number | null;
+      publisher?: { id?: string | null; name?: string | null; us?: boolean | null } | null;
+    }>
+  >;
+  initialIssueNodesBySeriesKey?: Record<
+    string,
+    Array<{
+      id?: string | null;
+      number?: string | null;
+      legacy_number?: string | null;
+      title?: string | null;
+      format?: string | null;
+      variant?: string | null;
+      collected?: boolean | null;
+      cover?: { url?: string | null } | null;
+      variants?: Array<{ collected?: boolean | null; format?: string | null; variant?: string | null } | null> | null;
+      series?: {
+        title?: string | null;
+        volume?: number | null;
+        publisher?: { id?: string | null; name?: string | null; us?: boolean | null } | null;
+      } | null;
+    }>
+  >;
   us?: boolean;
   children?: React.ReactNode;
   drawerOpen?: boolean;

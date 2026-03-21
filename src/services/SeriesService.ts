@@ -499,7 +499,7 @@ export class SeriesService {
         startyear: Number(series.startYear),
         endyear: series.endYear === null ? null : Number(series.endYear),
         volume: Number(series.volume),
-        genre: null,
+        genre: series.genre || null,
         addinfo: series.addInfo || null,
         issueCount,
         active: series.endYear === null || Number(series.endYear) === 0,

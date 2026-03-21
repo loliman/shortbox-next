@@ -31,6 +31,11 @@ const GALLERY_GRID_SX = {
 
 interface HomeProps {
   routeContext: AppRouteContextValue;
+  initialItems?: PreviewIssue[];
+  initialHasMore?: boolean;
+  initialPublisherNodes?: Array<{ id?: string | null; name?: string | null; us?: boolean | null }>;
+  initialSeriesNodesByPublisher?: Record<string, unknown[]>;
+  initialIssueNodesBySeriesKey?: Record<string, unknown[]>;
   registerLoadingComponent?: (component: string) => void;
   unregisterLoadingComponent?: (component: string) => void;
   query?: { filter?: string; order?: string; direction?: string; view?: string } | null;
@@ -89,11 +94,15 @@ export default function Home(routeProps: Readonly<HomeProps>) {
     ...GALLERY_GRID_SX,
     gridTemplateColumns: galleryGridColumns,
   } as const;
-  const [items, setItems] = React.useState<PreviewIssue[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const hasInitialData = Array.isArray(routeProps.initialItems);
+  const [items, setItems] = React.useState<PreviewIssue[]>(() =>
+    hasInitialData ? routeProps.initialItems || [] : []
+  );
+  const [loading, setLoading] = React.useState(!hasInitialData);
   const [fetchingMore, setFetchingMore] = React.useState(false);
   const [error, setError] = React.useState<unknown>(null);
-  const [hasMore, setHasMore] = React.useState(false);
+  const [hasMore, setHasMore] = React.useState(Boolean(routeProps.initialHasMore));
+  const skipInitialFetchRef = React.useRef(hasInitialData);
   const requestKey = React.useMemo(
     () =>
       JSON.stringify({
@@ -146,11 +155,21 @@ export default function Home(routeProps: Readonly<HomeProps>) {
   );
 
   React.useEffect(() => {
+    if (skipInitialFetchRef.current) {
+      skipInitialFetchRef.current = false;
+      setLoading(false);
+      setError(null);
+      setHasMore(Boolean(routeProps.initialHasMore));
+      setItems(routeProps.initialItems || []);
+      unregisterHomeLoading();
+      return;
+    }
+
     setItems([]);
     setHasMore(false);
     setError(null);
     void loadPage(0, false);
-  }, [requestKey, loadPage]);
+  }, [requestKey, loadPage, routeProps.initialHasMore, routeProps.initialItems, unregisterHomeLoading]);
 
   const handleScroll = React.useCallback(
     (event: React.UIEvent<HTMLElement>) => {
@@ -171,7 +190,13 @@ export default function Home(routeProps: Readonly<HomeProps>) {
   const loadingIndicator = hasMore && fetchingMore ? <LoadingDots /> : null;
 
   return (
-    <Layout routeContext={routeProps.routeContext} handleScroll={handleScroll}>
+    <Layout
+      routeContext={routeProps.routeContext}
+      handleScroll={handleScroll}
+      initialPublisherNodes={routeProps.initialPublisherNodes}
+      initialSeriesNodesByPublisher={routeProps.initialSeriesNodesByPublisher as Record<string, never[]> | undefined}
+      initialIssueNodesBySeriesKey={routeProps.initialIssueNodesBySeriesKey as Record<string, never[]> | undefined}
+    >
       {props.appIsLoading || error || loading ? (
         <QueryResult
           error={error}

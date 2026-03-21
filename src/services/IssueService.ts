@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import type { Connection, Edge, Filter } from "../types/query-data";
 import type { Issue } from "../types/domain";
 import { prisma } from "../lib/prisma/client";
-import { deleteIssueByLookup } from "../lib/server/issues-write";
+import { createIssue as createIssueWrite, deleteIssueByLookup, editIssue as editIssueWrite } from "../lib/server/issues-write";
 import { FilterService } from "./FilterService";
 
 type PublisherRef = {
@@ -54,6 +54,8 @@ const ALLOWED_LAST_EDITED_SORT_FIELDS = new Set([
   "title",
   "id",
   "releasedate",
+  "series",
+  "publisher",
 ]);
 
 const ROMAN_NUMBER_PATTERN = /^(M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3}))$/i;
@@ -144,6 +146,21 @@ function fromRoman(value: string): number {
 
 function naturalCompare(left: string, right: string) {
   return left.localeCompare(right, undefined, { numeric: true, sensitivity: "base" });
+}
+
+function pickCanonicalIssueTitle(
+  issues: Array<{ title?: unknown }>,
+  fallbackTitle: unknown
+): string {
+  const titles = issues
+    .map((issue) => normalizeText(issue?.title))
+    .filter((title) => title.length > 0);
+
+  if (titles.length === 0) return normalizeText(fallbackTitle);
+
+  return [...new Set(titles)].sort((left, right) =>
+    left.localeCompare(right, "de-DE", { sensitivity: "base", numeric: true })
+  )[0];
 }
 
 function compareIssueNumber(leftRaw: unknown, rightRaw: unknown): number {
@@ -253,7 +270,7 @@ function serializePreviewIssue(issue: {
       onlyapp: story.onlyApp,
       firstapp: story.firstApp,
       otheronlytb: story.otherOnlyTb,
-      exclusive: false,
+      exclusive: !story.parent,
       onlyoneprint: story.onlyOnePrint,
       onlytb: story.onlyTb,
       reprintOf: story.reprint ? { id: String(story.reprint.id) } : null,
@@ -634,14 +651,11 @@ export class IssueService {
   }
 
   async createIssue(item: IssueInput) {
-    void item;
-    throw new Error("IssueService.createIssue is not wired yet");
+    return createIssueWrite(item);
   }
 
   async editIssue(oldItem: IssueInput, item: IssueInput) {
-    void oldItem;
-    void item;
-    throw new Error("IssueService.editIssue is not wired yet");
+    return editIssueWrite(oldItem, item);
   }
 
   async listChangeRequests(options?: { order?: string; direction?: string }) {
@@ -785,6 +799,11 @@ export class IssueService {
         fkSeries: fallback.fkSeries ?? undefined,
       },
       include: {
+        stories: {
+          select: {
+            id: true,
+          },
+        },
         covers: {
           orderBy: [{ number: "asc" }, { id: "asc" }],
           take: 1,
@@ -1123,6 +1142,29 @@ function createIssueDetailsInclude() {
 }
 
 function toIssueDetailsShape(issue: any, variants: any[]) {
+  const canonicalTitle = pickCanonicalIssueTitle([issue, ...variants], issue.title);
+  const ownStories = Array.isArray(issue.stories) ? issue.stories : [];
+  const sortedVariants = [...variants].sort(compareIssueVariants);
+  const variantStoryOwner =
+    ownStories.length > 0
+      ? issue
+      : sortedVariants.find((variant) => Array.isArray(variant.stories) && variant.stories.length > 0) ?? null;
+  const storyOwner = variantStoryOwner
+    ? {
+        number: variantStoryOwner.number,
+        legacy_number: variantStoryOwner.legacyNumber || null,
+        format: variantStoryOwner.format || null,
+        variant: variantStoryOwner.variant || null,
+      }
+    : null;
+  const isOwnStoryOwner = storyOwner
+    ? normalizeText(issue.number) === normalizeText(storyOwner.number) &&
+      normalizeText(issue.legacyNumber) === normalizeText(storyOwner.legacy_number) &&
+      normalizeText(issue.format) === normalizeText(storyOwner.format) &&
+      normalizeText(issue.variant) === normalizeText(storyOwner.variant)
+    : false;
+  const inheritsStories = Boolean(storyOwner) && !isOwnStoryOwner;
+
   const mappedVariants = variants.map((variant) => ({
     id: serializeIssueId(variant.id),
     title: variant.title || null,
@@ -1135,11 +1177,12 @@ function toIssueDetailsShape(issue: any, variants: any[]) {
     collected: variant.collected ?? null,
     comicguideid: serializeNullableIssueId(variant.comicGuideId),
     cover: variant.covers[0] ? toIssueCoverShape(variant.covers[0]) : null,
+    stories: Array.isArray(variant.stories) ? variant.stories : [],
   }));
 
   return {
     id: serializeIssueId(issue.id),
-    title: issue.title || null,
+    title: canonicalTitle || null,
     number: issue.number,
     legacy_number: issue.legacyNumber || null,
     format: issue.format || null,
@@ -1166,8 +1209,8 @@ function toIssueDetailsShape(issue: any, variants: any[]) {
       type: entry.arc.type || null,
     })),
     variants: mappedVariants,
-    storyOwner: null,
-    inheritsStories: false,
+    storyOwner,
+    inheritsStories,
     tags: [],
   };
 }
@@ -1181,7 +1224,7 @@ function toIssueSeriesShape(series: any) {
     startyear: serializeNullableIssueNumber(series.startYear),
     endyear: serializeNullableIssueNumber(series.endYear),
     volume: serializeNullableIssueNumber(series.volume),
-    genre: null,
+    genre: series.genre || null,
     addinfo: series.addInfo || null,
     publisher: series.publisher
       ? {
@@ -1243,7 +1286,7 @@ function toIssueStoryShape(story: any, includeParent: boolean) {
     title: story.title || null,
     addinfo: story.addInfo || null,
     part: story.part || null,
-    exclusive: false,
+    exclusive: !story.parent,
     onlyapp: story.onlyApp,
     firstapp: story.firstApp,
     onlytb: story.onlyTb,

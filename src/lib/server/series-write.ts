@@ -30,6 +30,7 @@ export async function createSeries(item: SeriesInput) {
       startYear: BigInt(Number(item.startyear ?? 0)),
       endYear: normalizeYear(item.endyear),
       volume: BigInt(Number(item.volume ?? 0)),
+      genre: normalizeText(item.genre),
       addInfo: String(item.addinfo || ""),
       fkPublisher: publisher.id,
       createdAt: now,
@@ -69,6 +70,7 @@ export async function editSeries(oldItem: SeriesInput, item: SeriesInput) {
       volume: BigInt(Number(item.volume ?? 0)),
       startYear: BigInt(Number(item.startyear ?? 0)),
       endYear: normalizeYear(item.endyear),
+      genre: normalizeText(item.genre),
       addInfo: String(item.addinfo || ""),
       fkPublisher: newPublisher.id,
       updatedAt: new Date(),
@@ -144,6 +146,7 @@ function toSeriesPayload(series: {
   startYear: bigint;
   endYear: bigint | null;
   volume: bigint;
+  genre: string;
   addInfo: string;
   publisher: { id: bigint; name: string; original: boolean } | null;
 }) {
@@ -153,7 +156,7 @@ function toSeriesPayload(series: {
     startyear: Number(series.startYear),
     endyear: series.endYear === null ? null : Number(series.endYear),
     volume: Number(series.volume),
-    genre: "",
+    genre: series.genre,
     addinfo: series.addInfo,
     publisher: series.publisher
       ? {

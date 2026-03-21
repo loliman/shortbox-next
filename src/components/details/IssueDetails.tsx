@@ -49,6 +49,10 @@ export { DetailsRow } from "./issue-details/DetailsRow";
 
 interface IssueDetailsProps {
   routeContext: AppRouteContextValue;
+  initialIssue?: Issue | null;
+  initialPublisherNodes?: Array<{ id?: string | null; name?: string | null; us?: boolean | null }>;
+  initialSeriesNodesByPublisher?: Record<string, unknown[]>;
+  initialIssueNodesBySeriesKey?: Record<string, unknown[]>;
   selected?: SelectedRoot;
   level?: string;
   us?: boolean;
@@ -72,9 +76,11 @@ function IssueDetails(props: IssueDetailsProps) {
   const compactLayout =
     props.compactLayout ?? Boolean(props.isPhone || (props.isTablet && !props.isTabletLandscape));
   const [coverExpanded, setCoverExpanded] = React.useState(true);
-  const [loadedIssue, setLoadedIssue] = React.useState<Issue | null>(null);
-  const [loading, setLoading] = React.useState(Boolean(selected.issue));
+  const hasInitialIssue = typeof props.initialIssue !== "undefined";
+  const [loadedIssue, setLoadedIssue] = React.useState<Issue | null>(() => props.initialIssue || null);
+  const [loading, setLoading] = React.useState(Boolean(selected.issue) && !hasInitialIssue);
   const [error, setError] = React.useState<unknown>(null);
+  const skipInitialFetchRef = React.useRef(hasInitialIssue);
   const loadedIssueIdentityKey = React.useMemo(
     () =>
       [
@@ -103,6 +109,14 @@ function IssueDetails(props: IssueDetailsProps) {
   );
 
   React.useEffect(() => {
+    if (skipInitialFetchRef.current) {
+      skipInitialFetchRef.current = false;
+      setLoading(false);
+      setError(null);
+      setLoadedIssue(props.initialIssue || null);
+      return;
+    }
+
     if (!selected.issue?.series?.publisher?.name || !selected.issue?.series?.title || !selected.issue.number) {
       setLoadedIssue(null);
       setLoading(false);
@@ -148,6 +162,7 @@ function IssueDetails(props: IssueDetailsProps) {
       cancelled = true;
     };
   }, [
+    props.initialIssue,
     selected.issue?.number,
     selected.issue?.format,
     selected.issue?.variant,
@@ -159,7 +174,12 @@ function IssueDetails(props: IssueDetailsProps) {
 
   if (loading && !loadedIssue) {
     return (
-      <Layout routeContext={props.routeContext}>
+      <Layout
+        routeContext={props.routeContext}
+        initialPublisherNodes={props.initialPublisherNodes}
+        initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher as Record<string, never[]> | undefined}
+        initialIssueNodesBySeriesKey={props.initialIssueNodesBySeriesKey as Record<string, never[]> | undefined}
+      >
         <Box className="data-fade">
           <QueryResult
             data={undefined}
@@ -175,7 +195,12 @@ function IssueDetails(props: IssueDetailsProps) {
 
   if (error || !issueForVariants || !loadedIssue) {
     return (
-      <Layout routeContext={props.routeContext}>
+      <Layout
+        routeContext={props.routeContext}
+        initialPublisherNodes={props.initialPublisherNodes}
+        initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher as Record<string, never[]> | undefined}
+        initialIssueNodesBySeriesKey={props.initialIssueNodesBySeriesKey as Record<string, never[]> | undefined}
+      >
         <Box className="data-fade">
           <QueryResult
             error={error}
@@ -264,7 +289,12 @@ function IssueDetails(props: IssueDetailsProps) {
   ) : null;
 
   return (
-    <Layout routeContext={props.routeContext}>
+    <Layout
+      routeContext={props.routeContext}
+      initialPublisherNodes={props.initialPublisherNodes}
+      initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher as Record<string, never[]> | undefined}
+      initialIssueNodesBySeriesKey={props.initialIssueNodesBySeriesKey as Record<string, never[]> | undefined}
+    >
       <Box
         className="data-fade"
         key={loadedIssueIdentityKey || loadedIssue?.id || "issue-details"}

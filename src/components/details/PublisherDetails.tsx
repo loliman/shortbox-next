@@ -20,6 +20,9 @@ import type { AppRouteContextValue } from "../../app/routeContext";
 
 interface PublisherDetailsProps {
   routeContext: AppRouteContextValue;
+  initialData?: { details?: Record<string, unknown> | null; issues?: unknown[] } | null;
+  initialPublisherNodes?: Array<{ id?: string | null; name?: string | null; us?: boolean | null }>;
+  initialSeriesNodesByPublisher?: Record<string, unknown[]>;
   selected: SelectedRoot & {
     publisher: {
       name: string;
@@ -54,14 +57,27 @@ function PublisherDetailsContent(props: Readonly<PublisherDetailsProps>) {
     detailsKey: "PublisherDetails_details",
     historyKey: "PublisherDetails_history",
   });
-  const [details, setDetails] = React.useState<Record<string, unknown> | null>(null);
-  const [issues, setIssues] = React.useState<unknown[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const hasInitialData = typeof props.initialData !== "undefined";
+  const [details, setDetails] = React.useState<Record<string, unknown> | null>(
+    () => props.initialData?.details || null
+  );
+  const [issues, setIssues] = React.useState<unknown[]>(() => props.initialData?.issues || []);
+  const [loading, setLoading] = React.useState(!hasInitialData);
   const [detailsError, setDetailsError] = React.useState<unknown>(null);
+  const skipInitialFetchRef = React.useRef(hasInitialData);
   const endYearLabel =
     details && (details.active || details.endyear === 0) ? "heute" : details?.endyear;
 
   React.useEffect(() => {
+    if (skipInitialFetchRef.current) {
+      skipInitialFetchRef.current = false;
+      setLoading(false);
+      setDetailsError(null);
+      setDetails(props.initialData?.details || null);
+      setIssues(props.initialData?.issues || []);
+      return;
+    }
+
     let cancelled = false;
     setLoading(true);
     setDetailsError(null);
@@ -97,7 +113,7 @@ function PublisherDetailsContent(props: Readonly<PublisherDetailsProps>) {
     return () => {
       cancelled = true;
     };
-  }, [props.selected.publisher.name, us]);
+  }, [props.initialData, props.selected.publisher.name, us]);
 
   React.useEffect(() => {
     if (details || detailsError) {
@@ -107,7 +123,11 @@ function PublisherDetailsContent(props: Readonly<PublisherDetailsProps>) {
   }, [details, detailsError, markDetailsLoaded, markHistoryLoaded]);
 
   return (
-    <Layout routeContext={props.routeContext}>
+    <Layout
+      routeContext={props.routeContext}
+      initialPublisherNodes={props.initialPublisherNodes}
+      initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher as Record<string, never[]> | undefined}
+    >
       {detailsError || !details ? (
         <QueryResult
           error={detailsError}
@@ -172,7 +192,14 @@ function PublisherDetailsContent(props: Readonly<PublisherDetailsProps>) {
   );
 }
 
-export default function PublisherDetails(props: Readonly<{ routeContext: AppRouteContextValue }>) {
+export default function PublisherDetails(
+  props: Readonly<{
+    routeContext: AppRouteContextValue;
+    initialData?: { details?: Record<string, unknown> | null; issues?: unknown[] } | null;
+    initialPublisherNodes?: Array<{ id?: string | null; name?: string | null; us?: boolean | null }>;
+    initialSeriesNodesByPublisher?: Record<string, unknown[]>;
+  }>
+) {
   const appContext = React.useContext(AppContext);
 
   return (
