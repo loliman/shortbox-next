@@ -65,6 +65,7 @@ interface LayoutProps {
     options?: { variant?: "success" | "error" | "warning" | "info" }
   ) => void;
   handleLogout?: () => void;
+  initialFilterCount?: number | null;
 }
 
 export default function Layout(ownProps: Readonly<LayoutProps>) {

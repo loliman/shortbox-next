@@ -57,70 +57,19 @@ function PublisherDetailsContent(props: Readonly<PublisherDetailsProps>) {
     detailsKey: "PublisherDetails_details",
     historyKey: "PublisherDetails_history",
   });
-  const hasInitialData = typeof props.initialData !== "undefined";
-  const [details, setDetails] = React.useState<Record<string, unknown> | null>(
-    () => props.initialData?.details || null
-  );
-  const [issues, setIssues] = React.useState<unknown[]>(() => props.initialData?.issues || []);
-  const [loading, setLoading] = React.useState(!hasInitialData);
-  const [detailsError, setDetailsError] = React.useState<unknown>(null);
-  const skipInitialFetchRef = React.useRef(hasInitialData);
+  const details = props.initialData?.details || null;
+  const issues = props.initialData?.issues || [];
+  const loading = false;
+  const detailsError = null;
   const endYearLabel =
     details && (details.active || details.endyear === 0) ? "heute" : details?.endyear;
-
-  React.useEffect(() => {
-    if (skipInitialFetchRef.current) {
-      skipInitialFetchRef.current = false;
-      setLoading(false);
-      setDetailsError(null);
-      setDetails(props.initialData?.details || null);
-      setIssues(props.initialData?.issues || []);
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-    setDetailsError(null);
-
-    const params = new URLSearchParams({
-      locale: us ? "us" : "de",
-      publisher: props.selected.publisher.name,
-    });
-
-    void fetch(`/api/public-publisher?${params.toString()}`, { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`Publisher request failed: ${response.status}`);
-        return (await response.json()) as {
-          item?: { details?: Record<string, unknown>; issues?: unknown[] } | null;
-        };
-      })
-      .then((payload) => {
-        if (cancelled) return;
-        setDetails(payload.item?.details || null);
-        setIssues(payload.item?.issues || []);
-      })
-      .catch((nextError) => {
-        if (cancelled) return;
-        setDetails(null);
-        setIssues([]);
-        setDetailsError(nextError);
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [props.initialData, props.selected.publisher.name, us]);
 
   React.useEffect(() => {
     if (details || detailsError) {
       markDetailsLoaded();
       markHistoryLoaded();
     }
-  }, [details, detailsError, markDetailsLoaded, markHistoryLoaded]);
+  }, [details, markDetailsLoaded, markHistoryLoaded]);
 
   return (
     <Layout

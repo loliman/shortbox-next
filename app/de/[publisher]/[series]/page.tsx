@@ -1,12 +1,7 @@
 import SeriesDetails from "@/src/components/details/SeriesDetails";
 import { createAppRouteContext, type NextPageParams, type NextPageSearchParams } from "@/src/app/routeContext";
 import { SeriesService } from "@/src/services/SeriesService";
-import {
-  getNavigationIssues,
-  getNavigationPublishers,
-  getNavigationSeries,
-  getNavigationSeriesKey,
-} from "@/src/lib/screens/navigation-data";
+import { getInitialNavigationData } from "@/src/lib/screens/navigation-data";
 
 export default async function DeSeriesPage({
   params,
@@ -28,43 +23,16 @@ export default async function DeSeriesPage({
           volume: Number(selectedSeries.volume || 0),
         })
       : null;
-  const initialPublisherNodes = await getNavigationPublishers({
-    us: false,
-    filter: typeof routeContext.query?.filter === "string" ? routeContext.query.filter : null,
-  });
-  const publisherName = selectedSeries?.publisher?.name || "";
-  const seriesTitle = selectedSeries?.title || "";
-  const seriesVolume = Number(selectedSeries?.volume || 0);
-  const initialSeriesNodes = publisherName
-    ? await getNavigationSeries({
-        us: false,
-        publisher: publisherName,
-        filter: typeof routeContext.query?.filter === "string" ? routeContext.query.filter : null,
-      })
-    : [];
-  const initialIssueNodes =
-    publisherName && seriesTitle
-      ? await getNavigationIssues({
-          us: false,
-          publisher: publisherName,
-          series: seriesTitle,
-          volume: seriesVolume,
-          filter: typeof routeContext.query?.filter === "string" ? routeContext.query.filter : null,
-        })
-      : [];
-  const seriesKey = getNavigationSeriesKey({
-    publisher: publisherName,
-    title: seriesTitle,
-    volume: seriesVolume,
-  });
+  const navigationData = await getInitialNavigationData(routeContext);
+  routeContext.initialFilterCount = navigationData.initialFilterCount;
 
   return (
     <SeriesDetails
       routeContext={routeContext}
       initialData={initialData}
-      initialPublisherNodes={initialPublisherNodes}
-      initialSeriesNodesByPublisher={publisherName ? { [publisherName]: initialSeriesNodes } : undefined}
-      initialIssueNodesBySeriesKey={publisherName && seriesTitle ? { [seriesKey]: initialIssueNodes } : undefined}
+      initialPublisherNodes={navigationData.initialPublisherNodes}
+      initialSeriesNodesByPublisher={navigationData.initialSeriesNodesByPublisher}
+      initialIssueNodesBySeriesKey={navigationData.initialIssueNodesBySeriesKey}
     />
   );
 }

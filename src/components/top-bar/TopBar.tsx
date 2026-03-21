@@ -57,6 +57,8 @@ interface TopBarProps {
     options?: { variant?: "success" | "error" | "warning" | "info" }
   ) => void;
   handleLogout?: () => void;
+  initialFilterCount?: number | null;
+  changeRequestsCount?: number;
 }
 
 const SEARCH_MAX_WIDTH = 520;
@@ -144,34 +146,8 @@ export default function TopBar(ownProps: TopBarProps) {
     typeof props.query?.filter === "string" ? props.query.filter : props.query?.filter ? String(props.query.filter) : null;
   const darkModeEnabled = props.themeMode === "dark";
   const localeSwitchAriaLabel = us ? "Zu Deutsch wechseln" : "Zu US wechseln";
-  const [changeRequestsCount, setChangeRequestsCount] = React.useState(0);
+  const changeRequestsCount = props.changeRequestsCount ?? 0;
   const hasChangeRequests = changeRequestsCount > 0;
-
-  React.useEffect(() => {
-    if (!props.session?.loggedIn) {
-      setChangeRequestsCount(0);
-      return;
-    }
-
-    let cancelled = false;
-    void fetch("/api/public-change-request-count", { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`Change request count failed: ${response.status}`);
-        return (await response.json()) as { count?: number };
-      })
-      .then((payload) => {
-        if (cancelled) return;
-        setChangeRequestsCount(Number.isFinite(payload.count) ? Number(payload.count) : 0);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setChangeRequestsCount(0);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [props.session?.loggedIn]);
 
   const onLogout = async () => {
     if (isMockMode) {
@@ -292,6 +268,7 @@ export default function TopBar(ownProps: TopBarProps) {
                 isFilterActive={isFilter}
                 query={props.query}
                 session={props.session}
+                initialCount={props.initialFilterCount}
               />
             </>
           )}
@@ -535,6 +512,7 @@ export default function TopBar(ownProps: TopBarProps) {
             isFilterActive={isFilter}
             query={props.query}
             session={props.session}
+            initialCount={props.initialFilterCount}
           />
           {props.session?.loggedIn ? (
             <Tooltip title="Change Requests">

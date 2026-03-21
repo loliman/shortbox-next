@@ -9,6 +9,10 @@ import type { AppRouteContextValue } from "../../../app/routeContext";
 
 interface SeriesEditProps {
   routeContext: AppRouteContextValue;
+  initialSeries?: SeriesEditRecord | null;
+  initialPublisherNodes?: Array<{ id?: string | null; name?: string | null; us?: boolean | null }>;
+  initialSeriesNodesByPublisher?: Record<string, unknown[]>;
+  initialIssueNodesBySeriesKey?: Record<string, unknown[]>;
 }
 
 type SeriesEditRecord = Record<string, unknown> & {
@@ -21,53 +25,17 @@ type SeriesEditorDefaultValues = NonNullable<
 
 function SeriesEdit(props: Readonly<SeriesEditProps>) {
   const { selected } = props.routeContext;
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<unknown>(null);
-  const [seriesDetails, setSeriesDetails] = React.useState<SeriesEditRecord | null>(null);
-
-  React.useEffect(() => {
-    if (!selected.series?.publisher?.name || !selected.series?.title) {
-      setSeriesDetails(null);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    const params = new URLSearchParams({
-      locale: selected.us ? "us" : "de",
-      publisher: selected.series.publisher.name,
-      series: selected.series.title,
-      volume: String(selected.series.volume || 1),
-    });
-
-    void fetch(`/api/public-series?${params.toString()}`, { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`Series request failed: ${response.status}`);
-        return (await response.json()) as { item?: { details?: SeriesEditRecord } | null };
-      })
-      .then((payload) => {
-        if (cancelled) return;
-        setSeriesDetails(payload.item?.details || null);
-      })
-      .catch((nextError) => {
-        if (cancelled) return;
-        setSeriesDetails(null);
-        setError(nextError);
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [selected.series?.publisher?.name, selected.series?.title, selected.series?.volume, selected.us]);
+  const loading = false;
+  const error = null;
+  const seriesDetails = props.initialSeries || null;
 
   return (
-    <Layout routeContext={props.routeContext}>
+    <Layout
+      routeContext={props.routeContext}
+      initialPublisherNodes={props.initialPublisherNodes}
+      initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher as Record<string, never[]> | undefined}
+      initialIssueNodesBySeriesKey={props.initialIssueNodesBySeriesKey as Record<string, never[]> | undefined}
+    >
       {(() => {
         if (loading || error || !seriesDetails)
           return (

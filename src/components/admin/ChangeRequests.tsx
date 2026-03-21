@@ -27,6 +27,8 @@ type SnackbarVariant = "success" | "error" | "warning" | "info";
 
 interface ChangeRequestsProps {
   routeContext: AppRouteContextValue;
+  initialItems?: ChangeRequestEntry[];
+  initialPublisherNodes?: Array<{ id?: string | null; name?: string | null; us?: boolean | null }>;
   enqueueSnackbar?: (message: string, options?: { variant?: SnackbarVariant }) => void;
 }
 
@@ -44,11 +46,12 @@ type ChangeRequestEntry = {
 function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
   const [hiddenIds, setHiddenIds] = React.useState<Record<string, boolean>>({});
   const [data, setData] = React.useState<{ changeRequests?: ChangeRequestEntry[] }>({
-    changeRequests: [],
+    changeRequests: props.initialItems || [],
   });
-  const [loading, setLoading] = React.useState(true);
+  const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<unknown>(null);
   const [accepting, setAccepting] = React.useState(false);
+  const hasLoadedInitialRef = React.useRef(Array.isArray(props.initialItems));
 
   const refetch = React.useCallback(async () => {
     setLoading(true);
@@ -70,6 +73,10 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
   }, []);
 
   React.useEffect(() => {
+    if (hasLoadedInitialRef.current) {
+      hasLoadedInitialRef.current = false;
+      return;
+    }
     void refetch();
   }, [refetch]);
 
@@ -164,7 +171,7 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
   };
 
   return (
-    <Layout routeContext={props.routeContext}>
+    <Layout routeContext={props.routeContext} initialPublisherNodes={props.initialPublisherNodes}>
       <CardHeader title="Change Requests" />
       <CardContent sx={{ pt: 1 }}>
         {loading ? <Typography>Lade Change Requests...</Typography> : null}

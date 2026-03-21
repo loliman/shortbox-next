@@ -10,6 +10,7 @@ export type AppRouteContextValue = {
   selected: SelectedRoot;
   query: UnknownRecord | null;
   level: HierarchyLevelType;
+  initialFilterCount?: number | null;
 };
 
 export type NextPageParams = Promise<Record<string, string>>;

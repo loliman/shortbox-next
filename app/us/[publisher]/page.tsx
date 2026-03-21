@@ -1,7 +1,7 @@
 import PublisherDetails from "@/src/components/details/PublisherDetails";
 import { createAppRouteContext, type NextPageParams, type NextPageSearchParams } from "@/src/app/routeContext";
 import { PublisherService } from "@/src/services/PublisherService";
-import { getNavigationPublishers, getNavigationSeries } from "@/src/lib/screens/navigation-data";
+import { getInitialNavigationData } from "@/src/lib/screens/navigation-data";
 
 export default async function UsPublisherPage({
   params,
@@ -17,24 +17,15 @@ export default async function UsPublisherPage({
   const initialData = publisherName
     ? await new PublisherService().getPublisherDetails({ us: true, publisher: publisherName })
     : null;
-  const initialPublisherNodes = await getNavigationPublishers({
-    us: true,
-    filter: typeof routeContext.query?.filter === "string" ? routeContext.query.filter : null,
-  });
-  const initialSeriesNodes = publisherName
-    ? await getNavigationSeries({
-        us: true,
-        publisher: publisherName,
-        filter: typeof routeContext.query?.filter === "string" ? routeContext.query.filter : null,
-      })
-    : [];
+  const navigationData = await getInitialNavigationData(routeContext);
+  routeContext.initialFilterCount = navigationData.initialFilterCount;
 
   return (
     <PublisherDetails
       routeContext={routeContext}
       initialData={initialData}
-      initialPublisherNodes={initialPublisherNodes}
-      initialSeriesNodesByPublisher={publisherName ? { [publisherName]: initialSeriesNodes } : undefined}
+      initialPublisherNodes={navigationData.initialPublisherNodes}
+      initialSeriesNodesByPublisher={navigationData.initialSeriesNodesByPublisher}
     />
   );
 }

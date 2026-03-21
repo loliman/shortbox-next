@@ -1,5 +1,5 @@
 import React from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Drawer from "@mui/material/Drawer";
 import SwipeableDrawer from "@mui/material/SwipeableDrawer";
 import MuiList from "@mui/material/List";
@@ -11,11 +11,9 @@ import IconButton from "@mui/material/IconButton";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import Collapse from "@mui/material/Collapse";
-import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { generateUrl } from "../../util/hierarchy";
 import { AppContext } from "../generic/AppContext";
 import { buildRouteHref } from "../generic/routeHref";
@@ -43,7 +41,7 @@ interface ListProps {
   isPhonePortrait?: boolean;
   isTablet?: boolean;
   isTabletLandscape?: boolean;
-  query?: { filter?: string | null } | null;
+  query?: { filter?: string | null; navPublisher?: string | null; navSeries?: string | null } | null;
   level: HierarchyLevelType;
   selected: SelectedRoot;
   appIsLoading?: boolean;
@@ -92,6 +90,7 @@ let navScrollTopCache: Record<string, number> = {};
 
 export default function List(ownProps: Readonly<Partial<ListProps>>) {
   const router = useRouter();
+  const pathname = usePathname();
   const appContext = React.useContext(AppContext);
   const props = React.useMemo(
     () => ({ ...appContext, ...ownProps }) as ListProps,
@@ -102,6 +101,8 @@ export default function List(ownProps: Readonly<Partial<ListProps>>) {
     props.compactLayout ?? Boolean(props.isPhone || (props.isTablet && !props.isTabletLandscape));
   const drawerWidth = getNavDrawerWidth(temporaryDrawer);
   const filterQuery = props.query?.filter ?? null;
+  const queryExpandedPublisher = props.query?.navPublisher ?? null;
+  const queryExpandedSeries = props.query?.navSeries ?? null;
   const us = Boolean(props.us);
   const navStateKey = React.useMemo(() => `${us}|${filterQuery || ""}`, [us, filterQuery]);
   const phonePortrait = props.isPhonePortrait ?? Boolean(props.isPhone && !props.isPhoneLandscape);
@@ -148,60 +149,12 @@ export default function List(ownProps: Readonly<Partial<ListProps>>) {
     if (listElement) listElement.scrollTop = 0;
   }, [props.navResetVersion]);
 
-  const hasInitialPublisherNodes = Array.isArray(props.initialPublisherNodes);
-  const [publisherNodes, setPublisherNodes] = React.useState<PublisherNode[]>(
-    () => props.initialPublisherNodes || []
-  );
-  const [publisherError, setPublisherError] = React.useState<unknown>(null);
-  const [publisherLoading, setPublisherLoading] = React.useState(!hasInitialPublisherNodes);
-  const skipInitialPublisherFetchRef = React.useRef(hasInitialPublisherNodes);
+  const publisherNodes = props.initialPublisherNodes || [];
   if (publisherNodes.length > 0) {
     lastPublisherNodesCache = publisherNodes;
   }
   const visiblePublisherNodes =
     publisherNodes.length > 0 ? publisherNodes : lastPublisherNodesCache;
-
-  React.useEffect(() => {
-    if (skipInitialPublisherFetchRef.current) {
-      skipInitialPublisherFetchRef.current = false;
-      setPublisherLoading(false);
-      setPublisherError(null);
-      setPublisherNodes(props.initialPublisherNodes || []);
-      return;
-    }
-
-    let cancelled = false;
-    setPublisherLoading(true);
-    setPublisherError(null);
-
-    const params = new URLSearchParams({
-      locale: us ? "us" : "de",
-    });
-    if (filterQuery) params.set("filter", filterQuery);
-
-    void fetch(`/api/public-nav/publishers?${params.toString()}`, { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`Publisher request failed: ${response.status}`);
-        return (await response.json()) as { items?: PublisherNode[] };
-      })
-      .then((payload) => {
-        if (cancelled) return;
-        setPublisherNodes((payload.items || []).filter((node) => Boolean(node?.name)));
-      })
-      .catch((nextError) => {
-        if (cancelled) return;
-        setPublisherNodes([]);
-        setPublisherError(nextError);
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setPublisherLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [filterQuery, props.initialPublisherNodes, us]);
 
   React.useLayoutEffect(() => {
     const container = navScrollContainerRef.current;
@@ -221,9 +174,8 @@ export default function List(ownProps: Readonly<Partial<ListProps>>) {
   const selectedPublisherName = getSelectedPublisherName(props.selected);
   const selectedSeriesKey = getSelectedSeriesKey(props.selected);
   const selectedIssue = props.selected?.issue;
-  // Keep nav loading isolated from content-area loading to avoid full-nav skeleton flashes
-  // when switching detail routes from the list.
-  const isInitialLoading = publisherLoading && visiblePublisherNodes.length === 0;
+  const currentPath = pathname || generateUrl(props.selected, us);
+  const isInitialLoading = Boolean(props.appIsLoading) && visiblePublisherNodes.length === 0;
 
   React.useEffect(() => {
     if (selectedIssue?.number) return;
@@ -242,6 +194,28 @@ export default function List(ownProps: Readonly<Partial<ListProps>>) {
     );
   }, [selectedPublisherName, visiblePublisherNodes]);
 
+  React.useEffect(() => {
+    if (!queryExpandedPublisher) return;
+
+    setExpandedPublishers((prev) =>
+      prev[queryExpandedPublisher] ? prev : { ...prev, [queryExpandedPublisher]: true }
+    );
+  }, [queryExpandedPublisher]);
+
+  const updateNavRoute = React.useCallback(
+    (nextQuery: { navPublisher?: string | null; navSeries?: string | null }) => {
+      storeScrollTop();
+      router.push(
+        buildRouteHref(currentPath, props.query, {
+          filter: filterQuery,
+          navPublisher: nextQuery.navPublisher ?? null,
+          navSeries: nextQuery.navSeries ?? null,
+        })
+      );
+    },
+    [storeScrollTop, router, currentPath, props.query, filterQuery]
+  );
+
   const pushSelection = React.useCallback(
     (_event: unknown, item: SelectedRoot, closeOnPhone = false) => {
       storeScrollTop();
@@ -257,9 +231,29 @@ export default function List(ownProps: Readonly<Partial<ListProps>>) {
     },
     [storeScrollTop, phonePortrait, toggleDrawer, router, filterQuery, us, props.query]
   );
-  const handleTogglePublisher = React.useCallback((publisherName: string) => {
-    setExpandedPublishers((prev) => ({ ...prev, [publisherName]: !prev[publisherName] }));
-  }, []);
+  const handleTogglePublisher = React.useCallback(
+    (publisherName: string) => {
+      const isExpanded = Boolean(expandedPublishers[publisherName]);
+      const hasServerData = Array.isArray(props.initialSeriesNodesByPublisher?.[publisherName]);
+
+      if (!isExpanded && !hasServerData) {
+        updateNavRoute({ navPublisher: publisherName, navSeries: null });
+        return;
+      }
+
+      setExpandedPublishers((prev) => ({ ...prev, [publisherName]: !prev[publisherName] }));
+
+      if (isExpanded && queryExpandedPublisher === publisherName) {
+        updateNavRoute({ navPublisher: null, navSeries: null });
+      }
+    },
+    [
+      expandedPublishers,
+      props.initialSeriesNodesByPublisher,
+      queryExpandedPublisher,
+      updateNavRoute,
+    ]
+  );
   const handlePublisherClick = React.useCallback(
     (event: React.MouseEvent<HTMLElement>, publisherName: string) => {
       pushSelection(event, {
@@ -276,8 +270,6 @@ export default function List(ownProps: Readonly<Partial<ListProps>>) {
 
   if (isInitialLoading) {
     content = Array.from({ length: 25 }).map((_, idx) => <TypeListEntryPlaceholder key={idx} />);
-  } else if (publisherError) {
-    content = <NestedErrorRow depth={0} message="Navigation aktuell nicht verfügbar" />;
   } else if (visiblePublisherNodes.length === 0) {
     content = <NestedEmptyRow depth={0} message="Keine Einträge vorhanden" />;
   } else {
@@ -317,9 +309,11 @@ export default function List(ownProps: Readonly<Partial<ListProps>>) {
               initialIssueNodesBySeriesKey={props.initialIssueNodesBySeriesKey}
               navStateKey={navStateKey}
               activeSeriesKey={selected ? selectedSeriesKey : null}
+              queryExpandedSeriesKey={queryExpandedSeries}
               selectedIssue={selectedIssue}
               session={props.session}
               pushSelection={pushSelection}
+              updateNavRoute={updateNavRoute}
               listRef={listRef}
               navScrollContainerRef={navScrollContainerRef}
               suppressAutoScrollRef={suppressIssueAutoScrollRef}
@@ -401,9 +395,11 @@ type SeriesBranchProps = {
   initialIssueNodesBySeriesKey?: Record<string, IssueNode[]>;
   navStateKey: string;
   activeSeriesKey: string | null;
+  queryExpandedSeriesKey?: string | null;
   selectedIssue?: Issue;
   session?: unknown;
   pushSelection: (event: unknown, item: SelectedRoot, closeOnPhone?: boolean) => void;
+  updateNavRoute: (nextQuery: { navPublisher?: string | null; navSeries?: string | null }) => void;
   listRef: React.RefObject<HTMLUListElement | null>;
   navScrollContainerRef: React.RefObject<HTMLDivElement | null>;
   suppressAutoScrollRef: React.MutableRefObject<boolean>;
@@ -413,10 +409,16 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
   const { publisher, us, filter } = props;
   const publisherName = publisher.name || "";
   const seriesStateKey = `${props.navStateKey}|${publisherName}`;
+  const initialIssueNodesBySeriesKey = props.initialIssueNodesBySeriesKey;
+  const activeSeriesKey = props.activeSeriesKey;
+  const queryExpandedSeriesKey = props.queryExpandedSeriesKey;
+  const selectedIssue = props.selectedIssue;
+  const updateNavRoute = props.updateNavRoute;
   const [expandedSeries, setExpandedSeries] = React.useState<Record<string, boolean>>(
     () => expandedSeriesCache[seriesStateKey] || {}
   );
-  const publisherUs = publisher.us ?? us;
+  void filter;
+  void publisher.us;
 
   React.useEffect(() => {
     setExpandedSeries(expandedSeriesCache[seriesStateKey] || {});
@@ -426,54 +428,7 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
     expandedSeriesCache[seriesStateKey] = expandedSeries;
   }, [expandedSeries, seriesStateKey]);
 
-  const hasInitialSeriesNodes = Array.isArray(props.initialSeriesNodes);
-  const [seriesNodes, setSeriesNodes] = React.useState<SeriesNode[]>(() => props.initialSeriesNodes || []);
-  const [seriesError, setSeriesError] = React.useState<unknown>(null);
-  const [seriesLoading, setSeriesLoading] = React.useState(!hasInitialSeriesNodes);
-  const skipInitialSeriesFetchRef = React.useRef(hasInitialSeriesNodes);
-
-  React.useEffect(() => {
-    if (skipInitialSeriesFetchRef.current) {
-      skipInitialSeriesFetchRef.current = false;
-      setSeriesLoading(false);
-      setSeriesError(null);
-      setSeriesNodes(props.initialSeriesNodes || []);
-      return;
-    }
-
-    let cancelled = false;
-    setSeriesLoading(true);
-    setSeriesError(null);
-
-    const params = new URLSearchParams({
-      locale: publisherUs ? "us" : "de",
-      publisher: publisherName,
-    });
-    if (filter) params.set("filter", filter);
-
-    void fetch(`/api/public-nav/series?${params.toString()}`, { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`Series request failed: ${response.status}`);
-        return (await response.json()) as { items?: SeriesNode[] };
-      })
-      .then((payload) => {
-        if (cancelled) return;
-        setSeriesNodes((payload.items || []).filter((node) => Boolean(node?.title && node?.publisher?.name)));
-      })
-      .catch((nextError) => {
-        if (cancelled) return;
-        setSeriesNodes([]);
-        setSeriesError(nextError);
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setSeriesLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [publisherName, publisherUs, filter, props.initialSeriesNodes]);
+  const seriesNodes = React.useMemo(() => props.initialSeriesNodes || [], [props.initialSeriesNodes]);
   const seriesSelectionByKey = React.useMemo(() => {
     const selection: Record<string, Series> = {};
     for (const seriesNode of seriesNodes) {
@@ -483,18 +438,17 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
   }, [seriesNodes, us]);
 
   React.useEffect(() => {
-    if (!props.activeSeriesKey) return;
-    const activeSeriesKey = props.activeSeriesKey;
+    if (!activeSeriesKey) return;
 
     setExpandedSeries((prev) =>
       prev[activeSeriesKey] ? prev : { ...prev, [activeSeriesKey]: true }
     );
-  }, [props.activeSeriesKey]);
+  }, [activeSeriesKey]);
 
   React.useEffect(() => {
-    if (!props.selectedIssue?.series) return;
+    if (!selectedIssue?.series) return;
     const matchingSeriesNode = seriesNodes.find((seriesNode) =>
-      doesSeriesNodeMatchIssueSeries(seriesNode, props.selectedIssue?.series)
+      doesSeriesNodeMatchIssueSeries(seriesNode, selectedIssue?.series)
     );
     if (!matchingSeriesNode) return;
 
@@ -502,11 +456,40 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
     setExpandedSeries((prev) =>
       prev[matchingSeriesKey] ? prev : { ...prev, [matchingSeriesKey]: true }
     );
-  }, [props.selectedIssue, seriesNodes]);
+  }, [selectedIssue, seriesNodes]);
 
-  const handleToggleSeries = React.useCallback((seriesKey: string) => {
-    setExpandedSeries((prev) => ({ ...prev, [seriesKey]: !prev[seriesKey] }));
-  }, []);
+  React.useEffect(() => {
+    if (!queryExpandedSeriesKey) return;
+
+    setExpandedSeries((prev) =>
+      prev[queryExpandedSeriesKey] ? prev : { ...prev, [queryExpandedSeriesKey]: true }
+    );
+  }, [queryExpandedSeriesKey]);
+
+  const handleToggleSeries = React.useCallback(
+    (seriesKey: string) => {
+      const isExpanded = Boolean(expandedSeries[seriesKey]);
+      const hasServerData = Array.isArray(initialIssueNodesBySeriesKey?.[seriesKey]);
+
+      if (!isExpanded && !hasServerData) {
+        updateNavRoute({ navPublisher: publisherName, navSeries: seriesKey });
+        return;
+      }
+
+      setExpandedSeries((prev) => ({ ...prev, [seriesKey]: !prev[seriesKey] }));
+
+      if (isExpanded && queryExpandedSeriesKey === seriesKey) {
+        updateNavRoute({ navPublisher: publisherName, navSeries: null });
+      }
+    },
+    [
+      expandedSeries,
+      initialIssueNodesBySeriesKey,
+      queryExpandedSeriesKey,
+      updateNavRoute,
+      publisherName,
+    ]
+  );
   const pushSelection = props.pushSelection;
   const handleSeriesClick = React.useCallback(
     (event: React.MouseEvent<HTMLElement>, seriesKey: string) => {
@@ -523,8 +506,6 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
     [pushSelection, seriesSelectionByKey]
   );
 
-  if (seriesLoading && seriesNodes.length === 0) return <NestedLoadingRow depth={1} />;
-  if (seriesError) return <NestedErrorRow depth={1} message="Serien aktuell nicht verfügbar" />;
   if (seriesNodes.length === 0) return <NestedEmptyRow depth={1} message="Keine Serien vorhanden" />;
 
   return (
@@ -553,10 +534,9 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
             <Collapse in={expanded} timeout="auto" unmountOnExit>
               <IssuesBranch
                 us={us}
-                filter={filter}
                 series={seriesNode}
-                initialIssueNodes={props.initialIssueNodesBySeriesKey?.[seriesKey] || []}
-                selectedIssue={props.selectedIssue}
+                initialIssueNodes={initialIssueNodesBySeriesKey?.[seriesKey] || []}
+                selectedIssue={selectedIssue}
                 session={props.session}
                 pushSelection={pushSelection}
                 listRef={props.listRef}
@@ -573,7 +553,6 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
 
 type IssuesBranchProps = {
   us: boolean;
-  filter?: string | null;
   series: SeriesNode;
   initialIssueNodes?: IssueNode[];
   selectedIssue?: Issue;
@@ -585,8 +564,7 @@ type IssuesBranchProps = {
 };
 
 const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBranchProps>) {
-  const { series, us, filter } = props;
-  const seriesInput = toSeriesInput(series, us);
+  const { series, us } = props;
   const selectedSeries = doesSeriesNodeMatchIssueSeries(series, props.selectedIssue?.series);
   const selectedIssueNumber = selectedSeries
     ? normalizeIssueNumber(props.selectedIssue?.number)
@@ -595,56 +573,7 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
   const skipSameIssueAutoScrollRef = React.useRef(false);
   const issueListRef = React.useRef<HTMLUListElement | null>(null);
 
-  const hasInitialIssueNodes = Array.isArray(props.initialIssueNodes);
-  const [issueNodes, setIssueNodes] = React.useState<IssueNode[]>(() => props.initialIssueNodes || []);
-  const [issuesError, setIssuesError] = React.useState<unknown>(null);
-  const [issuesLoading, setIssuesLoading] = React.useState(!hasInitialIssueNodes);
-  const skipInitialIssuesFetchRef = React.useRef(hasInitialIssueNodes);
-
-  React.useEffect(() => {
-    if (skipInitialIssuesFetchRef.current) {
-      skipInitialIssuesFetchRef.current = false;
-      setIssuesLoading(false);
-      setIssuesError(null);
-      setIssueNodes(props.initialIssueNodes || []);
-      return;
-    }
-
-    let cancelled = false;
-    setIssuesLoading(true);
-    setIssuesError(null);
-
-    const params = new URLSearchParams({
-      locale: us ? "us" : "de",
-      publisher: seriesInput.publisher.name || "",
-      series: seriesInput.title || "",
-      volume: String(seriesInput.volume || 1),
-    });
-    if (filter) params.set("filter", filter);
-
-    void fetch(`/api/public-nav/issues?${params.toString()}`, { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`Issue request failed: ${response.status}`);
-        return (await response.json()) as { items?: IssueNode[] };
-      })
-      .then((payload) => {
-        if (cancelled) return;
-        setIssueNodes((payload.items || []).filter((node) => Boolean(node?.number && node?.series?.title)));
-      })
-      .catch((nextError) => {
-        if (cancelled) return;
-        setIssueNodes([]);
-        setIssuesError(nextError);
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setIssuesLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [us, filter, seriesInput.publisher.name, seriesInput.title, seriesInput.volume, props.initialIssueNodes]);
+  const issueNodes = React.useMemo(() => props.initialIssueNodes || [], [props.initialIssueNodes]);
 
   React.useEffect(() => {
     skipSameIssueAutoScrollRef.current = Boolean(
@@ -708,8 +637,6 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
     scrollSelectedIssueIntoView,
   ]);
 
-  if (issuesLoading && issueNodes.length === 0) return <NestedLoadingRow depth={2} />;
-  if (issuesError) return <NestedErrorRow depth={2} message="Ausgaben aktuell nicht verfügbar" />;
   if (issueNodes.length === 0) return <NestedEmptyRow depth={2} message="Keine Ausgaben vorhanden" />;
 
   return (
@@ -877,34 +804,6 @@ const ExpandToggle = React.memo(function ExpandToggle(props: Readonly<ExpandTogg
   );
 });
 
-function NestedLoadingRow({ depth }: { depth: number }) {
-  return (
-    <ListItem sx={{ pl: getDepthPadding(depth) }}>
-      <ListItemIcon sx={{ minWidth: 32 }}>
-        <CircularProgress size={16} />
-      </ListItemIcon>
-      <ListItemText primary="Lade..." />
-    </ListItem>
-  );
-}
-
-function NestedErrorRow({
-  depth,
-  message = "Fehler beim Laden",
-}: {
-  depth: number;
-  message?: string;
-}) {
-  return (
-    <ListItem sx={{ pl: getDepthPadding(depth) }}>
-      <ListItemIcon sx={{ minWidth: 32 }}>
-        <ErrorOutlineIcon fontSize="small" color="error" />
-      </ListItemIcon>
-      <ListItemText primary={message} />
-    </ListItem>
-  );
-}
-
 function NestedEmptyRow({
   depth,
   message = "Keine Einträge vorhanden",
@@ -990,17 +889,6 @@ function getSelectedSeriesKey(selected: SelectedRoot): string | null {
 }
 
 function toSeriesSelected(seriesNode: SeriesNode, us: boolean): Series {
-  return {
-    title: seriesNode.title || "",
-    volume: seriesNode.volume ?? 1,
-    publisher: {
-      name: seriesNode.publisher?.name || "",
-      us: seriesNode.publisher?.us ?? us,
-    },
-  };
-}
-
-function toSeriesInput(seriesNode: SeriesNode, us: boolean) {
   return {
     title: seriesNode.title || "",
     volume: seriesNode.volume ?? 1,

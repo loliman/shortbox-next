@@ -41,7 +41,7 @@ function FilterPage(props: FilterPageProps) {
   } as const;
 
   return (
-    <Layout routeContext={props.routeContext}>
+    <Layout routeContext={props.routeContext} initialPublisherNodes={props.initialPublisherNodes}>
       <Formik
         enableReinitialize
         initialValues={initialValues}

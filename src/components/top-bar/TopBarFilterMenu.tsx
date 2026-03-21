@@ -25,6 +25,7 @@ type TopBarFilterMenuProps = {
   isFilterActive?: boolean | string | null;
   query?: { filter?: string | null } | null;
   session?: { loggedIn?: boolean } | null;
+  initialCount?: number | null;
 };
 
 export default function TopBarFilterMenu(props: Readonly<TopBarFilterMenuProps>) {
@@ -33,56 +34,9 @@ export default function TopBarFilterMenu(props: Readonly<TopBarFilterMenuProps>)
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
   const [exportOpen, setExportOpen] = React.useState(false);
   const menuOpen = Boolean(anchorEl);
-  const filterVariables = React.useMemo(() => {
-    try {
-      const parsed = props.query?.filter ? JSON.parse(props.query.filter) : {};
-      return { filter: { us, ...(parsed as Record<string, unknown>) } };
-    } catch {
-      return null;
-    }
-  }, [props.query?.filter, us]);
-
-  const [count, setCount] = React.useState<number | undefined>(undefined);
-  const [loading, setLoading] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!isFilterActive || !filterVariables) {
-      setCount(undefined);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-
-    void fetch("/api/public-filter-count", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(filterVariables),
-    })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`Filter count request failed: ${response.status}`);
-        return (await response.json()) as { count?: number };
-      })
-      .then((payload) => {
-        if (cancelled) return;
-        setCount(Number.isFinite(payload.count) ? Number(payload.count) : undefined);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setCount(undefined);
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isFilterActive, filterVariables]);
+  const count = isFilterActive && Number.isFinite(props.initialCount)
+    ? Number(props.initialCount)
+    : undefined;
   const tooltipTitle = React.useMemo(
     () => buildFilterTooltipTitle(Boolean(isFilterActive), props.query?.filter),
     [isFilterActive, props.query?.filter]
@@ -107,14 +61,12 @@ export default function TopBarFilterMenu(props: Readonly<TopBarFilterMenuProps>)
             showZero={false}
             badgeContent={
               isFilterActive
-                ? loading
-                  ? "…"
-                  : Number.isFinite(count)
-                    ? count
-                    : undefined
+                ? Number.isFinite(count)
+                  ? count
+                  : undefined
                 : undefined
             }
-            invisible={!isFilterActive || (!loading && !Number.isFinite(count))}
+            invisible={!isFilterActive || !Number.isFinite(count)}
             slotProps={{
               badge: {
                 sx: {

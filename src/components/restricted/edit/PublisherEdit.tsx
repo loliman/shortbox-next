@@ -9,6 +9,9 @@ import type { AppRouteContextValue } from "../../../app/routeContext";
 
 interface PublisherEditProps {
   routeContext: AppRouteContextValue;
+  initialPublisher?: PublisherEditRecord | null;
+  initialPublisherNodes?: Array<{ id?: string | null; name?: string | null; us?: boolean | null }>;
+  initialSeriesNodesByPublisher?: Record<string, unknown[]>;
 }
 
 type PublisherEditRecord = Record<string, unknown> & {
@@ -21,51 +24,16 @@ type PublisherEditorDefaultValues = NonNullable<
 
 function PublisherEdit(props: Readonly<PublisherEditProps>) {
   const { selected } = props.routeContext;
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<unknown>(null);
-  const [publisherDetails, setPublisherDetails] = React.useState<PublisherEditRecord | null>(null);
-
-  React.useEffect(() => {
-    if (!selected.publisher?.name) {
-      setPublisherDetails(null);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    const params = new URLSearchParams({
-      locale: selected.us ? "us" : "de",
-      publisher: selected.publisher.name,
-    });
-
-    void fetch(`/api/public-publisher?${params.toString()}`, { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`Publisher request failed: ${response.status}`);
-        return (await response.json()) as { item?: { details?: PublisherEditRecord } | null };
-      })
-      .then((payload) => {
-        if (cancelled) return;
-        setPublisherDetails(payload.item?.details || null);
-      })
-      .catch((nextError) => {
-        if (cancelled) return;
-        setPublisherDetails(null);
-        setError(nextError);
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [selected.publisher?.name, selected.us]);
+  const loading = false;
+  const error = null;
+  const publisherDetails = props.initialPublisher || null;
 
   return (
-    <Layout routeContext={props.routeContext}>
+    <Layout
+      routeContext={props.routeContext}
+      initialPublisherNodes={props.initialPublisherNodes}
+      initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher as Record<string, never[]> | undefined}
+    >
       {(() => {
         if (loading || error || !publisherDetails)
           return (

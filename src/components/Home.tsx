@@ -50,6 +50,7 @@ interface HomeProps {
 
 export default function Home(routeProps: Readonly<HomeProps>) {
   const appContext = React.useContext(AppContext);
+  const enqueueSnackbar = appContext.enqueueSnackbar;
   const { registerLoadingComponent, unregisterLoadingComponent } = appContext;
   const props = React.useMemo(
     () => ({ ...appContext, ...routeProps.routeContext }),
@@ -98,11 +99,9 @@ export default function Home(routeProps: Readonly<HomeProps>) {
   const [items, setItems] = React.useState<PreviewIssue[]>(() =>
     hasInitialData ? routeProps.initialItems || [] : []
   );
-  const [loading, setLoading] = React.useState(!hasInitialData);
+  const [loading, setLoading] = React.useState(false);
   const [fetchingMore, setFetchingMore] = React.useState(false);
-  const [error, setError] = React.useState<unknown>(null);
   const [hasMore, setHasMore] = React.useState(Boolean(routeProps.initialHasMore));
-  const skipInitialFetchRef = React.useRef(hasInitialData);
   const requestKey = React.useMemo(
     () =>
       JSON.stringify({
@@ -115,10 +114,8 @@ export default function Home(routeProps: Readonly<HomeProps>) {
   );
 
   const loadPage = React.useCallback(
-    async (offset: number, append: boolean) => {
-      if (append) setFetchingMore(true);
-      else setLoading(true);
-
+    async (offset: number) => {
+      setFetchingMore(true);
       try {
         const params = new URLSearchParams({
           locale: props.us ? "us" : "de",
@@ -136,40 +133,28 @@ export default function Home(routeProps: Readonly<HomeProps>) {
           hasMore?: boolean;
         };
 
-        setItems((prev) => (append ? [...prev, ...((payload.items || []) as PreviewIssue[])] : ((payload.items || []) as PreviewIssue[])));
+        setItems((prev) => [...prev, ...((payload.items || []) as PreviewIssue[])]);
         setHasMore(Boolean(payload.hasMore));
-        setError(null);
       } catch (nextError) {
-        setError(nextError);
-        if (!append) setItems([]);
-        setHasMore(false);
+        enqueueSnackbar?.(
+          nextError instanceof Error && nextError.message
+            ? `Weitere Eintraege konnten nicht geladen werden: ${nextError.message}`
+            : "Weitere Eintraege konnten nicht geladen werden.",
+          { variant: "error" }
+        );
       } finally {
-        if (append) setFetchingMore(false);
-        else {
-          setLoading(false);
-          unregisterHomeLoading();
-        }
+        setFetchingMore(false);
       }
     },
-    [props.us, query, unregisterHomeLoading]
+    [enqueueSnackbar, props.us, query]
   );
 
   React.useEffect(() => {
-    if (skipInitialFetchRef.current) {
-      skipInitialFetchRef.current = false;
-      setLoading(false);
-      setError(null);
-      setHasMore(Boolean(routeProps.initialHasMore));
-      setItems(routeProps.initialItems || []);
-      unregisterHomeLoading();
-      return;
-    }
-
-    setItems([]);
-    setHasMore(false);
-    setError(null);
-    void loadPage(0, false);
-  }, [requestKey, loadPage, routeProps.initialHasMore, routeProps.initialItems, unregisterHomeLoading]);
+    setLoading(false);
+    setHasMore(Boolean(routeProps.initialHasMore));
+    setItems(routeProps.initialItems || []);
+    unregisterHomeLoading();
+  }, [requestKey, routeProps.initialHasMore, routeProps.initialItems, unregisterHomeLoading]);
 
   const handleScroll = React.useCallback(
     (event: React.UIEvent<HTMLElement>) => {
@@ -182,7 +167,7 @@ export default function Home(routeProps: Readonly<HomeProps>) {
       const prefetchPx = Math.max(200, Math.floor(element.clientHeight * 0.5));
       if (remaining > prefetchPx) return;
 
-      void loadPage(items.length, true);
+      void loadPage(items.length);
     },
     [loading, fetchingMore, hasMore, loadPage, items.length]
   );
@@ -197,9 +182,8 @@ export default function Home(routeProps: Readonly<HomeProps>) {
       initialSeriesNodesByPublisher={routeProps.initialSeriesNodesByPublisher as Record<string, never[]> | undefined}
       initialIssueNodesBySeriesKey={routeProps.initialIssueNodesBySeriesKey as Record<string, never[]> | undefined}
     >
-      {props.appIsLoading || error || loading ? (
+      {props.appIsLoading || loading ? (
         <QueryResult
-          error={error}
           loading={loading}
           placeholder={<HomeListingPlaceholder query={query} compactLayout={compactLayout} />}
           placeholderCount={1}

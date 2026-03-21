@@ -22,6 +22,7 @@ const readStoredThemeMode = (): AppThemeMode | null => {
 
 type AppProps = {
   children?: ReactNode;
+  changeRequestsCount?: number;
 };
 
 export default function App(props: Readonly<AppProps>) {
@@ -72,6 +73,7 @@ export default function App(props: Readonly<AppProps>) {
             setSession={setSession}
             themeMode={themeMode}
             toggleTheme={toggleTheme}
+            changeRequestsCount={props.changeRequestsCount}
           >
             <CssBaseline />
             <Suspense fallback={<AppPageLoader />}>{props.children ?? null}</Suspense>

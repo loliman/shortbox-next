@@ -76,11 +76,9 @@ function IssueDetails(props: IssueDetailsProps) {
   const compactLayout =
     props.compactLayout ?? Boolean(props.isPhone || (props.isTablet && !props.isTabletLandscape));
   const [coverExpanded, setCoverExpanded] = React.useState(true);
-  const hasInitialIssue = typeof props.initialIssue !== "undefined";
-  const [loadedIssue, setLoadedIssue] = React.useState<Issue | null>(() => props.initialIssue || null);
-  const [loading, setLoading] = React.useState(Boolean(selected.issue) && !hasInitialIssue);
-  const [error, setError] = React.useState<unknown>(null);
-  const skipInitialFetchRef = React.useRef(hasInitialIssue);
+  const loadedIssue = props.initialIssue || null;
+  const loading = false;
+  const error = null;
   const loadedIssueIdentityKey = React.useMemo(
     () =>
       [
@@ -107,70 +105,6 @@ function IssueDetails(props: IssueDetailsProps) {
     () => (issueForVariants ? buildCoverGalleryIssues(issueForVariants) : []),
     [issueForVariants]
   );
-
-  React.useEffect(() => {
-    if (skipInitialFetchRef.current) {
-      skipInitialFetchRef.current = false;
-      setLoading(false);
-      setError(null);
-      setLoadedIssue(props.initialIssue || null);
-      return;
-    }
-
-    if (!selected.issue?.series?.publisher?.name || !selected.issue?.series?.title || !selected.issue.number) {
-      setLoadedIssue(null);
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
-    const params = new URLSearchParams({
-      locale: us ? "us" : "de",
-      publisher: selected.issue.series.publisher.name,
-      series: selected.issue.series.title,
-      volume: String(selected.issue.series.volume || 1),
-      number: selected.issue.number,
-    });
-
-    if (selected.issue.format) params.set("format", selected.issue.format);
-    if (selected.issue.variant) params.set("variant", selected.issue.variant);
-
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    void fetch(`/api/public-issue?${params.toString()}`, { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error(`Issue request failed: ${response.status}`);
-        return (await response.json()) as { item?: Issue | null };
-      })
-      .then((payload) => {
-        if (cancelled) return;
-        setLoadedIssue((payload.item || null) as Issue | null);
-      })
-      .catch((nextError) => {
-        if (cancelled) return;
-        setLoadedIssue(null);
-        setError(nextError);
-      })
-      .finally(() => {
-        if (cancelled) return;
-        setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    props.initialIssue,
-    selected.issue?.number,
-    selected.issue?.format,
-    selected.issue?.variant,
-    selected.issue?.series?.title,
-    selected.issue?.series?.volume,
-    selected.issue?.series?.publisher?.name,
-    us,
-  ]);
 
   if (loading && !loadedIssue) {
     return (

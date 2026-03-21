@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useSnackbar } from "notistack";
 import type { AppThemeMode } from "../../app/theme";
 import type { SessionData } from "../../app/session";
 import { useResponsive } from "../../app/useResponsive";
@@ -19,6 +20,7 @@ interface AppContextProps {
   setSession?: React.Dispatch<React.SetStateAction<SessionValue>>;
   themeMode?: AppThemeMode;
   toggleTheme?: () => void;
+  changeRequestsCount?: number;
 }
 
 export interface AppContextValue {
@@ -45,6 +47,11 @@ export interface AppContextValue {
   resetNavigationState: () => void;
   themeMode: AppThemeMode;
   toggleTheme: () => void;
+  changeRequestsCount: number;
+  enqueueSnackbar?: (
+    message: string,
+    options?: { variant?: "success" | "error" | "warning" | "info" }
+  ) => void;
 }
 
 const defaultContextValue: AppContextValue = {
@@ -71,6 +78,8 @@ const defaultContextValue: AppContextValue = {
   resetNavigationState: () => {},
   themeMode: "light",
   toggleTheme: () => {},
+  changeRequestsCount: 0,
+  enqueueSnackbar: undefined,
 };
 
 export const AppContext = React.createContext<AppContextValue>(defaultContextValue);
@@ -81,7 +90,9 @@ function AppContextProvider({
   setSession,
   themeMode = "light",
   toggleTheme = () => {},
+  changeRequestsCount = 0,
 }: Readonly<AppContextProps>) {
+  const { enqueueSnackbar } = useSnackbar();
   const responsive = useResponsive();
   const [state, setState] = useState<AppContextState>(() => {
     return {
@@ -188,6 +199,8 @@ function AppContextProvider({
       resetNavigationState,
       themeMode,
       toggleTheme,
+      changeRequestsCount,
+      enqueueSnackbar,
     }),
     [
       handleLogin,
@@ -213,6 +226,8 @@ function AppContextProvider({
       toggleTheme,
       unregisterLoadingComponent,
       resetNavigationState,
+      changeRequestsCount,
+      enqueueSnackbar,
     ]
   );
 

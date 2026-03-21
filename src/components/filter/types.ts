@@ -90,6 +90,7 @@ export interface FilterPageProps {
   session?: unknown;
   isDesktop?: boolean;
   routeContext: AppRouteContextValue;
+  initialPublisherNodes?: Array<{ id?: string | null; name?: string | null; us?: boolean | null }>;
 }
 
 export interface FilterFormikBag {

@@ -31,6 +31,8 @@ type SnackbarVariant = "success" | "error" | "warning" | "info";
 
 type AdminTasksProps = {
   routeContext: AppRouteContextValue;
+  initialItems?: AdminTaskItem[];
+  initialPublisherNodes?: Array<{ id?: string | null; name?: string | null; us?: boolean | null }>;
   enqueueSnackbar?: (message: string, options?: { variant?: SnackbarVariant }) => void;
 };
 
@@ -206,10 +208,13 @@ const resolveAggregateTaskState = (runs: Array<RunLike | null | undefined>): Vis
 
 function AdminTasksPage(props: Readonly<AdminTasksProps>) {
   const [runningTaskKey, setRunningTaskKey] = React.useState<string | null>(null);
-  const [data, setData] = React.useState<{ adminTasks?: AdminTaskItem[] }>({ adminTasks: [] });
-  const [loading, setLoading] = React.useState(true);
+  const [data, setData] = React.useState<{ adminTasks?: AdminTaskItem[] }>({
+    adminTasks: props.initialItems || [],
+  });
+  const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<unknown>(null);
   const [releasingLocks, setReleasingLocks] = React.useState(false);
+  const hasLoadedInitialRef = React.useRef(Array.isArray(props.initialItems));
 
   const tasks = data?.adminTasks || [];
 
@@ -231,6 +236,10 @@ function AdminTasksPage(props: Readonly<AdminTasksProps>) {
   }, []);
 
   React.useEffect(() => {
+    if (hasLoadedInitialRef.current) {
+      hasLoadedInitialRef.current = false;
+      return;
+    }
     void refetch();
   }, [refetch]);
 
@@ -330,7 +339,7 @@ function AdminTasksPage(props: Readonly<AdminTasksProps>) {
   };
 
   return (
-    <Layout routeContext={props.routeContext}>
+    <Layout routeContext={props.routeContext} initialPublisherNodes={props.initialPublisherNodes}>
       <CardHeader
         title="Adminpanel"
         action={
