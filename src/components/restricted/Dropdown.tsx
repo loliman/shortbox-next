@@ -10,7 +10,6 @@ import VerifiedIcon from "@mui/icons-material/Verified";
 import VerifiedOutlinedIcon from "@mui/icons-material/VerifiedOutlined";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
-import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
 import DeletionDialog from "./DeletionDialog";
 import { stripItem } from "../../util/util";
 import { AppContext } from "../generic/AppContext";
@@ -122,15 +121,6 @@ class DropdownBase extends React.Component<DropdownProps, DropdownState> {
     return (
       <>
         <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.6 }}>
-          {resolveItemUs(selectedItem, this.props.level, Boolean(this.props.us)) ? (
-            <ReimportActionButton
-              item={selectedItem}
-              level={this.props.level}
-              onClose={this.props.handleClose}
-              enqueueSnackbar={this.props.enqueueSnackbar}
-            />
-          ) : null}
-
           {isIssueLevel && !isUsIssue ? (
             <CollectionActionButton
               item={selectedItem}
@@ -217,13 +207,6 @@ interface ActionMenuItemProps {
   enqueueSnackbar?: DropdownProps["enqueueSnackbar"];
 }
 
-type ReimportScopeInput = {
-  reimportScopeKind: "Publisher" | "Series" | "Issue";
-  publisherId?: string;
-  seriesId?: string;
-  issueId?: string;
-};
-
 function buildIssueMutationInput(item: DropdownItem): IssueMutationInput {
   const stripped = stripItem(structuredClone(item));
   const input: IssueMutationInput = {
@@ -246,96 +229,6 @@ function buildIssueMutationInput(item: DropdownItem): IssueMutationInput {
   if (variant !== "") input.variant = variant;
 
   return input;
-}
-
-function toPositiveId(value: unknown): string | null {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || Math.trunc(parsed) <= 0) return null;
-  return String(Math.trunc(parsed));
-}
-
-function toReimportScopeInput(
-  item: DropdownItem,
-  level: string | undefined
-): ReimportScopeInput | null {
-  const id = toPositiveId(item.id);
-  if (!id) return null;
-
-  if (level === HierarchyLevel.PUBLISHER) {
-    return {
-      reimportScopeKind: "Publisher",
-      publisherId: id,
-    };
-  }
-
-  if (level === HierarchyLevel.SERIES) {
-    return {
-      reimportScopeKind: "Series",
-      seriesId: id,
-    };
-  }
-
-  if (level === HierarchyLevel.ISSUE) {
-    return {
-      reimportScopeKind: "Issue",
-      issueId: id,
-    };
-  }
-
-  return null;
-}
-
-function ReimportActionButton(props: Readonly<ActionMenuItemProps>) {
-  const scopeInput = toReimportScopeInput(props.item, props.level);
-
-  return (
-    <Tooltip title="ID Sync">
-      <span>
-        <IconButton
-          aria-label="ID Sync"
-          disabled={!scopeInput}
-          onClick={async () => {
-            if (!scopeInput) {
-              props.onClose?.();
-              return;
-            }
-
-            try {
-              const result = await mutationRequest<{
-                run?: {
-                  summary?: string | null;
-                };
-              }>({
-                url: "/api/admin-task-actions",
-                method: "POST",
-                body: {
-                  action: "run",
-                  input: {
-                    taskKey: "reimport-us",
-                    dryRun: false,
-                    ...scopeInput,
-                  },
-                },
-              });
-
-              const summary = result.run?.summary || "Reimport Job gestartet";
-              props.enqueueSnackbar?.(summary, { variant: "success" });
-            } catch (error) {
-              const message = error instanceof Error ? error.message : "Unbekannter Fehler";
-              props.enqueueSnackbar?.(`Reimport konnte nicht gestartet werden: ${message}`, {
-                variant: "error",
-              });
-            } finally {
-              props.onClose?.();
-            }
-          }}
-          sx={{ ...actionButtonSx, width: "auto", px: 1, pr: 1.4 }}
-        >
-          <BadgeOutlinedIcon />
-        </IconButton>
-      </span>
-    </Tooltip>
-  );
 }
 
 function VerifyActionButton(props: Readonly<ActionMenuItemProps>) {

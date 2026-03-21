@@ -13,10 +13,6 @@ import {
 type RunAdminTaskInput = {
   taskKey: string;
   dryRun?: boolean;
-  reimportScopeKind?: "ALL_US" | "PUBLISHER" | "SERIES" | "ISSUE";
-  publisherId?: string;
-  seriesId?: string;
-  issueId?: string;
 };
 
 type JobViewRow = {
@@ -81,10 +77,6 @@ export async function POST(request: NextRequest) {
     const payload = buildTaskPayload(taskKey, {
       taskKey,
       dryRun,
-      reimportScopeKind: body.input?.reimportScopeKind as RunAdminTaskInput["reimportScopeKind"],
-      publisherId: stringOrUndefined(body.input?.publisherId),
-      seriesId: stringOrUndefined(body.input?.seriesId),
-      issueId: stringOrUndefined(body.input?.issueId),
     });
 
     const workerUtils = await getWorkerUtils();
@@ -142,18 +134,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function parsePositiveInt(value: unknown): number | null {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return null;
-  const normalized = Math.trunc(parsed);
-  return normalized > 0 ? normalized : null;
-}
-
-function stringOrUndefined(value: unknown) {
-  const normalized = String(value || "").trim();
-  return normalized === "" ? undefined : normalized;
-}
-
 function buildTaskPayload(
   taskKey: AdminTaskName,
   input: RunAdminTaskInput
@@ -166,31 +146,6 @@ function buildTaskPayload(
 
   if (taskKey === "update-story-badges") {
     return { dryRun };
-  }
-
-  if (taskKey === "reimport-us") {
-    const scopeKind = input.reimportScopeKind;
-    if (!scopeKind || scopeKind === "ALL_US") {
-      return { dryRun, scope: { kind: "all-us" } };
-    }
-
-    if (scopeKind === "PUBLISHER") {
-      const publisherId = parsePositiveInt(input.publisherId);
-      if (!publisherId) throw new Error("publisherId is required for PUBLISHER scope");
-      return { dryRun, scope: { kind: "publisher", publisherId } };
-    }
-
-    if (scopeKind === "SERIES") {
-      const seriesId = parsePositiveInt(input.seriesId);
-      if (!seriesId) throw new Error("seriesId is required for SERIES scope");
-      return { dryRun, scope: { kind: "series", seriesId } };
-    }
-
-    if (scopeKind === "ISSUE") {
-      const issueId = parsePositiveInt(input.issueId);
-      if (!issueId) throw new Error("issueId is required for ISSUE scope");
-      return { dryRun, scope: { kind: "issue", issueId } };
-    }
   }
 
   if (taskKey === "rebuild-search-index") {
