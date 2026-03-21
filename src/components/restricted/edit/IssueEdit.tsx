@@ -6,6 +6,8 @@ import QueryResult from "../../generic/QueryResult";
 import IssueEditor from "../editor/IssueEditor";
 import { mapIssueToEditorDefaultValues } from "../editor/issue-editor/defaultValues";
 import { EditorPagePlaceholder } from "../../placeholders/EditorPagePlaceholder";
+import { useResponsiveContext, useSessionContext } from "../../generic/AppContext";
+import { useSnackbarBridge } from "../../generic/useSnackbarBridge";
 import type { AppRouteContextValue } from "../../../app/routeContext";
 
 interface IssueEditProps {
@@ -21,6 +23,9 @@ type IssueEditRecord = Record<string, unknown> & {
 };
 
 function IssueEdit(props: Readonly<IssueEditProps>) {
+  const sessionContext = useSessionContext();
+  const responsiveContext = useResponsiveContext();
+  const snackbarBridge = useSnackbarBridge();
   const { selected } = props.routeContext;
   const loading = false;
   const error = null;
@@ -54,6 +59,10 @@ function IssueEdit(props: Readonly<IssueEditProps>) {
             id={issueDetails.id ?? undefined}
             edit
             defaultValues={defaultValues}
+            session={sessionContext.session}
+            isDesktop={responsiveContext.isDesktop}
+            selected={selected}
+            enqueueSnackbar={snackbarBridge.enqueueSnackbar}
           />
         );
       })()}

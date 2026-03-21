@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useSnackbar } from "notistack";
 import type { AppThemeMode } from "../../app/theme";
 import type { SessionData } from "../../app/session";
 import { useResponsive } from "../../app/useResponsive";
@@ -23,12 +22,13 @@ interface AppContextProps {
   changeRequestsCount?: number;
 }
 
-export interface AppContextValue {
-  drawerOpen: boolean;
-  toggleDrawer: () => void;
+export interface SessionContextValue {
   session: SessionValue;
   handleLogin: (user: SessionValue) => void;
   handleLogout: () => void;
+}
+
+export interface ResponsiveContextValue {
   isPhone: boolean;
   isTablet: boolean;
   isDesktop: boolean;
@@ -38,6 +38,11 @@ export interface AppContextValue {
   isPhonePortrait: boolean;
   compactLayout: boolean;
   navWide: boolean;
+}
+
+export interface NavigationUiContextValue {
+  drawerOpen: boolean;
+  toggleDrawer: () => void;
   navResetVersion: number;
   appIsLoading: boolean;
   resetLoadingComponents: () => void;
@@ -45,21 +50,24 @@ export interface AppContextValue {
   unregisterLoadingComponent: (component: string) => void;
   isComponentRegistered: (component: string) => string | undefined;
   resetNavigationState: () => void;
-  themeMode: AppThemeMode;
-  toggleTheme: () => void;
-  changeRequestsCount: number;
-  enqueueSnackbar?: (
-    message: string,
-    options?: { variant?: "success" | "error" | "warning" | "info" }
-  ) => void;
 }
 
-const defaultContextValue: AppContextValue = {
-  drawerOpen: false,
-  toggleDrawer: () => {},
+export interface ThemeContextValue {
+  themeMode: AppThemeMode;
+  toggleTheme: () => void;
+}
+
+export interface AdminMetaContextValue {
+  changeRequestsCount: number;
+}
+
+const defaultSessionContextValue: SessionContextValue = {
   session: null,
   handleLogin: () => {},
   handleLogout: () => {},
+};
+
+const defaultResponsiveContextValue: ResponsiveContextValue = {
   isPhone: false,
   isTablet: false,
   isDesktop: true,
@@ -69,6 +77,11 @@ const defaultContextValue: AppContextValue = {
   isPhonePortrait: false,
   compactLayout: false,
   navWide: true,
+};
+
+const defaultNavigationUiContextValue: NavigationUiContextValue = {
+  drawerOpen: false,
+  toggleDrawer: () => {},
   navResetVersion: 0,
   appIsLoading: false,
   resetLoadingComponents: () => {},
@@ -76,13 +89,25 @@ const defaultContextValue: AppContextValue = {
   unregisterLoadingComponent: () => {},
   isComponentRegistered: () => undefined,
   resetNavigationState: () => {},
-  themeMode: "light",
-  toggleTheme: () => {},
-  changeRequestsCount: 0,
-  enqueueSnackbar: undefined,
 };
 
-export const AppContext = React.createContext<AppContextValue>(defaultContextValue);
+const defaultThemeContextValue: ThemeContextValue = {
+  themeMode: "light",
+  toggleTheme: () => {},
+};
+
+const defaultAdminMetaContextValue: AdminMetaContextValue = {
+  changeRequestsCount: 0,
+};
+
+export const SessionContext = React.createContext<SessionContextValue>(defaultSessionContextValue);
+export const ResponsiveContext =
+  React.createContext<ResponsiveContextValue>(defaultResponsiveContextValue);
+export const NavigationUiContext =
+  React.createContext<NavigationUiContextValue>(defaultNavigationUiContextValue);
+export const ThemeModeContext = React.createContext<ThemeContextValue>(defaultThemeContextValue);
+export const AdminMetaContext =
+  React.createContext<AdminMetaContextValue>(defaultAdminMetaContextValue);
 
 function AppContextProvider({
   children,
@@ -92,7 +117,6 @@ function AppContextProvider({
   toggleTheme = () => {},
   changeRequestsCount = 0,
 }: Readonly<AppContextProps>) {
-  const { enqueueSnackbar } = useSnackbar();
   const responsive = useResponsive();
   const [state, setState] = useState<AppContextState>(() => {
     return {
@@ -174,13 +198,17 @@ function AppContextProvider({
     }));
   }, []);
 
-  const value = useMemo<AppContextValue>(
+  const sessionValue = useMemo<SessionContextValue>(
     () => ({
-      drawerOpen: state.drawerOpen,
-      toggleDrawer,
       session: session ?? null,
       handleLogin,
       handleLogout,
+    }),
+    [handleLogin, handleLogout, session]
+  );
+
+  const responsiveValue = useMemo<ResponsiveContextValue>(
+    () => ({
       isPhone: responsive.isPhone,
       isTablet: responsive.isTablet,
       isDesktop: responsive.isDesktop,
@@ -190,24 +218,8 @@ function AppContextProvider({
       isPhonePortrait: responsive.isPhonePortrait,
       compactLayout: responsive.isCompact,
       navWide: responsive.navWide,
-      navResetVersion: state.navResetVersion,
-      appIsLoading: state.loadingComponents.length > 0,
-      resetLoadingComponents,
-      registerLoadingComponent,
-      unregisterLoadingComponent,
-      isComponentRegistered,
-      resetNavigationState,
-      themeMode,
-      toggleTheme,
-      changeRequestsCount,
-      enqueueSnackbar,
     }),
     [
-      handleLogin,
-      handleLogout,
-      isComponentRegistered,
-      registerLoadingComponent,
-      resetLoadingComponents,
       responsive.isCompact,
       responsive.isDesktop,
       responsive.isLandscape,
@@ -217,21 +229,82 @@ function AppContextProvider({
       responsive.isTablet,
       responsive.isTabletLandscape,
       responsive.navWide,
-      session,
-      state.drawerOpen,
-      state.loadingComponents.length,
-      state.navResetVersion,
-      themeMode,
-      toggleDrawer,
-      toggleTheme,
-      unregisterLoadingComponent,
-      resetNavigationState,
-      changeRequestsCount,
-      enqueueSnackbar,
     ]
   );
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  const navigationUiValue = useMemo<NavigationUiContextValue>(
+    () => ({
+      drawerOpen: state.drawerOpen,
+      toggleDrawer,
+      navResetVersion: state.navResetVersion,
+      appIsLoading: state.loadingComponents.length > 0,
+      resetLoadingComponents,
+      registerLoadingComponent,
+      unregisterLoadingComponent,
+      isComponentRegistered,
+      resetNavigationState,
+    }),
+    [
+      isComponentRegistered,
+      registerLoadingComponent,
+      resetLoadingComponents,
+      resetNavigationState,
+      state.drawerOpen,
+      state.loadingComponents.length,
+      state.navResetVersion,
+      toggleDrawer,
+      unregisterLoadingComponent,
+    ]
+  );
+
+  const themeValue = useMemo<ThemeContextValue>(
+    () => ({
+      themeMode,
+      toggleTheme,
+    }),
+    [themeMode, toggleTheme]
+  );
+
+  const adminMetaValue = useMemo<AdminMetaContextValue>(
+    () => ({
+      changeRequestsCount,
+    }),
+    [changeRequestsCount]
+  );
+
+  return (
+    <SessionContext.Provider value={sessionValue}>
+      <ResponsiveContext.Provider value={responsiveValue}>
+        <NavigationUiContext.Provider value={navigationUiValue}>
+          <ThemeModeContext.Provider value={themeValue}>
+            <AdminMetaContext.Provider value={adminMetaValue}>
+              {children}
+            </AdminMetaContext.Provider>
+          </ThemeModeContext.Provider>
+        </NavigationUiContext.Provider>
+      </ResponsiveContext.Provider>
+    </SessionContext.Provider>
+  );
+}
+
+export function useSessionContext() {
+  return React.useContext(SessionContext);
+}
+
+export function useResponsiveContext() {
+  return React.useContext(ResponsiveContext);
+}
+
+export function useNavigationUiContext() {
+  return React.useContext(NavigationUiContext);
+}
+
+export function useThemeModeContext() {
+  return React.useContext(ThemeModeContext);
+}
+
+export function useAdminMetaContext() {
+  return React.useContext(AdminMetaContext);
 }
 
 export default AppContextProvider;

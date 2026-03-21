@@ -1,6 +1,10 @@
 import { act, render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import AppContextProvider, { AppContext } from "./AppContext";
+import AppContextProvider, {
+  NavigationUiContext,
+  ResponsiveContext,
+  SessionContext,
+} from "./AppContext";
 
 const mocks = vi.hoisted(() => ({
   responsive: {
@@ -23,50 +27,54 @@ vi.mock("../../app/useResponsive", () => ({
 describe("AppContextProvider", () => {
   it("manages drawer, loading registry and auth helpers", () => {
     const setSession = vi.fn();
-    let contextValue: any;
+    let sessionValue: any;
+    let navigationValue: any;
+    let responsiveValue: any;
+
+    function TestConsumer() {
+      sessionValue = React.useContext(SessionContext);
+      navigationValue = React.useContext(NavigationUiContext);
+      responsiveValue = React.useContext(ResponsiveContext);
+      return <div>ctx</div>;
+    }
 
     const { rerender } = render(
       <AppContextProvider session={null} setSession={setSession}>
-        <AppContext.Consumer>
-          {(value) => {
-            contextValue = value;
-            return <div>ctx</div>;
-          }}
-        </AppContext.Consumer>
+        <TestConsumer />
       </AppContextProvider>
     );
 
-    expect(contextValue.drawerOpen).toBe(true);
-    expect(contextValue.appIsLoading).toBe(false);
-    expect(contextValue.isDesktop).toBe(true);
+    expect(navigationValue.drawerOpen).toBe(true);
+    expect(navigationValue.appIsLoading).toBe(false);
+    expect(responsiveValue.isDesktop).toBe(true);
 
     act(() => {
-      contextValue.toggleDrawer();
+      navigationValue.toggleDrawer();
     });
-    expect(contextValue.drawerOpen).toBe(false);
+    expect(navigationValue.drawerOpen).toBe(false);
 
     act(() => {
-      contextValue.registerLoadingComponent("Home");
-      contextValue.registerLoadingComponent("Home");
+      navigationValue.registerLoadingComponent("Home");
+      navigationValue.registerLoadingComponent("Home");
     });
-    expect(contextValue.appIsLoading).toBe(true);
-    expect(contextValue.isComponentRegistered("Home")).toBe("Home");
+    expect(navigationValue.appIsLoading).toBe(true);
+    expect(navigationValue.isComponentRegistered("Home")).toBe("Home");
 
     act(() => {
-      contextValue.unregisterLoadingComponent("Home");
+      navigationValue.unregisterLoadingComponent("Home");
     });
-    expect(contextValue.appIsLoading).toBe(false);
-    expect(contextValue.isComponentRegistered("Home")).toBeUndefined();
+    expect(navigationValue.appIsLoading).toBe(false);
+    expect(navigationValue.isComponentRegistered("Home")).toBeUndefined();
 
     act(() => {
-      contextValue.registerLoadingComponent("A");
-      contextValue.resetLoadingComponents();
+      navigationValue.registerLoadingComponent("A");
+      navigationValue.resetLoadingComponents();
     });
-    expect(contextValue.appIsLoading).toBe(false);
+    expect(navigationValue.appIsLoading).toBe(false);
 
     act(() => {
-      contextValue.handleLogin({ loggedIn: true });
-      contextValue.handleLogout();
+      sessionValue.handleLogin({ loggedIn: true });
+      sessionValue.handleLogout();
     });
     expect(setSession).toHaveBeenNthCalledWith(1, { loggedIn: true });
     expect(setSession).toHaveBeenNthCalledWith(2, null);
@@ -74,14 +82,9 @@ describe("AppContextProvider", () => {
     mocks.responsive = { ...mocks.responsive, navWide: false };
     rerender(
       <AppContextProvider session={null} setSession={setSession}>
-        <AppContext.Consumer>
-          {(value) => {
-            contextValue = value;
-            return <div>ctx</div>;
-          }}
-        </AppContext.Consumer>
+        <TestConsumer />
       </AppContextProvider>
     );
-    expect(contextValue.drawerOpen).toBe(false);
+    expect(navigationValue.drawerOpen).toBe(false);
   });
 });

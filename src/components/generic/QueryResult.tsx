@@ -6,7 +6,6 @@ import { generateLabel } from "../../util/hierarchy";
 import Box from "@mui/material/Box";
 import type { SelectedRoot } from "../../types/domain";
 import { AppInlineLoader, AppPageLoader } from "./loading";
-import { AppContext } from "./AppContext";
 
 interface QueryResultProps {
   appIsLoading?: boolean;
@@ -21,9 +20,8 @@ interface QueryResultProps {
 }
 
 export default function QueryResult(props: Readonly<QueryResultProps>) {
-  const appContext = React.useContext(AppContext);
   let { appIsLoading, loading, error, data, selected } = props;
-  appIsLoading = appIsLoading ?? appContext.appIsLoading;
+  appIsLoading = appIsLoading ?? false;
 
   const renderPlaceholder = () => {
     if (!props.placeholder) return null;

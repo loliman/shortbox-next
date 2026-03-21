@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { AppContext } from "../generic/AppContext";
+import { useResponsiveContext, useSessionContext } from "../generic/AppContext";
 import FilterPage from "./FilterPage";
 import type { AppRouteContextValue } from "../../app/routeContext";
 
@@ -11,13 +11,20 @@ interface FilterProps {
 }
 
 export default function Filter(props: Readonly<FilterProps>) {
-  const appContext = React.useContext(AppContext);
+  const sessionContext = useSessionContext();
+  const responsiveContext = useResponsiveContext();
+  const us = Boolean(props.routeContext.us);
+  const query = props.routeContext.query as { filter?: string } | null;
+  const session = sessionContext.session;
+  const isDesktop = responsiveContext.isDesktop;
 
   return (
     <FilterPage
-      {...appContext}
-      {...props.routeContext}
       routeContext={props.routeContext}
+      us={us}
+      query={query}
+      session={session}
+      isDesktop={isDesktop}
       initialPublisherNodes={props.initialPublisherNodes}
     />
   );

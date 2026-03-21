@@ -10,7 +10,6 @@ import ListIcon from "@mui/icons-material/List";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
 import { generateUrl, HierarchyLevel } from "../../util/hierarchy";
 import type { SelectedRoot } from "../../types/domain";
-import { AppContext } from "../generic/AppContext";
 
 interface AddFabProps {
   session?: unknown;
@@ -232,9 +231,16 @@ function getIssueCreatePath(
 
 export default function AddFab(props: Readonly<AddFabProps>) {
   const router = useRouter();
-  const appContext = React.useContext(AppContext);
 
-  return <AddFabView {...appContext} {...props} onNavigate={(href) => router.push(href)} />;
+  return (
+    <AddFabView
+      session={props.session}
+      level={props.level}
+      selected={props.selected}
+      us={props.us}
+      onNavigate={(href) => router.push(href)}
+    />
+  );
 }
 
 function AddFabView(props: Readonly<AddFabProps>) {

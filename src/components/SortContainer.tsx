@@ -1,5 +1,5 @@
 import { usePathname, useRouter } from "next/navigation";
-import { AppContext } from "./generic/AppContext";
+import { useResponsiveContext } from "./generic/AppContext";
 import InputLabel from "@mui/material/InputLabel";
 import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
@@ -41,19 +41,23 @@ type SortContainerProps = {
 export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
   const router = useRouter();
   const pathname = usePathname();
-  const appContext = React.useContext(AppContext);
-  const props = React.useMemo(
-    () => ({ ...appContext, ...ownProps }),
-    [appContext, ownProps]
-  );
-  const currentOrder = toValidSortOption(getListingOrder(props.query));
-  const currentDirection = toDirection(getListingDirection(props.query));
-  const currentView = getListingView(props.query);
+  const responsiveContext = useResponsiveContext();
+  const query = ownProps.query;
+  const us = Boolean(ownProps.us);
+  const selected = ownProps.selected;
   const compactLayout =
-    props.compactLayout ??
-    Boolean(props.isPhone || (props.isTablet && !props.isTabletLandscape));
+    ownProps.compactLayout ??
+    responsiveContext.compactLayout ??
+    Boolean(
+      (ownProps.isPhone ?? responsiveContext.isPhone) ||
+        ((ownProps.isTablet ?? responsiveContext.isTablet) &&
+          !(ownProps.isTabletLandscape ?? responsiveContext.isTabletLandscape))
+    );
+  const currentOrder = toValidSortOption(getListingOrder(query));
+  const currentDirection = toDirection(getListingDirection(query));
+  const currentView = getListingView(query);
 
-  const target = props.selected || { us: Boolean(props.us) };
+  const target = selected || { us };
 
   return (
     <Box
@@ -79,9 +83,9 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
           onChange={(e) =>
             router.push(
               buildRouteHref(
-                generateUrl(target, Boolean(props.us)),
-                pathname === generateUrl(target, Boolean(props.us)) ? props.query : null,
-                buildSortNavigationQuery(props.query, {
+                generateUrl(target, us),
+                pathname === generateUrl(target, us) ? query : null,
+                buildSortNavigationQuery(query, {
                   order: toValidSortOption(String(e.target.value)),
                 })
               )
@@ -106,9 +110,9 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
           if (!value) return;
           router.push(
             buildRouteHref(
-              generateUrl(target, Boolean(props.us)),
-              pathname === generateUrl(target, Boolean(props.us)) ? props.query : null,
-              buildSortNavigationQuery(props.query, {
+              generateUrl(target, us),
+              pathname === generateUrl(target, us) ? query : null,
+              buildSortNavigationQuery(query, {
                 direction: value,
               })
             )
@@ -133,9 +137,9 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
           if (!value) return;
           router.push(
             buildRouteHref(
-              generateUrl(target, Boolean(props.us)),
-              pathname === generateUrl(target, Boolean(props.us)) ? props.query : null,
-              buildSortNavigationQuery(props.query, {
+              generateUrl(target, us),
+              pathname === generateUrl(target, us) ? query : null,
+              buildSortNavigationQuery(query, {
                 view: value,
               })
             )

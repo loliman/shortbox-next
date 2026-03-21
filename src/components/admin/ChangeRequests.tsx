@@ -51,7 +51,6 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<unknown>(null);
   const [accepting, setAccepting] = React.useState(false);
-  const hasLoadedInitialRef = React.useRef(Array.isArray(props.initialItems));
 
   const refetch = React.useCallback(async () => {
     setLoading(true);
@@ -71,14 +70,6 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
       setLoading(false);
     }
   }, []);
-
-  React.useEffect(() => {
-    if (hasLoadedInitialRef.current) {
-      hasLoadedInitialRef.current = false;
-      return;
-    }
-    void refetch();
-  }, [refetch]);
 
   const visibleChangeRequests = React.useMemo(() => {
     const entries = data?.changeRequests || [];

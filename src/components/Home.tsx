@@ -6,7 +6,12 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Layout from "./Layout";
 import QueryResult from "./generic/QueryResult";
-import { AppContext } from "./generic/AppContext";
+import {
+  useNavigationUiContext,
+  useResponsiveContext,
+  useSessionContext,
+} from "./generic/AppContext";
+import { useSnackbarBridge } from "./generic/useSnackbarBridge";
 import IssuePreview from "./issue-preview/IssuePreview";
 import IssuePreviewSmall from "./issue-preview/IssuePreviewSmall";
 import LoadingDots from "./generic/LoadingDots";
@@ -49,13 +54,11 @@ interface HomeProps {
 }
 
 export default function Home(routeProps: Readonly<HomeProps>) {
-  const appContext = React.useContext(AppContext);
-  const enqueueSnackbar = appContext.enqueueSnackbar;
-  const { registerLoadingComponent, unregisterLoadingComponent } = appContext;
-  const props = React.useMemo(
-    () => ({ ...appContext, ...routeProps.routeContext }),
-    [appContext, routeProps.routeContext]
-  );
+  const sessionContext = useSessionContext();
+  const responsiveContext = useResponsiveContext();
+  const navigationUiContext = useNavigationUiContext();
+  const { enqueueSnackbar } = useSnackbarBridge();
+  const { registerLoadingComponent, unregisterLoadingComponent } = navigationUiContext;
   const query = routeProps.routeContext.query as
     | { filter?: string; order?: string; direction?: string; view?: string }
     | null
@@ -77,10 +80,16 @@ export default function Home(routeProps: Readonly<HomeProps>) {
     };
   }, [registerLoadingComponent, unregisterHomeLoading]);
 
-  const filter = parseListingFilter(query, Boolean(props.us));
+  const routeUs = Boolean(routeProps.routeContext.us);
+  const filter = parseListingFilter(query, routeUs);
   const compactLayout =
-    props.compactLayout ??
-    Boolean(props.isPhone || (props.isTablet && !props.isTabletLandscape));
+    routeProps.compactLayout ??
+    responsiveContext.compactLayout ??
+    Boolean(
+      (routeProps.isPhone ?? responsiveContext.isPhone) ||
+        ((routeProps.isTablet ?? responsiveContext.isTablet) &&
+          !(routeProps.isTabletLandscape ?? responsiveContext.isTabletLandscape))
+    );
   const listingView = getListingView(query);
   const galleryGridColumns = compactLayout
     ? "repeat(1, minmax(0, 1fr))"
@@ -95,6 +104,29 @@ export default function Home(routeProps: Readonly<HomeProps>) {
     ...GALLERY_GRID_SX,
     gridTemplateColumns: galleryGridColumns,
   } as const;
+  const previewProps = React.useMemo(
+    () => ({
+      us: routeUs,
+      session: sessionContext.session,
+      selected: routeProps.routeContext.selected,
+      compactLayout,
+      isPhone: routeProps.isPhone ?? responsiveContext.isPhone,
+      isTablet: routeProps.isTablet ?? responsiveContext.isTablet,
+      isTabletLandscape: routeProps.isTabletLandscape ?? responsiveContext.isTabletLandscape,
+    }),
+    [
+      compactLayout,
+      responsiveContext.isPhone,
+      responsiveContext.isTablet,
+      responsiveContext.isTabletLandscape,
+      routeProps.isPhone,
+      routeProps.isTablet,
+      routeProps.isTabletLandscape,
+      routeProps.routeContext.selected,
+      routeUs,
+      sessionContext.session,
+    ]
+  );
   const hasInitialData = Array.isArray(routeProps.initialItems);
   const [items, setItems] = React.useState<PreviewIssue[]>(() =>
     hasInitialData ? routeProps.initialItems || [] : []
@@ -105,12 +137,12 @@ export default function Home(routeProps: Readonly<HomeProps>) {
   const requestKey = React.useMemo(
     () =>
       JSON.stringify({
-        us: Boolean(props.us),
+        us: routeUs,
         order: getListingOrder(query),
         direction: getListingDirection(query),
         filter,
       }),
-    [props.us, query, filter]
+    [routeUs, query, filter]
   );
 
   const loadPage = React.useCallback(
@@ -118,7 +150,7 @@ export default function Home(routeProps: Readonly<HomeProps>) {
       setFetchingMore(true);
       try {
         const params = new URLSearchParams({
-          locale: props.us ? "us" : "de",
+          locale: routeUs ? "us" : "de",
           offset: String(offset),
           limit: "50",
           order: getListingOrder(query),
@@ -146,7 +178,7 @@ export default function Home(routeProps: Readonly<HomeProps>) {
         setFetchingMore(false);
       }
     },
-    [enqueueSnackbar, props.us, query]
+    [enqueueSnackbar, routeUs, query]
   );
 
   React.useEffect(() => {
@@ -182,8 +214,9 @@ export default function Home(routeProps: Readonly<HomeProps>) {
       initialSeriesNodesByPublisher={routeProps.initialSeriesNodesByPublisher as Record<string, never[]> | undefined}
       initialIssueNodesBySeriesKey={routeProps.initialIssueNodesBySeriesKey as Record<string, never[]> | undefined}
     >
-      {props.appIsLoading || loading ? (
+      {(routeProps.appIsLoading ?? navigationUiContext.appIsLoading) || loading ? (
         <QueryResult
+          appIsLoading={routeProps.appIsLoading ?? navigationUiContext.appIsLoading}
           loading={loading}
           placeholder={<HomeListingPlaceholder query={query} compactLayout={compactLayout} />}
           placeholderCount={1}
@@ -211,7 +244,7 @@ export default function Home(routeProps: Readonly<HomeProps>) {
                   <Box sx={{ display: "flex", justifyContent: "flex-end", flexGrow: 1 }}>
                     <ListingToolbar
                       query={query}
-                      previewProps={props as any}
+                      previewProps={previewProps as any}
                       compactLayout={compactLayout}
                       showSort
                     />
@@ -239,7 +272,7 @@ export default function Home(routeProps: Readonly<HomeProps>) {
             {compactLayout ? (
               <ListingToolbar
                 query={query}
-                previewProps={props as any}
+                previewProps={previewProps as any}
                 compactLayout={compactLayout}
                 showSort
               />
@@ -259,7 +292,7 @@ export default function Home(routeProps: Readonly<HomeProps>) {
                 <Box sx={galleryGridSx}>
                   {items.map((item, idx) => (
                     <IssuePreviewSmall
-                      {...props}
+                      {...previewProps}
                       key={buildIssueKey(item, idx)}
                       issue={item}
                     />
@@ -269,7 +302,7 @@ export default function Home(routeProps: Readonly<HomeProps>) {
                 <Stack spacing={1.5}>
                   {items.map((item, idx) => (
                     <IssuePreview
-                      {...props}
+                      {...previewProps}
                       key={buildIssueKey(item, idx)}
                       issue={item}
                     />

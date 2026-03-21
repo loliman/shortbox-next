@@ -21,8 +21,6 @@ import CardHeader from "@mui/material/CardHeader";
 import type { FieldItem } from "../../../util/filterFieldHelpers";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { editorSectionSx } from "./editorLayout";
-import { AppContext } from "../../generic/AppContext";
-import { useSnackbarBridge } from "../../generic/useSnackbarBridge";
 import { mutationRequest } from "../../../lib/client/mutation-request";
 
 const MIN_QUERY_LENGTH = 2;
@@ -464,11 +462,8 @@ function normalizeText(value: unknown) {
     .toLowerCase();
 }
 
-export default function SeriesEditor(props: Readonly<Partial<SeriesEditorProps>>) {
-  const appContext = React.useContext(AppContext);
-  const snackbarBridge = useSnackbarBridge();
-
-  return <SeriesEditorView {...appContext} {...snackbarBridge} {...props} />;
+export default function SeriesEditor(props: Readonly<SeriesEditorProps>) {
+  return <SeriesEditorView {...props} />;
 }
 
 function normalizeSeriesPayload(values: SeriesFormValues) {

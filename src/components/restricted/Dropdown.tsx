@@ -12,7 +12,6 @@ import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import DeletionDialog from "./DeletionDialog";
 import { stripItem } from "../../util/util";
-import { AppContext } from "../generic/AppContext";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import { mutationRequest } from "../../lib/client/mutation-request";
 import type { AppRouteContextValue } from "../../app/routeContext";
@@ -341,15 +340,18 @@ function resolveItemUs(
 
 export default function Dropdown(props: Readonly<DropdownProps>) {
   const router = useRouter();
-  const appContext = React.useContext(AppContext);
   const snackbarBridge = useSnackbarBridge();
 
   return (
     <DropdownBase
-      {...appContext}
-      {...props.routeContext}
-      {...snackbarBridge}
-      {...props}
+      routeContext={props.routeContext}
+      session={props.session}
+      level={props.level ?? props.routeContext.level}
+      us={props.us ?? props.routeContext.us}
+      handleClose={props.handleClose}
+      item={props.item}
+      EditDropdown={props.EditDropdown}
+      enqueueSnackbar={props.enqueueSnackbar ?? snackbarBridge.enqueueSnackbar}
       onNavigate={(href) => router.push(href)}
     />
   );

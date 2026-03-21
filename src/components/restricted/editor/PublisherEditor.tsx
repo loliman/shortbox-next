@@ -17,8 +17,6 @@ import Typography from "@mui/material/Typography";
 import CardContent from "@mui/material/CardContent";
 import CardHeader from "@mui/material/CardHeader";
 import { editorSectionSx } from "./editorLayout";
-import { AppContext } from "../../generic/AppContext";
-import { useSnackbarBridge } from "../../generic/useSnackbarBridge";
 import { mutationRequest } from "../../../lib/client/mutation-request";
 
 const editorFieldSx = { width: "100%", maxWidth: { xs: "100%", md: 420 } } as const;
@@ -233,9 +231,6 @@ function PublisherEditorView(props: Readonly<PublisherEditorProps>) {
   );
 }
 
-export default function PublisherEditor(props: Readonly<Partial<PublisherEditorProps>>) {
-  const appContext = React.useContext(AppContext);
-  const snackbarBridge = useSnackbarBridge();
-
-  return <PublisherEditorView {...appContext} {...snackbarBridge} {...props} />;
+export default function PublisherEditor(props: Readonly<PublisherEditorProps>) {
+  return <PublisherEditorView {...props} />;
 }

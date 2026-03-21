@@ -8,7 +8,11 @@ import Layout from "../Layout";
 import QueryResult from "../generic/QueryResult";
 import { generateLabel } from "../../util/hierarchy";
 import EditButton from "../restricted/EditButton";
-import { AppContext } from "../generic/AppContext";
+import {
+  useNavigationUiContext,
+  useResponsiveContext,
+  useSessionContext,
+} from "../generic/AppContext";
 import TitleLine from "../generic/TitleLine";
 import { IssueHistoryList } from "./DetailsListingSections";
 import { DetailsPagePlaceholder } from "../placeholders/DetailsPagePlaceholder";
@@ -47,10 +51,29 @@ function PublisherDetailsContent(props: Readonly<PublisherDetailsProps>) {
   const us = Boolean(props.us);
   const registerLoadingComponent = props.registerLoadingComponent || (() => {});
   const unregisterLoadingComponent = props.unregisterLoadingComponent || (() => {});
-  const pageProps = props as Record<string, unknown>;
   const compactLayout =
     props.compactLayout ??
     Boolean(props.isPhone || (props.isTablet && !props.isTabletLandscape));
+  const previewProps = React.useMemo(
+    () => ({
+      us,
+      session: props.session,
+      selected,
+      compactLayout,
+      isPhone: props.isPhone,
+      isTablet: props.isTablet,
+      isTabletLandscape: props.isTabletLandscape,
+    }),
+    [
+      compactLayout,
+      props.isPhone,
+      props.isTablet,
+      props.isTabletLandscape,
+      props.session,
+      selected,
+      us,
+    ]
+  );
   const { markDetailsLoaded, markHistoryLoaded } = useDualLoadingRegistration({
     registerLoadingComponent,
     unregisterLoadingComponent,
@@ -112,7 +135,17 @@ function PublisherDetailsContent(props: Readonly<PublisherDetailsProps>) {
             subheader={String(details.startyear || "") + " - " + String(endYearLabel || "")}
             action={
               <Stack direction="row" spacing={1} alignItems="center">
-                {!compactLayout ? <SortContainer {...pageProps} /> : null}
+                {!compactLayout ? (
+                  <SortContainer
+                    query={props.query as any}
+                    us={us}
+                    selected={selected}
+                    compactLayout={compactLayout}
+                    isPhone={props.isPhone}
+                    isTablet={props.isTablet}
+                    isTabletLandscape={props.isTabletLandscape}
+                  />
+                ) : null}
                 <EditButton
                   item={details}
                   level={props.level}
@@ -131,7 +164,7 @@ function PublisherDetailsContent(props: Readonly<PublisherDetailsProps>) {
               compactLayout={compactLayout}
               issues={issues as any}
               loadingMore={false}
-              previewProps={pageProps}
+              previewProps={previewProps}
               showSort={compactLayout}
             />
           </CardContent>
@@ -149,12 +182,27 @@ export default function PublisherDetails(
     initialSeriesNodesByPublisher?: Record<string, unknown[]>;
   }>
 ) {
-  const appContext = React.useContext(AppContext);
+  const sessionContext = useSessionContext();
+  const responsiveContext = useResponsiveContext();
+  const navigationUiContext = useNavigationUiContext();
+  const contextProps: Partial<PublisherDetailsProps> = {
+    session: sessionContext.session,
+    appIsLoading: navigationUiContext.appIsLoading,
+    compactLayout: responsiveContext.compactLayout,
+    isPhone: responsiveContext.isPhone,
+    isTablet: responsiveContext.isTablet,
+    isTabletLandscape: responsiveContext.isTabletLandscape,
+    registerLoadingComponent: navigationUiContext.registerLoadingComponent,
+    unregisterLoadingComponent: navigationUiContext.unregisterLoadingComponent,
+    selected: props.routeContext.selected as PublisherDetailsProps["selected"],
+    level: props.routeContext.level,
+    us: props.routeContext.us,
+    query: props.routeContext.query,
+  };
 
   return (
     <PublisherDetailsView
-      {...(appContext as unknown as PublisherDetailsProps)}
-      {...(props.routeContext as unknown as PublisherDetailsProps)}
+      {...contextProps}
       {...(props as unknown as PublisherDetailsProps)}
     />
   );

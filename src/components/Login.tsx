@@ -12,7 +12,7 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import { LoginSchema } from "../util/yupSchema";
 import { isMockMode } from "../app/mockMode";
-import { AppContext } from "./generic/AppContext";
+import { useSessionContext } from "./generic/AppContext";
 import { useSnackbarBridge } from "./generic/useSnackbarBridge";
 import { mutationRequest } from "../lib/client/mutation-request";
 
@@ -120,8 +120,13 @@ function LoginView(props: Readonly<LoginProps>) {
 }
 
 export default function Login() {
-  const appContext = React.useContext(AppContext);
+  const sessionContext = useSessionContext();
   const snackbarBridge = useSnackbarBridge();
 
-  return <LoginView {...appContext} {...snackbarBridge} />;
+  return (
+    <LoginView
+      enqueueSnackbar={snackbarBridge.enqueueSnackbar}
+      handleLogin={sessionContext.handleLogin}
+    />
+  );
 }

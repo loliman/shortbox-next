@@ -6,6 +6,8 @@ import QueryResult from "../../generic/QueryResult";
 import IssueEditor from "../editor/IssueEditor";
 import { mapIssueToEditorDefaultValues } from "../editor/issue-editor/defaultValues";
 import { EditorPagePlaceholder } from "../../placeholders/EditorPagePlaceholder";
+import { useResponsiveContext, useSessionContext } from "../../generic/AppContext";
+import { useSnackbarBridge } from "../../generic/useSnackbarBridge";
 import type { AppRouteContextValue } from "../../../app/routeContext";
 
 interface IssueCopyProps {
@@ -17,6 +19,9 @@ interface IssueCopyProps {
 }
 
 function IssueCopy(props: Readonly<IssueCopyProps>) {
+  const sessionContext = useSessionContext();
+  const responsiveContext = useResponsiveContext();
+  const snackbarBridge = useSnackbarBridge();
   const { selected } = props.routeContext;
   const loading = false;
   const error = null;
@@ -44,7 +49,17 @@ function IssueCopy(props: Readonly<IssueCopyProps>) {
 
         const defaultValues = mapIssueToEditorDefaultValues(issueDetails as any, true);
 
-        return <IssueEditor routeContext={props.routeContext} copy defaultValues={defaultValues} />;
+        return (
+          <IssueEditor
+            routeContext={props.routeContext}
+            copy
+            defaultValues={defaultValues}
+            session={sessionContext.session}
+            isDesktop={responsiveContext.isDesktop}
+            selected={selected}
+            enqueueSnackbar={snackbarBridge.enqueueSnackbar}
+          />
+        );
       })()}
     </Layout>
   );

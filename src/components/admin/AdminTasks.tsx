@@ -214,7 +214,6 @@ function AdminTasksPage(props: Readonly<AdminTasksProps>) {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<unknown>(null);
   const [releasingLocks, setReleasingLocks] = React.useState(false);
-  const hasLoadedInitialRef = React.useRef(Array.isArray(props.initialItems));
 
   const tasks = data?.adminTasks || [];
 
@@ -234,14 +233,6 @@ function AdminTasksPage(props: Readonly<AdminTasksProps>) {
       setLoading(false);
     }
   }, []);
-
-  React.useEffect(() => {
-    if (hasLoadedInitialRef.current) {
-      hasLoadedInitialRef.current = false;
-      return;
-    }
-    void refetch();
-  }, [refetch]);
 
   const copyDetailsToClipboard = async (text: string) => {
     if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {

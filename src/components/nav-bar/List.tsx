@@ -15,7 +15,6 @@ import Typography from "@mui/material/Typography";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { generateUrl } from "../../util/hierarchy";
-import { AppContext } from "../generic/AppContext";
 import { buildRouteHref } from "../generic/routeHref";
 import { TypeListEntryPlaceholder } from "./ListPlaceholders";
 import type { HierarchyLevelType } from "../../util/hierarchy";
@@ -88,14 +87,9 @@ let expandedPublishersCache: Record<string, Record<string, boolean>> = {};
 let expandedSeriesCache: Record<string, Record<string, boolean>> = {};
 let navScrollTopCache: Record<string, number> = {};
 
-export default function List(ownProps: Readonly<Partial<ListProps>>) {
+export default function List(props: Readonly<ListProps>) {
   const router = useRouter();
   const pathname = usePathname();
-  const appContext = React.useContext(AppContext);
-  const props = React.useMemo(
-    () => ({ ...appContext, ...ownProps }) as ListProps,
-    [appContext, ownProps]
-  );
   const { drawerOpen, toggleDrawer } = props;
   const temporaryDrawer =
     props.compactLayout ?? Boolean(props.isPhone || (props.isTablet && !props.isTabletLandscape));

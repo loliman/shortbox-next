@@ -8,7 +8,11 @@ import { generateLabel } from "../../util/hierarchy";
 import Layout from "../Layout";
 import QueryResult from "../generic/QueryResult";
 import EditButton from "../restricted/EditButton";
-import { AppContext } from "../generic/AppContext";
+import {
+  useNavigationUiContext,
+  useResponsiveContext,
+  useSessionContext,
+} from "../generic/AppContext";
 import TitleLine from "../generic/TitleLine";
 import { IssueHistoryList } from "./DetailsListingSections";
 import { DetailsPagePlaceholder } from "../placeholders/DetailsPagePlaceholder";
@@ -51,10 +55,29 @@ function SeriesDetailsContent(props: Readonly<SeriesDetailsProps>) {
   const us = Boolean(props.us);
   const registerLoadingComponent = props.registerLoadingComponent || (() => {});
   const unregisterLoadingComponent = props.unregisterLoadingComponent || (() => {});
-  const pageProps = props as Record<string, unknown>;
   const compactLayout =
     props.compactLayout ??
     Boolean(props.isPhone || (props.isTablet && !props.isTabletLandscape));
+  const previewProps = React.useMemo(
+    () => ({
+      us,
+      session: props.session,
+      selected: props.selected,
+      compactLayout,
+      isPhone: props.isPhone,
+      isTablet: props.isTablet,
+      isTabletLandscape: props.isTabletLandscape,
+    }),
+    [
+      compactLayout,
+      props.isPhone,
+      props.isTablet,
+      props.isTabletLandscape,
+      props.selected,
+      props.session,
+      us,
+    ]
+  );
   const { markDetailsLoaded, markHistoryLoaded } = useDualLoadingRegistration({
     registerLoadingComponent,
     unregisterLoadingComponent,
@@ -121,7 +144,17 @@ function SeriesDetailsContent(props: Readonly<SeriesDetailsProps>) {
             subheader={subheaderLabel}
             action={
               <Stack direction="row" spacing={1} alignItems="center">
-                {!compactLayout ? <SortContainer {...pageProps} /> : null}
+                {!compactLayout ? (
+                  <SortContainer
+                    query={props.query as any}
+                    us={us}
+                    selected={props.selected}
+                    compactLayout={compactLayout}
+                    isPhone={props.isPhone}
+                    isTablet={props.isTablet}
+                    isTabletLandscape={props.isTabletLandscape}
+                  />
+                ) : null}
                 <EditButton
                   item={details}
                   level={props.level}
@@ -140,7 +173,7 @@ function SeriesDetailsContent(props: Readonly<SeriesDetailsProps>) {
               compactLayout={compactLayout}
               issues={issues as any}
               loadingMore={false}
-              previewProps={pageProps}
+              previewProps={previewProps}
               showSort={compactLayout}
             />
           </CardContent>
@@ -159,12 +192,27 @@ export default function SeriesDetails(
     initialIssueNodesBySeriesKey?: Record<string, unknown[]>;
   }>
 ) {
-  const appContext = React.useContext(AppContext);
+  const sessionContext = useSessionContext();
+  const responsiveContext = useResponsiveContext();
+  const navigationUiContext = useNavigationUiContext();
+  const contextProps: Partial<SeriesDetailsProps> = {
+    session: sessionContext.session,
+    appIsLoading: navigationUiContext.appIsLoading,
+    compactLayout: responsiveContext.compactLayout,
+    isPhone: responsiveContext.isPhone,
+    isTablet: responsiveContext.isTablet,
+    isTabletLandscape: responsiveContext.isTabletLandscape,
+    registerLoadingComponent: navigationUiContext.registerLoadingComponent,
+    unregisterLoadingComponent: navigationUiContext.unregisterLoadingComponent,
+    selected: props.routeContext.selected as SeriesDetailsProps["selected"],
+    level: props.routeContext.level,
+    us: props.routeContext.us,
+    query: props.routeContext.query,
+  };
 
   return (
     <SeriesDetailsView
-      {...(appContext as unknown as SeriesDetailsProps)}
-      {...(props.routeContext as unknown as SeriesDetailsProps)}
+      {...contextProps}
       {...(props as unknown as SeriesDetailsProps)}
     />
   );

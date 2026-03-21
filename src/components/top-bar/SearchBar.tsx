@@ -9,7 +9,6 @@ import InputAdornment from "@mui/material/InputAdornment";
 import Typography from "@mui/material/Typography";
 import SearchIcon from "@mui/icons-material/Search";
 import { alpha } from "@mui/material/styles";
-import { AppContext } from "../generic/AppContext";
 
 type SearchNode = {
   type?: string | null;
@@ -36,20 +35,16 @@ interface SearchBarProps {
 
 export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
   const router = useRouter();
-  const appContext = React.useContext(AppContext);
-  const props = React.useMemo(
-    () => ({ ...appContext, ...ownProps }),
-    [appContext, ownProps]
-  );
   const [pattern, setPattern] = useState("");
   const [debouncedPattern, setDebouncedPattern] = useState("");
   const [focused, setFocused] = useState(false);
   const [hintDotCount, setHintDotCount] = useState(0);
   const queryPattern = debouncedPattern;
-  const us = Boolean(props.us);
-  const compactLayout =
-    props.compactLayout ??
-    Boolean(props.isPhone || (props.isTablet && !props.isTabletLandscape));
+  const us = Boolean(ownProps.us);
+  const compactLayout = Boolean(
+    ownProps.compactLayout ??
+      Boolean(ownProps.isPhone || (ownProps.isTablet && !ownProps.isTabletLandscape))
+  );
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -130,7 +125,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
     focus: boolean
   ) => {
     setFocused(focus);
-    props.onFocus?.(e, focus);
+    ownProps.onFocus?.(e, focus);
   };
 
   const closeSearch = (e: React.FocusEvent<HTMLElement> | React.MouseEvent<HTMLElement> | null) => {
@@ -346,7 +341,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
           <TextField
             {...params}
             variant="outlined"
-            autoFocus={Boolean(props.autoFocus)}
+            autoFocus={Boolean(ownProps.autoFocus)}
             placeholder="Nach Comic suchen..."
             inputProps={{
               ...params.inputProps,

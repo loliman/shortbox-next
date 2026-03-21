@@ -4,7 +4,14 @@ import Card from "@mui/material/Card";
 import React from "react";
 import TopBar from "./top-bar/TopBar";
 import List from "./nav-bar/List";
-import { AppContext } from "./generic/AppContext";
+import {
+  useAdminMetaContext,
+  useNavigationUiContext,
+  useResponsiveContext,
+  useSessionContext,
+  useThemeModeContext,
+} from "./generic/AppContext";
+import { useSnackbarBridge } from "./generic/useSnackbarBridge";
 import AddFab from "./fab/AddFab";
 import ErrorFab from "./fab/ErrorFab";
 import Box from "@mui/material/Box";
@@ -69,18 +76,126 @@ interface LayoutProps {
 }
 
 export default function Layout(ownProps: Readonly<LayoutProps>) {
-  const appContext = React.useContext(AppContext);
+  const sessionContext = useSessionContext();
+  const responsiveContext = useResponsiveContext();
+  const navigationUiContext = useNavigationUiContext();
+  const themeContext = useThemeModeContext();
+  const adminMetaContext = useAdminMetaContext();
+  const snackbarBridge = useSnackbarBridge();
   const routeContext = ownProps.routeContext;
-  const props = React.useMemo(
-    () => ({ ...appContext, ...routeContext, ...ownProps }),
-    [appContext, routeContext, ownProps]
-  );
-  const { us, children, session, drawerOpen } = props;
-  const handleScroll = props.handleScroll;
+  const children = ownProps.children;
+  const us = Boolean(routeContext.us ?? ownProps.us);
+  const session = ownProps.session ?? sessionContext.session;
+  const drawerOpen = ownProps.drawerOpen ?? navigationUiContext.drawerOpen;
+  const handleScroll = ownProps.handleScroll;
+  const compactLayout = ownProps.compactLayout ?? responsiveContext.compactLayout;
+  const isPhone = ownProps.isPhone ?? responsiveContext.isPhone;
+  const isTablet = ownProps.isTablet ?? responsiveContext.isTablet;
+  const isTabletLandscape = ownProps.isTabletLandscape ?? responsiveContext.isTabletLandscape;
+  const isPhoneLandscape = ownProps.isPhoneLandscape ?? responsiveContext.isPhoneLandscape;
+  const isPhonePortrait = ownProps.isPhonePortrait ?? responsiveContext.isPhonePortrait;
   const temporaryDrawer =
-    props.compactLayout ?? Boolean(props.isPhone || (props.isTablet && !props.isTabletLandscape));
+    compactLayout ?? Boolean(isPhone || (isTablet && !isTabletLandscape));
   const drawerWidth = getNavDrawerWidth(temporaryDrawer);
   const contentOffset = !temporaryDrawer && drawerOpen ? `${drawerWidth}px` : 0;
+  const topBarProps = React.useMemo(
+    () => ({
+      routeContext,
+      toggleDrawer: navigationUiContext.toggleDrawer,
+      drawerOpen,
+      us,
+      isPhone,
+      isPhoneLandscape,
+      isTablet,
+      isTabletLandscape,
+      isPhonePortrait,
+      compactLayout,
+      level: routeContext.level,
+      session,
+      query: routeContext.query as { filter?: string | null; order?: string | null; direction?: string | null } | null,
+      selected: routeContext.selected,
+      resetNavigationState: navigationUiContext.resetNavigationState,
+      themeMode: themeContext.themeMode,
+      toggleTheme: themeContext.toggleTheme,
+      enqueueSnackbar: ownProps.enqueueSnackbar ?? snackbarBridge.enqueueSnackbar,
+      handleLogout: ownProps.handleLogout ?? sessionContext.handleLogout,
+      initialFilterCount: ownProps.initialFilterCount ?? routeContext.initialFilterCount,
+      changeRequestsCount: adminMetaContext.changeRequestsCount,
+    }),
+    [
+      adminMetaContext.changeRequestsCount,
+      compactLayout,
+      drawerOpen,
+      isPhone,
+      isPhoneLandscape,
+      isPhonePortrait,
+      isTablet,
+      isTabletLandscape,
+      navigationUiContext.resetNavigationState,
+      navigationUiContext.toggleDrawer,
+      ownProps.enqueueSnackbar,
+      ownProps.handleLogout,
+      ownProps.initialFilterCount,
+      routeContext,
+      sessionContext.handleLogout,
+      snackbarBridge.enqueueSnackbar,
+      session,
+      themeContext.themeMode,
+      themeContext.toggleTheme,
+      us,
+    ]
+  );
+  const listProps = React.useMemo(
+    () => ({
+      initialPublisherNodes: ownProps.initialPublisherNodes,
+      initialSeriesNodesByPublisher: ownProps.initialSeriesNodesByPublisher,
+      initialIssueNodesBySeriesKey: ownProps.initialIssueNodesBySeriesKey,
+      drawerOpen,
+      toggleDrawer: navigationUiContext.toggleDrawer,
+      compactLayout,
+      isPhone,
+      isPhoneLandscape,
+      isPhonePortrait,
+      isTablet,
+      isTabletLandscape,
+      query: routeContext.query as { filter?: string | null; navPublisher?: string | null; navSeries?: string | null } | null,
+      level: routeContext.level,
+      selected: routeContext.selected,
+      appIsLoading: navigationUiContext.appIsLoading,
+      navResetVersion: navigationUiContext.navResetVersion,
+      session,
+      us,
+    }),
+    [
+      compactLayout,
+      drawerOpen,
+      isPhone,
+      isPhoneLandscape,
+      isPhonePortrait,
+      isTablet,
+      isTabletLandscape,
+      navigationUiContext.appIsLoading,
+      navigationUiContext.navResetVersion,
+      navigationUiContext.toggleDrawer,
+      ownProps.initialIssueNodesBySeriesKey,
+      ownProps.initialPublisherNodes,
+      ownProps.initialSeriesNodesByPublisher,
+      routeContext.level,
+      routeContext.query,
+      routeContext.selected,
+      session,
+      us,
+    ]
+  );
+  const fabProps = React.useMemo(
+    () => ({
+      session,
+      level: routeContext.level,
+      selected: routeContext.selected,
+      us,
+    }),
+    [routeContext.level, routeContext.selected, session, us]
+  );
 
   React.useEffect(() => {
     if (!handleScroll) return;
@@ -103,10 +218,10 @@ export default function Layout(ownProps: Readonly<LayoutProps>) {
         flexDirection: "column",
       }}
     >
-      <TopBar {...props} />
+      <TopBar {...topBarProps} />
 
       <Box component="main" sx={{ display: "flex", flexGrow: 1, minHeight: 0 }}>
-        <List {...props} />
+        <List {...listProps} />
 
         <Box
           sx={{
@@ -123,7 +238,7 @@ export default function Layout(ownProps: Readonly<LayoutProps>) {
                 duration: theme.transitions.duration.enteringScreen,
               }),
           }}
-          onScroll={(e) => (props.handleScroll ? props.handleScroll(e) : false)}
+          onScroll={(e) => (handleScroll ? handleScroll(e) : false)}
         >
           <Card
             sx={{
@@ -174,13 +289,13 @@ export default function Layout(ownProps: Readonly<LayoutProps>) {
               }}
             >
               <FooterLinks
-                isPhonePortrait={props.isPhonePortrait}
+                isPhonePortrait={isPhonePortrait}
               />
             </Box>
           </Card>
         </Box>
 
-      {session ? <AddFab {...props} /> : us ? null : <ErrorFab {...props} />}
+      {session ? <AddFab {...fabProps} /> : us ? null : <ErrorFab {...fabProps} />}
       </Box>
     </Box>
   );

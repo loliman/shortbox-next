@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { AppContext } from "../generic/AppContext";
+import { useNavigationUiContext, useResponsiveContext, useSessionContext } from "../generic/AppContext";
 import IssueDetails from "./IssueDetails";
 import { IssueDetailsUSBottom } from "./issue-details/us/IssueDetailsUSBottom";
 import { IssueDetailsUSDetails } from "./issue-details/us/IssueDetailsUSDetails";
@@ -16,8 +16,22 @@ interface IssueDetailsUSProps {
 }
 
 function IssueDetailsUS(props: Readonly<IssueDetailsUSProps>) {
-  const appContext = React.useContext(AppContext);
-  const contextProps = { ...appContext, ...props.routeContext };
+  const sessionContext = useSessionContext();
+  const responsiveContext = useResponsiveContext();
+  const navigationUiContext = useNavigationUiContext();
+  const contextProps = {
+    session: sessionContext.session,
+    compactLayout: responsiveContext.compactLayout,
+    isPhone: responsiveContext.isPhone,
+    isTablet: responsiveContext.isTablet,
+    isTabletLandscape: responsiveContext.isTabletLandscape,
+    isPhonePortrait: responsiveContext.isPhonePortrait,
+    drawerOpen: navigationUiContext.drawerOpen,
+    query: props.routeContext.query,
+    selected: props.routeContext.selected,
+    level: props.routeContext.level,
+    us: props.routeContext.us,
+  };
 
   return (
     <IssueDetails

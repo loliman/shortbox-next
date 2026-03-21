@@ -10,8 +10,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { alpha, styled } from "@mui/material/styles";
 import type { HierarchyLevelType } from "../../util/hierarchy";
-import { AppContext } from "../generic/AppContext";
-import { useSnackbarBridge } from "../generic";
 import IconButton from "@mui/material/IconButton";
 import Badge from "@mui/material/Badge";
 import ButtonBase from "@mui/material/ButtonBase";
@@ -130,29 +128,28 @@ const Android12Switch = styled(Switch)(({ theme }) => ({
 
 export default function TopBar(ownProps: TopBarProps) {
   const router = useRouter();
-  const appContext = React.useContext(AppContext);
-  const snackbarBridge = useSnackbarBridge();
-  const props = React.useMemo(
-    () => ({ ...appContext, ...snackbarBridge, ...ownProps.routeContext, ...ownProps }),
-    [appContext, snackbarBridge, ownProps]
-  );
-  const { toggleDrawer, drawerOpen } = props;
-  const us = Boolean(props.us);
-  const selected = props.selected || { us };
+  const { routeContext } = ownProps;
+  const toggleDrawer = ownProps.toggleDrawer;
+  const drawerOpen = ownProps.drawerOpen;
+  const us = Boolean(ownProps.us ?? routeContext.us);
+  const selected = ownProps.selected || routeContext.selected || { us };
+  const query = (ownProps.query ?? routeContext.query ?? null) as
+    | { filter?: string | null; order?: string | null; direction?: string | null }
+    | null;
   const compactLayout =
-    props.compactLayout ?? Boolean(props.isPhone || (props.isTablet && !props.isTabletLandscape));
+    ownProps.compactLayout ?? Boolean(ownProps.isPhone || (ownProps.isTablet && !ownProps.isTabletLandscape));
   const [mobileSearchOpen, setMobileSearchOpen] = React.useState(false);
   const isFilter =
-    typeof props.query?.filter === "string" ? props.query.filter : props.query?.filter ? String(props.query.filter) : null;
-  const darkModeEnabled = props.themeMode === "dark";
+    typeof query?.filter === "string" ? query.filter : query?.filter ? String(query.filter) : null;
+  const darkModeEnabled = ownProps.themeMode === "dark";
   const localeSwitchAriaLabel = us ? "Zu Deutsch wechseln" : "Zu US wechseln";
-  const changeRequestsCount = props.changeRequestsCount ?? 0;
+  const changeRequestsCount = ownProps.changeRequestsCount ?? 0;
   const hasChangeRequests = changeRequestsCount > 0;
 
   const onLogout = async () => {
     if (isMockMode) {
-      props.enqueueSnackbar?.("Auf Wiedersehen!", { variant: "success" });
-      props.handleLogout?.();
+      ownProps.enqueueSnackbar?.("Auf Wiedersehen!", { variant: "success" });
+      ownProps.handleLogout?.();
       return;
     }
 
@@ -163,15 +160,15 @@ export default function TopBar(ownProps: TopBarProps) {
       });
 
       if (!result.success) {
-        props.enqueueSnackbar?.("Logout fehlgeschlagen", { variant: "error" });
+        ownProps.enqueueSnackbar?.("Logout fehlgeschlagen", { variant: "error" });
         return;
       }
 
-      props.enqueueSnackbar?.("Auf Wiedersehen!", { variant: "success" });
-      props.handleLogout?.();
+      ownProps.enqueueSnackbar?.("Auf Wiedersehen!", { variant: "success" });
+      ownProps.handleLogout?.();
     } catch (error) {
       const message = error instanceof Error && error.message ? ` [${error.message}]` : "";
-      props.enqueueSnackbar?.("Logout fehlgeschlagen" + message, { variant: "error" });
+      ownProps.enqueueSnackbar?.("Logout fehlgeschlagen" + message, { variant: "error" });
     }
   };
 
@@ -217,7 +214,7 @@ export default function TopBar(ownProps: TopBarProps) {
             href={us ? "/us" : "/de"}
             aria-label="Zur Startseite"
             onClick={() => {
-              props.resetNavigationState?.();
+              ownProps.resetNavigationState?.();
             }}
             sx={{
               display: "inline-flex",
@@ -236,7 +233,7 @@ export default function TopBar(ownProps: TopBarProps) {
               <IconButton
                 color="inherit"
                 aria-label={darkModeEnabled ? "Hellmodus aktivieren" : "Darkmode aktivieren"}
-                onClick={props.toggleTheme}
+                onClick={ownProps.toggleTheme}
               >
                 {darkModeEnabled ? <LightModeIcon /> : <DarkModeIcon />}
               </IconButton>
@@ -260,15 +257,21 @@ export default function TopBar(ownProps: TopBarProps) {
           {compactLayout ? null : (
             <>
               <Box sx={{ minWidth: 0, flex: 1 }}>
-                <SearchBar us={us} />
+                <SearchBar
+                  us={us}
+                  compactLayout={compactLayout}
+                  isPhone={ownProps.isPhone}
+                  isTablet={ownProps.isTablet}
+                  isTabletLandscape={ownProps.isTabletLandscape}
+                />
               </Box>
               <TopBarFilterMenu
                 us={us}
                 selected={selected}
                 isFilterActive={isFilter}
-                query={props.query}
-                session={props.session}
-                initialCount={props.initialFilterCount}
+                query={query}
+                session={ownProps.session}
+                initialCount={ownProps.initialFilterCount}
               />
             </>
           )}
@@ -284,7 +287,7 @@ export default function TopBar(ownProps: TopBarProps) {
               justifySelf: "end",
             }}
           >
-            {props.session?.loggedIn ? (
+            {ownProps.session?.loggedIn ? (
               <Tooltip title="Change Requests">
                 <Badge
                   color="secondary"
@@ -317,7 +320,7 @@ export default function TopBar(ownProps: TopBarProps) {
                 </Badge>
               </Tooltip>
             ) : null}
-            {props.session?.loggedIn ? (
+            {ownProps.session?.loggedIn ? (
               <Tooltip title="Adminpanel">
                 <IconButton
                   color="inherit"
@@ -328,7 +331,7 @@ export default function TopBar(ownProps: TopBarProps) {
                 </IconButton>
               </Tooltip>
             ) : null}
-            {!props.session?.loggedIn ? (
+            {!ownProps.session?.loggedIn ? (
               <Tooltip title="Login">
                 <IconButton
                   color="inherit"
@@ -387,8 +390,8 @@ export default function TopBar(ownProps: TopBarProps) {
                   color="primary"
                   inputProps={{ "aria-label": localeSwitchAriaLabel }}
                   onChange={() => {
-                    props.resetNavigationState?.();
-                    router.push(buildRouteHref(us ? "/de" : "/us", props.query, { filter: null }));
+                    ownProps.resetNavigationState?.();
+                    router.push(buildRouteHref(us ? "/de" : "/us", query, { filter: null }));
                   }}
                 />
               </Tooltip>
@@ -406,7 +409,7 @@ export default function TopBar(ownProps: TopBarProps) {
               <IconButton
                 color="inherit"
                 aria-label={darkModeEnabled ? "Hellmodus aktivieren" : "Darkmode aktivieren"}
-                onClick={props.toggleTheme}
+                onClick={ownProps.toggleTheme}
               >
                 {darkModeEnabled ? <LightModeIcon /> : <DarkModeIcon />}
               </IconButton>
@@ -435,6 +438,10 @@ export default function TopBar(ownProps: TopBarProps) {
               <SearchBar
                 us={us}
                 autoFocus={true}
+                compactLayout={compactLayout}
+                isPhone={ownProps.isPhone}
+                isTablet={ownProps.isTablet}
+                isTabletLandscape={ownProps.isTabletLandscape}
                 onFocus={(
                   _event: React.FocusEvent<HTMLElement> | React.MouseEvent<HTMLElement> | null,
                   focus: boolean
@@ -510,11 +517,11 @@ export default function TopBar(ownProps: TopBarProps) {
             us={us}
             selected={selected}
             isFilterActive={isFilter}
-            query={props.query}
-            session={props.session}
-            initialCount={props.initialFilterCount}
+            query={query}
+            session={ownProps.session}
+            initialCount={ownProps.initialFilterCount}
           />
-          {props.session?.loggedIn ? (
+          {ownProps.session?.loggedIn ? (
             <Tooltip title="Change Requests">
               <Badge
                 color="secondary"
@@ -547,7 +554,7 @@ export default function TopBar(ownProps: TopBarProps) {
               </Badge>
             </Tooltip>
           ) : null}
-          {props.session?.loggedIn ? (
+          {ownProps.session?.loggedIn ? (
             <Tooltip title="Adminpanel">
               <IconButton
                 color="inherit"
@@ -558,7 +565,7 @@ export default function TopBar(ownProps: TopBarProps) {
               </IconButton>
             </Tooltip>
           ) : null}
-          {!props.session?.loggedIn ? (
+          {!ownProps.session?.loggedIn ? (
             <Tooltip title="Login">
               <IconButton
                 color="inherit"
@@ -583,8 +590,8 @@ export default function TopBar(ownProps: TopBarProps) {
                 color="primary"
                 inputProps={{ "aria-label": localeSwitchAriaLabel }}
                 onChange={() => {
-                  props.resetNavigationState?.();
-                  router.push(buildRouteHref(us ? "/de" : "/us", props.query, { filter: null }));
+                  ownProps.resetNavigationState?.();
+                  router.push(buildRouteHref(us ? "/de" : "/us", query, { filter: null }));
                 }}
               />
             </Tooltip>
