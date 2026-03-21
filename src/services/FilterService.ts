@@ -1,7 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma/client";
 import type { Filter, NumberFilter } from "../types/query-data";
-import { generateLabel } from "../util/hierarchy";
 
 const MULTI_FILTER_SEPARATOR_REGEX = /\s*\|\|\s*/g;
 const TRANSLATOR_STORY_INDIVIDUAL_TYPE = "TRANSLATOR";
@@ -38,27 +37,6 @@ type RuntimeFilter = Filter & {
 type FilterIssueRecord = Prisma.IssueGetPayload<{
   include: Prisma.IssueInclude;
 }>;
-
-type ExportPublisher = { name: string };
-type ExportSeries = {
-  title: string;
-  volume: number;
-  startyear: number;
-  endyear: number;
-  publisher: ExportPublisher;
-};
-type ExportIssueData = {
-  number: string;
-  format: string;
-  variant: string;
-  pages: number;
-  releasedate: string;
-  price: number;
-  currency: string;
-  series: ExportSeries;
-};
-type ExportResponse = Record<string, Record<string, ExportIssueData[]>>;
-type SortedExportResponse = Array<[string, Array<[string, ExportIssueData[]]>]>;
 
 function dedupeTerms(values: string[]): string[] {
   return values
@@ -100,14 +78,6 @@ function splitFilterTerms(value: string | null | undefined): string[] {
 
 function containsInsensitive(haystack: string | null | undefined, needle: string): boolean {
   return String(haystack || "").toLocaleLowerCase("de-DE").includes(needle.toLocaleLowerCase("de-DE"));
-}
-
-function alphaCompare(a: string, b: string): number {
-  return a.localeCompare(b, "de-DE", { sensitivity: "base" });
-}
-
-function naturalCompare(a: string, b: string): number {
-  return a.localeCompare(b, "de-DE", { numeric: true, sensitivity: "base" });
 }
 
 function isNumericFilterValue(value: string): boolean {
@@ -500,82 +470,6 @@ export class FilterService {
     void this.requestId;
   }
 
-  public async export(filter: Filter, type: string, loggedIn: boolean) {
-    if (type !== "txt" && type !== "csv") {
-      throw new Error("Gültige Export Typen: txt, csv");
-    }
-
-    const issues = await this.getFilteredIssues(filter, loggedIn);
-    const response: ExportResponse = {};
-
-    for (const issue of issues) {
-      const seriesRecord = (issue.series || null) as any;
-      const publisherName = seriesRecord?.publisher?.name || "Unbekannter Verlag";
-      const publisher: ExportPublisher = { name: publisherName };
-      const series: ExportSeries = {
-        title: seriesRecord?.title || "",
-        volume: Number(seriesRecord?.volume || 0),
-        startyear: Number(seriesRecord?.startYear || 0),
-        endyear: Number(seriesRecord?.endYear || 0),
-        publisher,
-      };
-      const issueData: ExportIssueData = {
-        number: issue.number,
-        format: issue.format || "",
-        variant: issue.variant || "",
-        pages: Number(issue.pages || 0),
-        releasedate: toDayKey(issue.releaseDate) || "",
-        price: Number(issue.price || 0),
-        currency: issue.currency || "",
-        series,
-      };
-
-      const publisherLabel = publisher.name;
-      const seriesLabel = generateLabel({
-        series: {
-          title: series.title,
-          volume: series.volume,
-          startyear: series.startyear,
-          endyear: series.endyear,
-          publisher: {
-            name: publisher.name,
-            us: null,
-          },
-        },
-      } as never);
-
-      if (!response[publisherLabel]) response[publisherLabel] = {};
-      if (!response[publisherLabel][seriesLabel]) response[publisherLabel][seriesLabel] = [];
-      response[publisherLabel][seriesLabel].push(issueData);
-    }
-
-    const sortedResponse: SortedExportResponse = Object.keys(response)
-      .map((publisherLabel) => [
-        publisherLabel,
-        Object.keys(response[publisherLabel] || {})
-          .map((seriesLabel) => [
-            seriesLabel,
-            [...(response[publisherLabel]?.[seriesLabel] || [])].sort((left, right) =>
-              naturalCompare(left.number, right.number)
-            ),
-          ] as [string, ExportIssueData[]])
-          .sort((left, right) => alphaCompare(left[0], right[0])),
-      ] as [string, Array<[string, ExportIssueData[]]>])
-      .sort((left, right) => alphaCompare(left[0], right[0]));
-
-    if (type === "txt") {
-      return (
-        "Anzahl Ergebnisse: " +
-        issues.length +
-        "\n\n" +
-        (await this.convertFilterToTxt(filter, loggedIn)) +
-        (await this.resultsToTxt(sortedResponse))
-      );
-    }
-
-    return this.resultsToCsv(sortedResponse);
-  }
-
   public async count(filter: Filter, loggedIn: boolean): Promise<number> {
     const issues = await this.getFilteredIssues(filter, loggedIn);
     return issues.length;
@@ -838,178 +732,4 @@ export class FilterService {
     return true;
   }
 
-  private async resultsToCsv(results: SortedExportResponse) {
-    let responseString =
-      "Verlag;Series;Volume;Start;Ende;Nummer;Variante;Format;Seiten;Erscheinungsdaten;Preis;Währung\n";
-
-    results.forEach((publisherEntry) => {
-      publisherEntry[1].forEach((seriesEntry) => {
-        seriesEntry[1].forEach((issueEntry) => {
-          responseString +=
-            issueEntry.series.publisher.name +
-            "\t;" +
-            issueEntry.series.title +
-            "\t;" +
-            issueEntry.series.volume +
-            "\t;" +
-            issueEntry.series.startyear +
-            "\t;" +
-            issueEntry.series.endyear +
-            "\t;" +
-            issueEntry.number +
-            "\t;" +
-            issueEntry.variant +
-            "\t;" +
-            issueEntry.format +
-            "\t;" +
-            issueEntry.pages +
-            "\t;" +
-            issueEntry.releasedate +
-            "\t;" +
-            String(issueEntry.price).replace(".", ",") +
-            "\t;" +
-            issueEntry.currency +
-            "\n";
-        });
-      });
-    });
-
-    return responseString;
-  }
-
-  private async resultsToTxt(results: SortedExportResponse) {
-    let responseString = "";
-
-    results.forEach((publisherEntry) => {
-      responseString += publisherEntry[0] + "\n";
-      publisherEntry[1].forEach((seriesEntry) => {
-        responseString += "\t" + seriesEntry[0] + "\n";
-        seriesEntry[1].forEach((issueEntry) => {
-          responseString += "\t\t#" + issueEntry.number + "\n";
-        });
-      });
-      responseString += "\n";
-    });
-
-    return responseString;
-  }
-
-  private async convertFilterToTxt(filter: Filter, loggedIn: boolean) {
-    void loggedIn;
-    const runtimeFilter = filter as RuntimeFilter;
-    let s = "Aktive Filter\n";
-    s += "\t" + (runtimeFilter.us ? "Original Ausgaben" : "Deutsche Ausgaben") + "\n";
-    s += "\tDetails\n";
-
-    if (runtimeFilter.formats) {
-      s += "\t\tFormat: ";
-      runtimeFilter.formats.forEach((format) => (s += String(format || "") + ", "));
-      s = s.substring(0, s.length - 2) + "\n";
-    }
-
-    if (runtimeFilter.withVariants) s += "\t\tmit Varianten\n";
-
-    if (runtimeFilter.releasedates) {
-      s += "\t\tErscheinungsdatum: ";
-      runtimeFilter.releasedates.forEach((releasedate) => {
-        if (releasedate?.date) s += String(releasedate.date) + " " + String(releasedate.compare || "=") + ", ";
-      });
-      s = s.substring(0, s.length - 2) + "\n";
-    }
-
-    if (!runtimeFilter.formats && !runtimeFilter.withVariants && !runtimeFilter.releasedates) s += "\t\t-\n";
-    if (runtimeFilter.noComicguideId) s += "\tOhne Comicguide ID\n";
-    if (runtimeFilter.noContent) s += "\tOhne Inhalt\n";
-
-    s += "\tEnthält\n";
-    if (runtimeFilter.firstPrint) s += "\t\tErstausgabe\n";
-    if (runtimeFilter.notFirstPrint) s += "\t\tNicht Erstausgabe\n";
-    if (runtimeFilter.onlyPrint) s += "\t\tEinzige Ausgabe\n";
-    if (runtimeFilter.notOnlyPrint) s += "\t\tNicht einzige Ausgabe\n";
-    if (runtimeFilter.onlyTb) s += "\t\tNur in TB\n";
-    if (runtimeFilter.notOnlyTb) s += "\t\tNicht nur in TB\n";
-    if (runtimeFilter.exclusive) s += "\t\tExclusiv\n";
-    if (runtimeFilter.notExclusive) s += "\t\tNicht exklusiv\n";
-    if (runtimeFilter.reprint) s += "\t\tReiner Nachdruck\n";
-    if (runtimeFilter.notReprint) s += "\t\tNicht reiner Nachdruck\n";
-    if (runtimeFilter.otherOnlyTb) s += "\t\tNur in TB\n";
-    if (runtimeFilter.notOtherOnlyTb) s += "\t\tNicht sonst nur in TB\n";
-    if (runtimeFilter.noPrint) s += "\t\tKeine Ausgabe\n";
-    if (runtimeFilter.notNoPrint) s += "\t\tMindestens eine Ausgabe\n";
-    if (runtimeFilter.onlyOnePrint) s += "\t\tEinzige Ausgabe\n";
-    if (runtimeFilter.notOnlyOnePrint) s += "\t\tNicht nur einmal erschienen\n";
-    if (runtimeFilter.onlyCollected) s += "\t\tGesammelt\n";
-    if (runtimeFilter.onlyNotCollected) s += "\t\tNicht gesammelt\n";
-    if (runtimeFilter.onlyNotCollectedNoOwnedVariants) s += "\t\tNicht gesammelt (keine Variante gesammelt)\n";
-
-    if (runtimeFilter.publishers) {
-      s += "\tVerlag: ";
-      runtimeFilter.publishers.forEach((publisher) => {
-        if (publisher?.name) s += publisher.name + ", ";
-      });
-      s = s.substring(0, s.length - 2) + "\n";
-    }
-
-    if (runtimeFilter.series) {
-      s += "\tSerie: ";
-      runtimeFilter.series.forEach((series) => {
-        if (series?.title && series?.volume) s += series.title + " (Vol. " + series.volume + "), ";
-      });
-      s = s.substring(0, s.length - 2) + "\n";
-    }
-
-    if (runtimeFilter.genres && runtimeFilter.genres.length > 0) {
-      const genres = dedupeTerms(
-        runtimeFilter.genres
-          .map((genre) => (typeof genre === "string" ? genre.trim() : ""))
-          .filter((genre) => genre.length > 0)
-      );
-      if (genres.length > 0) s += "\tGenre: " + genres.join(", ") + "\n";
-    }
-
-    if (runtimeFilter.numbers) {
-      s += "\tNummer: ";
-      runtimeFilter.numbers.forEach((numberFilter) => {
-        if (!numberFilter) return;
-        s += "#" + numberFilter.number;
-        if ("variant" in numberFilter && numberFilter.variant) s += " (" + numberFilter.variant + ")";
-        s += " " + String(numberFilter.compare || "=") + ", ";
-      });
-      s = s.substring(0, s.length - 2) + "\n";
-    }
-
-    if (Array.isArray(runtimeFilter.arcs) && runtimeFilter.arcs.length > 0) {
-      s += "\tStory Arc: ";
-      runtimeFilter.arcs.forEach((arc) => {
-        if (arc?.title) s += arc.title + ", ";
-      });
-      s = s.substring(0, s.length - 2) + "\n";
-    }
-
-    if (runtimeFilter.individuals) {
-      s += "\tMitwirkende: ";
-      runtimeFilter.individuals.forEach((individual) => {
-        if (individual?.name) s += individual.name + ", ";
-      });
-      s = s.substring(0, s.length - 2) + "\n";
-    }
-
-    if (Array.isArray(runtimeFilter.appearances) && runtimeFilter.appearances.length > 0) {
-      s += "\tAuftritte: ";
-      runtimeFilter.appearances.forEach((appearance) => {
-        if (appearance?.name) s += appearance.name + ", ";
-      });
-      s = s.substring(0, s.length - 2) + "\n";
-    }
-
-    if (Array.isArray(runtimeFilter.realities) && runtimeFilter.realities.length > 0) {
-      s += "\tRealität: ";
-      runtimeFilter.realities.forEach((reality) => {
-        if (reality?.name) s += reality.name + ", ";
-      });
-      s = s.substring(0, s.length - 2) + "\n";
-    }
-
-    return s;
-  }
 }
