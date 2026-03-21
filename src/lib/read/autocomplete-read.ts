@@ -20,7 +20,7 @@ type AutocompleteRequest = {
   limit?: number;
 };
 
-export async function getAutocompleteItems(input: AutocompleteRequest) {
+export async function readAutocompleteItems(input: AutocompleteRequest) {
   const limit = normalizePositiveInt(input.limit, AUTOCOMPLETE_PAGE_SIZE);
   const offset = normalizePositiveInt(input.offset, 0);
 
@@ -126,9 +126,7 @@ async function getSeriesItems(
               ? Prisma.sql`p.name = ${publisherName}`
               : Prisma.sql`TRUE`
           }
-          AND ${
-            publisherUs === undefined ? Prisma.sql`TRUE` : Prisma.sql`p.original = ${publisherUs}`
-          }
+          AND ${publisherUs === undefined ? Prisma.sql`TRUE` : Prisma.sql`p.original = ${publisherUs}`}
         ORDER BY s.title ASC, s.volume ASC, s.startyear ASC, s.id ASC
         OFFSET ${offset}
         LIMIT ${limit + 1}
@@ -341,12 +339,8 @@ async function getRealityItems(
       take: 1000,
     });
 
-    const realities = dedupeStrings(
-      rows.flatMap((row) => extractRealitiesFromAppearanceName(row.name))
-    )
-      .filter((entry) =>
-        pattern ? entry.toLowerCase().includes(pattern.toLowerCase()) : true
-      )
+    const realities = dedupeStrings(rows.flatMap((row) => extractRealitiesFromAppearanceName(row.name)))
+      .filter((entry) => (pattern ? entry.toLowerCase().includes(pattern.toLowerCase()) : true))
       .map((name) => ({ name }));
 
     return sliceItems(realities, offset, limit);
@@ -418,30 +412,28 @@ function matchesGenrePattern(genre: string, pattern: string): boolean {
   return true;
 }
 
-function sliceItems<T>(items: T[], offset: number, limit: number) {
-  const page = items.slice(offset, offset + limit + 1);
-  return {
-    items: page.slice(0, limit),
-    hasMore: page.length > limit,
-  };
-}
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
   return value as Record<string, unknown>;
 }
 
 function normalizePattern(value: unknown) {
-  const text = String(value || "").trim();
-  return text.length > 0 ? text : "";
+  return String(value || "").trim();
 }
 
-function toLikePattern(value: string) {
-  return `%${value.replace(/\s/g, "%")}%`;
+function normalizePositiveInt(value: number | undefined, fallback: number) {
+  if (!Number.isFinite(value)) return fallback;
+  return Math.max(0, Math.floor(value as number));
 }
 
-function normalizePositiveInt(value: unknown, fallback: number) {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed < 0) return fallback;
-  return Math.floor(parsed);
+function toLikePattern(pattern: string) {
+  return `%${pattern.replace(/\s+/g, "%")}%`;
+}
+
+function sliceItems<T>(items: T[], offset: number, limit: number) {
+  const sliced = items.slice(offset, offset + limit + 1);
+  return {
+    items: sliced.slice(0, limit),
+    hasMore: sliced.length > limit,
+  };
 }

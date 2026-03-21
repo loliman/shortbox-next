@@ -7,7 +7,7 @@ import AutocompleteBase from "../../../generic/AutocompleteBase";
 import { useAutocompleteQuery } from "../../../generic/useAutocompleteQuery";
 import { getPattern, updateField } from "./helpers";
 import type { ChangePayload, FieldItem } from "./types";
-import type { AutocompleteSource } from "../../../../lib/screens/autocomplete-data";
+import type { AutocompleteSource } from "../../../../lib/read/autocomplete-read";
 
 const MIN_QUERY_LENGTH = 2;
 const DEBOUNCE_MS = 250;

@@ -20,12 +20,34 @@ import { TypeListEntryPlaceholder } from "./ListPlaceholders";
 import type { HierarchyLevelType } from "../../util/hierarchy";
 import type { Issue, SelectedRoot, Series } from "../../types/domain";
 import {
+  createIssueSecondary,
+  createSeriesLabel,
+  createSidebarIssueLabel,
+  doesSeriesNodeMatchIssueSeries,
+  getDepthPadding,
+  getIssueNodeVariant,
+  getSelectedPublisherName,
+  getSelectedSeriesKey,
+  getSeriesKey,
+  getVariantCount,
+  isElementVisibleInContainer,
+  isIssueNumberMatch,
+  isSameEntityName,
+  isSelectedIssue,
+  isSeriesNodeSelected,
+  normalizeIssueNumber,
+  PublisherNode,
+  SeriesNode,
+  IssueNode,
+  toIssueSeriesSelected,
+  toSeriesSelected,
+} from "./listTreeUtils";
+import {
   COMPACT_BOTTOM_BAR_CLEARANCE,
   drawerHeaderAdjustedHeight,
   drawerHeaderTopOffset,
   getNavDrawerWidth,
 } from "../layoutMetrics";
-import { getLegacyNumberLabel, getSeriesLabel } from "../../util/issuePresentation";
 import CoverTooltip from "./CoverTooltip";
 
 interface ListProps {
@@ -49,38 +71,6 @@ interface ListProps {
   us?: boolean;
   [key: string]: unknown;
 }
-
-type PublisherNode = {
-  id?: string | null;
-  name?: string | null;
-  us?: boolean | null;
-};
-
-type SeriesNode = {
-  id?: string | null;
-  title?: string | null;
-  volume?: number | null;
-  startyear?: number | null;
-  endyear?: number | null;
-  publisher?: PublisherNode | null;
-};
-
-type IssueNode = {
-  id?: string | null;
-  number?: string | null;
-  legacy_number?: string | null;
-  title?: string | null;
-  format?: string | null;
-  variant?: string | null;
-  collected?: boolean | null;
-  cover?: { url?: string | null } | null;
-  variants?: Array<{ collected?: boolean | null; format?: string | null; variant?: string | null } | null> | null;
-  series?: {
-    title?: string | null;
-    volume?: number | null;
-    publisher?: PublisherNode | null;
-  } | null;
-};
 
 let lastPublisherNodesCache: PublisherNode[] = [];
 let expandedPublishersCache: Record<string, Record<string, boolean>> = {};
@@ -810,199 +800,4 @@ function NestedEmptyRow({
       <ListItemText primary={message} />
     </ListItem>
   );
-}
-
-function getDepthPadding(depth: number) {
-  return 2 + depth * 2;
-}
-
-function createIssueSecondary(issueNode: IssueNode, showCollected: boolean): string | undefined {
-  const parts: string[] = [];
-
-  if (
-    showCollected &&
-    (issueNode.collected || issueNode.variants?.some((entry) => entry?.collected))
-  ) {
-    parts.push("Gesammelt");
-  }
-
-  return parts.length > 0 ? parts.join(" • ") : undefined;
-}
-
-function getVariantCount(issueNode: IssueNode): number {
-  const total = issueNode.variants?.length || 0;
-  return total > 1 ? total - 1 : 0;
-}
-
-function createSeriesLabel(seriesNode: SeriesNode): string {
-  return getSeriesLabel(seriesNode, { fallbackYear: "?" });
-}
-
-function createIssueSeriesLabel(issueNode: IssueNode, us: boolean): string {
-  const seriesTitle = issueNode.series?.title || "";
-  const variant = getIssueNodeVariant(issueNode);
-  const variantLabel = variant ? ` [${variant}]` : "";
-  if (us) return seriesTitle;
-  if (issueNode.title && issueNode.title !== "") return `${issueNode.title}${variantLabel}`;
-  return `${seriesTitle}${variantLabel}`;
-}
-
-function createSidebarIssueLabel(issueNode: IssueNode, us: boolean): string {
-  const number = issueNode.number ? `#${issueNode.number}` : "";
-  const legacyLabel = getLegacyNumberLabel(issueNode);
-  const seriesLabel = createIssueSeriesLabel(issueNode, us);
-
-  return [number, legacyLabel, seriesLabel].filter(Boolean).join(" ");
-}
-
-function getSelectedPublisherName(selected: SelectedRoot): string {
-  return (
-    selected?.publisher?.name ||
-    selected?.series?.publisher?.name ||
-    selected?.issue?.series?.publisher?.name ||
-    ""
-  );
-}
-
-function getSeriesKey(seriesNode: SeriesNode): string {
-  return [
-    seriesNode.publisher?.name || "",
-    seriesNode.title || "",
-    normalizeSeriesVolume(seriesNode.volume),
-  ].join("|");
-}
-
-function getSelectedSeriesKey(selected: SelectedRoot): string | null {
-  const seriesNode = selected?.series || selected?.issue?.series;
-  if (!seriesNode?.title) return null;
-  return [
-    seriesNode.publisher?.name || "",
-    seriesNode.title,
-    normalizeSeriesVolume(seriesNode.volume),
-  ].join("|");
-}
-
-function toSeriesSelected(seriesNode: SeriesNode, us: boolean): Series {
-  return {
-    title: seriesNode.title || "",
-    volume: seriesNode.volume ?? 1,
-    publisher: {
-      name: seriesNode.publisher?.name || "",
-      us: seriesNode.publisher?.us ?? us,
-    },
-  };
-}
-
-function toIssueSeriesSelected(
-  issueNode: IssueNode,
-  fallbackSeries: SeriesNode,
-  us: boolean
-): Series {
-  return {
-    title: issueNode.series?.title || fallbackSeries.title || "",
-    volume: issueNode.series?.volume ?? fallbackSeries.volume ?? 1,
-    publisher: {
-      name: issueNode.series?.publisher?.name || fallbackSeries.publisher?.name || "",
-      us: issueNode.series?.publisher?.us ?? fallbackSeries.publisher?.us ?? us,
-    },
-  };
-}
-
-function isSelectedIssue(
-  issueNode: IssueNode,
-  selectedIssue: Issue | undefined,
-  seriesNode: SeriesNode
-): boolean {
-  const selectedNumber = normalizeIssueNumber(selectedIssue?.number);
-  if (selectedNumber === "") return false;
-  if (!isIssueNumberMatch(issueNode.number, selectedNumber)) return false;
-  return doesSeriesNodeMatchIssueSeries(seriesNode, selectedIssue?.series);
-}
-
-function normalizeIssuePart(value: unknown): string {
-  if (value === null || value === undefined) return "";
-  return String(value).trim();
-}
-
-function normalizeIssueNumber(value: unknown): string {
-  return normalizeIssuePart(value).replace(/\s+/g, "").toUpperCase();
-}
-
-function getIssueNumberPrefix(number: string): string {
-  const match = number.match(/^\d+/);
-  return match ? match[0] : "";
-}
-
-function isIssueNumberMatch(nodeNumberRaw: unknown, selectedNumberRaw: unknown): boolean {
-  const nodeNumber = normalizeIssueNumber(nodeNumberRaw);
-  const selectedNumber = normalizeIssueNumber(selectedNumberRaw);
-  if (!nodeNumber || !selectedNumber) return false;
-  if (nodeNumber === selectedNumber) return true;
-
-  const nodePrefix = getIssueNumberPrefix(nodeNumber);
-  const selectedPrefix = getIssueNumberPrefix(selectedNumber);
-  if (nodePrefix && selectedPrefix && nodePrefix === selectedPrefix) return true;
-
-  return false;
-}
-
-function normalizeSeriesVolume(value: unknown): string {
-  if (value === null || value === undefined) return "";
-  const numericValue = Number(value);
-  return Number.isFinite(numericValue) ? String(numericValue) : "";
-}
-
-function doesSeriesNodeMatchIssueSeries(
-  seriesNode: { title?: unknown; volume?: unknown; publisher?: { name?: unknown } | null },
-  selectedSeries?: Issue["series"]
-): boolean {
-  if (!selectedSeries) return false;
-
-  const nodePublisher = normalizeMatchText(seriesNode.publisher?.name);
-  const selectedPublisher = normalizeMatchText(selectedSeries.publisher?.name);
-  if (!nodePublisher || !selectedPublisher || nodePublisher !== selectedPublisher) return false;
-
-  const nodeTitle = normalizeMatchText(seriesNode.title);
-  const selectedTitle = normalizeMatchText(selectedSeries.title);
-  if (!nodeTitle || !selectedTitle || nodeTitle !== selectedTitle) return false;
-
-  const nodeVolume = normalizeSeriesVolume(seriesNode.volume);
-  const selectedVolume = normalizeSeriesVolume(selectedSeries.volume);
-  if (nodeVolume && selectedVolume && nodeVolume !== selectedVolume) return false;
-
-  return true;
-}
-
-function normalizeMatchText(value: unknown): string {
-  return normalizeIssuePart(value).replace(/\s+/g, " ").toLowerCase();
-}
-
-function isSameEntityName(left: unknown, right: unknown): boolean {
-  const normalizedLeft = normalizeMatchText(left);
-  const normalizedRight = normalizeMatchText(right);
-  if (!normalizedLeft || !normalizedRight) return false;
-  return normalizedLeft === normalizedRight;
-}
-
-function isSeriesNodeSelected(
-  seriesNode: SeriesNode,
-  activeSeriesKey: string | null,
-  selectedIssue?: Issue
-): boolean {
-  const seriesKey = getSeriesKey(seriesNode);
-  if (activeSeriesKey && activeSeriesKey === seriesKey) return true;
-  return doesSeriesNodeMatchIssueSeries(seriesNode, selectedIssue?.series);
-}
-
-function isElementVisibleInContainer(element: HTMLElement, container: HTMLElement): boolean {
-  const elementRect = element.getBoundingClientRect();
-  const containerRect = container.getBoundingClientRect();
-  return elementRect.bottom > containerRect.top && elementRect.top < containerRect.bottom;
-}
-
-function getIssueNodeVariant(issueNode: IssueNode): string | undefined {
-  const rawVariant = (issueNode as unknown as { variant?: unknown }).variant;
-  if (rawVariant === null || rawVariant === undefined) return undefined;
-  const value = String(rawVariant).trim();
-  return value === "" ? undefined : value;
 }

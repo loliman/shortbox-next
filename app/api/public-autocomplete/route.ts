@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAutocompleteItems } from "@/src/lib/screens/autocomplete-data";
+import { readAutocompleteItems } from "@/src/lib/read/autocomplete-read";
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ items: [], hasMore: false }, { status: 400 });
     }
 
-    const data = await getAutocompleteItems({
+    const data = await readAutocompleteItems({
       source: body.source,
       variables: body.variables,
       offset: body.offset,

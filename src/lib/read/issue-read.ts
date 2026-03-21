@@ -1,22 +1,20 @@
 import type { AppRouteContextValue } from "../../app/routeContext";
-import { IssueService } from "../../services/IssueService";
+import {
+  countChangeRequests as countIssueChangeRequests,
+  readChangeRequests as readIssueChangeRequests,
+} from "./change-requests-read";
+import {
+  readIssueDetails as readIssueDetailsQuery,
+  type IssueSelectionInput,
+} from "./issue-details-read";
 
-type IssueDetailsResult = Awaited<ReturnType<IssueService["getIssueDetails"]>>;
-
-type IssueSelectionOptions = {
-  us: boolean;
-  publisher: string;
-  series: string;
-  volume: number;
-  number: string;
-  format?: string | null;
-  variant?: string | null;
-};
+type IssueDetailsResult = Awaited<ReturnType<typeof readIssueDetailsQuery>>;
+type IssueSelectionOptions = IssueSelectionInput;
 
 export async function readIssueDetails(
   options: IssueSelectionOptions
 ): Promise<IssueDetailsResult> {
-  return new IssueService().getIssueDetails({
+  return readIssueDetailsQuery({
     us: options.us,
     publisher: options.publisher,
     series: options.series,
@@ -51,12 +49,12 @@ export async function readChangeRequests(options?: {
   order?: string | null;
   direction?: string | null;
 }) {
-  return new IssueService().listChangeRequests({
+  return readIssueChangeRequests({
     order: options?.order || undefined,
     direction: options?.direction || undefined,
   });
 }
 
 export async function countChangeRequests() {
-  return new IssueService().countChangeRequests();
+  return countIssueChangeRequests();
 }

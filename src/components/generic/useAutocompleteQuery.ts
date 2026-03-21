@@ -1,5 +1,5 @@
 import React from "react";
-import type { AutocompleteSource } from "../../lib/screens/autocomplete-data";
+import type { AutocompleteSource } from "../../lib/read/autocomplete-read";
 
 type QueryVariables = Record<string, unknown>;
 

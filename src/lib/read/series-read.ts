@@ -1,5 +1,5 @@
 import type { AppRouteContextValue } from "../../app/routeContext";
-import { SeriesService } from "../../services/SeriesService";
+import { readSeriesDetailsQuery } from "./series-details-read";
 
 export async function readSeriesDetails(options: {
   us: boolean;
@@ -7,7 +7,7 @@ export async function readSeriesDetails(options: {
   series: string;
   volume: number;
 }) {
-  return new SeriesService().getSeriesDetails({
+  return readSeriesDetailsQuery({
     us: options.us,
     publisher: options.publisher,
     series: options.series,

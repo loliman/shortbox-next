@@ -11,7 +11,7 @@ import { TextField } from "../../../generic/FormikTextField";
 import { useAutocompleteQuery } from "../../../generic/useAutocompleteQuery";
 import { currencies, formats } from "./constants";
 import type { IssueEditorFormValues } from "./types";
-import type { AutocompleteSource } from "../../../../lib/screens/autocomplete-data";
+import type { AutocompleteSource } from "../../../../lib/read/autocomplete-read";
 
 const MIN_QUERY_LENGTH = 2;
 const DEBOUNCE_MS = 250;

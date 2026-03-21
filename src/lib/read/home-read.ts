@@ -1,4 +1,4 @@
-import { IssueService } from "../../services/IssueService";
+import { readLastEditedIssues } from "./issue-feed-read";
 
 const DEFAULT_HOME_PAGE_SIZE = 50;
 
@@ -16,8 +16,7 @@ export async function readHomeFeed(options: HomeReadOptions) {
   const offset = normalizePositiveInt(options.offset, 0);
 
   try {
-    const service = new IssueService();
-    const connection = await service.getLastEdited(
+    const connection = await readLastEditedIssues(
       {
         ...(options.filter || {}),
         us: options.us,

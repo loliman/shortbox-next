@@ -1,8 +1,8 @@
 import type { AppRouteContextValue } from "../../app/routeContext";
-import { PublisherService } from "../../services/PublisherService";
+import { readPublisherDetailsQuery } from "./publisher-details-read";
 
 export async function readPublisherDetails(options: { us: boolean; publisher: string }) {
-  return new PublisherService().getPublisherDetails({
+  return readPublisherDetailsQuery({
     us: options.us,
     publisher: options.publisher,
   });
