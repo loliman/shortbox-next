@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Suspense } from "react";
 import "./globals.css";
+import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 import AppProviders from "@/src/components/AppProviders";
 import { AppPageLoader } from "@/src/components/generic/loading";
+import { getInitialResponsiveGuess } from "@/src/app/responsiveGuess";
 
 export const metadata: Metadata = {
   title: {
@@ -13,15 +16,24 @@ export const metadata: Metadata = {
   applicationName: "Shortbox",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headerStore = await headers();
+  const initialResponsiveGuess = getInitialResponsiveGuess(headerStore.get("user-agent"));
+
   return (
     <html lang="de" suppressHydrationWarning>
       <body>
-        <AppProviders>
+        <InitColorSchemeScript
+          attribute="data-theme"
+          defaultMode="light"
+          modeStorageKey="shortbox_theme_mode"
+          colorSchemeStorageKey="shortbox_color_scheme"
+        />
+        <AppProviders initialResponsiveGuess={initialResponsiveGuess}>
           <Suspense fallback={<AppPageLoader />}>{children}</Suspense>
         </AppProviders>
       </body>

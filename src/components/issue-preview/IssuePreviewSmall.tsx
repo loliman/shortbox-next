@@ -44,19 +44,23 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
   return (
     <Card
       sx={(theme) => ({
-        backgroundColor:
-          theme.palette.mode === "dark" ? "rgba(16, 16, 16, 0.96)" : "background.paper",
+        backgroundColor: "background.paper",
         overflow: "hidden",
         border: "1px solid",
-        borderColor:
-          theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
+        borderColor: "rgba(0,0,0,0.08)",
         transition: "transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease",
         "&:hover": {
           transform: "translateY(-2px)",
           boxShadow: theme.shadows[6],
-          borderColor:
-            theme.palette.mode === "dark" ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.18)",
+          borderColor: "rgba(0,0,0,0.18)",
         },
+        ...theme.applyStyles("dark", {
+          backgroundColor: "rgba(16, 16, 16, 0.96)",
+          borderColor: "rgba(255,255,255,0.08)",
+          "&:hover": {
+            borderColor: "rgba(255,255,255,0.18)",
+          },
+        }),
       })}
     >
       <CardActionArea
@@ -71,12 +75,9 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
               position: "relative",
               aspectRatio: "1 / 1.5",
               width: "100%",
-              backgroundColor:
-                theme.palette.mode === "dark" ? "rgba(0, 0, 0, 0.3)" : "rgba(0, 0, 0, 0.04)",
+              backgroundColor: "rgba(0, 0, 0, 0.04)",
               backgroundImage: isCoverLoading
-                ? theme.palette.mode === "dark"
-                  ? "linear-gradient(110deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.04) 75%)"
-                  : "linear-gradient(110deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.14) 50%, rgba(0, 0, 0, 0.04) 75%)"
+                ? "linear-gradient(110deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.14) 50%, rgba(0, 0, 0, 0.04) 75%)"
                 : `url(${effectiveCoverUrl})`,
               backgroundRepeat: "no-repeat",
               backgroundPosition: isCoverLoading ? "200% 0" : "center",
@@ -92,10 +93,7 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
                       content: '""',
                       position: "absolute",
                       inset: 0,
-                      background:
-                        theme.palette.mode === "dark"
-                          ? "linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0) 45%)"
-                          : "linear-gradient(135deg, rgba(0,0,0,0.06), rgba(0,0,0,0) 45%)",
+                      background: "linear-gradient(135deg, rgba(0,0,0,0.06), rgba(0,0,0,0) 45%)",
                     }
                   : undefined,
               "&::before": {
@@ -104,10 +102,26 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
                 inset: 0,
                 background:
                   "radial-gradient(circle at 12% 14%, rgba(255,255,255,0.18), rgba(255,255,255,0) 38%)",
-                mixBlendMode: theme.palette.mode === "dark" ? "screen" : "multiply",
+                mixBlendMode: "multiply",
                 opacity: 0.45,
                 pointerEvents: "none",
               },
+              ...theme.applyStyles("dark", {
+                backgroundColor: "rgba(0, 0, 0, 0.3)",
+                backgroundImage: isCoverLoading
+                  ? "linear-gradient(110deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.04) 75%)"
+                  : `url(${effectiveCoverUrl})`,
+                "&::after":
+                  effectiveCoverUrl === NO_COVER_URL
+                    ? {
+                        background:
+                          "linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0) 45%)",
+                      }
+                    : undefined,
+                "&::before": {
+                  mixBlendMode: "screen",
+                },
+              }),
             })}
           >
             <Box
@@ -168,8 +182,10 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
               px: 1.5,
               py: 1.25,
               overflow: "hidden",
-              backgroundColor:
-                theme.palette.mode === "dark" ? "rgba(24, 24, 24, 0.84)" : "rgba(228, 228, 228, 0.58)",
+              backgroundColor: "rgba(228, 228, 228, 0.58)",
+              ...theme.applyStyles("dark", {
+                backgroundColor: "rgba(24, 24, 24, 0.84)",
+              }),
             })}
           >
             <IssuePreviewChips issue={props.issue} flags={flags} us={us} chipSx={SINGLE_LINE_CHIP_SX} />
@@ -188,11 +204,13 @@ export function IssuePreviewPlaceholderSmall(props: { idx?: number; isLast?: boo
     <Card
       sx={(theme) => ({
         overflow: "hidden",
-        backgroundColor:
-          theme.palette.mode === "dark" ? "rgba(16, 16, 16, 0.96)" : "background.paper",
+        backgroundColor: "background.paper",
         border: "1px solid",
-        borderColor:
-          theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
+        borderColor: "rgba(0,0,0,0.08)",
+        ...theme.applyStyles("dark", {
+          backgroundColor: "rgba(16, 16, 16, 0.96)",
+          borderColor: "rgba(255,255,255,0.08)",
+        }),
       })}
     >
       <CardActionArea
@@ -205,12 +223,14 @@ export function IssuePreviewPlaceholderSmall(props: { idx?: number; isLast?: boo
               position: "relative",
               aspectRatio: "1 / 1.5",
               width: "100%",
-              backgroundColor:
-                theme.palette.mode === "dark" ? "rgba(0, 0, 0, 0.3)" : "rgba(0, 0, 0, 0.04)",
+              backgroundColor: "rgba(0, 0, 0, 0.04)",
               backgroundImage:
-                theme.palette.mode === "dark"
-                  ? "linear-gradient(120deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))"
-                  : "linear-gradient(120deg, rgba(0,0,0,0.06), rgba(0,0,0,0.02))",
+                "linear-gradient(120deg, rgba(0,0,0,0.06), rgba(0,0,0,0.02))",
+              ...theme.applyStyles("dark", {
+                backgroundColor: "rgba(0, 0, 0, 0.3)",
+                backgroundImage:
+                  "linear-gradient(120deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))",
+              }),
             })}
           >
             <Box
@@ -229,8 +249,10 @@ export function IssuePreviewPlaceholderSmall(props: { idx?: number; isLast?: boo
                 width={width}
                 height={26}
                 sx={(theme) => ({
-                  bgcolor:
-                    theme.palette.mode === "dark" ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.18)",
+                  bgcolor: "rgba(0,0,0,0.18)",
+                  ...theme.applyStyles("dark", {
+                    bgcolor: "rgba(255,255,255,0.2)",
+                  }),
                 })}
               />
               <Skeleton
@@ -238,8 +260,10 @@ export function IssuePreviewPlaceholderSmall(props: { idx?: number; isLast?: boo
                 width="42%"
                 height={18}
                 sx={(theme) => ({
-                  bgcolor:
-                    theme.palette.mode === "dark" ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.14)",
+                  bgcolor: "rgba(0,0,0,0.14)",
+                  ...theme.applyStyles("dark", {
+                    bgcolor: "rgba(255,255,255,0.16)",
+                  }),
                 })}
               />
             </Box>
@@ -255,8 +279,10 @@ export function IssuePreviewPlaceholderSmall(props: { idx?: number; isLast?: boo
               px: 1.5,
               py: 1.25,
               overflow: "hidden",
-              backgroundColor:
-                theme.palette.mode === "dark" ? "rgba(24, 24, 24, 0.84)" : "rgba(228, 228, 228, 0.58)",
+              backgroundColor: "rgba(228, 228, 228, 0.58)",
+              ...theme.applyStyles("dark", {
+                backgroundColor: "rgba(24, 24, 24, 0.84)",
+              }),
             })}
           >
             <Skeleton variant="rounded" width={96} height={24} />

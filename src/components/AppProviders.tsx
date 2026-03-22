@@ -2,60 +2,64 @@
 
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import CssBaseline from "@mui/material/CssBaseline";
-import { ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider, useColorScheme } from "@mui/material/styles";
 import { SnackbarProvider } from "notistack";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect } from "react";
+import { ResponsiveGuessProvider } from "../app/useResponsive";
 import ThemeModeProvider from "./generic/AppContext";
-import { createAppTheme, type AppThemeMode } from "../app/theme";
+import { appTheme, type AppThemeMode } from "../app/theme";
+import type { InitialResponsiveGuess } from "../app/responsiveGuess";
 
 const THEME_MODE_STORAGE_KEY = "shortbox_theme_mode";
-
-const readStoredThemeMode = (): AppThemeMode | null => {
-  if (typeof window === "undefined") return null;
-  const value = window.localStorage.getItem(THEME_MODE_STORAGE_KEY);
-  return value === "light" || value === "dark" ? value : null;
-};
+const THEME_COLOR_SCHEME_STORAGE_KEY = "shortbox_color_scheme";
 
 type AppProvidersProps = {
+  initialResponsiveGuess: InitialResponsiveGuess;
   children?: ReactNode;
 };
 
-export default function AppProviders(props: Readonly<AppProvidersProps>) {
-  const [themeMode, setThemeMode] = useState<AppThemeMode>(() => readStoredThemeMode() || "light");
-
-  const toggleTheme = () => {
-    setThemeMode((prev) => {
-      const next = prev === "dark" ? "light" : "dark";
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(THEME_MODE_STORAGE_KEY, next);
-      }
-      return next;
-    });
-  };
-
-  const theme = useMemo(() => createAppTheme(themeMode), [themeMode]);
+function ThemeModeBridge(props: Readonly<AppProvidersProps>) {
+  const { mode, setMode } = useColorScheme();
+  const themeMode: AppThemeMode = mode === "dark" ? "dark" : "light";
 
   useEffect(() => {
     if (typeof document === "undefined") return;
     document.body.dataset.theme = themeMode;
   }, [themeMode]);
 
+  const toggleTheme = useCallback(() => {
+    setMode(themeMode === "dark" ? "light" : "dark");
+  }, [setMode, themeMode]);
+
+  return (
+    <SnackbarProvider
+      maxSnack={4}
+      autoHideDuration={3500}
+      anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+    >
+      <ThemeModeProvider themeMode={themeMode} toggleTheme={toggleTheme}>
+        <ResponsiveGuessProvider initialGuess={props.initialResponsiveGuess}>
+          <CssBaseline />
+          {props.children ?? null}
+        </ResponsiveGuessProvider>
+      </ThemeModeProvider>
+    </SnackbarProvider>
+  );
+}
+
+export default function AppProviders(props: Readonly<AppProvidersProps>) {
   return (
     <AppRouterCacheProvider options={{ key: "mui" }}>
-      <ThemeProvider theme={theme}>
-        <SnackbarProvider
-          maxSnack={4}
-          autoHideDuration={3500}
-          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-        >
-          <ThemeModeProvider
-            themeMode={themeMode}
-            toggleTheme={toggleTheme}
-          >
-            <CssBaseline />
-            {props.children ?? null}
-          </ThemeModeProvider>
-        </SnackbarProvider>
+      <ThemeProvider
+        theme={appTheme}
+        defaultMode="light"
+        modeStorageKey={THEME_MODE_STORAGE_KEY}
+        colorSchemeStorageKey={THEME_COLOR_SCHEME_STORAGE_KEY}
+        disableTransitionOnChange
+      >
+        <ThemeModeBridge initialResponsiveGuess={props.initialResponsiveGuess}>
+          {props.children}
+        </ThemeModeBridge>
       </ThemeProvider>
     </AppRouterCacheProvider>
   );
