@@ -1,37 +1,56 @@
+import type { Metadata } from "next";
+import AppPageShell from "@/src/components/app-shell/AppPageShell";
 import Home from "@/src/components/Home";
-import { createAppRouteContext, type NextPageSearchParams } from "@/src/app/routeContext";
 import { readHomeFeed } from "@/src/lib/read/home-read";
-import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
 import { parseFilter } from "@/src/components/nav-bar/listUtils";
 import type { PreviewIssue } from "@/src/components/issue-preview/utils/issuePreviewUtils";
+import { resolveAppPage } from "@/src/lib/routes/app-page";
+import { createHomeMetadata } from "@/src/lib/routes/metadata";
+
+export const metadata: Metadata = createHomeMetadata(false);
 
 export default async function DeHomePage({
   searchParams,
 }: Readonly<{
-  searchParams?: NextPageSearchParams;
+  searchParams?: Promise<Record<string, string | string[] | undefined> | undefined>;
 }>) {
-  const resolvedSearchParams = await searchParams;
-  const routeContext = createAppRouteContext({ searchParams: resolvedSearchParams, us: false });
-  const filterQuery = typeof routeContext.query?.filter === "string" ? routeContext.query.filter : null;
+  const page = await resolveAppPage({ us: false, searchParams, session: "optional" });
+  const filterQuery = typeof page.query?.filter === "string" ? page.query.filter : null;
   const initialHomeData = await readHomeFeed({
     us: false,
     offset: 0,
     limit: 50,
-    order: typeof routeContext.query?.order === "string" ? routeContext.query.order : null,
-    direction: typeof routeContext.query?.direction === "string" ? routeContext.query.direction : null,
+    order: typeof page.query?.order === "string" ? page.query.order : null,
+    direction: typeof page.query?.direction === "string" ? page.query.direction : null,
     filter: parseFilter(filterQuery),
+    loggedIn: Boolean(page.session?.loggedIn),
   });
-  const navigationData = await readInitialNavigationData(routeContext);
-  routeContext.initialFilterCount = navigationData.initialFilterCount;
-
   return (
-    <Home
-      routeContext={routeContext}
-      initialItems={initialHomeData.items.filter(Boolean) as PreviewIssue[]}
-      initialHasMore={initialHomeData.hasMore}
-      initialPublisherNodes={navigationData.initialPublisherNodes}
-      initialSeriesNodesByPublisher={navigationData.initialSeriesNodesByPublisher}
-      initialIssueNodesBySeriesKey={navigationData.initialIssueNodesBySeriesKey}
-    />
+    <AppPageShell
+      selected={page.selected}
+      level={page.level}
+      us={page.us}
+      query={page.query}
+      session={page.session}
+      initialFilterCount={page.navigationData?.initialFilterCount}
+      initialPublisherNodes={page.navigationData?.initialPublisherNodes}
+      initialSeriesNodesByPublisher={page.navigationData?.initialSeriesNodesByPublisher}
+      initialIssueNodesBySeriesKey={page.navigationData?.initialIssueNodesBySeriesKey}
+    >
+      <Home
+        selected={page.selected}
+        level={page.level}
+        us={page.us}
+        query={page.query}
+        session={page.session}
+        initialFilterCount={page.navigationData?.initialFilterCount}
+        initialItems={initialHomeData.items.filter(Boolean) as PreviewIssue[]}
+        initialHasMore={initialHomeData.hasMore}
+        initialNextCursor={initialHomeData.nextCursor}
+        initialPublisherNodes={page.navigationData?.initialPublisherNodes}
+        initialSeriesNodesByPublisher={page.navigationData?.initialSeriesNodesByPublisher}
+        initialIssueNodesBySeriesKey={page.navigationData?.initialIssueNodesBySeriesKey}
+      />
+    </AppPageShell>
   );
 }

@@ -16,7 +16,6 @@ const REALITY_MIN_QUERY_LENGTH = 0;
 interface ContainsSectionProps {
   values: FilterValues;
   us: boolean;
-  isDesktop: boolean;
   setFieldValue: (field: string, value: unknown) => void;
 }
 

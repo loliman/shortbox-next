@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/src/lib/prisma/client";
+import { requireApiAdminSession } from "@/src/lib/server/guards";
 import { getWorkerUtils } from "@/src/lib/worker-utils";
 import {
   ADMIN_TASK_DEFINITION_BY_NAME,
@@ -22,6 +23,9 @@ type JobViewRow = {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireApiAdminSession();
+    if (auth.response) return auth.response;
+
     const body = (await request.json()) as {
       action?: "run" | "release-locks";
       input?: Record<string, unknown>;

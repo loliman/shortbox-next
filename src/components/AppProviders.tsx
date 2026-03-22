@@ -5,11 +5,8 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { SnackbarProvider } from "notistack";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
-import AppShellContextsProvider from "./generic/AppContext";
+import ThemeModeProvider from "./generic/AppContext";
 import { createAppTheme, type AppThemeMode } from "../app/theme";
-import { type SessionData } from "../app/session";
-import { isMockMode } from "../app/mockMode";
-import { subscribeSessionInvalid } from "../app/authEvents";
 
 const THEME_MODE_STORAGE_KEY = "shortbox_theme_mode";
 
@@ -21,11 +18,9 @@ const readStoredThemeMode = (): AppThemeMode | null => {
 
 type AppProvidersProps = {
   children?: ReactNode;
-  changeRequestsCount?: number;
 };
 
 export default function AppProviders(props: Readonly<AppProvidersProps>) {
-  const [session, setSession] = useState<SessionData | null>(null);
   const [themeMode, setThemeMode] = useState<AppThemeMode>(() => readStoredThemeMode() || "light");
 
   const toggleTheme = () => {
@@ -45,20 +40,6 @@ export default function AppProviders(props: Readonly<AppProvidersProps>) {
     document.body.dataset.theme = themeMode;
   }, [themeMode]);
 
-  useEffect(() => {
-    if (isMockMode) {
-      setSession({ loggedIn: true });
-      return;
-    }
-    setSession(null);
-  }, []);
-
-  useEffect(() => {
-    return subscribeSessionInvalid(() => {
-      setSession(null);
-    });
-  }, []);
-
   return (
     <AppRouterCacheProvider options={{ key: "mui" }}>
       <ThemeProvider theme={theme}>
@@ -67,16 +48,13 @@ export default function AppProviders(props: Readonly<AppProvidersProps>) {
           autoHideDuration={3500}
           anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         >
-          <AppShellContextsProvider
-            session={session}
-            setSession={setSession}
+          <ThemeModeProvider
             themeMode={themeMode}
             toggleTheme={toggleTheme}
-            changeRequestsCount={props.changeRequestsCount}
           >
             <CssBaseline />
             {props.children ?? null}
-          </AppShellContextsProvider>
+          </ThemeModeProvider>
         </SnackbarProvider>
       </ThemeProvider>
     </AppRouterCacheProvider>

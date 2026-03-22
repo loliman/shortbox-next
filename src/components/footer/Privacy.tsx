@@ -1,4 +1,3 @@
-import Layout from "../Layout";
 import React from "react";
 import CardHeader from "@mui/material/CardHeader";
 import CardContent from "@mui/material/CardContent";
@@ -6,12 +5,10 @@ import Typography from "@mui/material/Typography";
 import Link from "@mui/material/Link";
 import Box from "@mui/material/Box";
 import { Stack } from "@mui/material";
-import NextLink from "next/link";
-import type { AppRouteContextValue } from "../../app/routeContext";
 
-function Privacy(props: Readonly<{ routeContext: AppRouteContextValue }>) {
+function Privacy() {
   return (
-    <Layout routeContext={props.routeContext}>
+    <>
       <CardHeader title="Datenschutzerklärung" />
 
       <CardContent sx={{ pt: 1 }}>
@@ -40,7 +37,7 @@ function Privacy(props: Readonly<{ routeContext: AppRouteContextValue }>) {
               E-Mail: <Link href="mailto:christian.riese@gmail.com">christian.riese@gmail.com</Link>
               <Box component="span" sx={{ display: "block" }} />
               Link zum Impressum:{" "}
-              <Link component={NextLink} href="/impress" underline="hover">
+              <Link href="/impress" underline="hover">
                 Impressum
               </Link>
             </Typography>
@@ -404,7 +401,7 @@ function Privacy(props: Readonly<{ routeContext: AppRouteContextValue }>) {
           </Typography>
         </Stack>
       </CardContent>
-    </Layout>
+    </>
   );
 }
 

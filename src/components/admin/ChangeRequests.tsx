@@ -17,18 +17,24 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { JsonDiffComponent } from "json-diff-react";
 import type { JsonValue } from "json-diff-react";
-import Layout from "../Layout";
 import {generateLabel} from "../../util/hierarchy";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import { mutationRequest } from "../../lib/client/mutation-request";
-import type { AppRouteContextValue } from "../../app/routeContext";
+import type { SessionData } from "../../app/session";
+import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
 
 type SnackbarVariant = "success" | "error" | "warning" | "info";
 
 interface ChangeRequestsProps {
-  routeContext: AppRouteContextValue;
+  selected: LayoutRouteData["selected"];
+  level: LayoutRouteData["level"];
+  us: boolean;
+  query?: RouteQuery | null;
+  initialFilterCount?: number | null;
   initialItems?: ChangeRequestEntry[];
   initialPublisherNodes?: Array<{ id?: string | null; name?: string | null; us?: boolean | null }>;
+  changeRequestsCount?: number;
+  session?: SessionData | null;
   enqueueSnackbar?: (message: string, options?: { variant?: SnackbarVariant }) => void;
 }
 
@@ -162,7 +168,7 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
   };
 
   return (
-    <Layout routeContext={props.routeContext} initialPublisherNodes={props.initialPublisherNodes}>
+    <>
       <CardHeader title="Change Requests" />
       <CardContent sx={{ pt: 1 }}>
         {loading ? <Typography>Lade Change Requests...</Typography> : null}
@@ -314,7 +320,7 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
           )}
         </Box>
       </CardContent>
-    </Layout>
+    </>
   );
 }
 

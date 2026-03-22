@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { useRouter } from "next/navigation";
 import Dialog from "@mui/material/Dialog";
@@ -15,7 +17,6 @@ import {
 } from "../../util/hierarchy";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import { mutationRequest } from "../../lib/client/mutation-request";
-import type { AppRouteContextValue } from "../../app/routeContext";
 
 type VariantLike = {
   number?: string;
@@ -38,7 +39,6 @@ type DeletionDialogItem = {
 };
 
 type DeletionDialogProps = {
-  routeContext: AppRouteContextValue;
   level?: string;
   item?: DeletionDialogItem | null;
   open?: boolean;
@@ -55,10 +55,7 @@ function DeletionDialogView(props: Readonly<DeletionDialogProps>) {
   const level = props.level;
   const { item, open, handleClose, enqueueSnackbar } = props;
   const itemOrFallback: DeletionDialogItem = item ?? { us: Boolean(props.us) };
-
-  const parentRef = React.useRef(toParent(itemOrFallback));
   const parent = toParent(itemOrFallback);
-  parentRef.current = parent;
   const itemLabel = getItemLabel(itemOrFallback);
 
   if (!item) return null;
@@ -94,7 +91,7 @@ function DeletionDialogView(props: Readonly<DeletionDialogProps>) {
                 },
               });
 
-              router.push(generateUrl(parentRef.current as never, Boolean(props.us)));
+              router.push(generateUrl(parent as never, Boolean(props.us)));
 
               if (result.success) {
                 enqueueSnackbar?.(itemLabel + " erfolgreich gelöscht", { variant: "success" });
@@ -209,5 +206,5 @@ function getItemLabel(item: DeletionDialogItem): string {
 export default function DeletionDialog(props: Readonly<DeletionDialogProps>) {
   const snackbarBridge = useSnackbarBridge();
 
-  return <DeletionDialogView {...props.routeContext} {...snackbarBridge} {...props} />;
+  return <DeletionDialogView {...snackbarBridge} {...props} />;
 }

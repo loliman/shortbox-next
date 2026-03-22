@@ -12,7 +12,6 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import { LoginSchema } from "../util/yupSchema";
 import { isMockMode } from "../app/mockMode";
-import { useSessionContext } from "./generic/AppContext";
 import { useSnackbarBridge } from "./generic/useSnackbarBridge";
 import { mutationRequest } from "../lib/client/mutation-request";
 
@@ -21,7 +20,6 @@ interface LoginProps {
     message: string,
     options?: { variant?: "success" | "error" | "warning" | "info" }
   ) => void;
-  handleLogin: (user: any) => void;
 }
 
 function LoginView(props: Readonly<LoginProps>) {
@@ -37,14 +35,14 @@ function LoginView(props: Readonly<LoginProps>) {
       onSubmit={async (values, actions) => {
         if (isMockMode) {
           props.enqueueSnackbar("Willkommen!", { variant: "success" });
-          props.handleLogin({ loggedIn: true });
+          router.refresh();
           router.back();
           actions.setSubmitting(false);
           return;
         }
 
         try {
-          const result = await mutationRequest<{ user?: { id?: string; loggedIn?: boolean } }>({
+          await mutationRequest<{ user?: { id?: string; loggedIn?: boolean } }>({
             url: "/api/auth/login",
             method: "POST",
             body: {
@@ -56,7 +54,7 @@ function LoginView(props: Readonly<LoginProps>) {
           });
 
           props.enqueueSnackbar("Willkommen!", { variant: "success" });
-          props.handleLogin(result.user || { loggedIn: true });
+          router.refresh();
           router.back();
         } catch (error) {
           const message = error instanceof Error && error.message ? ` [${error.message}]` : "";
@@ -120,13 +118,11 @@ function LoginView(props: Readonly<LoginProps>) {
 }
 
 export default function Login() {
-  const sessionContext = useSessionContext();
   const snackbarBridge = useSnackbarBridge();
 
   return (
     <LoginView
       enqueueSnackbar={snackbarBridge.enqueueSnackbar}
-      handleLogin={sessionContext.handleLogin}
     />
   );
 }

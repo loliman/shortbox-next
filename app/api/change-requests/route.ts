@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireApiAdminSession, requireApiWriteSession } from "@/src/lib/server/guards";
 import {
   createIssueChangeRequest,
   discardChangeRequestById,
@@ -6,6 +7,9 @@ import {
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireApiWriteSession();
+    if (auth.response) return auth.response;
+
     const body = (await request.json()) as {
       issue?: Record<string, unknown>;
       item?: Record<string, unknown>;
@@ -28,6 +32,9 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const auth = await requireApiAdminSession();
+    if (auth.response) return auth.response;
+
     const body = (await request.json()) as { id?: string | number };
     const success = await discardChangeRequestById(body.id);
     return NextResponse.json({ success }, { headers: { "Cache-Control": "no-store" } });

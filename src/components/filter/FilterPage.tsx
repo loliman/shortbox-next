@@ -1,125 +1,75 @@
-import React from "react";
-import { useRouter } from "next/navigation";
-import Paper from "@mui/material/Paper";
-import CardContent from "@mui/material/CardContent";
 import CardHeader from "@mui/material/CardHeader";
+import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
-import { type Theme } from "@mui/material/styles";
-import { Form, Formik } from "formik";
-import Layout from "../Layout";
-import FormActions from "./FormActions";
-import { createDefaultFilterValues, parseFilterValues } from "./defaults";
-import { serializeFilterValues } from "./serialize";
-import ContainsSection from "./sections/ContainsSection";
-import ContributorsSection from "./sections/ContributorsSection";
-import DetailsSection from "./sections/DetailsSection";
-import { FilterPageProps, FilterValues } from "./types";
+import Link from "next/link";
+import { parseFilterValues } from "./defaults";
+import FilterFormClient from "./FilterFormClient";
+import type { FilterPageProps } from "./types";
 import { buildRouteHref } from "../generic/routeHref";
 import { generateUrl } from "../../util/hierarchy";
 
-function FilterPage(props: FilterPageProps) {
-  const router = useRouter();
-  const { us, session, isDesktop = false } = props;
-  const query = props.query as { filter?: string; from?: string } | null | undefined;
-  const initialValues = React.useMemo(() => parseFilterValues(query?.filter), [query?.filter]);
-  const targetPath = React.useMemo(() => {
-    const from = typeof query?.from === "string" ? query.from.trim() : "";
-    if (from) return from;
-    return generateUrl(props.routeContext.selected, us);
-  }, [props.routeContext.selected, query?.from, us]);
-  const [activeTab, setActiveTab] = React.useState(0);
-  const sectionSx = {
-    px: { xs: 1.25, sm: 1.75 },
-    py: { xs: 1.25, sm: 1.5 },
-    borderRadius: 2,
-    border: "1px solid",
-    borderColor: "divider",
-    boxShadow: (theme: Theme) => theme.shadows[1],
-    backgroundColor: "background.paper",
-  } as const;
+const FILTER_TABS = [
+  { label: "Erscheinung", value: 0 },
+  { label: "Inhalt", value: 1 },
+  { label: "Mitwirkende", value: 2 },
+] as const;
 
-  return (
-    <Layout routeContext={props.routeContext} initialPublisherNodes={props.initialPublisherNodes}>
-      <Formik
-        enableReinitialize
-        initialValues={initialValues}
-        onSubmit={async (values: FilterValues, actions) => {
-          actions.setSubmitting(true);
-
-          const payload = serializeFilterValues(values, us);
-          router.push(
-            buildRouteHref(targetPath || `/${us ? "us" : "de"}`, query, {
-              filter: payload ? JSON.stringify(payload) : null,
-              from: null,
-            })
-          );
-
-          actions.setSubmitting(false);
-        }}
-      >
-        {({ values, resetForm, submitForm, isSubmitting, setFieldValue }) => (
-          <Form>
-            <CardHeader title="Filter" />
-
-            <CardContent sx={{ pt: 1 }}>
-              <Stack spacing={2.25}>
-                <Paper elevation={0} sx={sectionSx}>
-                  <Stack spacing={2}>
-                    <Tabs
-                      value={activeTab}
-                      onChange={(_, value) => setActiveTab(value)}
-                      variant="scrollable"
-                      allowScrollButtonsMobile
-                    >
-                      <Tab label="Erscheinung" />
-                      <Tab label="Inhalt" />
-                      <Tab label="Mitwirkende" />
-                    </Tabs>
-
-                    {activeTab === 0 ? (
-                      <DetailsSection
-                        values={values}
-                        us={us}
-                        isDesktop={isDesktop}
-                        setFieldValue={setFieldValue}
-                        hasSession={Boolean(session)}
-                      />
-                    ) : null}
-
-                    {activeTab === 1 ? (
-                      <ContainsSection
-                        values={values}
-                        us={us}
-                        isDesktop={isDesktop}
-                        setFieldValue={setFieldValue}
-                      />
-                    ) : null}
-
-                    {activeTab === 2 ? (
-                      <ContributorsSection values={values} us={us} setFieldValue={setFieldValue} />
-                    ) : null}
-                  </Stack>
-                </Paper>
-
-                <Paper elevation={0} sx={sectionSx}>
-                  <FormActions
-                    isSubmitting={isSubmitting}
-                    onReset={() => resetForm({ values: createDefaultFilterValues() })}
-                    onCancel={() => {
-                      router.back();
-                    }}
-                    onSubmit={() => submitForm()}
-                  />
-                </Paper>
-              </Stack>
-            </CardContent>
-          </Form>
-        )}
-      </Formik>
-    </Layout>
-  );
+function normalizeFilterTab(rawTab: string | undefined): number {
+  const numericTab = Number(rawTab ?? "0");
+  return Number.isInteger(numericTab) && numericTab >= 0 && numericTab <= 2 ? numericTab : 0;
 }
 
-export default FilterPage;
+export default function FilterPage(props: Readonly<FilterPageProps>) {
+  const query = props.query as { filter?: string; from?: string; tab?: string } | null | undefined;
+  const initialValues = parseFilterValues(query?.filter);
+  const from = typeof query?.from === "string" ? query.from.trim() : "";
+  const targetPath = from || generateUrl(props.selected, props.us);
+  const activeTab = normalizeFilterTab(typeof query?.tab === "string" ? query.tab : undefined);
+
+  return (
+    <Stack spacing={2.25}>
+      <Paper
+        elevation={0}
+        sx={{
+          borderRadius: 2,
+          border: "1px solid",
+          borderColor: "divider",
+          boxShadow: (theme) => theme.shadows[1],
+          backgroundColor: "background.paper",
+        }}
+      >
+        <CardHeader title="Filter" />
+        <Tabs
+          value={activeTab}
+          variant="scrollable"
+          allowScrollButtonsMobile
+          sx={{ px: { xs: 1.25, sm: 1.75 } }}
+        >
+          {FILTER_TABS.map((tab) => (
+            <Tab
+              key={tab.value}
+              component={Link}
+              href={buildRouteHref(`/${props.us ? "filter/us" : "filter/de"}`, query, {
+                tab: String(tab.value),
+              })}
+              label={tab.label}
+              value={tab.value}
+            />
+          ))}
+        </Tabs>
+      </Paper>
+
+      <FilterFormClient
+        us={props.us}
+        query={props.query}
+        selected={props.selected}
+        hasSession={Boolean(props.hasSession)}
+        activeTab={activeTab}
+        initialValues={initialValues}
+        targetPath={targetPath}
+      />
+    </Stack>
+  );
+}

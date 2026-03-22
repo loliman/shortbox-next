@@ -1,17 +1,10 @@
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
-import Link from "next/link";
-
-type FooterLinksProps = {
-  isPhonePortrait?: boolean;
-};
 
 const footerButtonSx = { px: 0.75, color: "text.secondary", minWidth: 0 };
 
-export default function FooterLinks(props: Readonly<FooterLinksProps>) {
-  const showExtendedContactText = !props.isPhonePortrait;
-
+export default function FooterLinks() {
   return (
     <Box
       component="nav"
@@ -30,7 +23,6 @@ export default function FooterLinks(props: Readonly<FooterLinksProps>) {
         justifyContent={{ xs: "center", sm: "flex-end" }}
       >
         <Button
-          component={Link}
           size="small"
           variant="text"
           color="inherit"
@@ -40,7 +32,6 @@ export default function FooterLinks(props: Readonly<FooterLinksProps>) {
           Über
         </Button>
         <Button
-          component={Link}
           size="small"
           variant="text"
           color="inherit"
@@ -48,10 +39,11 @@ export default function FooterLinks(props: Readonly<FooterLinksProps>) {
           href="/contact"
         >
           Kontakt
-          {showExtendedContactText ? " / Fehler melden / Unterstützen" : ""}
+          <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+            {" / Fehler melden / Unterstützen"}
+          </Box>
         </Button>
         <Button
-          component={Link}
           size="small"
           variant="text"
           color="inherit"
@@ -61,7 +53,6 @@ export default function FooterLinks(props: Readonly<FooterLinksProps>) {
           Impressum
         </Button>
         <Button
-          component={Link}
           size="small"
           variant="text"
           color="inherit"

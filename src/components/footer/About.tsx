@@ -1,15 +1,13 @@
-import Layout from "../Layout";
 import React from "react";
 import CardHeader from "@mui/material/CardHeader";
 import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 import Stack from "@mui/material/Stack";
 import Link from "@mui/material/Link";
-import type { AppRouteContextValue } from "../../app/routeContext";
 
-function About(props: Readonly<{ routeContext: AppRouteContextValue }>) {
+function About() {
   return (
-    <Layout routeContext={props.routeContext}>
+    <>
       <CardHeader title="Über" />
 
       <CardContent sx={{ pt: 1 }}>
@@ -62,7 +60,7 @@ function About(props: Readonly<{ routeContext: AppRouteContextValue }>) {
           </Typography>
         </Stack>
       </CardContent>
-    </Layout>
+    </>
   );
 }
 

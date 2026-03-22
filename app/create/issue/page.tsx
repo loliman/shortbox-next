@@ -1,10 +1,23 @@
+import AppPageShell from "@/src/components/app-shell/AppPageShell";
 import IssueCreate from "@/src/components/restricted/create/IssueCreate";
-import { createAppRouteContext, type NextPageSearchParams } from "@/src/app/routeContext";
+import { resolveAppPage } from "@/src/lib/routes/app-page";
 
 export default async function IssueCreatePage({
   searchParams,
 }: Readonly<{
-  searchParams?: NextPageSearchParams;
+  searchParams?: Promise<Record<string, string | string[] | undefined> | undefined>;
 }>) {
-  return <IssueCreate routeContext={createAppRouteContext({ searchParams: await searchParams, create: true })} />;
+  const page = await resolveAppPage({ us: false, searchParams, includeNavigation: false, session: "write" });
+
+  return (
+    <AppPageShell selected={page.selected} level={page.level} us={page.us} query={page.query} session={page.session}>
+      <IssueCreate
+        selected={page.selected}
+        level={page.level}
+        us={page.us}
+        session={page.session}
+        query={page.query}
+      />
+    </AppPageShell>
+  );
 }

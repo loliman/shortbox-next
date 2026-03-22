@@ -1,6 +1,5 @@
 import type { SelectedRoot } from "../../../../types/domain";
 import type { MouseEvent, ReactNode } from "react";
-import type { AppRouteContextValue } from "../../../../app/routeContext";
 
 export interface IssueEditorFormValues {
   title: string;
@@ -30,7 +29,6 @@ export interface IssueEditorFormValues {
 }
 
 export interface IssueEditorProps {
-  routeContext?: AppRouteContextValue;
   defaultValues?: IssueEditorFormValues;
   edit?: boolean;
   copy?: boolean;

@@ -8,15 +8,13 @@ import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { alpha, styled } from "@mui/material/styles";
-import type { HierarchyLevelType } from "../../util/hierarchy";
 import IconButton from "@mui/material/IconButton";
 import ButtonBase from "@mui/material/ButtonBase";
 import SearchBar from "./SearchBar";
 import type { SelectedRoot } from "../../types/domain";
 import TopBarFilterMenu from "./TopBarFilterMenu";
 import {
-  AuthActionGroup,
-  LocaleSwitch,
+  DesktopActions,
   MobileBottomBar,
 } from "./TopBarControls";
 import Tooltip from "@mui/material/Tooltip";
@@ -26,23 +24,21 @@ import LightModeIcon from "@mui/icons-material/LightMode";
 import type { AppThemeMode } from "../../app/theme";
 import { isMockMode } from "../../app/mockMode";
 import { mutationRequest } from "../../lib/client/mutation-request";
-import type { AppRouteContextValue } from "../../app/routeContext";
+import type { RouteQuery } from "../../types/route-ui";
 
 interface TopBarProps {
-  routeContext: AppRouteContextValue;
   toggleDrawer?: () => void;
   drawerOpen?: boolean;
-  us?: boolean;
+  us: boolean;
   isPhone?: boolean;
   isPhoneLandscape?: boolean;
   isTablet?: boolean;
   isTabletLandscape?: boolean;
   isPhonePortrait?: boolean;
   compactLayout?: boolean;
-  level?: HierarchyLevelType;
   session?: { loggedIn?: boolean } | null;
-  query?: { filter?: string | null; order?: string | null; direction?: string | null } | null;
-  selected?: SelectedRoot;
+  query?: RouteQuery | null;
+  selected: SelectedRoot;
   resetNavigationState?: () => void;
   themeMode?: AppThemeMode;
   toggleTheme?: () => void;
@@ -50,7 +46,6 @@ interface TopBarProps {
     message: string,
     options?: { variant?: "success" | "error" | "warning" | "info" }
   ) => void;
-  handleLogout?: () => void;
   initialFilterCount?: number | null;
   changeRequestsCount?: number;
 }
@@ -124,14 +119,14 @@ const Android12Switch = styled(Switch)(({ theme }) => ({
 
 export default function TopBar(ownProps: TopBarProps) {
   const router = useRouter();
-  const { routeContext } = ownProps;
   const toggleDrawer = ownProps.toggleDrawer;
   const drawerOpen = ownProps.drawerOpen;
-  const us = Boolean(ownProps.us ?? routeContext.us);
-  const selected = ownProps.selected || routeContext.selected || { us };
-  const query = (ownProps.query ?? routeContext.query ?? null) as
+  const us = Boolean(ownProps.us);
+  const selected = ownProps.selected || { us };
+  const query = ownProps.query as
     | { filter?: string | null; order?: string | null; direction?: string | null }
-    | null;
+    | null
+    | undefined;
   const compactLayout =
     ownProps.compactLayout ?? Boolean(ownProps.isPhone || (ownProps.isTablet && !ownProps.isTabletLandscape));
   const [mobileSearchOpen, setMobileSearchOpen] = React.useState(false);
@@ -144,7 +139,7 @@ export default function TopBar(ownProps: TopBarProps) {
   const onLogout = async () => {
     if (isMockMode) {
       ownProps.enqueueSnackbar?.("Auf Wiedersehen!", { variant: "success" });
-      ownProps.handleLogout?.();
+      router.refresh();
       return;
     }
 
@@ -160,12 +155,14 @@ export default function TopBar(ownProps: TopBarProps) {
       }
 
       ownProps.enqueueSnackbar?.("Auf Wiedersehen!", { variant: "success" });
-      ownProps.handleLogout?.();
+      router.refresh();
     } catch (error) {
       const message = error instanceof Error && error.message ? ` [${error.message}]` : "";
       ownProps.enqueueSnackbar?.("Logout fehlgeschlagen" + message, { variant: "error" });
     }
   };
+
+  const navigate = React.useCallback((href: string) => router.push(href), [router]);
 
   return (
     <AppBar
@@ -185,195 +182,60 @@ export default function TopBar(ownProps: TopBarProps) {
           },
         }}
       >
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            minWidth: 0,
-            flexShrink: 0,
-          }}
-        >
-          {compactLayout ? null : (
-            <IconButton
-              color="inherit"
-              aria-label="Navigation umschalten"
-              onClick={() => toggleDrawer?.()}
-              sx={{ mr: 0.5 }}
-            >
-              <HamburgerIcon open={Boolean(drawerOpen)} />
-            </IconButton>
-          )}
+        <TopBarStart
+          compactLayout={compactLayout}
+          drawerOpen={drawerOpen}
+          toggleDrawer={toggleDrawer}
+          us={us}
+          resetNavigationState={ownProps.resetNavigationState}
+        />
 
-          <ButtonBase
-            component={Link}
-            href={us ? "/us" : "/de"}
-            aria-label="Zur Startseite"
-            onClick={() => {
-              ownProps.resetNavigationState?.();
-            }}
-            sx={{
-              display: "inline-flex",
-              lineHeight: 0,
-              borderRadius: 1,
-              px: 0.25,
-            }}
-          >
-            <Box component="img" src="/Shortbox_Logo.png" alt="Shortbox" sx={{ height: 34 }} />
-          </ButtonBase>
-        </Box>
+        <TopBarCompactActions
+          compactLayout={compactLayout}
+          darkModeEnabled={darkModeEnabled}
+          toggleTheme={ownProps.toggleTheme}
+        />
 
-        {compactLayout ? (
-          <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.25 }}>
-            <Tooltip title={darkModeEnabled ? "Zu hellem Modus wechseln" : "Zu dunklem Modus wechseln"}>
-              <IconButton
-                color="inherit"
-                aria-label={darkModeEnabled ? "Hellmodus aktivieren" : "Darkmode aktivieren"}
-                onClick={ownProps.toggleTheme}
-              >
-                {darkModeEnabled ? <LightModeIcon /> : <DarkModeIcon />}
-              </IconButton>
-            </Tooltip>
-          </Box>
-        ) : null}
-
-        <Box
-          data-testid="topbar-search-center"
-          sx={{
-            minWidth: 0,
-            width: "100%",
-            maxWidth: SEARCH_MAX_WIDTH + 52,
-            justifySelf: "center",
-            px: 1,
-            display: compactLayout ? "none" : "flex",
-            alignItems: "center",
-            gap: 0.5,
-          }}
-        >
-          {compactLayout ? null : (
-            <>
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <SearchBar
-                  us={us}
-                  compactLayout={compactLayout}
-                  isPhone={ownProps.isPhone}
-                  isTablet={ownProps.isTablet}
-                  isTabletLandscape={ownProps.isTabletLandscape}
-                />
-              </Box>
-              <TopBarFilterMenu
-                us={us}
-                selected={selected}
-                isFilterActive={isFilter}
-                query={query}
-                session={ownProps.session}
-                initialCount={ownProps.initialFilterCount}
-              />
-            </>
-          )}
-        </Box>
+        <TopBarSearchCenter
+          compactLayout={compactLayout}
+          us={us}
+          selected={selected}
+          isFilterActive={isFilter}
+          query={query}
+          session={ownProps.session}
+          isPhone={ownProps.isPhone}
+          isTablet={ownProps.isTablet}
+          isTabletLandscape={ownProps.isTabletLandscape}
+        />
 
         {compactLayout ? null : (
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 0.5,
-              minWidth: 0,
-              justifySelf: "end",
-            }}
-          >
-            <AuthActionGroup
-              loggedIn={Boolean(ownProps.session?.loggedIn)}
-              changeRequestsCount={changeRequestsCount}
-              onNavigate={(href) => router.push(href)}
-              onLogout={onLogout}
-            />
-            <LocaleSwitch
-              us={us}
-              query={query}
-              localeSwitchAriaLabel={localeSwitchAriaLabel}
-              resetNavigationState={ownProps.resetNavigationState}
-              onNavigate={(href) => router.push(href)}
-              SwitchComponent={Android12Switch as any}
-            />
-            <Tooltip title={darkModeEnabled ? "Zu hellem Modus wechseln" : "Zu dunklem Modus wechseln"}>
-              <IconButton
-                color="inherit"
-                aria-label={darkModeEnabled ? "Hellmodus aktivieren" : "Darkmode aktivieren"}
-                onClick={ownProps.toggleTheme}
-              >
-                {darkModeEnabled ? <LightModeIcon /> : <DarkModeIcon />}
-              </IconButton>
-            </Tooltip>
-          </Box>
+          <DesktopActions
+            us={us}
+            session={ownProps.session}
+            query={query}
+            localeSwitchAriaLabel={localeSwitchAriaLabel}
+            changeRequestsCount={changeRequestsCount}
+            darkModeEnabled={darkModeEnabled}
+            themeMode={ownProps.themeMode}
+            toggleTheme={ownProps.toggleTheme}
+            onNavigate={navigate}
+            onLogout={onLogout}
+            resetNavigationState={ownProps.resetNavigationState}
+            SwitchComponent={Android12Switch as any}
+            darkModeIcon={darkModeEnabled ? <LightModeIcon /> : <DarkModeIcon />}
+          />
         )}
       </Toolbar>
 
       {compactLayout && mobileSearchOpen ? (
-        <Box
-          sx={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            top: 0,
-            zIndex: (theme) => theme.zIndex.drawer + 3,
-            px: 0,
-            py: 0.75,
-            bgcolor: (theme) =>
-              theme.palette.mode === "dark" ? "#0f172a" : theme.palette.primary.main,
-            borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
-          }}
-        >
-          <Box sx={{ width: "95vw", mx: "auto", position: "relative" }}>
-            <Box sx={{ minWidth: 0, pr: 7.5 }}>
-              <SearchBar
-                us={us}
-                autoFocus={true}
-                compactLayout={compactLayout}
-                isPhone={ownProps.isPhone}
-                isTablet={ownProps.isTablet}
-                isTabletLandscape={ownProps.isTabletLandscape}
-                onFocus={(
-                  _event: React.FocusEvent<HTMLElement> | React.MouseEvent<HTMLElement> | null,
-                  focus: boolean
-                ) => {
-                  if (!focus) setMobileSearchOpen(false);
-                }}
-              />
-            </Box>
-            <IconButton
-              size="small"
-              color="inherit"
-              aria-label="Suche schließen"
-              onClick={() => setMobileSearchOpen(false)}
-              sx={{
-                position: "absolute",
-                right: 4,
-                top: "50%",
-                transform: "translateY(-50%)",
-                zIndex: (theme) => theme.zIndex.appBar + 4,
-                p: 0.75,
-                bgcolor: (theme) =>
-                  theme.palette.mode === "dark"
-                    ? alpha(theme.palette.common.white, 0.08)
-                    : alpha(theme.palette.common.black, 0.12),
-                border: "1px solid",
-                borderColor: (theme) =>
-                  theme.palette.mode === "dark"
-                    ? alpha(theme.palette.common.white, 0.14)
-                    : alpha(theme.palette.common.black, 0.12),
-                "&:hover": {
-                  bgcolor: (theme) =>
-                    theme.palette.mode === "dark"
-                      ? alpha(theme.palette.common.white, 0.14)
-                      : alpha(theme.palette.common.black, 0.18),
-                },
-              }}
-            >
-              <CloseIcon />
-            </IconButton>
-          </Box>
-        </Box>
+        <MobileSearchOverlay
+          us={us}
+          compactLayout={compactLayout}
+          isPhone={ownProps.isPhone}
+          isTablet={ownProps.isTablet}
+          isTabletLandscape={ownProps.isTabletLandscape}
+          onClose={() => setMobileSearchOpen(false)}
+        />
       ) : null}
 
       {compactLayout ? (
@@ -388,7 +250,7 @@ export default function TopBar(ownProps: TopBarProps) {
           changeRequestsCount={changeRequestsCount}
           onOpenSearch={() => setMobileSearchOpen(true)}
           onToggleDrawer={() => toggleDrawer?.()}
-          onNavigate={(href) => router.push(href)}
+          onNavigate={navigate}
           onLogout={onLogout}
           resetNavigationState={ownProps.resetNavigationState}
           SwitchComponent={Android12Switch as any}
@@ -399,6 +261,200 @@ export default function TopBar(ownProps: TopBarProps) {
       ) : null}
 
     </AppBar>
+  );
+}
+
+function TopBarStart(props: {
+  compactLayout: boolean;
+  drawerOpen?: boolean;
+  toggleDrawer?: () => void;
+  us: boolean;
+  resetNavigationState?: () => void;
+}) {
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        minWidth: 0,
+        flexShrink: 0,
+      }}
+    >
+      {props.compactLayout ? null : (
+        <IconButton
+          color="inherit"
+          aria-label="Navigation umschalten"
+          onClick={() => props.toggleDrawer?.()}
+          sx={{ mr: 0.5 }}
+        >
+          <HamburgerIcon open={Boolean(props.drawerOpen)} />
+        </IconButton>
+      )}
+
+      <ButtonBase
+        component={Link}
+        href={props.us ? "/us" : "/de"}
+        aria-label="Zur Startseite"
+        onClick={() => {
+          props.resetNavigationState?.();
+        }}
+        sx={{
+          display: "inline-flex",
+          lineHeight: 0,
+          borderRadius: 1,
+          px: 0.25,
+        }}
+      >
+        <Box component="img" src="/Shortbox_Logo.png" alt="Shortbox" sx={{ height: 34 }} />
+      </ButtonBase>
+    </Box>
+  );
+}
+
+function TopBarCompactActions(props: {
+  compactLayout: boolean;
+  darkModeEnabled: boolean;
+  toggleTheme?: () => void;
+}) {
+  if (!props.compactLayout) return null;
+
+  return (
+    <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.25 }}>
+      <Tooltip title={props.darkModeEnabled ? "Zu hellem Modus wechseln" : "Zu dunklem Modus wechseln"}>
+        <IconButton
+          color="inherit"
+          aria-label={props.darkModeEnabled ? "Hellmodus aktivieren" : "Darkmode aktivieren"}
+          onClick={props.toggleTheme}
+        >
+          {props.darkModeEnabled ? <LightModeIcon /> : <DarkModeIcon />}
+        </IconButton>
+      </Tooltip>
+    </Box>
+  );
+}
+
+function TopBarSearchCenter(props: {
+  compactLayout: boolean;
+  us: boolean;
+  selected: SelectedRoot;
+  isFilterActive?: string | null;
+  query?: { filter?: string | null; order?: string | null; direction?: string | null } | null;
+  session?: { loggedIn?: boolean } | null;
+  isPhone?: boolean;
+  isTablet?: boolean;
+  isTabletLandscape?: boolean;
+}) {
+  return (
+    <Box
+      data-testid="topbar-search-center"
+      sx={{
+        minWidth: 0,
+        width: "100%",
+        maxWidth: SEARCH_MAX_WIDTH + 52,
+        justifySelf: "center",
+        px: 1,
+        display: props.compactLayout ? "none" : "flex",
+        alignItems: "center",
+        gap: 0.5,
+      }}
+    >
+      {props.compactLayout ? null : (
+        <>
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <SearchBar
+              us={props.us}
+              compactLayout={props.compactLayout}
+              isPhone={props.isPhone}
+              isTablet={props.isTablet}
+              isTabletLandscape={props.isTabletLandscape}
+            />
+          </Box>
+          <TopBarFilterMenu
+            us={props.us}
+            selected={props.selected}
+            isFilterActive={props.isFilterActive}
+            query={props.query}
+            session={props.session}
+          />
+        </>
+      )}
+    </Box>
+  );
+}
+
+function MobileSearchOverlay(props: {
+  us: boolean;
+  compactLayout: boolean;
+  isPhone?: boolean;
+  isTablet?: boolean;
+  isTabletLandscape?: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <Box
+      sx={{
+        position: "absolute",
+        left: 0,
+        right: 0,
+        top: 0,
+        zIndex: (theme) => theme.zIndex.drawer + 3,
+        px: 0,
+        py: 0.75,
+        bgcolor: (theme) =>
+          theme.palette.mode === "dark" ? "#0f172a" : theme.palette.primary.main,
+        borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
+      }}
+    >
+      <Box sx={{ width: "95vw", mx: "auto", position: "relative" }}>
+        <Box sx={{ minWidth: 0, pr: 7.5 }}>
+          <SearchBar
+            us={props.us}
+            autoFocus={true}
+            compactLayout={props.compactLayout}
+            isPhone={props.isPhone}
+            isTablet={props.isTablet}
+            isTabletLandscape={props.isTabletLandscape}
+            onFocus={(
+              _event: React.FocusEvent<HTMLElement> | React.MouseEvent<HTMLElement> | null,
+              focus: boolean
+            ) => {
+              if (!focus) props.onClose();
+            }}
+          />
+        </Box>
+        <IconButton
+          size="small"
+          color="inherit"
+          aria-label="Suche schließen"
+          onClick={props.onClose}
+          sx={{
+            position: "absolute",
+            right: 4,
+            top: "50%",
+            transform: "translateY(-50%)",
+            zIndex: (theme) => theme.zIndex.appBar + 4,
+            p: 0.75,
+            bgcolor: (theme) =>
+              theme.palette.mode === "dark"
+                ? alpha(theme.palette.common.white, 0.08)
+                : alpha(theme.palette.common.black, 0.12),
+            border: "1px solid",
+            borderColor: (theme) =>
+              theme.palette.mode === "dark"
+                ? alpha(theme.palette.common.white, 0.14)
+                : alpha(theme.palette.common.black, 0.12),
+            "&:hover": {
+              bgcolor: (theme) =>
+                theme.palette.mode === "dark"
+                  ? alpha(theme.palette.common.white, 0.14)
+                  : alpha(theme.palette.common.black, 0.18),
+            },
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
+      </Box>
+    </Box>
   );
 }
 

@@ -93,6 +93,7 @@ export function LocaleSwitch(props: Readonly<LocaleSwitchProps>) {
 
 type AuthActionGroupProps = {
   loggedIn: boolean;
+  canAdmin: boolean;
   changeRequestsCount: number;
   onNavigate: (href: string) => void;
   onLogout: () => void;
@@ -103,7 +104,7 @@ export function AuthActionGroup(props: Readonly<AuthActionGroupProps>) {
 
   return (
     <React.Fragment>
-      {props.loggedIn ? (
+      {props.loggedIn && props.canAdmin ? (
         <Tooltip title="Change Requests">
           <Badge
             color="secondary"
@@ -136,7 +137,7 @@ export function AuthActionGroup(props: Readonly<AuthActionGroupProps>) {
           </Badge>
         </Tooltip>
       ) : null}
-      {props.loggedIn ? (
+      {props.loggedIn && props.canAdmin ? (
         <Tooltip title="Adminpanel">
           <IconButton
             color="inherit"
@@ -166,7 +167,7 @@ export function AuthActionGroup(props: Readonly<AuthActionGroupProps>) {
 
 type MobileBottomBarProps = {
   us: boolean;
-  session?: { loggedIn?: boolean } | null;
+  session?: { loggedIn?: boolean; canAdmin?: boolean } | null;
   query?: { filter?: string | null; order?: string | null; direction?: string | null } | null;
   isFilterActive?: boolean | string | null;
   selected: unknown;
@@ -187,7 +188,6 @@ type MobileBottomBarProps = {
     isFilterActive?: boolean | string | null;
     query?: { filter?: string | null } | null;
     session?: { loggedIn?: boolean } | null;
-    initialCount?: number | null;
   }>;
 };
 
@@ -226,10 +226,10 @@ export function MobileBottomBar(props: Readonly<MobileBottomBarProps>) {
         isFilterActive={props.isFilterActive}
         query={props.query as { filter?: string | null } | null}
         session={props.session}
-        initialCount={props.initialFilterCount}
       />
       <AuthActionGroup
         loggedIn={Boolean(props.session?.loggedIn)}
+        canAdmin={Boolean(props.session?.canAdmin)}
         changeRequestsCount={props.changeRequestsCount}
         onNavigate={props.onNavigate}
         onLogout={props.onLogout}
@@ -259,7 +259,7 @@ export function MobileBottomBar(props: Readonly<MobileBottomBarProps>) {
 
 type DesktopActionsProps = {
   us: boolean;
-  session?: { loggedIn?: boolean } | null;
+  session?: { loggedIn?: boolean; canAdmin?: boolean } | null;
   query?: { filter?: string | null; order?: string | null; direction?: string | null } | null;
   localeSwitchAriaLabel: string;
   changeRequestsCount: number;
@@ -286,6 +286,7 @@ export function DesktopActions(props: Readonly<DesktopActionsProps>) {
     >
       <AuthActionGroup
         loggedIn={Boolean(props.session?.loggedIn)}
+        canAdmin={Boolean(props.session?.canAdmin)}
         changeRequestsCount={props.changeRequestsCount}
         onNavigate={props.onNavigate}
         onLogout={props.onLogout}

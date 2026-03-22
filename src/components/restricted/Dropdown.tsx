@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
@@ -14,7 +16,6 @@ import DeletionDialog from "./DeletionDialog";
 import { stripItem } from "../../util/util";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import { mutationRequest } from "../../lib/client/mutation-request";
-import type { AppRouteContextValue } from "../../app/routeContext";
 
 const actionButtonSx = {
   border: "1px solid",
@@ -57,7 +58,6 @@ export interface DropdownItem {
 }
 
 interface DropdownProps {
-  routeContext: AppRouteContextValue;
   session?: unknown;
   level?: string;
   onNavigate?: (href: string) => void;
@@ -173,10 +173,11 @@ class DropdownBase extends React.Component<DropdownProps, DropdownState> {
         </Box>
 
         <DeletionDialog
-          routeContext={this.props.routeContext}
           handleClose={this.handleDeletionClose}
           open={this.state.deletionOpen}
           item={selectedItem}
+          level={this.props.level}
+          us={this.props.us}
         />
       </>
     );
@@ -344,10 +345,9 @@ export default function Dropdown(props: Readonly<DropdownProps>) {
 
   return (
     <DropdownBase
-      routeContext={props.routeContext}
       session={props.session}
-      level={props.level ?? props.routeContext.level}
-      us={props.us ?? props.routeContext.us}
+      level={props.level}
+      us={props.us}
       handleClose={props.handleClose}
       item={props.item}
       EditDropdown={props.EditDropdown}

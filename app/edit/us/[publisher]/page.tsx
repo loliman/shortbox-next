@@ -1,25 +1,57 @@
+import { notFound } from "next/navigation";
+import AppPageShell from "@/src/components/app-shell/AppPageShell";
 import PublisherEdit from "@/src/components/restricted/edit/PublisherEdit";
-import { createAppRouteContext, type NextPageParams, type NextPageSearchParams } from "@/src/app/routeContext";
 import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
 import { readPublisherEditData } from "@/src/lib/read/publisher-read";
+import { buildHierarchyLevel, buildSelectedRoot, normalizePageQuery } from "@/src/lib/routes/page-state";
+import { requirePageWriteSession } from "@/src/lib/server/guards";
 
 export default async function UsPublisherEditPage({
   params,
   searchParams,
 }: Readonly<{
-  params: NextPageParams;
-  searchParams?: NextPageSearchParams;
+  params: Promise<Record<string, string>>;
+  searchParams?: Promise<Record<string, string | string[] | undefined> | undefined>;
 }>) {
-  const routeContext = createAppRouteContext({ params: await params, searchParams: await searchParams, edit: true, us: true });
-  const navigationData = await readInitialNavigationData(routeContext);
-  routeContext.initialFilterCount = navigationData.initialFilterCount;
+  const resolvedParams = await params;
+  const query = normalizePageQuery(await searchParams);
+  const selected = buildSelectedRoot(resolvedParams, true);
+  const level = buildHierarchyLevel(selected);
+  const session = await requirePageWriteSession();
+  const navigationData = await readInitialNavigationData({
+    us: true,
+    query,
+    selected,
+    loggedIn: Boolean(session?.loggedIn),
+  });
+  const initialPublisher = await readPublisherEditData({
+    us: true,
+    publisher: String(selected.publisher?.name || ""),
+  });
+  if (!initialPublisher) notFound();
 
   return (
-    <PublisherEdit
-      routeContext={routeContext}
-      initialPublisher={await readPublisherEditData(routeContext)}
+    <AppPageShell
+      selected={selected}
+      level={level}
+      us={true}
+      query={query}
+      session={session}
+      initialFilterCount={navigationData.initialFilterCount}
       initialPublisherNodes={navigationData.initialPublisherNodes}
       initialSeriesNodesByPublisher={navigationData.initialSeriesNodesByPublisher}
-    />
+    >
+      <PublisherEdit
+        selected={selected}
+        level={level}
+        us={true}
+        query={query}
+        initialFilterCount={navigationData.initialFilterCount}
+        initialPublisher={initialPublisher}
+        initialPublisherNodes={navigationData.initialPublisherNodes}
+        initialSeriesNodesByPublisher={navigationData.initialSeriesNodesByPublisher}
+        session={session}
+      />
+    </AppPageShell>
   );
 }

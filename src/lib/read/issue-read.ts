@@ -1,4 +1,6 @@
-import type { AppRouteContextValue } from "../../app/routeContext";
+import "server-only";
+
+import { cache } from "react";
 import {
   countChangeRequests as countIssueChangeRequests,
   readChangeRequests as readIssueChangeRequests,
@@ -11,38 +13,39 @@ import {
 type IssueDetailsResult = Awaited<ReturnType<typeof readIssueDetailsQuery>>;
 type IssueSelectionOptions = IssueSelectionInput;
 
+const readIssueDetailsCached = cache(
+  async (
+    us: boolean,
+    publisher: string,
+    series: string,
+    volume: number,
+    number: string,
+    format?: string,
+    variant?: string
+  ): Promise<IssueDetailsResult> =>
+    readIssueDetailsQuery({
+      us,
+      publisher,
+      series,
+      volume,
+      number,
+      format: format || undefined,
+      variant: variant || undefined,
+    })
+);
+
 export async function readIssueDetails(
   options: IssueSelectionOptions
 ): Promise<IssueDetailsResult> {
-  return readIssueDetailsQuery({
-    us: options.us,
-    publisher: options.publisher,
-    series: options.series,
-    volume: options.volume,
-    number: options.number,
-    format: options.format || undefined,
-    variant: options.variant || undefined,
-  });
-}
-
-export async function readIssueDetailsFromRouteContext(
-  routeContext: AppRouteContextValue
-): Promise<IssueDetailsResult> {
-  const selectedIssue = routeContext.selected.issue;
-
-  if (!selectedIssue?.series?.publisher?.name || !selectedIssue?.series?.title || !selectedIssue.number) {
-    return null;
-  }
-
-  return readIssueDetails({
-    us: Boolean(routeContext.selected.us),
-    publisher: selectedIssue.series.publisher.name,
-    series: selectedIssue.series.title,
-    volume: Number(selectedIssue.series.volume || 0),
-    number: selectedIssue.number,
-    format: selectedIssue.format || undefined,
-    variant: selectedIssue.variant || undefined,
-  });
+  return readIssueDetailsCached(
+    options.us,
+    options.publisher,
+    options.series,
+    options.volume,
+    options.number,
+    options.format || undefined,
+    options.variant || undefined
+  );
 }
 
 export async function readChangeRequests(options?: {

@@ -1,37 +1,39 @@
 "use client";
 
 import React from "react";
-import Layout from "../../Layout";
 import IssueEditor from "../editor/IssueEditor";
 import { buildIssueCreateDefaultValues } from "../editor/issue-editor/defaultValues";
-import { useResponsiveContext, useSessionContext } from "../../generic/AppContext";
 import { useSnackbarBridge } from "../../generic/useSnackbarBridge";
-import type { AppRouteContextValue } from "../../../app/routeContext";
+import type { SessionData } from "../../../app/session";
+import { useResponsive } from "../../../app/useResponsive";
+import type { LayoutRouteData, RouteQuery } from "../../../types/route-ui";
+import type { SelectedRoot } from "../../../types/domain";
 
 interface IssueCreateProps {
-  routeContext: AppRouteContextValue;
+  selected: SelectedRoot;
+  level: LayoutRouteData["level"];
+  us: boolean;
+  query?: RouteQuery | null;
+  initialFilterCount?: number | null;
+  session?: SessionData | null;
 }
 
 function IssueCreate(props: Readonly<IssueCreateProps>) {
-  const sessionContext = useSessionContext();
-  const responsiveContext = useResponsiveContext();
+  const responsive = useResponsive();
   const snackbarBridge = useSnackbarBridge();
   const defaultValues = buildIssueCreateDefaultValues(
-    props.routeContext.selected as any,
-    props.routeContext.level
+    props.selected as any,
+    props.level
   );
 
   return (
-    <Layout routeContext={props.routeContext}>
-      <IssueEditor
-        routeContext={props.routeContext}
-        defaultValues={defaultValues}
-        session={sessionContext.session}
-        isDesktop={responsiveContext.isDesktop}
-        selected={props.routeContext.selected}
-        enqueueSnackbar={snackbarBridge.enqueueSnackbar}
-      />
-    </Layout>
+    <IssueEditor
+      defaultValues={defaultValues}
+      session={props.session}
+      isDesktop={responsive.isDesktop}
+      selected={props.selected}
+      enqueueSnackbar={snackbarBridge.enqueueSnackbar}
+    />
   );
 }
 

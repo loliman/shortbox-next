@@ -1,34 +1,58 @@
-import type { AppRouteContextValue } from "../../app/routeContext";
+import "server-only";
+
+import type { Filter } from "../../types/query-data";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma/client";
-import { FilterService } from "../../services/FilterService";
+import type { LayoutRouteData } from "../../types/route-ui";
+import { resolveFilterState } from "./filter-read";
 
 const NAV_PAGE_SIZE = 250;
 
 type NavigationScope = {
   us: boolean;
-  filter?: string | null;
+  filteredIssueIds?: bigint[] | null;
+  directIssueWhere?: Prisma.IssueWhereInput | null;
 };
 
 export async function readNavigationPublishers(scope: NavigationScope) {
-  void scope.filter;
+  const publishers = await prisma.publisher.findMany({
+    where: {
+      original: scope.us,
+      ...(scope.directIssueWhere
+        ? {
+            series: {
+              some: {
+                issues: {
+                  some: scope.directIssueWhere,
+                },
+              },
+            },
+          }
+        : scope.filteredIssueIds
+        ? {
+            series: {
+              some: {
+                issues: {
+                  some: {
+                    id: {
+                      in: scope.filteredIssueIds,
+                    },
+                  },
+                },
+              },
+            },
+          }
+        : {}),
+    },
+    orderBy: [{ name: "asc" }],
+    take: NAV_PAGE_SIZE,
+  });
 
-  try {
-    const publishers = await prisma.publisher.findMany({
-      where: {
-        original: scope.us,
-      },
-      orderBy: [{ name: "asc" }],
-      take: NAV_PAGE_SIZE,
-    });
-
-    return publishers.map((publisher) => ({
-      id: String(publisher.id),
-      name: publisher.name,
-      us: publisher.original,
-    }));
-  } catch {
-    return [];
-  }
+  return publishers.map((publisher) => ({
+    id: String(publisher.id),
+    name: publisher.name,
+    us: publisher.original,
+  }));
 }
 
 export function getNavigationSeriesKey(input: {
@@ -43,39 +67,50 @@ export function getNavigationSeriesKey(input: {
 }
 
 export async function readNavigationSeries(scope: NavigationScope & { publisher: string }) {
-  void scope.filter;
-
-  try {
-    const series = await prisma.series.findMany({
-      where: {
-        publisher: {
-          name: scope.publisher,
-          original: scope.us,
-        },
+  const series = await prisma.series.findMany({
+    where: {
+      publisher: {
+        name: scope.publisher,
+        original: scope.us,
       },
-      orderBy: [{ title: "asc" }, { volume: "asc" }, { startYear: "asc" }, { id: "asc" }],
-      take: NAV_PAGE_SIZE,
-      include: {
-        publisher: true,
-      },
-    });
-
-    return series.map((entry) => ({
-      id: String(entry.id),
-      title: entry.title || "",
-      volume: Number(entry.volume),
-      startyear: Number(entry.startYear),
-      endyear: entry.endYear === null ? null : Number(entry.endYear),
-      publisher: entry.publisher
+      ...(scope.directIssueWhere
         ? {
-            name: entry.publisher.name,
-            us: entry.publisher.original,
+            issues: {
+              some: scope.directIssueWhere,
+            },
           }
-        : null,
-    }));
-  } catch {
-    return [];
-  }
+        : scope.filteredIssueIds
+        ? {
+            issues: {
+              some: {
+                id: {
+                  in: scope.filteredIssueIds,
+                },
+              },
+            },
+          }
+        : {}),
+    },
+    orderBy: [{ title: "asc" }, { volume: "asc" }, { startYear: "asc" }, { id: "asc" }],
+    take: NAV_PAGE_SIZE,
+    include: {
+      publisher: true,
+    },
+  });
+
+  return series.map((entry) => ({
+    id: String(entry.id),
+    title: entry.title || "",
+    volume: Number(entry.volume),
+    startyear: Number(entry.startYear),
+    endyear: entry.endYear === null ? null : Number(entry.endYear),
+    publisher: entry.publisher
+      ? {
+          name: entry.publisher.name,
+          us: entry.publisher.original,
+        }
+      : null,
+  }));
 }
 
 export async function readNavigationIssues(
@@ -85,83 +120,85 @@ export async function readNavigationIssues(
     volume: number;
   }
 ) {
-  void scope.filter;
-
-  try {
-    const issues = await prisma.issue.findMany({
-      where: {
-        series: {
-          title: scope.series,
-          volume: scope.volume,
-          publisher: {
-            name: scope.publisher,
-            original: scope.us,
-          },
+  const issues = await prisma.issue.findMany({
+    where: {
+      ...(scope.directIssueWhere || {}),
+      ...(scope.filteredIssueIds
+        ? {
+            id: {
+              in: scope.filteredIssueIds,
+            },
+          }
+        : {}),
+      series: {
+        title: scope.series,
+        volume: scope.volume,
+        publisher: {
+          name: scope.publisher,
+          original: scope.us,
         },
       },
-      orderBy: [{ number: "asc" }, { format: "asc" }, { variant: "asc" }, { id: "asc" }],
-      take: NAV_PAGE_SIZE,
-      include: {
-        series: {
-          include: {
-            publisher: true,
-          },
-        },
-        covers: {
-          orderBy: [{ number: "asc" }, { id: "asc" }],
-          take: 1,
+    },
+    orderBy: [{ number: "asc" }, { format: "asc" }, { variant: "asc" }, { id: "asc" }],
+    take: NAV_PAGE_SIZE,
+    include: {
+      series: {
+        include: {
+          publisher: true,
         },
       },
-    });
+      covers: {
+        orderBy: [{ number: "asc" }, { id: "asc" }],
+        take: 1,
+      },
+    },
+  });
 
-    const grouped = new Map<string, typeof issues>();
-    for (const issue of issues) {
-      const key = issue.number;
-      const current = grouped.get(key) || [];
-      current.push(issue);
-      grouped.set(key, current);
-    }
-
-    return Array.from(grouped.values()).map((group) => {
-      const primary = group[0];
-      const variants = group.map((variant) => ({
-        id: String(variant.id),
-        collected: variant.collected ?? null,
-        format: variant.format || null,
-        variant: variant.variant || null,
-      }));
-
-      return {
-        id: String(primary.id),
-        number: primary.number,
-        legacy_number: primary.legacyNumber || null,
-        title: primary.title || null,
-        format: primary.format || null,
-        variant: primary.variant || null,
-        collected: primary.collected ?? null,
-        cover: primary.covers[0]
-          ? {
-              url: primary.covers[0].url || null,
-            }
-          : null,
-        variants,
-        series: primary.series
-          ? {
-              title: primary.series.title || "",
-              volume: Number(primary.series.volume),
-              publisher: primary.series.publisher
-                ? {
-                    name: primary.series.publisher.name,
-                    us: primary.series.publisher.original,
-                  }
-                : null,
-            }
-          : null,
-      };
-    });
-  } catch {
-    return [];
+  const grouped = new Map<string, typeof issues>();
+  for (const issue of issues) {
+    const key = issue.number;
+    const current = grouped.get(key) || [];
+    current.push(issue);
+    grouped.set(key, current);
   }
+
+  return Array.from(grouped.values()).map((group) => {
+    const primary = group[0];
+    const variants = group.map((variant) => ({
+      id: String(variant.id),
+      collected: variant.collected ?? null,
+      format: variant.format || null,
+      variant: variant.variant || null,
+    }));
+
+    return {
+      id: String(primary.id),
+      number: primary.number,
+      legacy_number: primary.legacyNumber || null,
+      title: primary.title || null,
+      format: primary.format || null,
+      variant: primary.variant || null,
+      collected: primary.collected ?? null,
+      cover: primary.covers[0]
+        ? {
+            url: primary.covers[0].url || null,
+          }
+        : null,
+      variants,
+      series: primary.series
+        ? {
+            title: primary.series.title || "",
+            volume: Number(primary.series.volume),
+            publisher: primary.series.publisher
+              ? {
+                  name: primary.series.publisher.name,
+                  us: primary.series.publisher.original,
+                }
+              : null,
+          }
+        : null,
+    };
+  });
 }
 
 export type InitialNavigationData = {
@@ -171,23 +208,55 @@ export type InitialNavigationData = {
   initialFilterCount?: number;
 };
 
+async function readNavigationFilterState(rawFilter: string | null | undefined, loggedIn = false) {
+  const normalizedFilter = typeof rawFilter === "string" ? rawFilter.trim() : "";
+  if (!normalizedFilter) {
+    return {
+      filteredIssueIds: null as bigint[] | null,
+      directIssueWhere: null as Prisma.IssueWhereInput | null,
+      initialFilterCount: undefined as number | undefined,
+    };
+  }
+
+  try {
+    const parsedFilter = JSON.parse(normalizedFilter) as Filter;
+    const resolved = await resolveFilterState(parsedFilter, loggedIn);
+
+    return {
+      directIssueWhere: resolved.directIssueWhere,
+      filteredIssueIds: resolved.filteredIssueIdsBigInt,
+      initialFilterCount: resolved.initialFilterCount,
+    };
+  } catch {
+    return {
+      filteredIssueIds: [] as bigint[],
+      directIssueWhere: null as Prisma.IssueWhereInput | null,
+      initialFilterCount: 0,
+    };
+  }
+}
+
 export async function readInitialNavigationData(
-  routeContext: AppRouteContextValue
+  input: Pick<LayoutRouteData, "query" | "selected" | "us"> & { loggedIn?: boolean }
 ): Promise<InitialNavigationData> {
-  const filter = typeof routeContext.query?.filter === "string" ? routeContext.query.filter : null;
+  const navigationFilterState = await readNavigationFilterState(
+    typeof input.query?.filter === "string" ? input.query.filter : null,
+    Boolean(input.loggedIn)
+  );
   const selectedPublisherName =
-    routeContext.selected.publisher?.name ||
-    routeContext.selected.series?.publisher?.name ||
-    routeContext.selected.issue?.series?.publisher?.name ||
+    input.selected.publisher?.name ||
+    input.selected.series?.publisher?.name ||
+    input.selected.issue?.series?.publisher?.name ||
     "";
-  const selectedSeries = routeContext.selected.series || routeContext.selected.issue?.series || null;
+  const selectedSeries = input.selected.series || input.selected.issue?.series || null;
   const queryExpandedPublisher =
-    typeof routeContext.query?.navPublisher === "string" ? routeContext.query.navPublisher : "";
-  const queryExpandedSeriesKey = typeof routeContext.query?.navSeries === "string" ? routeContext.query.navSeries : "";
+    typeof input.query?.navPublisher === "string" ? input.query.navPublisher : "";
+  const queryExpandedSeriesKey = typeof input.query?.navSeries === "string" ? input.query.navSeries : "";
 
   const publishers = await readNavigationPublishers({
-    us: routeContext.us,
-    filter,
+    us: input.us,
+    directIssueWhere: navigationFilterState.directIssueWhere,
+    filteredIssueIds: navigationFilterState.filteredIssueIds,
   });
 
   const publishersToExpand = new Set<string>();
@@ -196,12 +265,19 @@ export async function readInitialNavigationData(
 
   const initialSeriesNodesByPublisher: Record<string, Awaited<ReturnType<typeof readNavigationSeries>>> = {};
 
-  for (const publisherName of publishersToExpand) {
-    initialSeriesNodesByPublisher[publisherName] = await readNavigationSeries({
-      us: routeContext.us,
-      filter,
-      publisher: publisherName,
-    });
+  const initialSeriesEntries = await Promise.all(
+    Array.from(publishersToExpand).map(async (publisherName) => [
+      publisherName,
+      await readNavigationSeries({
+        us: input.us,
+        directIssueWhere: navigationFilterState.directIssueWhere,
+        filteredIssueIds: navigationFilterState.filteredIssueIds,
+        publisher: publisherName,
+      }),
+    ] as const)
+  );
+  for (const [publisherName, seriesNodes] of initialSeriesEntries) {
+    initialSeriesNodesByPublisher[publisherName] = seriesNodes;
   }
 
   const seriesToExpand = new Map<
@@ -238,8 +314,9 @@ export async function readInitialNavigationData(
       publishersToExpand.add(publisher);
       if (!initialSeriesNodesByPublisher[publisher]) {
         initialSeriesNodesByPublisher[publisher] = await readNavigationSeries({
-          us: routeContext.us,
-          filter,
+          us: input.us,
+          directIssueWhere: navigationFilterState.directIssueWhere,
+          filteredIssueIds: navigationFilterState.filteredIssueIds,
           publisher,
         });
       }
@@ -256,27 +333,21 @@ export async function readInitialNavigationData(
     Awaited<ReturnType<typeof readNavigationIssues>>
   > = {};
 
-  for (const [seriesKey, seriesInput] of seriesToExpand.entries()) {
-    initialIssueNodesBySeriesKey[seriesKey] = await readNavigationIssues({
-      us: routeContext.us,
-      filter,
-      publisher: seriesInput.publisher,
-      series: seriesInput.series,
-      volume: seriesInput.volume,
-    });
-  }
-
-  let initialFilterCount: number | undefined;
-  if (filter) {
-    try {
-      const parsedFilter = JSON.parse(filter) as Record<string, unknown>;
-      initialFilterCount = await new FilterService().count(
-        { us: routeContext.us, ...(parsedFilter || {}) } as never,
-        false
-      );
-    } catch {
-      initialFilterCount = undefined;
-    }
+  const initialIssueEntries = await Promise.all(
+    Array.from(seriesToExpand.entries()).map(async ([seriesKey, seriesInput]) => [
+      seriesKey,
+      await readNavigationIssues({
+        us: input.us,
+        directIssueWhere: navigationFilterState.directIssueWhere,
+        filteredIssueIds: navigationFilterState.filteredIssueIds,
+        publisher: seriesInput.publisher,
+        series: seriesInput.series,
+        volume: seriesInput.volume,
+      }),
+    ] as const)
+  );
+  for (const [seriesKey, issueNodes] of initialIssueEntries) {
+    initialIssueNodesBySeriesKey[seriesKey] = issueNodes;
   }
 
   return {
@@ -285,6 +356,6 @@ export async function readInitialNavigationData(
       Object.keys(initialSeriesNodesByPublisher).length > 0 ? initialSeriesNodesByPublisher : undefined,
     initialIssueNodesBySeriesKey:
       Object.keys(initialIssueNodesBySeriesKey).length > 0 ? initialIssueNodesBySeriesKey : undefined,
-    initialFilterCount,
+    initialFilterCount: navigationFilterState.initialFilterCount,
   };
 }

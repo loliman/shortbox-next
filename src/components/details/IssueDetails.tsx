@@ -1,31 +1,21 @@
-"use client";
-
-import { useRouter } from "next/navigation";
-import Layout from "../Layout";
-import QueryResult from "../generic/QueryResult";
 import React from "react";
+import { notFound } from "next/navigation";
+import QueryResult from "../generic/QueryResult";
 import Box from "@mui/material/Box";
 import CardHeader from "@mui/material/CardHeader";
 import CardContent from "@mui/material/CardContent";
 import Paper from "@mui/material/Paper";
-import Collapse from "@mui/material/Collapse";
-import { generateIssueSubHeader } from "../../util/issues";
 import Typography from "@mui/material/Typography";
+import SnackbarContent from "@mui/material/SnackbarContent";
+import { generateIssueSubHeader } from "../../util/issues";
 import { generateLabel } from "../../util/hierarchy";
-import { getIssueUrl } from "../../util/issuePresentation";
 import { isMockMode } from "../../app/mockMode";
 import EditButton from "../restricted/EditButton";
-import SnackbarContent from "@mui/material/SnackbarContent";
-import IconButton from "@mui/material/IconButton";
-import AddIcon from "@mui/icons-material/Add";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import TitleLine from "../generic/TitleLine";
 import { IssueReferenceInline } from "../generic/IssueNumberInline";
 import type { Issue, SelectedRoot } from "../../types/domain";
 import { sanitizeHtml } from "../../util/sanitizeHtml";
 import { StoryArcChips } from "./issue-details/StoryArcChips";
-import { IssueCover } from "./issue-details/IssueCover";
 import { IssueVariants } from "./issue-details/variants/IssueVariants";
 import type { VariantIssue } from "./issue-details/variants/types";
 import { IssueDetailsPreview } from "./issue-details/preview/IssueDetailsPreview";
@@ -33,140 +23,71 @@ import { DetailsTable } from "./issue-details/DetailsTable";
 import type { PreviewIssue } from "../issue-preview/utils/issuePreviewUtils";
 import { collectIssueArcs, getTodayLocalDate } from "./issue-details/utils/issueDetailsUtils";
 import { generateComicGuideUrl, generateMarvelDbUrl } from "./issue-details/utils/externalLinks";
-import { buildRouteHref } from "../generic/routeHref";
-import type { AppRouteContextValue } from "../../app/routeContext";
-
-export {
-  AppearanceList,
-  Contains,
-  ContainsTitleDetailed,
-  ContainsTitleSimple,
-  IndividualList,
-  toChipList,
-} from "./issue-details/contains";
-export { toIsbn10, toIsbn13, toShortboxDate } from "./issue-details/utils/issueMetaFormatters";
-export { DetailsRow } from "./issue-details/DetailsRow";
+import { IssueCoverGalleryClient } from "./issue-details/IssueCoverGalleryClient";
+import type { SessionData } from "../../app/session";
+import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
 
 interface IssueDetailsProps {
-  routeContext: AppRouteContextValue;
-  initialIssue?: Issue | null;
+  initialIssue?: unknown;
   initialPublisherNodes?: Array<{ id?: string | null; name?: string | null; us?: boolean | null }>;
   initialSeriesNodesByPublisher?: Record<string, unknown[]>;
   initialIssueNodesBySeriesKey?: Record<string, unknown[]>;
-  selected?: SelectedRoot;
-  level?: string;
-  us?: boolean;
-  appIsLoading?: boolean;
-  session?: unknown;
+  selected: SelectedRoot;
+  level: LayoutRouteData["level"];
+  us: boolean;
+  session?: SessionData | null;
   subheader?: boolean;
   details?: React.ReactElement;
   bottom?: React.ReactElement;
-  compactLayout?: boolean;
-  isPhone?: boolean;
-  isTablet?: boolean;
-  isTabletLandscape?: boolean;
-  query?: Record<string, unknown> | null;
-  [key: string]: unknown;
+  query?: RouteQuery | null;
+  initialFilterCount?: number | null;
 }
 
-function IssueDetails(props: IssueDetailsProps) {
-  const selected = props.selected || { us: Boolean(props.us) };
+export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
+  const selected = props.selected;
   const us = Boolean(props.us);
-  const details = props.details || <React.Fragment />;
-  const compactLayout =
-    props.compactLayout ?? Boolean(props.isPhone || (props.isTablet && !props.isTabletLandscape));
-  const [coverExpanded, setCoverExpanded] = React.useState(true);
-  const loadedIssue = props.initialIssue || null;
+  const details = props.details || <></>;
+  const loadedIssue = (props.initialIssue as Issue | null | undefined) || null;
   const loading = false;
   const error = null;
-  const loadedIssueIdentityKey = React.useMemo(
-    () =>
-      [
-        us ? "us" : "de",
-        selected.issue?.series?.publisher?.name || "",
-        selected.issue?.series?.title || "",
-        selected.issue?.series?.volume || "",
-        selected.issue?.number || "",
-        selected.issue?.format || "",
-        selected.issue?.variant || "",
-      ].join("|"),
-    [
-      selected.issue?.format,
-      selected.issue?.number,
-      selected.issue?.series?.publisher?.name,
-      selected.issue?.series?.title,
-      selected.issue?.series?.volume,
-      selected.issue?.variant,
-      us,
-    ]
-  );
   const issueForVariants = loadedIssue ? toIssueWithMockVariants(loadedIssue) : null;
-  const coverGalleryIssues = React.useMemo(
-    () => (issueForVariants ? buildCoverGalleryIssues(issueForVariants) : []),
-    [issueForVariants]
-  );
+  if (!loadedIssue || !issueForVariants) notFound();
 
   if (loading && !loadedIssue) {
     return (
-      <Layout
-        routeContext={props.routeContext}
-        initialPublisherNodes={props.initialPublisherNodes}
-        initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher as Record<string, never[]> | undefined}
-        initialIssueNodesBySeriesKey={props.initialIssueNodesBySeriesKey as Record<string, never[]> | undefined}
-      >
-        <Box className="data-fade">
-          <QueryResult
-            data={undefined}
-            loading={true}
-            selected={selected}
-            placeholder={<IssueDetailsPreview />}
-            placeholderCount={1}
-          />
-        </Box>
-      </Layout>
+      <Box className="data-fade">
+        <QueryResult
+          data={undefined}
+          loading={true}
+          selected={selected}
+          placeholder={<IssueDetailsPreview />}
+          placeholderCount={1}
+        />
+      </Box>
     );
   }
 
   if (error || !issueForVariants || !loadedIssue) {
     return (
-      <Layout
-        routeContext={props.routeContext}
-        initialPublisherNodes={props.initialPublisherNodes}
-        initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher as Record<string, never[]> | undefined}
-        initialIssueNodesBySeriesKey={props.initialIssueNodesBySeriesKey as Record<string, never[]> | undefined}
-      >
-        <Box className="data-fade">
-          <QueryResult
-            error={error}
-            data={loadedIssue}
-            loading={loading}
-            selected={selected}
-            placeholder={<IssueDetailsPreview />}
-            placeholderCount={1}
-          />
-        </Box>
-      </Layout>
+      <Box className="data-fade">
+        <QueryResult
+          error={error}
+          data={loadedIssue}
+          loading={loading}
+          selected={selected}
+          placeholder={<IssueDetailsPreview />}
+          placeholderCount={1}
+        />
+      </Box>
     );
   }
 
   const arcs = collectIssueArcs(issueForVariants, us);
   const today = getTodayLocalDate();
   const releaseDate = issueForVariants.releasedate ? new Date(issueForVariants.releasedate) : null;
-  const coverColumnWidth = "clamp(320px, 36vw, 480px)";
-  const gridTemplateColumns = { xs: "1fr", lg: `minmax(0, 1fr) ${coverColumnWidth}` };
-  const coverWidth = {
-    xs: "100%",
-    lg: coverColumnWidth,
-  };
+  const coverGalleryIssues = buildCoverGalleryIssues(issueForVariants);
   const coverAttribution = !us && issueForVariants.comicguideid ? (
-    <Typography
-      variant="caption"
-      color="text.secondary"
-      sx={{
-        opacity: 0.82,
-        textAlign: "left",
-      }}
-    >
+    <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.82, textAlign: "left" }}>
       Das Cover für&nbsp;
       <a
         href={generateComicGuideUrl(issueForVariants as any)}
@@ -186,14 +107,7 @@ function IssueDetails(props: IssueDetailsProps) {
       &nbsp;und darf nicht ohne Genehmigung weiterverbreitet werden.
     </Typography>
   ) : us ? (
-    <Typography
-      variant="caption"
-      color="text.secondary"
-      sx={{
-        opacity: 0.82,
-        textAlign: "left",
-      }}
-    >
+    <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.82, textAlign: "left" }}>
       Informationen über&nbsp;
       <a
         href={generateMarvelDbUrl(issueForVariants as any)}
@@ -223,22 +137,11 @@ function IssueDetails(props: IssueDetailsProps) {
   ) : null;
 
   return (
-    <Layout
-      routeContext={props.routeContext}
-      initialPublisherNodes={props.initialPublisherNodes}
-      initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher as Record<string, never[]> | undefined}
-      initialIssueNodesBySeriesKey={props.initialIssueNodesBySeriesKey as Record<string, never[]> | undefined}
-    >
-      <Box
-        className="data-fade"
-        key={loadedIssueIdentityKey || loadedIssue?.id || "issue-details"}
-        sx={{ width: "100%", display: "flex", flexDirection: "column" }}
-      >
+    <Box className="data-fade" key={loadedIssue.id || "issue-details"} sx={{ width: "100%", display: "flex", flexDirection: "column" }}>
         {!us && !loadedIssue.verified && releaseDate && today < releaseDate ? (
           <SnackbarContent
             id="notVerifiedWarning"
-            message="Diese Ausgabe ist noch nicht im Handel erhältlich und noch nicht vorab verifiziert worden.
-                                        Die angezeigten Informationen weichen gegebenenfalls von den tatsächlichen Daten ab."
+            message="Diese Ausgabe ist noch nicht im Handel erhältlich und noch nicht vorab verifiziert worden. Die angezeigten Informationen weichen gegebenenfalls von den tatsächlichen Daten ab."
             sx={{
               width: { xs: "calc(100% - 16px)", sm: "100%" },
               mx: "auto",
@@ -264,29 +167,14 @@ function IssueDetails(props: IssueDetailsProps) {
           subheader={props.subheader ? generateIssueSubHeader(loadedIssue) : ""}
           action={
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <EditButton
-                item={loadedIssue}
-                level={props.level}
-                us={props.us}
-                routeContext={props.routeContext}
-              />
+              <EditButton session={props.session} item={loadedIssue} level={props.level} us={props.us} />
             </Box>
           }
         />
 
         <CardContent sx={{ pt: 1 }}>
           {arcs.length > 0 ? (
-            <Box
-              sx={{
-                pb: 1.5,
-                minWidth: 0,
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-                flexWrap: "nowrap",
-                overflow: "hidden",
-              }}
-            >
+            <Box sx={{ pb: 1.5, minWidth: 0, display: "flex", alignItems: "center", gap: 1, flexWrap: "nowrap", overflow: "hidden" }}>
               <Box sx={{ minWidth: 0, overflow: "hidden" }}>
                 <StoryArcChips arcs={arcs} us={us} inline />
               </Box>
@@ -303,372 +191,44 @@ function IssueDetails(props: IssueDetailsProps) {
             />
           </Box>
 
-          <Box>
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns,
-                gap: 2,
-                alignItems: "start",
-                width: "100%",
-              }}
-            >
-              {compactLayout ? (
-                <Box sx={{ minWidth: 0, width: "100%", display: "flex", flexDirection: "column", gap: 2 }}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      justifyContent: { xs: "center", lg: "flex-end" },
-                      minWidth: 0,
-                      justifySelf: { xs: "stretch", lg: "end" },
-                    }}
-                  >
-                    <Box sx={{ display: { xs: "none", lg: "block" } }}>
-                      <Box
-                        sx={{
-                          width: coverWidth,
-                          maxWidth: "100%",
-                          display: "flex",
-                          flexDirection: "column",
-                          justifyContent: "flex-start",
-                          alignItems: "stretch",
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            display: "flex",
-                            justifyContent: "flex-end",
-                            alignItems: "flex-start",
-                          }}
-                        >
-                            <IssueCoverGallery
-                              us={us}
-                              issues={coverGalleryIssues}
-                              activeFormat={selected.issue?.format ?? undefined}
-                              activeVariant={selected.issue?.variant ?? undefined}
-                              query={props.query}
-                              session={props.session}
-                            />
-                        </Box>
-                      </Box>
-                    </Box>
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "minmax(0, 1fr) clamp(320px, 36vw, 480px)" }, gap: 2, alignItems: "start", width: "100%" }}>
+            <Box sx={{ minWidth: 0, width: "100%", display: "flex", flexDirection: "column", gap: 2 }}>
+              <DetailsTable issue={issueForVariants} details={details} query={props.query} us={us} />
 
-                    <Box sx={{ display: { xs: "block", lg: "none" }, width: "100%" }}>
-                      <Box sx={{ width: coverWidth, maxWidth: "100%", mx: "auto", position: "relative" }}>
-                        <IconButton
-                          size="small"
-                          aria-label={coverExpanded ? "Cover einklappen" : "Cover ausklappen"}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setCoverExpanded((prev) => !prev);
-                          }}
-                          sx={{
-                            position: "absolute",
-                            top: 1,
-                            right: 2,
-                            zIndex: 2,
-                            color: "common.white",
-                            p: 0.25,
-                            "&:hover": { bgcolor: "transparent" },
-                            transform: coverExpanded ? "rotate(45deg)" : "rotate(0deg)",
-                            transition: "transform 180ms ease",
-                          }}
-                        >
-                          <AddIcon sx={{ fontSize: 20 }} />
-                        </IconButton>
-                        <Collapse
-                          in={coverExpanded}
-                          collapsedSize="25px"
-                          sx={{
-                            borderRadius: (theme) => `${Number(theme.shape.borderRadius) || 12}px`,
-                            overflow: "hidden",
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              width: "100%",
-                              display: "flex",
-                              flexDirection: "column",
-                              justifyContent: "flex-start",
-                              alignItems: "stretch",
-                            }}
-                          >
-                            <Box
-                              sx={{
-                                display: "flex",
-                                justifyContent: "center",
-                                alignItems: "flex-start",
-                              }}
-                            >
-                              <IssueCoverGallery
-                                us={us}
-                                issues={coverGalleryIssues}
-                                activeFormat={selected.issue?.format ?? undefined}
-                                activeVariant={selected.issue?.variant ?? undefined}
-                                session={props.session}
-                                query={props.query}
-                              />
-                            </Box>
-                          </Box>
-                        </Collapse>
-                      </Box>
-                    </Box>
-                  </Box>
-
-                  <DetailsTable
-                    issue={issueForVariants}
-                    details={details}
-                    query={props.query}
-                    us={us}
-                  />
-
-                  {props.bottom ? (
-                    <Box sx={{ minWidth: 0, width: "100%", mt: 0 }}>
-                        {React.cloneElement(props.bottom as React.ReactElement<any>, {
-                        query: props.query,
-                        selected: issueForVariants,
-                        issue: issueForVariants,
-                        us: us,
-                      })}
-                    </Box>
-                  ) : null}
-
-                  {coverAttribution ? <Box>{coverAttribution}</Box> : null}
+              {props.bottom ? (
+                <Box sx={{ minWidth: 0, width: "100%", mt: 0 }}>
+                  {React.cloneElement(props.bottom as React.ReactElement<any>, {
+                    query: props.query,
+                    selected: issueForVariants,
+                    issue: issueForVariants,
+                    us,
+                    session: props.session,
+                  })}
                 </Box>
-              ) : (
-                <React.Fragment>
-                  <Box sx={{ minWidth: 0, width: "100%" }}>
-                    {props.bottom ? (
-                      <Box sx={{ minWidth: 0, width: "100%", mt: 0 }}>
-                        {React.cloneElement(props.bottom as React.ReactElement<any>, {
-                          query: props.query,
-                          selected: issueForVariants,
-                          issue: issueForVariants,
-                          us: us,
-                        })}
-                      </Box>
-                    ) : null}
-                  </Box>
+              ) : null}
 
-                  <Box sx={{ minWidth: 0, width: "100%", display: "flex", flexDirection: "column", gap: 2 }}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "flex-start",
-                        justifyContent: { xs: "center", lg: "flex-end" },
-                        minWidth: 0,
-                        justifySelf: { xs: "stretch", lg: "end" },
-                        gridColumn: { lg: "2 / 3" },
-                        gridRow: { lg: "1" },
-                      }}
-                    >
-                      <Box sx={{ display: { xs: "none", lg: "block" } }}>
-                        <Box
-                          sx={{
-                            width: coverWidth,
-                            maxWidth: "100%",
-                            display: "flex",
-                            flexDirection: "column",
-                            justifyContent: "flex-start",
-                            alignItems: "stretch",
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              display: "flex",
-                              justifyContent: "flex-end",
-                              alignItems: "flex-start",
-                            }}
-                          >
-                            <IssueCoverGallery
-                              us={us}
-                              issues={coverGalleryIssues}
-                              activeFormat={selected.issue?.format ?? undefined}
-                              activeVariant={selected.issue?.variant ?? undefined}
-                              query={props.query}
-                              session={props.session}
-                            />
-                          </Box>
-                        </Box>
-                      </Box>
-
-                      <Box sx={{ display: { xs: "block", lg: "none" }, width: "100%" }}>
-                        <Box sx={{ width: coverWidth, maxWidth: "100%", mx: "auto", position: "relative" }}>
-                          <IconButton
-                            size="small"
-                            aria-label={coverExpanded ? "Cover einklappen" : "Cover ausklappen"}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setCoverExpanded((prev) => !prev);
-                            }}
-                            sx={{
-                              position: "absolute",
-                              top: 1,
-                              right: 2,
-                              zIndex: 2,
-                              color: "common.white",
-                              p: 0.25,
-                              "&:hover": { bgcolor: "transparent" },
-                              transform: coverExpanded ? "rotate(45deg)" : "rotate(0deg)",
-                              transition: "transform 180ms ease",
-                            }}
-                          >
-                            <AddIcon sx={{ fontSize: 20 }} />
-                          </IconButton>
-                          <Collapse
-                            in={coverExpanded}
-                            collapsedSize="25px"
-                            sx={{
-                              borderRadius: (theme) => `${Number(theme.shape.borderRadius) || 12}px`,
-                              overflow: "hidden",
-                            }}
-                          >
-                            <Box
-                              sx={{
-                                width: "100%",
-                                display: "flex",
-                                flexDirection: "column",
-                                justifyContent: "flex-start",
-                                alignItems: "stretch",
-                              }}
-                            >
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  justifyContent: "center",
-                                  alignItems: "flex-start",
-                                }}
-                              >
-                                <IssueCoverGallery
-                                  us={us}
-                                  issues={coverGalleryIssues}
-                                  activeFormat={selected.issue?.format ?? undefined}
-                                  activeVariant={selected.issue?.variant ?? undefined}
-                                  session={props.session}
-                                  query={props.query}
-                                />
-                              </Box>
-                            </Box>
-                          </Collapse>
-                        </Box>
-                      </Box>
-                    </Box>
-
-                    <DetailsTable
-                      issue={issueForVariants}
-                      details={details}
-                      query={props.query}
-                      us={us}
-                    />
-
-                    {coverAttribution ? <Box>{coverAttribution}</Box> : null}
-                  </Box>
-                </React.Fragment>
-              )}
+              {coverAttribution ? <Box>{coverAttribution}</Box> : null}
             </Box>
 
-            {issueForVariants.addinfo && issueForVariants.addinfo !== "" ? (
-              <Paper variant="outlined" sx={{ mt: 2, p: 2 }}>
-                <Typography
-                  dangerouslySetInnerHTML={{
-                    __html: sanitizeHtml(issueForVariants.addinfo),
-                  }}
-                />
-              </Paper>
-            ) : null}
+            <Box sx={{ minWidth: 0, width: "100%", display: "flex", flexDirection: "column", gap: 2, gridColumn: { lg: "2 / 3" }, gridRow: { lg: "1 / span 2" } }}>
+              <IssueCoverGalleryClient
+                us={us}
+                issues={coverGalleryIssues}
+                activeFormat={selected.issue?.format ?? undefined}
+                activeVariant={selected.issue?.variant ?? undefined}
+                query={props.query}
+              />
+            </Box>
           </Box>
+
+          {issueForVariants.addinfo && issueForVariants.addinfo !== "" ? (
+            <Paper variant="outlined" sx={{ mt: 2, p: 2 }}>
+              <Typography dangerouslySetInnerHTML={{ __html: sanitizeHtml(issueForVariants.addinfo) }} />
+            </Paper>
+          ) : null}
         </CardContent>
       </Box>
-    </Layout>
   );
-}
-
-function IssueCoverGallery(props: {
-  us: boolean;
-  issues: PreviewIssue[];
-  activeFormat?: string;
-  activeVariant?: string;
-  query?: Record<string, unknown> | null;
-  session: unknown;
-}) {
-  const router = useRouter();
-  const maxIndex = Math.max(0, props.issues.length - 1);
-  const activeIssueKey = getIssueVariantKey({
-    format: props.activeFormat ?? null,
-    variant: props.activeVariant ?? null,
-  });
-  const activeIndex = React.useMemo(() => {
-    const idx = props.issues.findIndex((item) => getIssueVariantKey(item) === activeIssueKey);
-    return idx >= 0 ? idx : 0;
-  }, [activeIssueKey, props.issues]);
-  const activeIssue = props.issues[activeIndex] || props.issues[0];
-
-  if (!activeIssue) return null;
-
-  return (
-    <Box sx={{ position: "relative", width: "100%", paddingTop: "150%" }}>
-      <Box sx={{ position: "absolute", inset: 0 }}>
-        <IssueCover us={props.us} issue={activeIssue} />
-      </Box>
-
-      {props.issues.length > 1 ? (
-        <React.Fragment>
-          {activeIndex > 0 ? (
-            <IconButton
-              aria-label="Vorheriges Cover"
-              onClick={(event) => {
-                event.stopPropagation();
-                const prevIssue = props.issues[Math.max(0, activeIndex - 1)];
-                if (!prevIssue) return;
-                router.push(buildRouteHref(getIssueUrl(prevIssue, props.us), props.query));
-              }}
-              sx={coverGalleryArrowSx("left")}
-            >
-              <ChevronLeftIcon />
-            </IconButton>
-          ) : null}
-
-          {activeIndex < maxIndex ? (
-            <IconButton
-              aria-label="Nächstes Cover"
-              onClick={(event) => {
-                event.stopPropagation();
-                const nextIssue = props.issues[Math.min(maxIndex, activeIndex + 1)];
-                if (!nextIssue) return;
-                router.push(buildRouteHref(getIssueUrl(nextIssue, props.us), props.query));
-              }}
-              sx={coverGalleryArrowSx("right")}
-            >
-              <ChevronRightIcon />
-            </IconButton>
-          ) : null}
-        </React.Fragment>
-      ) : null}
-    </Box>
-  );
-}
-
-function coverGalleryArrowSx(side: "left" | "right") {
-  return {
-    position: "absolute",
-    top: "50%",
-    [side]: 8,
-    transform: "translateY(-50%)",
-    zIndex: 2,
-    color: "common.white",
-    bgcolor: "rgba(0,0,0,0.44)",
-    border: "1px solid rgba(255,255,255,0.35)",
-    width: 34,
-    height: 34,
-    "&:hover": {
-      bgcolor: "rgba(0,0,0,0.6)",
-    },
-  };
-}
-
-function getIssueVariantKey(issue: { format?: string | null; variant?: string | null }): string {
-  return [String(issue.format || "").trim(), String(issue.variant || "").trim()].join("|");
 }
 
 function buildCoverGalleryIssues(issue: Issue): PreviewIssue[] {
@@ -713,5 +273,3 @@ function toIssueWithMockVariants(issue: Issue): Issue {
     variants: [primaryVariant, secondaryVariant],
   };
 }
-
-export default IssueDetails;

@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireApiWriteSession } from "@/src/lib/server/guards";
 import { createSeries, deleteSeriesByLookup, editSeries } from "@/src/lib/server/series-write";
 
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireApiWriteSession();
+    if (auth.response) return auth.response;
+
     const body = (await request.json()) as { item?: Record<string, unknown> };
     const item = await createSeries(body.item || {});
     return NextResponse.json({ item }, { headers: { "Cache-Control": "no-store" } });
@@ -16,6 +20,9 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
+    const auth = await requireApiWriteSession();
+    if (auth.response) return auth.response;
+
     const body = (await request.json()) as {
       old?: Record<string, unknown>;
       item?: Record<string, unknown>;
@@ -32,6 +39,9 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const auth = await requireApiWriteSession();
+    if (auth.response) return auth.response;
+
     const body = (await request.json()) as { item?: Record<string, unknown> };
     const success = await deleteSeriesByLookup(body.item || {});
     return NextResponse.json({ success }, { headers: { "Cache-Control": "no-store" } });

@@ -1,5 +1,5 @@
 import type { FieldItem } from "../../util/filterFieldHelpers";
-import type { AppRouteContextValue } from "../../app/routeContext";
+import type { LayoutRouteData } from "../../types/route-ui";
 
 export type FilterFormatOption = { name: string };
 export type FilterDateOption = { date: string; compare: string };
@@ -86,11 +86,9 @@ export interface FilterSubmitValues {
 
 export interface FilterPageProps {
   us: boolean;
-  query?: { filter?: string } | null;
-  session?: unknown;
-  isDesktop?: boolean;
-  routeContext: AppRouteContextValue;
-  initialPublisherNodes?: Array<{ id?: string | null; name?: string | null; us?: boolean | null }>;
+  query?: { filter?: string; from?: string; tab?: string } | null;
+  selected: LayoutRouteData["selected"];
+  hasSession?: boolean;
 }
 
 export interface FilterFormikBag {

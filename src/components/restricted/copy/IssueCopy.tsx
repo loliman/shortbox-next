@@ -1,67 +1,64 @@
 "use client";
 
 import React from "react";
-import Layout from "../../Layout";
 import QueryResult from "../../generic/QueryResult";
 import IssueEditor from "../editor/IssueEditor";
 import { mapIssueToEditorDefaultValues } from "../editor/issue-editor/defaultValues";
 import { EditorPagePlaceholder } from "../../placeholders/EditorPagePlaceholder";
-import { useResponsiveContext, useSessionContext } from "../../generic/AppContext";
 import { useSnackbarBridge } from "../../generic/useSnackbarBridge";
-import type { AppRouteContextValue } from "../../../app/routeContext";
+import type { SessionData } from "../../../app/session";
+import { useResponsive } from "../../../app/useResponsive";
+import type { LayoutRouteData, RouteQuery } from "../../../types/route-ui";
+import type { SelectedRoot } from "../../../types/domain";
 
 interface IssueCopyProps {
-  routeContext: AppRouteContextValue;
+  selected: SelectedRoot;
+  level: LayoutRouteData["level"];
+  us: boolean;
+  query?: RouteQuery | null;
+  initialFilterCount?: number | null;
   initialIssue?: Record<string, unknown> | null;
   initialPublisherNodes?: Array<{ id?: string | null; name?: string | null; us?: boolean | null }>;
   initialSeriesNodesByPublisher?: Record<string, unknown[]>;
   initialIssueNodesBySeriesKey?: Record<string, unknown[]>;
+  session?: SessionData | null;
 }
 
 function IssueCopy(props: Readonly<IssueCopyProps>) {
-  const sessionContext = useSessionContext();
-  const responsiveContext = useResponsiveContext();
+  const responsive = useResponsive();
   const snackbarBridge = useSnackbarBridge();
-  const { selected } = props.routeContext;
+  const selected = props.selected;
   const loading = false;
   const error = null;
   const issueDetails = props.initialIssue || null;
 
   return (
-    <Layout
-      routeContext={props.routeContext}
-      initialPublisherNodes={props.initialPublisherNodes}
-      initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher as Record<string, never[]> | undefined}
-      initialIssueNodesBySeriesKey={props.initialIssueNodesBySeriesKey as Record<string, never[]> | undefined}
-    >
-      {(() => {
-        if (loading || error || !issueDetails)
-          return (
-            <QueryResult
-              loading={loading}
-              error={error}
-              data={issueDetails}
-              selected={selected}
-              placeholder={<EditorPagePlaceholder />}
-              placeholderCount={1}
-            />
-          );
-
-        const defaultValues = mapIssueToEditorDefaultValues(issueDetails as any, true);
-
+    (() => {
+      if (loading || error || !issueDetails)
         return (
-          <IssueEditor
-            routeContext={props.routeContext}
-            copy
-            defaultValues={defaultValues}
-            session={sessionContext.session}
-            isDesktop={responsiveContext.isDesktop}
+          <QueryResult
+            loading={loading}
+            error={error}
+            data={issueDetails}
             selected={selected}
-            enqueueSnackbar={snackbarBridge.enqueueSnackbar}
+            placeholder={<EditorPagePlaceholder />}
+            placeholderCount={1}
           />
         );
-      })()}
-    </Layout>
+
+      const defaultValues = mapIssueToEditorDefaultValues(issueDetails as any, true);
+
+      return (
+        <IssueEditor
+          copy
+          defaultValues={defaultValues}
+          session={props.session}
+          isDesktop={responsive.isDesktop}
+          selected={selected}
+          enqueueSnackbar={snackbarBridge.enqueueSnackbar}
+        />
+      );
+    })()
   );
 }
 

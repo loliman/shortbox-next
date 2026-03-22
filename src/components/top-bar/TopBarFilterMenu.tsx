@@ -18,15 +18,11 @@ type TopBarFilterMenuProps = {
   isFilterActive?: boolean | string | null;
   query?: { filter?: string | null } | null;
   session?: { loggedIn?: boolean } | null;
-  initialCount?: number | null;
 };
 
 export default function TopBarFilterMenu(props: Readonly<TopBarFilterMenuProps>) {
   const router = useRouter();
   const { us, selected, isFilterActive } = props;
-  const count = isFilterActive && Number.isFinite(props.initialCount)
-    ? Number(props.initialCount)
-    : undefined;
   const tooltipTitle = React.useMemo(
     () => buildFilterTooltipTitle(Boolean(isFilterActive), props.query?.filter),
     [isFilterActive, props.query?.filter]
@@ -41,14 +37,8 @@ export default function TopBarFilterMenu(props: Readonly<TopBarFilterMenuProps>)
             max={999999999}
             overlap="circular"
             showZero={false}
-            badgeContent={
-              isFilterActive
-                ? Number.isFinite(count)
-                  ? count
-                  : undefined
-                : undefined
-            }
-            invisible={!isFilterActive || !Number.isFinite(count)}
+            badgeContent={undefined}
+            invisible={true}
             slotProps={{
               badge: {
                 sx: {

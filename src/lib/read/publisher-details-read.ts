@@ -1,3 +1,5 @@
+import "server-only";
+
 import { prisma } from "../prisma/client";
 import { serializePreviewIssue } from "./issue-read-shared";
 

@@ -7,7 +7,6 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import { Form, Formik } from "formik";
-import Layout from "../Layout";
 import QueryResult from "../generic/QueryResult";
 import { generateUrl } from "../../util/hierarchy";
 import { mapIssueToEditorDefaultValues } from "../restricted/editor/issue-editor/defaultValues";
@@ -18,18 +17,23 @@ import type { IssueEditorFormValues } from "../restricted/editor/issue-editor/ty
 import { EditorPagePlaceholder } from "../placeholders/EditorPagePlaceholder";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import { mutationRequest } from "../../lib/client/mutation-request";
-import type { AppRouteContextValue } from "../../app/routeContext";
+import type { SessionData } from "../../app/session";
+import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
 
 const REPORT_NOTICE =
   "In diesem Editor können Sie Fehler melden. Beim Absenden wird ein serverseitiger Change Request erstellt und zur Prüfung gespeichert.";
 
 interface IssueReportProps {
-  routeContext: AppRouteContextValue;
+  selected: SelectedRoot;
+  level: LayoutRouteData["level"];
+  us: boolean;
+  query?: RouteQuery | null;
+  initialFilterCount?: number | null;
   initialIssue?: Record<string, unknown> | null;
   initialPublisherNodes?: Array<{ id?: string | null; name?: string | null; us?: boolean | null }>;
   initialSeriesNodesByPublisher?: Record<string, unknown[]>;
   initialIssueNodesBySeriesKey?: Record<string, unknown[]>;
-  selected: SelectedRoot;
+  session?: SessionData | null;
   enqueueSnackbar: (
     message: string,
     options?: { variant?: "success" | "error" | "warning" | "info" }
@@ -44,117 +48,110 @@ function IssueReportView(props: Readonly<IssueReportProps>) {
   const issueDetails = props.initialIssue || null;
 
   return (
-    <Layout
-      routeContext={props.routeContext}
-      initialPublisherNodes={props.initialPublisherNodes}
-      initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher as Record<string, never[]> | undefined}
-      initialIssueNodesBySeriesKey={props.initialIssueNodesBySeriesKey as Record<string, never[]> | undefined}
-    >
-      {(() => {
-        if (loading || error || !issueDetails) {
-          return (
-            <QueryResult
-              loading={loading}
-              error={error}
-              data={issueDetails}
-              selected={selected}
-              placeholder={<EditorPagePlaceholder />}
-              placeholderCount={1}
-            />
-          );
-        }
-
-        const defaultValues = sanitizeReportValues(
-          mapIssueToEditorDefaultValues(issueDetails, false),
-          issueDetails
-        );
-        const fallbackUrl = generateUrl(selected, Boolean(selected.us));
-
+    (() => {
+      if (loading || error || !issueDetails) {
         return (
-          <Formik
-            initialValues={defaultValues}
-            enableReinitialize
-            onSubmit={async (values, actions) => {
-              actions.setSubmitting(true);
-              try {
-                const sanitizedValues = sanitizeReportValues(values, issueDetails);
-                const payload = buildIssueMutationVariables(
-                  sanitizedValues,
-                  defaultValues,
-                  true
-                );
-
-                await mutationRequest({
-                  url: "/api/change-requests",
-                  method: "POST",
-                  body: {
-                    issue: payload.old || { id: String(issueDetails.id || "") },
-                    item: payload.item,
-                  },
-                });
-
-                enqueueSnackbar("Change Request wurde gespeichert.", { variant: "success" });
-                router.push(fallbackUrl);
-              } catch (submitError: unknown) {
-                const message =
-                  submitError && typeof submitError === "object" && "message" in submitError
-                    ? String((submitError as { message?: string }).message || "")
-                    : "";
-
-                enqueueSnackbar(
-                  message ? `Fehler beim Melden: ${message}` : "Fehler beim Melden.",
-                  {
-                    variant: "error",
-                  }
-                );
-              } finally {
-                actions.setSubmitting(false);
-              }
-            }}
-          >
-            {({ values, resetForm, submitForm, isSubmitting, setFieldValue }) => (
-              <Form>
-                <IssueEditorFormContent
-                  values={values}
-                  edit
-                  id={
-                    typeof issueDetails.id === "string" || typeof issueDetails.id === "number"
-                      ? issueDetails.id
-                      : undefined
-                  }
-                  header="Fehler melden"
-                  submitLabel="Fehler melden"
-                  submitAndCopyLabel="Fehler melden"
-                  isSubmitting={isSubmitting}
-                  setFieldValue={setFieldValue}
-                  resetForm={() => resetForm()}
-                  onToggleUs={() => {}}
-                  showHints={false}
-                  lockedFields={{
-                    format: true,
-                    variant: true,
-                    publisher: true,
-                    series: true,
-                    number: true,
-                  }}
-                  onCancel={() => router.back()}
-                  onSubmitMode={() => submitForm()}
-                  notice={<Alert severity="info">{REPORT_NOTICE}</Alert>}
-                  actions={
-                    <IssueReportActions
-                      isSubmitting={isSubmitting}
-                      resetForm={resetForm}
-                      onCancel={() => router.back()}
-                      onSubmit={() => submitForm()}
-                    />
-                  }
-                />
-              </Form>
-            )}
-          </Formik>
+          <QueryResult
+            loading={loading}
+            error={error}
+            data={issueDetails}
+            selected={selected}
+            placeholder={<EditorPagePlaceholder />}
+            placeholderCount={1}
+          />
         );
-      })()}
-    </Layout>
+      }
+
+      const defaultValues = sanitizeReportValues(
+        mapIssueToEditorDefaultValues(issueDetails, false),
+        issueDetails
+      );
+      const fallbackUrl = generateUrl(selected, Boolean(selected.us));
+
+      return (
+        <Formik
+          initialValues={defaultValues}
+          enableReinitialize
+          onSubmit={async (values, actions) => {
+            actions.setSubmitting(true);
+            try {
+              const sanitizedValues = sanitizeReportValues(values, issueDetails);
+              const payload = buildIssueMutationVariables(
+                sanitizedValues,
+                defaultValues,
+                true
+              );
+
+              await mutationRequest({
+                url: "/api/change-requests",
+                method: "POST",
+                body: {
+                  issue: payload.old || { id: String(issueDetails.id || "") },
+                  item: payload.item,
+                },
+              });
+
+              enqueueSnackbar("Change Request wurde gespeichert.", { variant: "success" });
+              router.push(fallbackUrl);
+            } catch (submitError: unknown) {
+              const message =
+                submitError && typeof submitError === "object" && "message" in submitError
+                  ? String((submitError as { message?: string }).message || "")
+                  : "";
+
+              enqueueSnackbar(
+                message ? `Fehler beim Melden: ${message}` : "Fehler beim Melden.",
+                {
+                  variant: "error",
+                }
+              );
+            } finally {
+              actions.setSubmitting(false);
+            }
+          }}
+        >
+          {({ values, resetForm, submitForm, isSubmitting, setFieldValue }) => (
+            <Form>
+              <IssueEditorFormContent
+                values={values}
+                edit
+                id={
+                  typeof issueDetails.id === "string" || typeof issueDetails.id === "number"
+                    ? issueDetails.id
+                    : undefined
+                }
+                header="Fehler melden"
+                submitLabel="Fehler melden"
+                submitAndCopyLabel="Fehler melden"
+                isSubmitting={isSubmitting}
+                setFieldValue={setFieldValue}
+                resetForm={() => resetForm()}
+                onToggleUs={() => {}}
+                showHints={false}
+                lockedFields={{
+                  format: true,
+                  variant: true,
+                  publisher: true,
+                  series: true,
+                  number: true,
+                }}
+                onCancel={() => router.back()}
+                onSubmitMode={() => submitForm()}
+                notice={<Alert severity="info">{REPORT_NOTICE}</Alert>}
+                actions={
+                  <IssueReportActions
+                    isSubmitting={isSubmitting}
+                    resetForm={resetForm}
+                    onCancel={() => router.back()}
+                    onSubmit={() => submitForm()}
+                  />
+                }
+              />
+            </Form>
+          )}
+        </Formik>
+      );
+    })()
   );
 }
 
@@ -237,23 +234,32 @@ function sanitizeReportValues(
 }
 
 export default function IssueReport(props: Readonly<{
-  routeContext: AppRouteContextValue;
+  selected: SelectedRoot;
+  level: LayoutRouteData["level"];
+  us: boolean;
+  query?: RouteQuery | null;
+  initialFilterCount?: number | null;
   initialIssue?: Record<string, unknown> | null;
   initialPublisherNodes?: Array<{ id?: string | null; name?: string | null; us?: boolean | null }>;
   initialSeriesNodesByPublisher?: Record<string, unknown[]>;
   initialIssueNodesBySeriesKey?: Record<string, unknown[]>;
+  session?: SessionData | null;
 }>) {
   const snackbarBridge = useSnackbarBridge();
 
   return (
     <IssueReportView
       {...snackbarBridge}
-      routeContext={props.routeContext}
+      selected={props.selected}
+      level={props.level}
+      us={props.us}
+      query={props.query}
+      initialFilterCount={props.initialFilterCount}
       initialIssue={props.initialIssue}
       initialPublisherNodes={props.initialPublisherNodes}
       initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher}
       initialIssueNodesBySeriesKey={props.initialIssueNodesBySeriesKey}
-      selected={props.routeContext.selected}
+      session={props.session}
     />
   );
 }

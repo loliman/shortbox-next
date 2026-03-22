@@ -3,24 +3,25 @@ import { Suspense } from "react";
 import "./globals.css";
 import AppProviders from "@/src/components/AppProviders";
 import { AppPageLoader } from "@/src/components/generic/loading";
-import { countChangeRequests } from "@/src/lib/read/issue-read";
 
 export const metadata: Metadata = {
-  title: "Shortbox",
-  description: "Shortbox"
+  title: {
+    default: "Shortbox",
+    template: "%s | Shortbox",
+  },
+  description: "Shortbox listet deutsche und US-Marvel-Veröffentlichungen serverseitig und detailreich auf.",
+  applicationName: "Shortbox",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const changeRequestsCount = await countChangeRequests().catch(() => 0);
-
   return (
     <html lang="de" suppressHydrationWarning>
-      <body suppressHydrationWarning>
-        <AppProviders changeRequestsCount={changeRequestsCount}>
+      <body>
+        <AppProviders>
           <Suspense fallback={<AppPageLoader />}>{children}</Suspense>
         </AppProviders>
       </body>

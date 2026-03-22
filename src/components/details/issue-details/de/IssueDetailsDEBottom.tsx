@@ -1,6 +1,6 @@
 import React from "react";
 import Box from "@mui/material/Box";
-import { Contains, ContainsTitleDetailed } from "../../IssueDetails";
+import { Contains, ContainsTitleDetailed } from "../shared";
 import { IssueDetailsDEStoryDetails } from "./IssueDetailsDEStoryDetails";
 import type { ItemLike } from "../contains/expanded";
 

@@ -1,4 +1,6 @@
 import { ChangeRequestType, Prisma } from "@prisma/client";
+import "server-only";
+
 import { prisma } from "../prisma/client";
 
 type ChangeRequestInput = {

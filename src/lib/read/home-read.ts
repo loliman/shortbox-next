@@ -1,3 +1,5 @@
+import "server-only";
+
 import { readLastEditedIssues } from "./issue-feed-read";
 
 const DEFAULT_HOME_PAGE_SIZE = 50;
@@ -6,40 +8,40 @@ type HomeReadOptions = {
   us: boolean;
   offset?: number;
   limit?: number;
+  cursor?: string | null;
   order?: string | null;
   direction?: string | null;
   filter?: Record<string, unknown> | null;
+  loggedIn?: boolean;
 };
 
 export async function readHomeFeed(options: HomeReadOptions) {
   const limit = normalizePositiveInt(options.limit, DEFAULT_HOME_PAGE_SIZE);
   const offset = normalizePositiveInt(options.offset, 0);
+  const loggedIn = Boolean(options.loggedIn);
+  const cursor = typeof options.cursor === "string" ? options.cursor || undefined : undefined;
+  const requestedFirst = cursor ? limit : limit + offset + 1;
 
-  try {
-    const connection = await readLastEditedIssues(
-      {
-        ...(options.filter || {}),
-        us: options.us,
-      },
-      limit + offset + 1,
-      undefined,
-      options.order || undefined,
-      options.direction || undefined,
-      false
-    );
-    const nodes = connection.edges.map((edge) => edge?.node).filter(Boolean);
-    const windowed = nodes.slice(offset, offset + limit + 1);
-    const hasMore = windowed.length > limit;
-    return {
-      items: windowed.slice(0, limit),
-      hasMore,
-    };
-  } catch {
-    return {
-      items: [],
-      hasMore: false,
-    };
-  }
+  const connection = await readLastEditedIssues(
+    {
+      ...(options.filter || {}),
+      us: options.us,
+    },
+    requestedFirst,
+    cursor,
+    options.order || undefined,
+    options.direction || undefined,
+    loggedIn
+  );
+  const nodes = connection.edges.map((edge) => edge?.node).filter(Boolean);
+  const windowed = cursor ? nodes.slice(0, limit) : nodes.slice(offset, offset + limit);
+  return {
+    items: windowed,
+    hasMore: cursor
+      ? Boolean(connection.pageInfo.hasNextPage)
+      : nodes.length > offset + limit,
+    nextCursor: cursor ? connection.pageInfo.endCursor || null : null,
+  };
 }
 
 function normalizePositiveInt(value: number | undefined, fallback: number) {

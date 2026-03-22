@@ -1,5 +1,6 @@
+"use client";
+
 import { usePathname, useRouter } from "next/navigation";
-import { useResponsiveContext } from "./generic/AppContext";
 import InputLabel from "@mui/material/InputLabel";
 import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
@@ -21,6 +22,7 @@ import {
   getListingView,
   type ListingQuery,
 } from "../util/listingQuery";
+import { useResponsive } from "../app/useResponsive";
 import { buildRouteHref } from "./generic/routeHref";
 
 const SORT_OPTIONS = ["updatedat", "createdat", "releasedate", "series", "publisher"] as const;
@@ -41,17 +43,17 @@ type SortContainerProps = {
 export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
   const router = useRouter();
   const pathname = usePathname();
-  const responsiveContext = useResponsiveContext();
+  const responsive = useResponsive();
   const query = ownProps.query;
   const us = Boolean(ownProps.us);
   const selected = ownProps.selected;
   const compactLayout =
     ownProps.compactLayout ??
-    responsiveContext.compactLayout ??
+    responsive.isCompact ??
     Boolean(
-      (ownProps.isPhone ?? responsiveContext.isPhone) ||
-        ((ownProps.isTablet ?? responsiveContext.isTablet) &&
-          !(ownProps.isTabletLandscape ?? responsiveContext.isTabletLandscape))
+      (ownProps.isPhone ?? responsive.isPhone) ||
+        ((ownProps.isTablet ?? responsive.isTablet) &&
+          !(ownProps.isTabletLandscape ?? responsive.isTabletLandscape))
     );
   const currentOrder = toValidSortOption(getListingOrder(query));
   const currentDirection = toDirection(getListingDirection(query));

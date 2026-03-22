@@ -1,3 +1,5 @@
+import "server-only";
+
 import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma/client";
 import { ADMIN_TASK_DEFINITIONS, type AdminTaskName } from "../../worker/task-registry";

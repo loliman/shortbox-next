@@ -1,15 +1,36 @@
-import Filter from "@/src/components/filter/Filter";
-import { createAppRouteContext, type NextPageSearchParams } from "@/src/app/routeContext";
-import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
+import type { Metadata } from "next";
+import AppPageShell from "@/src/components/app-shell/AppPageShell";
+import FilterPage from "@/src/components/filter/FilterPage";
+import { resolveAppPage } from "@/src/lib/routes/app-page";
+import { createStaticMetadata } from "@/src/lib/routes/metadata";
+
+export const metadata: Metadata = createStaticMetadata(
+  "Filter",
+  "Filter für deutsche Marvel-Ausgaben in Shortbox."
+);
 
 export default async function DeFilterPage({
   searchParams,
 }: Readonly<{
-  searchParams?: NextPageSearchParams;
+  searchParams?: Promise<Record<string, string | string[] | undefined> | undefined>;
 }>) {
-  const routeContext = createAppRouteContext({ searchParams: await searchParams, us: false });
-  const navigationData = await readInitialNavigationData(routeContext);
-  routeContext.initialFilterCount = navigationData.initialFilterCount;
-
-  return <Filter routeContext={routeContext} initialPublisherNodes={navigationData.initialPublisherNodes} />;
+  const page = await resolveAppPage({ us: false, searchParams, session: "optional" });
+  return (
+    <AppPageShell
+      selected={page.selected}
+      level={page.level}
+      us={page.us}
+      query={page.query}
+      session={page.session}
+      initialFilterCount={page.navigationData?.initialFilterCount}
+      initialPublisherNodes={page.navigationData?.initialPublisherNodes}
+    >
+      <FilterPage
+        selected={page.selected}
+        us={page.us}
+        query={page.query as { filter?: string } | null}
+        hasSession={Boolean(page.session?.loggedIn)}
+      />
+    </AppPageShell>
+  );
 }

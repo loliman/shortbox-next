@@ -1,12 +1,35 @@
+import AppPageShell from "@/src/components/app-shell/AppPageShell";
 import IssueCreate from "@/src/components/restricted/create/IssueCreate";
-import { createAppRouteContext, type NextPageParams, type NextPageSearchParams } from "@/src/app/routeContext";
+import { buildHierarchyLevel, buildSelectedRoot, normalizePageQuery } from "@/src/lib/routes/page-state";
+import { requirePageWriteSession } from "@/src/lib/server/guards";
 
 export default async function DeIssueCreatePublisherPage({
   params,
   searchParams,
 }: Readonly<{
-  params: NextPageParams;
-  searchParams?: NextPageSearchParams;
+  params: Promise<Record<string, string>>;
+  searchParams?: Promise<Record<string, string | string[] | undefined> | undefined>;
 }>) {
-  return <IssueCreate routeContext={createAppRouteContext({ params: await params, searchParams: await searchParams, create: true, us: false })} />;
+  const resolvedParams = await params;
+  const query = normalizePageQuery(await searchParams);
+  const selected = buildSelectedRoot(resolvedParams, false);
+  const session = await requirePageWriteSession();
+
+  return (
+    <AppPageShell
+      selected={selected}
+      level={buildHierarchyLevel(selected)}
+      us={false}
+      query={query}
+      session={session}
+    >
+      <IssueCreate
+        selected={selected}
+        level={buildHierarchyLevel(selected)}
+        us={false}
+        session={session}
+        query={query}
+      />
+    </AppPageShell>
+  );
 }

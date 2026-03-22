@@ -1,24 +1,29 @@
 "use client";
 
 import React from "react";
-import Layout from "../../Layout";
 import PublisherEditor from "../editor/PublisherEditor";
-import { useResponsiveContext, useSessionContext } from "../../generic/AppContext";
 import { useSnackbarBridge } from "../../generic/useSnackbarBridge";
-import type { AppRouteContextValue } from "../../../app/routeContext";
+import type { SessionData } from "../../../app/session";
+import { useResponsive } from "../../../app/useResponsive";
+import type { LayoutRouteData, RouteQuery } from "../../../types/route-ui";
+import type { SelectedRoot } from "../../../types/domain";
 
-function PublisherCreate(props: Readonly<{ routeContext: AppRouteContextValue }>) {
-  const sessionContext = useSessionContext();
-  const responsiveContext = useResponsiveContext();
+function PublisherCreate(props: Readonly<{
+  selected: SelectedRoot;
+  level: LayoutRouteData["level"];
+  us: boolean;
+  query?: RouteQuery | null;
+  initialFilterCount?: number | null;
+  session?: SessionData | null;
+}>) {
+  const responsive = useResponsive();
   const snackbarBridge = useSnackbarBridge();
   return (
-    <Layout routeContext={props.routeContext}>
-      <PublisherEditor
-        session={sessionContext.session}
-        isDesktop={responsiveContext.isDesktop}
-        enqueueSnackbar={snackbarBridge.enqueueSnackbar}
-      />
-    </Layout>
+    <PublisherEditor
+      session={props.session}
+      isDesktop={responsive.isDesktop}
+      enqueueSnackbar={snackbarBridge.enqueueSnackbar}
+    />
   );
 }
 

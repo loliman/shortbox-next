@@ -1,6 +1,6 @@
 import React from "react";
 import dateFormat from "dateformat";
-import { DetailsRow, toChipList, toShortboxDate } from "../../IssueDetails";
+import { DetailsRow, toChipList, toShortboxDate } from "../shared";
 
 interface IssueDetailsUSDetailsProps {
   issue?: {

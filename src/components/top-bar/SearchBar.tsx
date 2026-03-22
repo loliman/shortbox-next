@@ -69,18 +69,17 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
   const [options, setOptions] = useState<SearchNode[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown>(null);
+  const shortQuery = queryPattern.length < MIN_QUERY_LENGTH;
 
   useEffect(() => {
-    if (queryPattern.length < MIN_QUERY_LENGTH) {
-      setOptions([]);
-      setLoading(false);
-      setError(null);
-      return;
-    }
+    if (shortQuery) return;
 
     let cancelled = false;
-    setLoading(true);
-    setError(null);
+    Promise.resolve().then(() => {
+      if (cancelled) return;
+      setLoading(true);
+      setError(null);
+    });
 
     const params = new URLSearchParams({
       locale: us ? "us" : "de",
@@ -113,8 +112,11 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
     return () => {
       cancelled = true;
     };
-  }, [queryPattern, us]);
-  const resultRows = Math.max(1, options.length);
+  }, [queryPattern, shortQuery, us]);
+  const resolvedOptions = shortQuery ? [] : options;
+  const resolvedLoading = shortQuery ? false : loading;
+  const resolvedError = shortQuery ? null : error;
+  const resultRows = Math.max(1, resolvedOptions.length);
   const resultsPanelHeight = Math.min(
     RESULT_PANEL_MAX_HEIGHT,
     resultRows * RESULT_ROW_HEIGHT + RESULT_PANEL_BOTTOM_BUFFER
@@ -221,12 +223,12 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
             },
           },
         }}
-        options={options}
+        options={resolvedOptions}
         filterOptions={(x) => x}
-        loading={loading}
+        loading={resolvedLoading}
         inputValue={pattern}
         noOptionsText={
-          queryPattern.length < MIN_QUERY_LENGTH ? (
+          shortQuery ? (
             <Box
               sx={{
                 display: "inline-flex",
@@ -248,7 +250,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                 {".".repeat(hintDotCount)}
               </Typography>
             </Box>
-          ) : error ? (
+          ) : resolvedError ? (
             <Typography component="span" noWrap sx={{ fontSize: "1rem", color: "text.primary" }}>
               Suche aktuell nicht verfügbar
             </Typography>

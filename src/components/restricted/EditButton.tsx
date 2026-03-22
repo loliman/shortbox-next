@@ -2,12 +2,10 @@ import Box from "@mui/material/Box";
 import React from "react";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import Dropdown, { type DropdownItem } from "./Dropdown";
-import type { AppRouteContextValue } from "../../app/routeContext";
 
 interface EditButtonProps {
   session?: unknown;
   item?: unknown;
-  routeContext: AppRouteContextValue;
   level?: string;
   us?: boolean;
   enqueueSnackbar?: (
@@ -18,9 +16,9 @@ interface EditButtonProps {
 
 function EditButton(props: Readonly<EditButtonProps>) {
   const snackbarBridge = useSnackbarBridge();
-  const session = props.session;
+  const session = props.session as { canWrite?: boolean } | null | undefined;
 
-  if (!session) return null;
+  if (!session?.canWrite) return null;
 
   return (
     <Box sx={{ display: "inline-flex" }}>
@@ -30,7 +28,6 @@ function EditButton(props: Readonly<EditButtonProps>) {
         us={props.us}
         session={session}
         enqueueSnackbar={props.enqueueSnackbar ?? snackbarBridge.enqueueSnackbar}
-        routeContext={props.routeContext}
       />
     </Box>
   );

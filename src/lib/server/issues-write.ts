@@ -1,4 +1,6 @@
 import type { PrismaClient, Prisma } from "@prisma/client";
+import "server-only";
+
 import { prisma } from "../prisma/client";
 import { updateStoryFilterFlagsForIssue } from "../../util/filter-updater";
 import { MarvelCrawlerService } from "../../services/MarvelCrawlerService";

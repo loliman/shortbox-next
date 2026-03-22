@@ -21,7 +21,6 @@ const GENRE_MIN_QUERY_LENGTH = 0;
 interface DetailsSectionProps {
   values: FilterValues;
   us: boolean;
-  isDesktop: boolean;
   setFieldValue: (field: string, value: unknown) => void;
   hasSession: boolean;
 }
