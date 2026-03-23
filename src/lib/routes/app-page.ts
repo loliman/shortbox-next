@@ -39,12 +39,14 @@ async function resolveSession(mode: SessionMode | undefined) {
 }
 
 export async function resolveAppPage(options: Readonly<ResolveAppPageOptions>): Promise<ResolvedAppPage> {
-  const resolvedParams = await options.params;
-  const resolvedSearchParams = await options.searchParams;
+  const [resolvedParams, resolvedSearchParams, session] = await Promise.all([
+    options.params,
+    options.searchParams,
+    resolveSession(options.session),
+  ]);
   const query = normalizePageQuery(resolvedSearchParams);
   const selected = buildSelectedRoot(resolvedParams, options.us);
   const level = buildHierarchyLevel(selected);
-  const session = await resolveSession(options.session);
   const navigationData =
     options.includeNavigation === false
       ? null

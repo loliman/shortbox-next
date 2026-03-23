@@ -1,6 +1,5 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
 import InputLabel from "@mui/material/InputLabel";
 import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
@@ -10,6 +9,7 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import React from "react";
 import Box from "@mui/material/Box";
+import CircularProgress from "@mui/material/CircularProgress";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
@@ -26,6 +26,7 @@ import {
 } from "../util/listingQuery";
 import { useInitialResponsiveGuess } from "../app/responsiveGuessContext";
 import { buildRouteHref } from "./generic/routeHref";
+import { usePendingNavigation } from "./generic/usePendingNavigation";
 
 const SORT_OPTIONS = ["updatedat", "createdat", "releasedate", "series", "publisher"] as const;
 type SortOption = (typeof SORT_OPTIONS)[number];
@@ -40,8 +41,7 @@ type SortContainerProps = {
 };
 
 export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
-  const router = useRouter();
-  const pathname = usePathname();
+  const { isPending, push } = usePendingNavigation();
   const theme = useTheme();
   const initialGuess = useInitialResponsiveGuess();
   const isLandscape = useMediaQuery("(orientation: landscape)", {
@@ -70,7 +70,7 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
     <Box
       sx={{
         display: "grid",
-        gridTemplateColumns: compactLayout ? "1fr auto auto" : "minmax(220px, 1fr) auto auto",
+        gridTemplateColumns: compactLayout ? "1fr auto auto auto" : "minmax(220px, 1fr) auto auto auto",
         alignItems: "center",
         gap: 1,
         width: compactLayout ? "100%" : "auto",
@@ -87,11 +87,12 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
           labelId={SORT_LABEL_ID}
           value={currentOrder}
           label={compactLayout ? "Sortierung" : "Sortieren nach"}
+          disabled={isPending}
           onChange={(e) =>
-            router.push(
+            push(
               buildRouteHref(
                 generateUrl(target, us),
-                pathname === generateUrl(target, us) ? query : null,
+                query,
                 buildSortNavigationQuery(query, {
                   order: toValidSortOption(String(e.target.value)),
                 })
@@ -112,13 +113,14 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
         color="primary"
         exclusive
         value={currentDirection}
+        disabled={isPending}
         aria-label="Sortierreihenfolge"
         onChange={(e, value: "ASC" | "DESC" | null) => {
           if (!value) return;
-          router.push(
+          push(
             buildRouteHref(
               generateUrl(target, us),
-              pathname === generateUrl(target, us) ? query : null,
+              query,
               buildSortNavigationQuery(query, {
                 direction: value,
               })
@@ -139,13 +141,14 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
         color="primary"
         exclusive
         value={currentView}
+        disabled={isPending}
         aria-label="Darstellungsmodus"
         onChange={(e, value: "strip" | "gallery" | null) => {
           if (!value) return;
-          router.push(
+          push(
             buildRouteHref(
               generateUrl(target, us),
-              pathname === generateUrl(target, us) ? query : null,
+              query,
               buildSortNavigationQuery(query, {
                 view: value,
               })
@@ -160,6 +163,20 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
           <ViewModuleIcon fontSize="small" />
         </ToggleButton>
       </ToggleButtonGroup>
+
+      {isPending ? (
+        <Box
+          aria-live="polite"
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minWidth: 24,
+          }}
+        >
+          <CircularProgress size={18} />
+        </Box>
+      ) : null}
     </Box>
   );
 }

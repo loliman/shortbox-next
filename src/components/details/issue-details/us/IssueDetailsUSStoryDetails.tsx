@@ -179,7 +179,7 @@ export function IssueDetailsUSStoryDetails(props: Readonly<IssueDetailsUSStoryDe
                   >
                       Nachgedruckt in
                   </Typography>
-                  
+
                   <List sx={{ p: 0 }}>
                       {reprints.map((child, idx) => {
                           if (!child.issue) return null;

@@ -13,24 +13,29 @@ export default async function UsSeriesEditPage({
   params: Promise<Record<string, string>>;
   searchParams?: Promise<Record<string, string | string[] | undefined> | undefined>;
 }>) {
-  const resolvedParams = await params;
-  const query = normalizePageQuery(await searchParams);
+  const [resolvedParams, resolvedSearchParams, session] = await Promise.all([
+    params,
+    searchParams,
+    requirePageWriteSession(),
+  ]);
+  const query = normalizePageQuery(resolvedSearchParams);
   const selected = buildSelectedRoot(resolvedParams, true);
   const level = buildHierarchyLevel(selected);
   const series = selected.series;
-  const session = await requirePageWriteSession();
-  const navigationData = await readInitialNavigationData({
-    us: true,
-    query,
-    selected,
-    loggedIn: Boolean(session?.loggedIn),
-  });
-  const initialSeries = await readSeriesEditData({
-    us: true,
-    publisher: String(series?.publisher?.name || ""),
-    series: String(series?.title || ""),
-    volume: Number(series?.volume || 0),
-  });
+  const [navigationData, initialSeries] = await Promise.all([
+    readInitialNavigationData({
+      us: true,
+      query,
+      selected,
+      loggedIn: Boolean(session?.loggedIn),
+    }),
+    readSeriesEditData({
+      us: true,
+      publisher: String(series?.publisher?.name || ""),
+      series: String(series?.title || ""),
+      volume: Number(series?.volume || 0),
+    }),
+  ]);
   if (!initialSeries) notFound();
 
   return (

@@ -36,23 +36,27 @@ export default async function DePublisherPage({
   params: Promise<Record<string, string>>;
   searchParams?: Promise<Record<string, string | string[] | undefined> | undefined>;
 }>) {
-  const resolvedParams = await params;
-  const resolvedSearchParams = await searchParams;
+  const [resolvedParams, resolvedSearchParams, session] = await Promise.all([
+    params,
+    searchParams,
+    readServerSession(),
+  ]);
   const query = normalizePageQuery(resolvedSearchParams);
   const selected = buildSelectedRoot(resolvedParams, false);
   const level = buildHierarchyLevel(selected);
-  const session = await readServerSession();
   const publisherName = selected.publisher?.name || "";
-  const initialData = publisherName
-    ? await readPublisherDetails({ us: false, publisher: publisherName })
-    : null;
+  const [initialData, navigationData] = await Promise.all([
+    publisherName
+      ? readPublisherDetails({ us: false, publisher: publisherName })
+      : Promise.resolve(null),
+    readInitialNavigationData({
+      us: false,
+      query,
+      selected,
+      loggedIn: Boolean(session?.loggedIn),
+    }),
+  ]);
   if (!initialData?.details) notFound();
-  const navigationData = await readInitialNavigationData({
-    us: false,
-    query,
-    selected,
-    loggedIn: Boolean(session?.loggedIn),
-  });
   return (
     <CatalogPageShell
       selected={selected}

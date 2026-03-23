@@ -174,8 +174,9 @@ function buildPublicationFallback({
 }): string {
   if (!us) return "Story";
   if (childrenCount <= 0) return "Nicht auf deutsch erschienen";
+  if (childrenCount === 1) return "Einfach auf deutsch erschienen";
 
-  return childrenCount > 0 ? `Mehrfach auf deutsch erschienen`: 'Nicht auf deutsch erschienen';
+  return "Mehrfach auf deutsch erschienen";
 }
 
 function buildSimpleActionChips({

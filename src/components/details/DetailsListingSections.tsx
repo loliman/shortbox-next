@@ -1,7 +1,5 @@
 import React from "react";
 import Box from "@mui/material/Box";
-import CardHeader from "@mui/material/CardHeader";
-import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import IssuePreview, { IssuePreviewPlaceholder } from "../issue-preview/IssuePreview";
 import IssuePreviewSmall, {
@@ -119,7 +117,6 @@ export function IssueHistoryPlaceholder(
 
   return (
     <Box component="section">
-      <CardHeader title={<Skeleton variant="text" width={120} height={30} />} />
       {listingView === "gallery" ? (
         <Box sx={galleryGridSx}>
             <IssuePreviewPlaceholderSmall idx={0} />

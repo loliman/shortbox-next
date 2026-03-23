@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiAdminSession } from "@/src/lib/server/guards";
 import {
+  invalidateChangeRequestsCache,
+  invalidateNavigationCache,
+} from "@/src/lib/server/revalidate";
+import {
   acceptChangeRequestById,
   createIssueChangeRequest,
   discardChangeRequestById,
@@ -16,6 +20,7 @@ export async function POST(request: NextRequest) {
       issue: body.issue,
       item: body.item,
     });
+    invalidateChangeRequestsCache();
     return NextResponse.json({ item }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return NextResponse.json(
@@ -35,6 +40,7 @@ export async function DELETE(request: NextRequest) {
 
     const body = (await request.json()) as { id?: string | number };
     const success = await discardChangeRequestById(body.id);
+    invalidateChangeRequestsCache();
     return NextResponse.json({ success }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return NextResponse.json(
@@ -54,6 +60,8 @@ export async function PATCH(request: NextRequest) {
 
     const body = (await request.json()) as { id?: string | number };
     const item = await acceptChangeRequestById(body.id);
+    invalidateChangeRequestsCache();
+    invalidateNavigationCache();
     return NextResponse.json({ item }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return NextResponse.json(

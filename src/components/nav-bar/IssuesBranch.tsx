@@ -6,6 +6,7 @@ import MuiList from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
 import Typography from "@mui/material/Typography";
+import CircularProgress from "@mui/material/CircularProgress";
 import type { Issue, SelectedRoot } from "../../types/domain";
 import CoverTooltip from "./CoverTooltip";
 import { NestedEmptyRow } from "./NestedNavRow";
@@ -34,6 +35,8 @@ type IssuesBranchProps = {
   pushSelection: (event: unknown, item: SelectedRoot, closeOnPhone?: boolean) => void;
   navScrollContainerRef: React.RefObject<HTMLDivElement | null>;
   suppressAutoScrollRef: React.MutableRefObject<boolean>;
+  navigationPending?: boolean;
+  pendingNavigationKey?: string | null;
 };
 
 const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBranchProps>) {
@@ -85,11 +88,6 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
   React.useEffect(() => {
     if (!selectedIssueNumber) return;
 
-    if (suppressAutoScrollRef.current) {
-      suppressAutoScrollRef.current = false;
-      return;
-    }
-
     if (skipSameIssueAutoScrollRef.current) {
       skipSameIssueAutoScrollRef.current = false;
       return;
@@ -126,6 +124,15 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
         const issueSeries = toIssueSeriesSelected(issueNode, series, us);
         const variantCount = getVariantCount(issueNode);
         const hasVariants = variantCount > 0;
+        const issueNavigationKey = [
+          issueSeries.publisher.name,
+          issueSeries.title,
+          issueSeries.volume,
+          issueNumber,
+          issueNode.format || "",
+          getIssueNodeVariant(issueNode) || "",
+        ].join("|");
+        const issueIsPending = props.pendingNavigationKey === issueNavigationKey;
 
         return (
           <Box
@@ -142,6 +149,7 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
               className="row"
               divider={false}
               selected={selected}
+              disabled={props.navigationPending}
               data-nav-issue-number={issueNumber}
               sx={{
                 pl: getDepthPadding(2) + 1.3,
@@ -194,6 +202,9 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
                             {createSidebarIssueLabel(issueNode, us)}
                           </Box>
                         </Typography>
+                        {issueIsPending ? (
+                          <CircularProgress size={14} sx={{ flexShrink: 0 }} />
+                        ) : null}
                         {hasVariants ? (
                           <Typography
                             component="span"

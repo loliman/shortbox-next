@@ -10,22 +10,26 @@ export default async function UsIssueCreateSeriesPage({
   params: Promise<Record<string, string>>;
   searchParams?: Promise<Record<string, string | string[] | undefined> | undefined>;
 }>) {
-  const resolvedParams = await params;
-  const query = normalizePageQuery(await searchParams);
+  const [resolvedParams, resolvedSearchParams, session] = await Promise.all([
+    params,
+    searchParams,
+    requirePageWriteSession(),
+  ]);
+  const query = normalizePageQuery(resolvedSearchParams);
   const selected = buildSelectedRoot(resolvedParams, true);
-  const session = await requirePageWriteSession();
+  const level = buildHierarchyLevel(selected);
 
   return (
     <WorkspacePageShell
       selected={selected}
-      level={buildHierarchyLevel(selected)}
+      level={level}
       us={true}
       query={query}
       session={session}
     >
       <IssueCreate
         selected={selected}
-        level={buildHierarchyLevel(selected)}
+        level={level}
         us={true}
         query={query}
         session={session}

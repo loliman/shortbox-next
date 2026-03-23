@@ -45,29 +45,32 @@ export default async function DeSeriesPage({
   params: Promise<Record<string, string>>;
   searchParams?: Promise<Record<string, string | string[] | undefined> | undefined>;
 }>) {
-  const resolvedParams = await params;
-  const resolvedSearchParams = await searchParams;
+  const [resolvedParams, resolvedSearchParams, session] = await Promise.all([
+    params,
+    searchParams,
+    readServerSession(),
+  ]);
   const query = normalizePageQuery(resolvedSearchParams);
   const selected = buildSelectedRoot(resolvedParams, false);
   const level = buildHierarchyLevel(selected);
-  const session = await readServerSession();
   const selectedSeries = selected.series;
-  const initialData =
+  const [initialData, navigationData] = await Promise.all([
     selectedSeries?.publisher?.name && selectedSeries?.title
-      ? await readSeriesDetails({
+      ? readSeriesDetails({
           us: false,
           publisher: selectedSeries.publisher.name,
           series: selectedSeries.title,
           volume: Number(selectedSeries.volume || 0),
         })
-      : null;
+      : Promise.resolve(null),
+    readInitialNavigationData({
+      us: false,
+      query,
+      selected,
+      loggedIn: Boolean(session?.loggedIn),
+    }),
+  ]);
   if (!initialData?.details) notFound();
-  const navigationData = await readInitialNavigationData({
-    us: false,
-    query,
-    selected,
-    loggedIn: Boolean(session?.loggedIn),
-  });
   return (
     <CatalogPageShell
       selected={selected}

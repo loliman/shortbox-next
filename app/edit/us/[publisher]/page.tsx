@@ -13,21 +13,26 @@ export default async function UsPublisherEditPage({
   params: Promise<Record<string, string>>;
   searchParams?: Promise<Record<string, string | string[] | undefined> | undefined>;
 }>) {
-  const resolvedParams = await params;
-  const query = normalizePageQuery(await searchParams);
+  const [resolvedParams, resolvedSearchParams, session] = await Promise.all([
+    params,
+    searchParams,
+    requirePageWriteSession(),
+  ]);
+  const query = normalizePageQuery(resolvedSearchParams);
   const selected = buildSelectedRoot(resolvedParams, true);
   const level = buildHierarchyLevel(selected);
-  const session = await requirePageWriteSession();
-  const navigationData = await readInitialNavigationData({
-    us: true,
-    query,
-    selected,
-    loggedIn: Boolean(session?.loggedIn),
-  });
-  const initialPublisher = await readPublisherEditData({
-    us: true,
-    publisher: String(selected.publisher?.name || ""),
-  });
+  const [navigationData, initialPublisher] = await Promise.all([
+    readInitialNavigationData({
+      us: true,
+      query,
+      selected,
+      loggedIn: Boolean(session?.loggedIn),
+    }),
+    readPublisherEditData({
+      us: true,
+      publisher: String(selected.publisher?.name || ""),
+    }),
+  ]);
   if (!initialPublisher) notFound();
 
   return (

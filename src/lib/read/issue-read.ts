@@ -1,6 +1,8 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { cache } from "react";
+import { CHANGE_REQUESTS_CACHE_TAG } from "../cache-tags";
 import {
   countChangeRequests as countIssueChangeRequests,
   readChangeRequests as readIssueChangeRequests,
@@ -58,6 +60,15 @@ export async function readChangeRequests(options?: {
   });
 }
 
+const countChangeRequestsCached = unstable_cache(
+  async () => countIssueChangeRequests(),
+  ["change-requests-count"],
+  {
+    revalidate: 300,
+    tags: [CHANGE_REQUESTS_CACHE_TAG],
+  }
+);
+
 export async function countChangeRequests() {
-  return countIssueChangeRequests();
+  return countChangeRequestsCached();
 }

@@ -1,19 +1,32 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import type { Filter } from "../../types/query-data";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma/client";
 import type { LayoutRouteData } from "../../types/route-ui";
+import { NAVIGATION_CACHE_TAG } from "../cache-tags";
 import { resolveFilterState } from "./filter-read";
 import { compareIssueNumber, compareIssueVariants } from "./issue-read-shared";
-
-const NAV_PAGE_SIZE = 250;
 
 type NavigationScope = {
   us: boolean;
   filteredIssueIds?: bigint[] | null;
   directIssueWhere?: Prisma.IssueWhereInput | null;
 };
+
+function toJsonOrNull(value: unknown) {
+  if (value === null || value === undefined) return null;
+
+  return JSON.stringify(value, (_, currentValue) =>
+    typeof currentValue === "bigint" ? currentValue.toString() : currentValue
+  );
+}
+
+function parseFilteredIssueIds(filteredIssueIdsJson: string | null) {
+  if (!filteredIssueIdsJson) return null;
+  return (JSON.parse(filteredIssueIdsJson) as Array<string | number>).map((value) => BigInt(value));
+}
 
 export async function readNavigationPublishers(scope: NavigationScope) {
   const publishers = await prisma.publisher.findMany({
@@ -46,7 +59,6 @@ export async function readNavigationPublishers(scope: NavigationScope) {
         : {}),
     },
     orderBy: [{ name: "asc" }],
-    take: NAV_PAGE_SIZE,
   });
 
   return publishers.map((publisher) => ({
@@ -55,6 +67,24 @@ export async function readNavigationPublishers(scope: NavigationScope) {
     us: publisher.original,
   }));
 }
+
+const readNavigationPublishersCached = unstable_cache(
+  async (
+    us: boolean,
+    directIssueWhereJson: string | null,
+    filteredIssueIdsJson: string | null
+  ) => {
+    return readNavigationPublishers({
+      us,
+      directIssueWhere: directIssueWhereJson
+        ? (JSON.parse(directIssueWhereJson) as Prisma.IssueWhereInput)
+        : null,
+      filteredIssueIds: parseFilteredIssueIds(filteredIssueIdsJson),
+    });
+  },
+  ["navigation-publishers"],
+  { revalidate: 300, tags: [NAVIGATION_CACHE_TAG] }
+);
 
 export function getNavigationSeriesKey(input: {
   publisher?: string | null;
@@ -93,7 +123,6 @@ export async function readNavigationSeries(scope: NavigationScope & { publisher:
         : {}),
     },
     orderBy: [{ title: "asc" }, { volume: "asc" }, { startYear: "asc" }, { id: "asc" }],
-    take: NAV_PAGE_SIZE,
     include: {
       publisher: true,
     },
@@ -113,6 +142,26 @@ export async function readNavigationSeries(scope: NavigationScope & { publisher:
       : null,
   }));
 }
+
+const readNavigationSeriesCached = unstable_cache(
+  async (
+    us: boolean,
+    publisher: string,
+    directIssueWhereJson: string | null,
+    filteredIssueIdsJson: string | null
+  ) => {
+    return readNavigationSeries({
+      us,
+      publisher,
+      directIssueWhere: directIssueWhereJson
+        ? (JSON.parse(directIssueWhereJson) as Prisma.IssueWhereInput)
+        : null,
+      filteredIssueIds: parseFilteredIssueIds(filteredIssueIdsJson),
+    });
+  },
+  ["navigation-series"],
+  { revalidate: 300, tags: [NAVIGATION_CACHE_TAG] }
+);
 
 export async function readNavigationIssues(
   scope: NavigationScope & {
@@ -141,7 +190,6 @@ export async function readNavigationIssues(
       },
     },
     orderBy: [{ number: "asc" }, { format: "asc" }, { variant: "asc" }, { id: "asc" }],
-    take: NAV_PAGE_SIZE,
     include: {
       series: {
         include: {
@@ -205,6 +253,30 @@ export async function readNavigationIssues(
   });
 }
 
+const readNavigationIssuesCached = unstable_cache(
+  async (
+    us: boolean,
+    publisher: string,
+    series: string,
+    volume: number,
+    directIssueWhereJson: string | null,
+    filteredIssueIdsJson: string | null
+  ) => {
+    return readNavigationIssues({
+      us,
+      publisher,
+      series,
+      volume,
+      directIssueWhere: directIssueWhereJson
+        ? (JSON.parse(directIssueWhereJson) as Prisma.IssueWhereInput)
+        : null,
+      filteredIssueIds: parseFilteredIssueIds(filteredIssueIdsJson),
+    });
+  },
+  ["navigation-issues"],
+  { revalidate: 300, tags: [NAVIGATION_CACHE_TAG] }
+);
+
 export type InitialNavigationData = {
   initialPublisherNodes: Awaited<ReturnType<typeof readNavigationPublishers>>;
   initialSeriesNodesByPublisher?: Record<string, Awaited<ReturnType<typeof readNavigationSeries>>>;
@@ -257,11 +329,13 @@ export async function readInitialNavigationData(
     typeof input.query?.navPublisher === "string" ? input.query.navPublisher : "";
   const queryExpandedSeriesKey = typeof input.query?.navSeries === "string" ? input.query.navSeries : "";
 
-  const publishers = await readNavigationPublishers({
-    us: input.us,
-    directIssueWhere: navigationFilterState.directIssueWhere,
-    filteredIssueIds: navigationFilterState.filteredIssueIds,
-  });
+  const directIssueWhereJson = toJsonOrNull(navigationFilterState.directIssueWhere);
+  const filteredIssueIdsJson = toJsonOrNull(navigationFilterState.filteredIssueIds);
+  const publishers = await readNavigationPublishersCached(
+    input.us,
+    directIssueWhereJson,
+    filteredIssueIdsJson
+  );
 
   const publishersToExpand = new Set<string>();
   if (selectedPublisherName) publishersToExpand.add(selectedPublisherName);
@@ -272,12 +346,12 @@ export async function readInitialNavigationData(
   const initialSeriesEntries = await Promise.all(
     Array.from(publishersToExpand).map(async (publisherName) => [
       publisherName,
-      await readNavigationSeries({
-        us: input.us,
-        directIssueWhere: navigationFilterState.directIssueWhere,
-        filteredIssueIds: navigationFilterState.filteredIssueIds,
-        publisher: publisherName,
-      }),
+      await readNavigationSeriesCached(
+        input.us,
+        publisherName,
+        directIssueWhereJson,
+        filteredIssueIdsJson
+      ),
     ] as const)
   );
   for (const [publisherName, seriesNodes] of initialSeriesEntries) {
@@ -317,12 +391,12 @@ export async function readInitialNavigationData(
     if (publisher && title) {
       publishersToExpand.add(publisher);
       if (!initialSeriesNodesByPublisher[publisher]) {
-        initialSeriesNodesByPublisher[publisher] = await readNavigationSeries({
-          us: input.us,
-          directIssueWhere: navigationFilterState.directIssueWhere,
-          filteredIssueIds: navigationFilterState.filteredIssueIds,
+        initialSeriesNodesByPublisher[publisher] = await readNavigationSeriesCached(
+          input.us,
           publisher,
-        });
+          directIssueWhereJson,
+          filteredIssueIdsJson
+        );
       }
       seriesToExpand.set(queryExpandedSeriesKey, {
         publisher,
@@ -340,14 +414,14 @@ export async function readInitialNavigationData(
   const initialIssueEntries = await Promise.all(
     Array.from(seriesToExpand.entries()).map(async ([seriesKey, seriesInput]) => [
       seriesKey,
-      await readNavigationIssues({
-        us: input.us,
-        directIssueWhere: navigationFilterState.directIssueWhere,
-        filteredIssueIds: navigationFilterState.filteredIssueIds,
-        publisher: seriesInput.publisher,
-        series: seriesInput.series,
-        volume: seriesInput.volume,
-      }),
+      await readNavigationIssuesCached(
+        input.us,
+        seriesInput.publisher,
+        seriesInput.series,
+        seriesInput.volume,
+        directIssueWhereJson,
+        filteredIssueIdsJson
+      ),
     ] as const)
   );
   for (const [seriesKey, issueNodes] of initialIssueEntries) {

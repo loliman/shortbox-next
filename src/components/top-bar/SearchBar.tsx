@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Backdrop from "@mui/material/Backdrop";
@@ -11,6 +10,7 @@ import InputAdornment from "@mui/material/InputAdornment";
 import Typography from "@mui/material/Typography";
 import SearchIcon from "@mui/icons-material/Search";
 import { alpha } from "@mui/material/styles";
+import { usePendingNavigation } from "../generic/usePendingNavigation";
 
 type SearchNode = {
   type?: string | null;
@@ -33,7 +33,7 @@ interface SearchBarProps {
 }
 
 export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
-  const router = useRouter();
+  const { isPending: navigationPending, push } = usePendingNavigation();
   const [pattern, setPattern] = useState("");
   const [debouncedPattern, setDebouncedPattern] = useState("");
   const [focused, setFocused] = useState(false);
@@ -280,7 +280,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
 
           setPattern("");
           closeSearch(null);
-          router.push(value.url);
+          push(value.url);
         }}
         onClose={(_, reason) => {
           if (reason === "escape") closeSearch(null);
@@ -376,7 +376,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
               ...params.InputProps,
               endAdornment: (
                 <>
-                  {loading ? <CircularProgress color="inherit" size={18} /> : null}
+                  {loading || navigationPending ? <CircularProgress color="inherit" size={18} /> : null}
                   <InputAdornment position="end">
                     <SearchIcon sx={{ fontSize: 20, color: "text.secondary" }} />
                   </InputAdornment>

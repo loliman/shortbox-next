@@ -1,7 +1,9 @@
+import CardHeader from "@mui/material/CardHeader";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import HomeFeedClient from "./HomeFeedClient";
+import SortContainer from "./SortContainer";
 import type { PreviewIssue } from "./issue-preview/utils/issuePreviewUtils";
 import type { SessionData } from "../app/session";
 import type { LayoutRouteData, RouteQuery } from "../types/route-ui";
@@ -28,8 +30,23 @@ export default function Home(props: Readonly<HomeProps>) {
   return (
     <Stack spacing={3} sx={{ p: { xs: 1.5, sm: 2 } }}>
       <Box>
-        <Typography variant="h5">All-New, All-Different Shortbox</Typography>
-        <Typography color="text.secondary">Das deutsche Archiv für Marvel Comics</Typography>
+        <CardHeader
+          sx={{
+            px: 0,
+            py: 0,
+            "& .MuiCardHeader-content": {
+              minWidth: 0,
+            },
+            "& .MuiCardHeader-action": {
+              m: 0,
+              alignSelf: "center",
+              display: { xs: "none", md: "flex" },
+            },
+          }}
+          title="All-New, All-Different Shortbox"
+          subheader="Das deutsche Archiv für Marvel Comics"
+          action={<SortContainer query={props.query as any} selected={props.selected} us={props.us} />}
+        />
         <Typography
           component="p"
           sx={{

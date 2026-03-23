@@ -46,16 +46,18 @@ export default async function DeIssuePage({
   params: Promise<Record<string, string>>;
   searchParams?: Promise<Record<string, string | string[] | undefined> | undefined>;
 }>) {
-  const resolvedParams = await params;
-  const resolvedSearchParams = await searchParams;
+  const [resolvedParams, resolvedSearchParams, session] = await Promise.all([
+    params,
+    searchParams,
+    readServerSession(),
+  ]);
   const query = normalizePageQuery(resolvedSearchParams);
   const selected = buildSelectedRoot(resolvedParams, false);
   const level = buildHierarchyLevel(selected);
-  const session = await readServerSession();
   const selectedIssue = selected.issue;
-  const initialIssue =
+  const [initialIssue, navigationData] = await Promise.all([
     selectedIssue?.series?.publisher?.name && selectedIssue?.series?.title && selectedIssue?.number
-      ? await readIssueDetails({
+      ? readIssueDetails({
           us: false,
           publisher: selectedIssue.series.publisher.name,
           series: selectedIssue.series.title,
@@ -64,14 +66,15 @@ export default async function DeIssuePage({
           format: selectedIssue.format || undefined,
           variant: selectedIssue.variant || undefined,
         })
-      : null;
+      : Promise.resolve(null),
+    readInitialNavigationData({
+      us: false,
+      query,
+      selected,
+      loggedIn: Boolean(session?.loggedIn),
+    }),
+  ]);
   if (!initialIssue) notFound();
-  const navigationData = await readInitialNavigationData({
-    us: false,
-    query,
-    selected,
-    loggedIn: Boolean(session?.loggedIn),
-  });
   return (
     <CatalogPageShell
       selected={selected}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiWriteSession } from "@/src/lib/server/guards";
 import { createIssue, deleteIssueByLookup, editIssue } from "@/src/lib/server/issues-write";
+import { invalidateNavigationCache } from "@/src/lib/server/revalidate";
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,6 +10,7 @@ export async function POST(request: NextRequest) {
 
     const body = (await request.json()) as { item?: Record<string, unknown> };
     const item = await createIssue(body.item || {});
+    invalidateNavigationCache();
     return NextResponse.json({ item }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return NextResponse.json(
@@ -28,6 +30,7 @@ export async function PATCH(request: NextRequest) {
       item?: Record<string, unknown>;
     };
     const item = await editIssue(body.old || {}, body.item || {});
+    invalidateNavigationCache();
     return NextResponse.json({ item }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return NextResponse.json(
@@ -44,6 +47,7 @@ export async function DELETE(request: NextRequest) {
 
     const body = (await request.json()) as { item?: Record<string, unknown> };
     const success = await deleteIssueByLookup(body.item || {});
+    invalidateNavigationCache();
     return NextResponse.json({ success }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return NextResponse.json(

@@ -8,6 +8,7 @@ import ErrorFab from "../fab/ErrorFab";
 import { COMPACT_BOTTOM_BAR_CLEARANCE, getNavDrawerWidth } from "../layoutMetrics";
 import { getInitialResponsiveGuess } from "../../app/responsiveGuess";
 import { countChangeRequests } from "../../lib/read/issue-read";
+import { readServerSession } from "../../lib/server/session";
 import type { IssueNode, PublisherNode, SeriesNode } from "../nav-bar/listTreeUtils";
 import type { SessionData } from "../../app/session";
 import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
@@ -17,6 +18,7 @@ export interface CatalogPageShellProps {
   level: LayoutRouteData["level"];
   us: boolean;
   showNavigation?: boolean;
+  lockViewportHeight?: boolean;
   query?: RouteQuery | null;
   initialPublisherNodes?: PublisherNode[];
   initialSeriesNodesByPublisher?: Record<string, SeriesNode[]>;
@@ -25,34 +27,39 @@ export interface CatalogPageShellProps {
   session?: SessionData | null;
   initialFilterCount?: number | null;
   changeRequestsCount?: number;
+  navigationLoading?: boolean;
   children?: React.ReactNode;
 }
 
 export default async function CatalogPageShell(props: Readonly<CatalogPageShellProps>) {
   const showNavigation = props.showNavigation ?? true;
-  const resolvedChangeRequestsCount =
-    typeof props.changeRequestsCount === "number"
-      ? props.changeRequestsCount
-      : props.session?.canAdmin
-        ? await countChangeRequests().catch(() => 0)
-        : 0;
-  let initialNavOffset = "0px";
+  const lockViewportHeight = props.lockViewportHeight ?? true;
+  const sessionPromise =
+    props.session === undefined ? readServerSession() : Promise.resolve(props.session);
 
-  if (showNavigation) {
-    const headerStore = await headers();
-    const initialResponsiveGuess = getInitialResponsiveGuess(headerStore.get("user-agent"));
-    const initialTablet = !initialResponsiveGuess.isPhone && !initialResponsiveGuess.isDesktop;
-    const initialNavWide =
-      initialResponsiveGuess.isDesktop || (initialTablet && initialResponsiveGuess.isLandscape);
-    initialNavOffset = initialNavWide ? `${getNavDrawerWidth(false)}px` : "0px";
-  }
+  const [resolvedSession, resolvedChangeRequestsCount, initialNavOffset] = await Promise.all([
+    sessionPromise,
+    typeof props.changeRequestsCount === "number"
+      ? Promise.resolve(props.changeRequestsCount)
+      : sessionPromise.then((session) => (session?.canAdmin ? countChangeRequests().catch(() => 0) : 0)),
+    (async () => {
+      if (!showNavigation) return "0px";
+
+      const headerStore = await headers();
+      const initialResponsiveGuess = getInitialResponsiveGuess(headerStore.get("user-agent"));
+      const initialTablet = !initialResponsiveGuess.isPhone && !initialResponsiveGuess.isDesktop;
+      const initialNavWide =
+        initialResponsiveGuess.isDesktop || (initialTablet && initialResponsiveGuess.isLandscape);
+      return initialNavWide ? `${getNavDrawerWidth(false)}px` : "0px";
+    })(),
+  ]);
 
   return (
     <Box
       sx={{
         minHeight: "100dvh",
-        height: { xs: "auto", lg: "100dvh" },
-        overflow: { xs: "visible", lg: "hidden" },
+        height: lockViewportHeight ? { xs: "auto", lg: "100dvh" } : "auto",
+        overflow: lockViewportHeight ? { xs: "visible", lg: "hidden" } : "visible",
         display: "flex",
         flexDirection: "column",
         backgroundColor: "background.default",
@@ -67,14 +74,15 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
         initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher}
         initialIssueNodesBySeriesKey={props.initialIssueNodesBySeriesKey}
         drawerOpen={props.drawerOpen}
-        session={props.session}
+        session={resolvedSession}
         initialFilterCount={props.initialFilterCount}
         changeRequestsCount={resolvedChangeRequestsCount}
+        navigationLoading={props.navigationLoading}
       />
       {showNavigation
-        ? props.session?.canWrite ? (
+        ? resolvedSession?.canWrite ? (
             <AddFab
-              session={props.session}
+              session={resolvedSession}
               level={props.level}
               selected={props.selected}
               us={props.us}
@@ -90,7 +98,7 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
           display: "flex",
           flexGrow: 1,
           minHeight: 0,
-          overflow: { xs: "visible", lg: "hidden" },
+          overflow: lockViewportHeight ? { xs: "visible", lg: "hidden" } : "visible",
           backgroundColor: "background.default",
         }}
       >
@@ -100,7 +108,7 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
             flexGrow: 1,
             minWidth: 0,
             minHeight: 0,
-            overflow: { xs: "visible", lg: "hidden" },
+            overflow: lockViewportHeight ? { xs: "visible", lg: "hidden" } : "visible",
             backgroundColor: "background.default",
             px: { xs: 0, sm: 2 },
             pt: { xs: 0, sm: 2 },
@@ -121,7 +129,7 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
               flexGrow: 1,
               minWidth: 0,
               minHeight: 0,
-              overflow: { xs: "visible", lg: "hidden" },
+              overflow: lockViewportHeight ? { xs: "visible", lg: "hidden" } : "visible",
               backgroundColor: "background.paper",
             }}
           >
@@ -159,11 +167,11 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
                 sx={{
                   position: "relative",
                   zIndex: 1,
-                  display: "flex",
-                  flexDirection: "column",
-                  flex: 1,
-                  minHeight: 0,
-                  overflow: { xs: "visible", lg: "hidden" },
+                display: "flex",
+                flexDirection: "column",
+                flex: 1,
+                minHeight: 0,
+                overflow: lockViewportHeight ? { xs: "visible", lg: "hidden" } : "visible",
                 }}
               >
                 {props.children}

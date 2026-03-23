@@ -55,6 +55,10 @@ export function writeNavExpansionState(key: string, value: Record<string, boolea
   writeStorage(`expanded.${key}`, JSON.stringify(value));
 }
 
+export function hasNavExpansionState(key: string) {
+  return readStorage(`expanded.${key}`) !== null;
+}
+
 export function readNavScrollTop(key: string) {
   const raw = readStorage(`scroll.${key}`);
   const parsed = Number(raw || "0");

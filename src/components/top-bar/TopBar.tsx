@@ -4,9 +4,9 @@ import Toolbar from "@mui/material/Toolbar";
 import Switch from "@mui/material/Switch";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
+import CircularProgress from "@mui/material/CircularProgress";
 import React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { alpha, styled } from "@mui/material/styles";
 import IconButton from "@mui/material/IconButton";
 import ButtonBase from "@mui/material/ButtonBase";
@@ -22,6 +22,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { isMockMode } from "../../app/mockMode";
 import { mutationRequest } from "../../lib/client/mutation-request";
 import type { RouteQuery } from "../../types/route-ui";
+import { usePendingNavigation } from "../generic/usePendingNavigation";
 
 interface TopBarProps {
   toggleDrawer?: () => void;
@@ -106,7 +107,11 @@ const Android12Switch = styled(Switch)(({ theme }) => ({
 }));
 
 export default function TopBar(ownProps: TopBarProps) {
-  const router = useRouter();
+  const {
+    isPending: navigationPending,
+    push: pushNavigation,
+    refresh: refreshNavigation,
+  } = usePendingNavigation();
   const toggleDrawer = ownProps.toggleDrawer;
   const drawerOpen = ownProps.drawerOpen;
   const us = Boolean(ownProps.us);
@@ -126,7 +131,7 @@ export default function TopBar(ownProps: TopBarProps) {
   const onLogout = async () => {
     if (isMockMode) {
       ownProps.enqueueSnackbar?.("Auf Wiedersehen!", { variant: "success" });
-      router.refresh();
+      refreshNavigation();
       return;
     }
 
@@ -142,14 +147,14 @@ export default function TopBar(ownProps: TopBarProps) {
       }
 
       ownProps.enqueueSnackbar?.("Auf Wiedersehen!", { variant: "success" });
-      router.refresh();
+      refreshNavigation();
     } catch (error) {
       const message = error instanceof Error && error.message ? ` [${error.message}]` : "";
       ownProps.enqueueSnackbar?.("Logout fehlgeschlagen" + message, { variant: "error" });
     }
   };
 
-  const navigate = React.useCallback((href: string) => router.push(href), [router]);
+  const navigate = React.useCallback((href: string) => pushNavigation(href), [pushNavigation]);
 
   return (
     <AppBar
@@ -200,6 +205,7 @@ export default function TopBar(ownProps: TopBarProps) {
           initialFilterCount={ownProps.initialFilterCount}
           query={query}
           session={ownProps.session}
+          navigationPending={navigationPending}
         />
 
         {compactLayout ? null : (
@@ -211,6 +217,7 @@ export default function TopBar(ownProps: TopBarProps) {
             changeRequestsCount={changeRequestsCount}
             toggleTheme={ownProps.toggleTheme}
             onNavigate={navigate}
+            navigationPending={navigationPending}
             onLogout={onLogout}
             resetNavigationState={ownProps.resetNavigationState}
             SwitchComponent={Android12Switch as any}
@@ -239,6 +246,7 @@ export default function TopBar(ownProps: TopBarProps) {
           onOpenSearch={() => setMobileSearchOpen(true)}
           onToggleDrawer={showNavigation ? () => toggleDrawer?.() : undefined}
           onNavigate={navigate}
+          navigationPending={navigationPending}
           onLogout={onLogout}
           resetNavigationState={ownProps.resetNavigationState}
           SwitchComponent={Android12Switch as any}
@@ -322,6 +330,7 @@ function TopBarSearchCenter(props: {
   initialFilterCount?: number | null;
   query?: { filter?: string | null; order?: string | null; direction?: string | null } | null;
   session?: { loggedIn?: boolean } | null;
+  navigationPending?: boolean;
 }) {
   return (
     <Box
@@ -336,11 +345,23 @@ function TopBarSearchCenter(props: {
         gap: 0.5,
       }}
     >
-      <Box sx={{ minWidth: 0, flex: 1 }}>
+      <Box sx={{ minWidth: 0, flex: 1, position: "relative" }}>
         <SearchBar
           us={props.us}
           compactLayout={false}
         />
+        {props.navigationPending ? (
+          <CircularProgress
+            size={16}
+            sx={{
+              position: "absolute",
+              right: 14,
+              top: "50%",
+              transform: "translateY(-50%)",
+              zIndex: 1,
+            }}
+          />
+        ) : null}
       </Box>
       <TopBarFilterMenu
         us={props.us}

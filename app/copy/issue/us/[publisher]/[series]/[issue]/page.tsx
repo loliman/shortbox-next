@@ -13,27 +13,32 @@ export default async function UsIssueCopyPage({
   params: Promise<Record<string, string>>;
   searchParams?: Promise<Record<string, string | string[] | undefined> | undefined>;
 }>) {
-  const resolvedParams = await params;
-  const query = normalizePageQuery(await searchParams);
+  const [resolvedParams, resolvedSearchParams, session] = await Promise.all([
+    params,
+    searchParams,
+    requirePageWriteSession(),
+  ]);
+  const query = normalizePageQuery(resolvedSearchParams);
   const selected = buildSelectedRoot(resolvedParams, true);
   const level = buildHierarchyLevel(selected);
   const issue = selected.issue;
-  const session = await requirePageWriteSession();
-  const navigationData = await readInitialNavigationData({
-    us: true,
-    query,
-    selected,
-    loggedIn: Boolean(session?.loggedIn),
-  });
-  const initialIssue = await readIssueDetails({
-    us: true,
-    publisher: String(issue?.series?.publisher?.name || ""),
-    series: String(issue?.series?.title || ""),
-    volume: Number(issue?.series?.volume || 0),
-    number: String(issue?.number || ""),
-    format: issue?.format || undefined,
-    variant: issue?.variant || undefined,
-  });
+  const [navigationData, initialIssue] = await Promise.all([
+    readInitialNavigationData({
+      us: true,
+      query,
+      selected,
+      loggedIn: Boolean(session?.loggedIn),
+    }),
+    readIssueDetails({
+      us: true,
+      publisher: String(issue?.series?.publisher?.name || ""),
+      series: String(issue?.series?.title || ""),
+      volume: Number(issue?.series?.volume || 0),
+      number: String(issue?.number || ""),
+      format: issue?.format || undefined,
+      variant: issue?.variant || undefined,
+    }),
+  ]);
   if (!initialIssue) notFound();
 
   return (

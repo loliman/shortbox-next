@@ -1,16 +1,17 @@
 import React from "react";
-import { useRouter } from "next/navigation";
 import Tooltip from "@mui/material/Tooltip";
 import IconButton from "@mui/material/IconButton";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
 import Badge from "@mui/material/Badge";
 import Box from "@mui/material/Box";
+import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
 import { generateUrl } from "../../util/hierarchy";
 import type { SelectedRoot } from "../../types/domain";
 import { CONTRIBUTOR_FIELDS, TRANSLATOR_FIELD } from "../filter/constants";
 import { buildRouteHref } from "../generic/routeHref";
+import { usePendingNavigation } from "../generic/usePendingNavigation";
 
 type TopBarFilterMenuProps = {
   us: boolean;
@@ -22,7 +23,7 @@ type TopBarFilterMenuProps = {
 };
 
 export default function TopBarFilterMenu(props: Readonly<TopBarFilterMenuProps>) {
-  const router = useRouter();
+  const { isPending, push } = usePendingNavigation();
   const { us, selected, isFilterActive } = props;
   const tooltipTitle = React.useMemo(
     () => buildFilterTooltipTitle(Boolean(isFilterActive), props.query?.filter),
@@ -54,15 +55,18 @@ export default function TopBarFilterMenu(props: Readonly<TopBarFilterMenuProps>)
             <IconButton
               color={isFilterActive ? "secondary" : "inherit"}
               aria-label="Filter öffnen"
+              disabled={isPending}
               onClick={() => {
-                router.push(
+                push(
                   buildRouteHref(us ? "/filter/us" : "/filter/de", props.query, {
                     from: generateUrl(selected, us),
                   })
                 );
               }}
             >
-              {isFilterActive ? (
+              {isPending ? (
+                <CircularProgress size={18} color="inherit" />
+              ) : isFilterActive ? (
                 <FilterAltIcon sx={{ color: "common.white" }} />
               ) : (
                 <FilterAltOutlinedIcon />

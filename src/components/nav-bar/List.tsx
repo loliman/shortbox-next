@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import Collapse from "@mui/material/Collapse";
@@ -11,6 +11,7 @@ import type { SelectedRoot } from "../../types/domain";
 import {
   getSelectedPublisherName,
   getSelectedSeriesKey,
+  isElementVisibleInContainer,
   isSameEntityName,
   type IssueNode,
   type PublisherNode,
@@ -19,7 +20,10 @@ import {
 import NavDrawer from "./NavDrawer";
 import SeriesBranch from "./SeriesBranch";
 import { NestedEmptyRow, NestedRow } from "./NestedNavRow";
+import { TypeListEntryPlaceholder } from "./ListPlaceholders";
+import { usePendingNavigation } from "../generic/usePendingNavigation";
 import {
+  hasNavExpansionState,
   readNavExpansionState,
   readNavScrollTop,
   writeNavExpansionState,
@@ -38,18 +42,20 @@ interface ListProps {
   selected: SelectedRoot;
   session?: unknown;
   us?: boolean;
+  loading?: boolean;
   [key: string]: unknown;
 }
 
 export default function List(props: Readonly<ListProps>) {
-  const router = useRouter();
   const pathname = usePathname();
+  const { isPending, push } = usePendingNavigation();
   const { drawerOpen, toggleDrawer } = props;
   const temporaryDrawer = props.temporaryDrawer;
   const filterQuery = props.query?.filter ?? null;
   const queryExpandedPublisher = props.query?.navPublisher ?? null;
   const queryExpandedSeries = props.query?.navSeries ?? null;
   const us = Boolean(props.us);
+  const loading = Boolean(props.loading);
   const navStateKey = React.useMemo(() => `${us}|${filterQuery || ""}`, [us, filterQuery]);
   const phonePortrait = props.phonePortrait;
   const listRef = React.useRef<HTMLUListElement | null>(null);
@@ -70,8 +76,12 @@ export default function List(props: Readonly<ListProps>) {
   const [expandedPublishers, setExpandedPublishers] = React.useState<Record<string, boolean>>(
     {}
   );
+  const [hasStoredPublisherExpansion, setHasStoredPublisherExpansion] = React.useState(false);
+  const [pendingPublisherKey, setPendingPublisherKey] = React.useState<string | null>(null);
+  const [pendingNavigationKey, setPendingNavigationKey] = React.useState<string | null>(null);
 
   React.useEffect(() => {
+    setHasStoredPublisherExpansion(hasNavExpansionState(navStateKey));
     setExpandedPublishers(readNavExpansionState(navStateKey));
   }, [navStateKey]);
 
@@ -79,12 +89,18 @@ export default function List(props: Readonly<ListProps>) {
     writeNavExpansionState(navStateKey, expandedPublishers);
   }, [expandedPublishers, navStateKey]);
 
+  React.useEffect(() => {
+    if (isPending) return;
+    setPendingPublisherKey(null);
+    setPendingNavigationKey(null);
+  }, [isPending]);
+
   const publisherNodes = props.initialPublisherNodes || [];
   const visiblePublisherNodes = publisherNodes;
 
   React.useLayoutEffect(() => {
-    const container = navScrollContainerRef.current;
     const targetScrollTop = readNavScrollTop(navStateKey);
+    const container = navScrollContainerRef.current;
     if (container) container.scrollTop = targetScrollTop;
 
     const listElement = listRef.current;
@@ -108,6 +124,7 @@ export default function List(props: Readonly<ListProps>) {
   }, [selectedIssue?.number]);
 
   React.useEffect(() => {
+    if (hasStoredPublisherExpansion) return;
     if (!selectedPublisherName) return;
     const resolvedPublisherName =
       visiblePublisherNodes.find((publisherNode) =>
@@ -117,7 +134,7 @@ export default function List(props: Readonly<ListProps>) {
     setExpandedPublishers((prev) =>
       prev[resolvedPublisherName] ? prev : { ...prev, [resolvedPublisherName]: true }
     );
-  }, [selectedPublisherName, visiblePublisherNodes]);
+  }, [hasStoredPublisherExpansion, selectedPublisherName, visiblePublisherNodes]);
 
   React.useEffect(() => {
     if (!queryExpandedPublisher) return;
@@ -127,10 +144,33 @@ export default function List(props: Readonly<ListProps>) {
     );
   }, [queryExpandedPublisher]);
 
+  React.useEffect(() => {
+    if (!selectedPublisherName) return;
+
+    const container = navScrollContainerRef.current;
+    const listElement = listRef.current;
+    if (!container || !listElement) return;
+
+    const selectedRow = Array.from(
+      listElement.querySelectorAll<HTMLElement>("[data-nav-row-key]")
+    ).find((element) => isSameEntityName(element.dataset.navRowKey, selectedPublisherName));
+    if (!selectedRow) return;
+    if (isElementVisibleInContainer(selectedRow, container)) return;
+
+    selectedRow.scrollIntoView({
+      block: "center",
+      inline: "nearest",
+    });
+  }, [selectedPublisherName, expandedPublishers, visiblePublisherNodes.length]);
+
   const updateNavRoute = React.useCallback(
-    (nextQuery: { navPublisher?: string | null; navSeries?: string | null }) => {
+    (
+      nextQuery: { navPublisher?: string | null; navSeries?: string | null },
+      pendingKey?: string | null
+    ) => {
       storeScrollTop();
-      router.push(
+      setPendingPublisherKey(pendingKey ?? null);
+      push(
         buildRouteHref(currentPath, props.query, {
           filter: filterQuery,
           navPublisher: nextQuery.navPublisher ?? null,
@@ -138,23 +178,23 @@ export default function List(props: Readonly<ListProps>) {
         })
       );
     },
-    [storeScrollTop, router, currentPath, props.query, filterQuery]
+    [storeScrollTop, push, currentPath, props.query, filterQuery]
   );
 
   const pushSelection = React.useCallback(
     (_event: unknown, item: SelectedRoot, closeOnPhone = false) => {
       storeScrollTop();
-      suppressIssueAutoScrollRef.current = true;
       if (closeOnPhone && phonePortrait) toggleDrawer?.();
 
-      router.push(
+      setPendingNavigationKey(buildPendingNavigationKey(item));
+      push(
         buildRouteHref(generateUrl(item, us), props.query, {
           expand: null,
           filter: filterQuery,
         })
       );
     },
-    [storeScrollTop, phonePortrait, toggleDrawer, router, filterQuery, us, props.query]
+    [storeScrollTop, phonePortrait, toggleDrawer, push, filterQuery, us, props.query]
   );
 
   const handleTogglePublisher = React.useCallback(
@@ -163,7 +203,7 @@ export default function List(props: Readonly<ListProps>) {
       const hasServerData = Array.isArray(props.initialSeriesNodesByPublisher?.[publisherName]);
 
       if (!isExpanded && !hasServerData) {
-        updateNavRoute({ navPublisher: publisherName, navSeries: null });
+        updateNavRoute({ navPublisher: publisherName, navSeries: null }, `publisher:${publisherName}`);
         return;
       }
 
@@ -194,7 +234,13 @@ export default function List(props: Readonly<ListProps>) {
   );
 
   const content =
-    visiblePublisherNodes.length === 0 ? (
+    loading ? (
+      <>
+        {Array.from({ length: 20 }, (_unused, idx) => (
+          <TypeListEntryPlaceholder key={`nav-loading-placeholder-${idx}`} />
+        ))}
+      </>
+    ) : visiblePublisherNodes.length === 0 ? (
       <NestedEmptyRow depth={0} message="Keine Einträge vorhanden" />
     ) : (
       visiblePublisherNodes.map((publisherNode) => {
@@ -217,9 +263,15 @@ export default function List(props: Readonly<ListProps>) {
             <NestedRow
               rowKey={publisherName}
               depth={0}
+              navRowKey={publisherName}
               selected={selected}
               label={publisherName}
               expanded={expanded}
+              pending={
+                pendingPublisherKey === `publisher:${publisherName}` ||
+                pendingNavigationKey === publisherName
+              }
+              disabled={isPending}
               onToggle={handleTogglePublisher}
               onClick={handlePublisherClick}
             />
@@ -239,6 +291,9 @@ export default function List(props: Readonly<ListProps>) {
                 updateNavRoute={updateNavRoute}
                 navScrollContainerRef={navScrollContainerRef}
                 suppressAutoScrollRef={suppressIssueAutoScrollRef}
+                navigationPending={isPending}
+                pendingNavigationKey={pendingNavigationKey}
+                pendingPublisherKey={pendingPublisherKey}
               />
             </Collapse>
           </Box>
@@ -258,4 +313,31 @@ export default function List(props: Readonly<ListProps>) {
       {content}
     </NavDrawer>
   );
+}
+
+function buildPendingNavigationKey(item: SelectedRoot) {
+  if (item.issue) {
+    return [
+      item.issue.series.publisher.name,
+      item.issue.series.title,
+      item.issue.series.volume,
+      item.issue.number,
+      item.issue.format || "",
+      item.issue.variant || "",
+    ].join("|");
+  }
+
+  if (item.series) {
+    return [
+      item.series.publisher.name,
+      item.series.title,
+      item.series.volume,
+    ].join("|");
+  }
+
+  if (item.publisher) {
+    return item.publisher.name || "";
+  }
+
+  return "";
 }

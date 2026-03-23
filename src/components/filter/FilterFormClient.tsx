@@ -14,6 +14,7 @@ import type { FilterPageProps, FilterValues } from "./types";
 import { buildRouteHref } from "../generic/routeHref";
 import FormSection from "../form-shell/FormSection";
 import StickyActionBar from "../form-shell/StickyActionBar";
+import { usePendingNavigation } from "../generic/usePendingNavigation";
 
 type FilterFormClientProps = Pick<FilterPageProps, "us" | "query" | "selected" | "hasSession"> & {
   activeTab: number;
@@ -23,6 +24,7 @@ type FilterFormClientProps = Pick<FilterPageProps, "us" | "query" | "selected" |
 
 export default function FilterFormClient(props: Readonly<FilterFormClientProps>) {
   const router = useRouter();
+  const { isPending, push } = usePendingNavigation();
   const { us } = props;
   const query = props.query as { filter?: string; from?: string; tab?: string } | null | undefined;
 
@@ -34,7 +36,7 @@ export default function FilterFormClient(props: Readonly<FilterFormClientProps>)
         actions.setSubmitting(true);
 
         const payload = serializeFilterValues(values, us);
-        router.push(
+        push(
           buildRouteHref(props.targetPath || `/${us ? "us" : "de"}`, query, {
             filter: payload ? JSON.stringify(payload) : null,
             from: null,
@@ -71,9 +73,10 @@ export default function FilterFormClient(props: Readonly<FilterFormClientProps>)
 
             <StickyActionBar>
               <FormActions
-                isSubmitting={isSubmitting}
+                isSubmitting={isSubmitting || isPending}
                 onReset={() => resetForm({ values: createDefaultFilterValues() })}
                 onCancel={() => {
+                  if (isPending) return;
                   router.back();
                 }}
                 onSubmit={() => submitForm()}

@@ -1,16 +1,17 @@
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
 import { generateUrl } from "../../util/hierarchy";
 import type { SelectedRoot } from "../../types/domain";
 import { CONTRIBUTOR_FIELDS, TRANSLATOR_FIELD } from "./constants";
 import { buildRouteHref } from "../generic/routeHref";
+import { usePendingNavigation } from "../generic/usePendingNavigation";
 
 const MAX_CHIPS = 8;
 
@@ -22,7 +23,7 @@ type FilterSummaryBarProps = {
 };
 
 export default function FilterSummaryBar(props: Readonly<FilterSummaryBarProps>) {
-  const router = useRouter();
+  const { isPending, push } = usePendingNavigation();
   const us = Boolean(props.us);
   const filterLabels = React.useMemo(
     () => buildFilterLabels(props.query?.filter),
@@ -79,8 +80,9 @@ export default function FilterSummaryBar(props: Readonly<FilterSummaryBarProps>)
           <Button
             size="small"
             variant="outlined"
+            disabled={isPending}
             onClick={() =>
-              router.push(
+              push(
                 buildRouteHref(us ? "/filter/us" : "/filter/de", props.query, {
                   from: generateUrl((props.selected || { us }) as SelectedRoot, us),
                 })
@@ -92,17 +94,19 @@ export default function FilterSummaryBar(props: Readonly<FilterSummaryBarProps>)
           <Button
             size="small"
             variant="contained"
+            disabled={isPending}
             onClick={() => {
               const target = props.selected || { us };
               if (!props.selected) {
-                router.push(us ? "/us" : "/de");
+                push(us ? "/us" : "/de");
                 return;
               }
-              router.push(generateUrl(target, us));
+              push(generateUrl(target, us));
             }}
           >
             Zurücksetzen
           </Button>
+          {isPending ? <CircularProgress size={16} /> : null}
         </Stack>
       </Stack>
     </Box>

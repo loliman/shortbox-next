@@ -4,8 +4,10 @@ import Home from "@/src/components/Home";
 import { readHomeFeed } from "@/src/lib/read/home-read";
 import { parseFilter } from "@/src/components/nav-bar/listUtils";
 import type { PreviewIssue } from "@/src/components/issue-preview/utils/issuePreviewUtils";
-import { resolveAppPage } from "@/src/lib/routes/app-page";
+import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
 import { createHomeMetadata } from "@/src/lib/routes/metadata";
+import { buildHierarchyLevel, normalizePageQuery } from "@/src/lib/routes/page-state";
+import { readServerSession } from "@/src/lib/server/session";
 
 export const metadata: Metadata = createHomeMetadata(true);
 
@@ -14,42 +16,54 @@ export default async function UsHomePage({
 }: Readonly<{
   searchParams?: Promise<Record<string, string | string[] | undefined> | undefined>;
 }>) {
-  const page = await resolveAppPage({ us: true, searchParams, session: "optional" });
-  const filterQuery = typeof page.query?.filter === "string" ? page.query.filter : null;
-  const initialHomeData = await readHomeFeed({
-    us: true,
-    offset: 0,
-    limit: 50,
-    order: typeof page.query?.order === "string" ? page.query.order : null,
-    direction: typeof page.query?.direction === "string" ? page.query.direction : null,
-    filter: parseFilter(filterQuery),
-    loggedIn: Boolean(page.session?.loggedIn),
-  });
+  const [resolvedSearchParams, session] = await Promise.all([searchParams, readServerSession()]);
+  const query = normalizePageQuery(resolvedSearchParams);
+  const selected = { us: true };
+  const level = buildHierarchyLevel(selected);
+  const filterQuery = typeof query?.filter === "string" ? query.filter : null;
+  const [navigationData, initialHomeData] = await Promise.all([
+    readInitialNavigationData({
+      us: true,
+      query,
+      selected,
+      loggedIn: Boolean(session?.loggedIn),
+    }),
+    readHomeFeed({
+      us: true,
+      offset: 0,
+      limit: 50,
+      order: typeof query?.order === "string" ? query.order : null,
+      direction: typeof query?.direction === "string" ? query.direction : null,
+      filter: parseFilter(filterQuery),
+      loggedIn: Boolean(session?.loggedIn),
+    }),
+  ]);
   return (
     <CatalogPageShell
-      selected={page.selected}
-      level={page.level}
-      us={page.us}
-      query={page.query}
-      session={page.session}
-      initialFilterCount={page.navigationData?.initialFilterCount}
-      initialPublisherNodes={page.navigationData?.initialPublisherNodes}
-      initialSeriesNodesByPublisher={page.navigationData?.initialSeriesNodesByPublisher}
-      initialIssueNodesBySeriesKey={page.navigationData?.initialIssueNodesBySeriesKey}
+      selected={selected}
+      level={level}
+      us={true}
+      lockViewportHeight={false}
+      query={query}
+      session={session}
+      initialFilterCount={navigationData.initialFilterCount}
+      initialPublisherNodes={navigationData.initialPublisherNodes}
+      initialSeriesNodesByPublisher={navigationData.initialSeriesNodesByPublisher}
+      initialIssueNodesBySeriesKey={navigationData.initialIssueNodesBySeriesKey}
     >
       <Home
-        selected={page.selected}
-        level={page.level}
-        us={page.us}
-        query={page.query}
-        session={page.session}
-        initialFilterCount={page.navigationData?.initialFilterCount}
+        selected={selected}
+        level={level}
+        us={true}
+        query={query}
+        session={session}
+        initialFilterCount={navigationData.initialFilterCount}
         initialItems={initialHomeData.items.filter(Boolean) as PreviewIssue[]}
         initialHasMore={initialHomeData.hasMore}
         initialNextCursor={initialHomeData.nextCursor}
-        initialPublisherNodes={page.navigationData?.initialPublisherNodes}
-        initialSeriesNodesByPublisher={page.navigationData?.initialSeriesNodesByPublisher}
-        initialIssueNodesBySeriesKey={page.navigationData?.initialIssueNodesBySeriesKey}
+        initialPublisherNodes={navigationData.initialPublisherNodes}
+        initialSeriesNodesByPublisher={navigationData.initialSeriesNodesByPublisher}
+        initialIssueNodesBySeriesKey={navigationData.initialIssueNodesBySeriesKey}
       />
     </CatalogPageShell>
   );

@@ -210,6 +210,16 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
           },
         },
       },
+      individuals: {
+        include: {
+          individual: true,
+        },
+      },
+      appearances: {
+        include: {
+          appearance: true,
+        },
+      },
     },
   },
   individuals: {
@@ -561,5 +571,20 @@ function toIssueStoryReferenceShape(story: any) {
           number: serializeNullableIssueNumber(story.parent.number),
         }
       : null,
+    individuals: Array.isArray(story.individuals)
+      ? story.individuals.map((entry: any) => ({
+          id: serializeIssueId(entry.individual.id),
+          name: entry.individual.name || null,
+          type: entry.type || "",
+        }))
+      : [],
+    appearances: Array.isArray(story.appearances)
+      ? story.appearances.map((entry: any) => ({
+          id: serializeIssueId(entry.appearance.id),
+          name: entry.appearance.name || null,
+          type: entry.appearance.type || "",
+          role: entry.role || "",
+        }))
+      : [],
   };
 }

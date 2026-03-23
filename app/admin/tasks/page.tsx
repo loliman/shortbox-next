@@ -6,10 +6,12 @@ import { resolveWorkspacePage } from "@/src/lib/routes/app-page";
 import { requirePageAdminSession } from "@/src/lib/server/guards";
 
 export default async function AdminTasksPage() {
-  const session = await requirePageAdminSession();
-  const page = await resolveWorkspacePage({ us: false, session: "admin" });
-  const initialItems = await readAdminTasks(10);
-  const changeRequestsCount = await countChangeRequests().catch(() => 0);
+  const [session, page, initialItems, changeRequestsCount] = await Promise.all([
+    requirePageAdminSession(),
+    resolveWorkspacePage({ us: false, session: "admin" }),
+    readAdminTasks(10),
+    countChangeRequests().catch(() => 0),
+  ]);
 
   return (
     <WorkspacePageShell

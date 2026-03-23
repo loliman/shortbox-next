@@ -6,6 +6,7 @@ import Typography from "@mui/material/Typography";
 import Tooltip from "@mui/material/Tooltip";
 import IconButton from "@mui/material/IconButton";
 import Badge from "@mui/material/Badge";
+import CircularProgress from "@mui/material/CircularProgress";
 import BugReportIcon from "@mui/icons-material/BugReport";
 import BugReportOutlinedIcon from "@mui/icons-material/BugReportOutlined";
 import WatchLaterIcon from "@mui/icons-material/WatchLater";
@@ -27,7 +28,9 @@ type LocaleSwitchProps = {
     color?: "primary";
     inputProps?: Record<string, string>;
     onChange: () => void;
+    disabled?: boolean;
   }>;
+  pending?: boolean;
 };
 
 export function LocaleSwitch(props: Readonly<LocaleSwitchProps>) {
@@ -64,15 +67,30 @@ export function LocaleSwitch(props: Readonly<LocaleSwitchProps>) {
         DE
       </Typography>
       <Tooltip title={"Wechseln zu " + (props.us ? "Deutsch" : "US")}>
-        <props.SwitchComponent
-          checked={props.us}
-          color="primary"
-          inputProps={{ "aria-label": props.localeSwitchAriaLabel }}
-          onChange={() => {
-            props.resetNavigationState?.();
-            props.onNavigate(buildRouteHref(props.us ? "/de" : "/us", props.query, { filter: null }));
-          }}
-        />
+        <Box sx={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+          <props.SwitchComponent
+            checked={props.us}
+            color="primary"
+            disabled={props.pending}
+            inputProps={{ "aria-label": props.localeSwitchAriaLabel }}
+            onChange={() => {
+              props.resetNavigationState?.();
+              props.onNavigate(buildRouteHref(props.us ? "/de" : "/us", props.query, { filter: null }));
+            }}
+          />
+          {props.pending ? (
+            <CircularProgress
+              size={16}
+              sx={{
+                position: "absolute",
+                left: "50%",
+                top: "50%",
+                transform: "translate(-50%, -50%)",
+                pointerEvents: "none",
+              }}
+            />
+          ) : null}
+        </Box>
       </Tooltip>
       <Typography
         sx={{
@@ -179,6 +197,7 @@ type MobileBottomBarProps = {
   HamburgerIconComponent: React.ComponentType<{ open: boolean }>;
   drawerOpen?: boolean;
   showNavigation?: boolean;
+  navigationPending?: boolean;
   FilterButton: React.ComponentType<{
     us: boolean;
     selected: unknown;
@@ -244,15 +263,30 @@ export function MobileBottomBar(props: Readonly<MobileBottomBarProps>) {
           DE
         </Typography>
         <Tooltip title={"Wechseln zu " + (props.us ? "Deutsch" : "US")}>
-          <props.SwitchComponent
-            checked={props.us}
-            color="primary"
-            inputProps={{ "aria-label": props.localeSwitchAriaLabel }}
-            onChange={() => {
-              props.resetNavigationState?.();
-              props.onNavigate(buildRouteHref(props.us ? "/de" : "/us", props.query, { filter: null }));
-            }}
-          />
+          <Box sx={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+            <props.SwitchComponent
+              checked={props.us}
+              color="primary"
+              disabled={props.navigationPending}
+              inputProps={{ "aria-label": props.localeSwitchAriaLabel }}
+              onChange={() => {
+                props.resetNavigationState?.();
+                props.onNavigate(buildRouteHref(props.us ? "/de" : "/us", props.query, { filter: null }));
+              }}
+            />
+            {props.navigationPending ? (
+              <CircularProgress
+                size={16}
+                sx={{
+                  position: "absolute",
+                  left: "50%",
+                  top: "50%",
+                  transform: "translate(-50%, -50%)",
+                  pointerEvents: "none",
+                }}
+              />
+            ) : null}
+          </Box>
         </Tooltip>
         <Typography sx={{ fontSize: "0.74rem", fontWeight: 700, opacity: props.us ? 1 : 0.7 }}>
           US
@@ -273,6 +307,7 @@ type DesktopActionsProps = {
   onLogout: () => void;
   resetNavigationState?: () => void;
   SwitchComponent: LocaleSwitchProps["SwitchComponent"];
+  navigationPending?: boolean;
 };
 
 export function DesktopActions(props: Readonly<DesktopActionsProps>) {
@@ -300,6 +335,7 @@ export function DesktopActions(props: Readonly<DesktopActionsProps>) {
         resetNavigationState={props.resetNavigationState}
         onNavigate={props.onNavigate}
         SwitchComponent={props.SwitchComponent}
+        pending={props.navigationPending}
       />
       <ThemeToggleButton onClick={props.toggleTheme} />
     </Box>

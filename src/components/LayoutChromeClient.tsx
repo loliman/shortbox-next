@@ -25,6 +25,7 @@ interface LayoutChromeClientProps {
   session?: SessionData | null;
   initialFilterCount?: number | null;
   changeRequestsCount?: number;
+  navigationLoading?: boolean;
 }
 
 export default function LayoutChromeClient(props: Readonly<LayoutChromeClientProps>) {
@@ -94,6 +95,7 @@ export default function LayoutChromeClient(props: Readonly<LayoutChromeClientPro
           selected={props.selected}
           session={session}
           us={props.us}
+          loading={props.navigationLoading}
         />
       ) : null}
     </>

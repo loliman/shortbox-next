@@ -1,7 +1,11 @@
+"use client";
+
 import React from "react";
 import Box from "@mui/material/Box";
+import CardHeader from "@mui/material/CardHeader";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
+import { useSearchParams } from "next/navigation";
 import { IssuePreviewPlaceholder } from "../issue-preview/IssuePreview";
 import { IssuePreviewPlaceholderSmall } from "../issue-preview/IssuePreviewSmall";
 import { getListingView, type ListingQuery } from "../../util/listingQuery";
@@ -19,7 +23,19 @@ type HomeListingPlaceholderProps = {
 
 export function HomeListingPlaceholder(props: Readonly<HomeListingPlaceholderProps>) {
   const compactLayout = Boolean(props.compactLayout);
-  const listingView = getListingView(props.query as ListingQuery);
+  const searchParams = useSearchParams();
+  const effectiveQuery = React.useMemo<ListingQuery>(() => {
+    if (props.query) return props.query;
+
+    return {
+      filter: searchParams.get("filter"),
+      order: searchParams.get("order"),
+      direction: searchParams.get("direction"),
+      view: searchParams.get("view"),
+    };
+  }, [props.query, searchParams]);
+  const listingView = getListingView(effectiveQuery);
+  const hasFilter = Boolean(effectiveQuery?.filter);
   const galleryGridColumns = compactLayout
     ? "repeat(1, minmax(0, 1fr))"
     : {
@@ -37,9 +53,42 @@ export function HomeListingPlaceholder(props: Readonly<HomeListingPlaceholderPro
   return (
     <Stack spacing={2.5} sx={{ p: { xs: 1.5, sm: 2 } }}>
       <Box>
-        <Skeleton variant="text" width={240} height={34} />
-        <Skeleton variant="text" width={300} />
+        <CardHeader
+          sx={{
+            px: 0,
+            py: 0,
+            "& .MuiCardHeader-content": {
+              minWidth: 0,
+            },
+            "& .MuiCardHeader-action": {
+              m: 0,
+              alignSelf: "center",
+              display: { xs: "none", md: "flex" },
+            },
+          }}
+          title={<Skeleton variant="text" width={260} height={34} />}
+          subheader={<Skeleton variant="text" width={220} height={24} />}
+          action={<Skeleton variant="rounded" width={148} height={40} />}
+        />
       </Box>
+
+      {!compactLayout && hasFilter ? (
+        <Stack spacing={1.5} sx={{ width: "100%" }}>
+          <Box sx={{ display: "flex", justifyContent: "flex-end", width: "100%" }}>
+            <Skeleton variant="rounded" width={148} height={40} />
+          </Box>
+          <Skeleton variant="rounded" width="100%" height={44} />
+        </Stack>
+      ) : null}
+
+      {compactLayout ? (
+        <Stack spacing={1.5} sx={{ width: "100%" }}>
+          <Box sx={{ display: "flex", justifyContent: "stretch", width: "100%" }}>
+            <Skeleton variant="rounded" width="100%" height={40} />
+          </Box>
+          {hasFilter ? <Skeleton variant="rounded" width="100%" height={44} /> : null}
+        </Stack>
+      ) : null}
 
       {listingView === "gallery" ? (
         <Box sx={galleryGridSx}>

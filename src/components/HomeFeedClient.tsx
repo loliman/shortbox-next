@@ -164,27 +164,14 @@ export default function HomeFeedClient(props: Readonly<HomeFeedClientProps>) {
 
   return (
     <>
-      <Box
-        sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 1.5,
-        }}
-      >
-        <Box sx={{ minWidth: 0, flexGrow: 1 }} />
-        {!compactLayout ? (
-          <Box sx={{ display: "flex", justifyContent: "flex-end", flexGrow: 1 }}>
-            <ListingToolbar
-              query={query}
-              previewProps={previewProps as any}
-              compactLayout={compactLayout}
-              showSort
-            />
-          </Box>
-        ) : null}
-      </Box>
+      {!compactLayout && query?.filter ? (
+        <ListingToolbar
+          query={query}
+          previewProps={previewProps as any}
+          compactLayout={compactLayout}
+          showSort={false}
+        />
+      ) : null}
 
       {compactLayout ? (
         <ListingToolbar

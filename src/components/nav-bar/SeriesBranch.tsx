@@ -11,13 +11,14 @@ import {
   createSeriesLabel,
   doesSeriesNodeMatchIssueSeries,
   getSeriesKey,
+  isElementVisibleInContainer,
   isSeriesNodeSelected,
   type IssueNode,
   type PublisherNode,
   type SeriesNode,
   toSeriesSelected,
 } from "./listTreeUtils";
-import { readNavExpansionState, writeNavExpansionState } from "./navStateStorage";
+import { hasNavExpansionState, readNavExpansionState, writeNavExpansionState } from "./navStateStorage";
 
 type SeriesBranchProps = {
   us: boolean;
@@ -30,9 +31,15 @@ type SeriesBranchProps = {
   selectedIssue?: Issue;
   session?: unknown;
   pushSelection: (event: unknown, item: SelectedRoot, closeOnPhone?: boolean) => void;
-  updateNavRoute: (nextQuery: { navPublisher?: string | null; navSeries?: string | null }) => void;
+  updateNavRoute: (
+    nextQuery: { navPublisher?: string | null; navSeries?: string | null },
+    pendingKey?: string | null
+  ) => void;
   navScrollContainerRef: React.RefObject<HTMLDivElement | null>;
   suppressAutoScrollRef: React.MutableRefObject<boolean>;
+  navigationPending?: boolean;
+  pendingNavigationKey?: string | null;
+  pendingPublisherKey?: string | null;
 };
 
 const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBranchProps>) {
@@ -47,8 +54,10 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
   const [expandedSeries, setExpandedSeries] = React.useState<Record<string, boolean>>(
     {}
   );
+  const [hasStoredSeriesExpansion, setHasStoredSeriesExpansion] = React.useState(false);
 
   React.useEffect(() => {
+    setHasStoredSeriesExpansion(hasNavExpansionState(seriesStateKey));
     setExpandedSeries(readNavExpansionState(seriesStateKey));
   }, [seriesStateKey]);
 
@@ -66,14 +75,16 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
   }, [seriesNodes, us]);
 
   React.useEffect(() => {
+    if (hasStoredSeriesExpansion) return;
     if (!activeSeriesKey) return;
 
     setExpandedSeries((prev) =>
       prev[activeSeriesKey] ? prev : { ...prev, [activeSeriesKey]: true }
     );
-  }, [activeSeriesKey]);
+  }, [activeSeriesKey, hasStoredSeriesExpansion]);
 
   React.useEffect(() => {
+    if (hasStoredSeriesExpansion) return;
     if (!selectedIssue?.series) return;
     const matchingSeriesNode = seriesNodes.find((seriesNode) =>
       doesSeriesNodeMatchIssueSeries(seriesNode, selectedIssue?.series)
@@ -84,7 +95,7 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
     setExpandedSeries((prev) =>
       prev[matchingSeriesKey] ? prev : { ...prev, [matchingSeriesKey]: true }
     );
-  }, [selectedIssue, seriesNodes]);
+  }, [hasStoredSeriesExpansion, selectedIssue, seriesNodes]);
 
   React.useEffect(() => {
     if (!queryExpandedSeriesKey) return;
@@ -94,13 +105,34 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
     );
   }, [queryExpandedSeriesKey]);
 
+  React.useEffect(() => {
+    if (!activeSeriesKey) return;
+
+    const scrollContainer = props.navScrollContainerRef.current;
+    if (!scrollContainer) return;
+
+    const selectedRow = scrollContainer.querySelector<HTMLElement>(
+      `[data-nav-row-key="${CSS.escape(activeSeriesKey)}"]`
+    );
+    if (!selectedRow) return;
+    if (isElementVisibleInContainer(selectedRow, scrollContainer)) return;
+
+    selectedRow.scrollIntoView({
+      block: "center",
+      inline: "nearest",
+    });
+  }, [activeSeriesKey, expandedSeries, props.navScrollContainerRef, seriesNodes.length]);
+
   const handleToggleSeries = React.useCallback(
     (seriesKey: string) => {
       const isExpanded = Boolean(expandedSeries[seriesKey]);
       const hasServerData = Array.isArray(initialIssueNodesBySeriesKey?.[seriesKey]);
 
       if (!isExpanded && !hasServerData) {
-        updateNavRoute({ navPublisher: publisherName, navSeries: seriesKey });
+        updateNavRoute(
+          { navPublisher: publisherName, navSeries: seriesKey },
+          `series:${publisherName}:${seriesKey}`
+        );
         return;
       }
 
@@ -148,9 +180,15 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
             <NestedRow
               rowKey={seriesKey}
               depth={1}
+              navRowKey={seriesKey}
               label={createSeriesLabel(seriesNode)}
               selected={selected}
               expanded={expanded}
+              pending={
+                props.pendingPublisherKey === `series:${publisherName}:${seriesKey}` ||
+                props.pendingNavigationKey === [publisherName, seriesNode.title, seriesNode.volume].join("|")
+              }
+              disabled={props.navigationPending}
               onToggle={handleToggleSeries}
               onClick={handleSeriesClick}
             />
@@ -165,6 +203,8 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
                 pushSelection={pushSelection}
                 navScrollContainerRef={props.navScrollContainerRef}
                 suppressAutoScrollRef={props.suppressAutoScrollRef}
+                navigationPending={props.navigationPending}
+                pendingNavigationKey={props.pendingNavigationKey}
               />
             </Collapse>
           </Box>
