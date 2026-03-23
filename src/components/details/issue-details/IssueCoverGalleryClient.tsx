@@ -45,7 +45,7 @@ export function IssueCoverGalleryClient(props: Readonly<IssueCoverGalleryClientP
 
   return (
     <>
-      <Box sx={{ display: { xs: "none", lg: "block" }, width: "100%" }}>
+      <Box sx={{ display: { xs: "none", lg: "block" }, width: "72%", mx: "auto" }}>
         <IssueCoverGalleryFrame
           us={props.us}
           activeIssue={activeIssue}

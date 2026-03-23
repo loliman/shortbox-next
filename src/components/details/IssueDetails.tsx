@@ -85,7 +85,13 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
 
   const arcs = collectIssueArcs(issueForVariants, us);
   const coverGalleryIssues = buildCoverGalleryIssues(issueForVariants);
-  const coverAttribution = !us && issueForVariants.comicguideid ? (
+  const hasComicGuideAttribution =
+    !us &&
+    issueForVariants.comicguideid !== null &&
+    issueForVariants.comicguideid !== undefined &&
+    String(issueForVariants.comicguideid).trim() !== "" &&
+    String(issueForVariants.comicguideid) !== "0";
+  const coverAttribution = hasComicGuideAttribution ? (
     <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.82, textAlign: "left" }}>
       Das Cover für&nbsp;
       <a
@@ -134,41 +140,66 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
       &nbsp;. Die Informationen wurden aufbereitet und unter Umständen ergänzt.&nbsp;
     </Typography>
   ) : null;
+  const desktopColumnScrollSx = {
+    minWidth: 0,
+    minHeight: 0,
+    overflowY: "auto",
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+    pt: 0.5,
+    pb: 1,
+    scrollbarGutter: "stable",
+    maskImage:
+      "linear-gradient(to bottom, transparent 0, black 12px, black calc(100% - 20px), transparent 100%)",
+    WebkitMaskImage:
+      "linear-gradient(to bottom, transparent 0, black 12px, black calc(100% - 20px), transparent 100%)",
+  } as const;
 
   return (
-    <Box className="data-fade" key={loadedIssue.id || "issue-details"} sx={{ width: "100%", display: "flex", flexDirection: "column" }}>
-        <CardHeader
-          title={
-            <TitleLine
-              title={
-                <IssueReferenceInline
-                  seriesLabel={generateLabel({ series: loadedIssue.series } as any)}
-                  number={loadedIssue.number}
-                  legacy_number={loadedIssue.legacy_number}
-                />
-              }
-              id={loadedIssue.id ?? undefined}
-              session={props.session}
-            />
-          }
-          subheader={props.subheader ? generateIssueSubHeader(loadedIssue) : ""}
-          action={
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <EditButton session={props.session} item={loadedIssue} level={props.level} us={props.us} />
-            </Box>
-          }
-        />
+    <Box
+      className="data-fade"
+      key={loadedIssue.id || "issue-details"}
+      sx={{ width: "100%", display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}
+    >
+      <CardHeader
+        title={
+          <TitleLine
+            title={
+              <IssueReferenceInline
+                seriesLabel={generateLabel({ series: loadedIssue.series } as any)}
+                number={loadedIssue.number}
+                legacy_number={loadedIssue.legacy_number}
+              />
+            }
+            id={loadedIssue.id ?? undefined}
+            session={props.session}
+          />
+        }
+        subheader={props.subheader ? generateIssueSubHeader(loadedIssue) : ""}
+        action={
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <EditButton session={props.session} item={loadedIssue} level={props.level} us={props.us} />
+          </Box>
+        }
+      />
 
-        <CardContent sx={{ pt: 1 }}>
-          {arcs.length > 0 ? (
-            <Box sx={{ pb: 1.5, minWidth: 0, display: "flex", alignItems: "center", gap: 1, flexWrap: "nowrap", overflow: "hidden" }}>
-              <Box sx={{ minWidth: 0, overflow: "hidden" }}>
-                <StoryArcChips arcs={arcs} us={us} inline />
-              </Box>
-            </Box>
-          ) : null}
-
-          <Box sx={{ pb: 5 }}>
+      <CardContent
+        sx={{
+          pt: 1,
+          pb: 0.5,
+          "&:last-child": {
+            pb: 0.5,
+          },
+          display: "flex",
+          flexDirection: "column",
+          flex: 1,
+          minHeight: 0,
+          overflow: { xs: "visible", lg: "hidden" },
+        }}
+      >
+        <Box sx={{ display: { xs: "flex", lg: "none" }, flexDirection: "column", gap: 2 }}>
+          <Box sx={{ minWidth: 0 }}>
             <IssueVariants
               us={us}
               issue={issueForVariants as unknown as VariantIssue}
@@ -178,31 +209,117 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
             />
           </Box>
 
-          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "minmax(0, 1fr) clamp(320px, 36vw, 480px)" }, gap: 2, alignItems: "start", width: "100%" }}>
-            <Box sx={{ minWidth: 0, width: "100%", display: "flex", flexDirection: "column", gap: 2 }}>
-              <DetailsTable
-                issue={issueForVariants}
-                details={DetailsComponent}
+          {issueForVariants.addinfo && issueForVariants.addinfo !== "" ? (
+            <Paper variant="outlined" sx={{ p: 2 }}>
+              <Typography dangerouslySetInnerHTML={{ __html: sanitizeHtml(issueForVariants.addinfo) }} />
+            </Paper>
+          ) : null}
+
+          <Box sx={{ minWidth: 0 }}>
+            <IssueCoverGalleryClient
+              us={us}
+              issues={coverGalleryIssues}
+              activeFormat={selected.issue?.format ?? undefined}
+              activeVariant={selected.issue?.variant ?? undefined}
+              query={props.query}
+            />
+          </Box>
+
+          {arcs.length > 0 ? (
+            <Box
+              sx={{
+                minWidth: 0,
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                flexWrap: "nowrap",
+                overflow: "hidden",
+              }}
+            >
+              <Box sx={{ minWidth: 0, overflow: "hidden" }}>
+                <StoryArcChips arcs={arcs} us={us} inline />
+              </Box>
+            </Box>
+          ) : null}
+
+          <Box sx={{ minWidth: 0 }}>
+            <DetailsTable
+              issue={issueForVariants}
+              details={DetailsComponent}
+              query={props.query}
+              us={us}
+            />
+          </Box>
+
+          {BottomComponent ? (
+            <Box sx={{ minWidth: 0, width: "100%", mt: 0 }}>
+              <BottomComponent
                 query={props.query}
+                selected={issueForVariants}
+                issue={issueForVariants}
                 us={us}
+                session={props.session}
               />
+            </Box>
+          ) : null}
 
-              {BottomComponent ? (
-                <Box sx={{ minWidth: 0, width: "100%", mt: 0 }}>
-                  <BottomComponent
-                    query={props.query}
-                    selected={issueForVariants}
-                    issue={issueForVariants}
-                    us={us}
-                    session={props.session}
-                  />
-                </Box>
-              ) : null}
+          {coverAttribution ? <Box>{coverAttribution}</Box> : null}
+        </Box>
 
-              {coverAttribution ? <Box>{coverAttribution}</Box> : null}
+        <Box
+          sx={{
+            display: { xs: "none", lg: "grid" },
+            gridTemplateColumns: "minmax(0, 1fr) clamp(320px, 36vw, 480px)",
+            gap: 2,
+            alignItems: "stretch",
+            width: "100%",
+            flex: 1,
+            height: "100%",
+            minHeight: 0,
+          }}
+        >
+          <Box
+            sx={{
+              ...desktopColumnScrollSx,
+              pr: 0.5,
+            }}
+          >
+            <Box sx={{ minWidth: 0 }}>
+              <IssueVariants
+                us={us}
+                issue={issueForVariants as unknown as VariantIssue}
+                activeFormat={selected.issue?.format ?? undefined}
+                activeVariant={selected.issue?.variant ?? undefined}
+                session={props.session}
+              />
             </Box>
 
-            <Box sx={{ minWidth: 0, width: "100%", display: "flex", flexDirection: "column", gap: 2, gridColumn: { lg: "2 / 3" }, gridRow: { lg: "1 / span 2" } }}>
+            {issueForVariants.addinfo && issueForVariants.addinfo !== "" ? (
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography dangerouslySetInnerHTML={{ __html: sanitizeHtml(issueForVariants.addinfo) }} />
+              </Paper>
+            ) : null}
+
+            {BottomComponent ? (
+              <Box sx={{ minWidth: 0, width: "100%", mt: 0 }}>
+                <BottomComponent
+                  query={props.query}
+                  selected={issueForVariants}
+                  issue={issueForVariants}
+                  us={us}
+                  session={props.session}
+                />
+              </Box>
+            ) : null}
+          </Box>
+
+          <Box
+            sx={{
+              ...desktopColumnScrollSx,
+              pl: 0.5,
+            }}
+          >
+            <Box sx={{ minWidth: 0 }}>
               <IssueCoverGalleryClient
                 us={us}
                 issues={coverGalleryIssues}
@@ -211,15 +328,38 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
                 query={props.query}
               />
             </Box>
-          </Box>
 
-          {issueForVariants.addinfo && issueForVariants.addinfo !== "" ? (
-            <Paper variant="outlined" sx={{ mt: 2, p: 2 }}>
-              <Typography dangerouslySetInnerHTML={{ __html: sanitizeHtml(issueForVariants.addinfo) }} />
-            </Paper>
-          ) : null}
-        </CardContent>
-      </Box>
+            {arcs.length > 0 ? (
+              <Box
+                sx={{
+                  minWidth: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  flexWrap: "nowrap",
+                  overflow: "hidden",
+                }}
+              >
+                <Box sx={{ minWidth: 0, overflow: "hidden" }}>
+                  <StoryArcChips arcs={arcs} us={us} inline />
+                </Box>
+              </Box>
+            ) : null}
+
+            <Box sx={{ minWidth: 0 }}>
+              <DetailsTable
+                issue={issueForVariants}
+                details={DetailsComponent}
+                query={props.query}
+                us={us}
+              />
+            </Box>
+
+            {coverAttribution ? <Box>{coverAttribution}</Box> : null}
+          </Box>
+        </Box>
+      </CardContent>
+    </Box>
   );
 }
 

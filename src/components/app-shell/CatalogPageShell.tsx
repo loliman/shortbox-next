@@ -51,6 +51,8 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
     <Box
       sx={{
         minHeight: "100dvh",
+        height: { xs: "auto", lg: "100dvh" },
+        overflow: { xs: "visible", lg: "hidden" },
         display: "flex",
         flexDirection: "column",
         backgroundColor: "background.default",
@@ -84,13 +86,21 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
 
       <Box
         component="main"
-        sx={{ display: "flex", flexGrow: 1, minHeight: 0, backgroundColor: "background.default" }}
+        sx={{
+          display: "flex",
+          flexGrow: 1,
+          minHeight: 0,
+          overflow: { xs: "visible", lg: "hidden" },
+          backgroundColor: "background.default",
+        }}
       >
         <Box
           sx={{
             display: "flex",
             flexGrow: 1,
             minWidth: 0,
+            minHeight: 0,
+            overflow: { xs: "visible", lg: "hidden" },
             backgroundColor: "background.default",
             px: { xs: 0, sm: 2 },
             pt: { xs: 0, sm: 2 },
@@ -108,12 +118,23 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
               width: "100%",
               display: "flex",
               flexDirection: "column",
+              flexGrow: 1,
               minWidth: 0,
-              overflow: "visible",
+              minHeight: 0,
+              overflow: { xs: "visible", lg: "hidden" },
               backgroundColor: "background.paper",
             }}
           >
-            <Box sx={{ flexGrow: 1, p: { xs: 0, sm: 2 }, minHeight: 0, position: "relative" }}>
+            <Box
+              sx={{
+                flexGrow: 1,
+                p: { xs: 0, sm: 2 },
+                minHeight: 0,
+                position: "relative",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
               <Box
                 aria-hidden
                 sx={{
@@ -131,7 +152,18 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
                   zIndex: 0,
                 }}
               />
-              <Box className="main-content" sx={{ position: "relative", zIndex: 1 }}>
+              <Box
+                className="main-content"
+                sx={{
+                  position: "relative",
+                  zIndex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  flex: 1,
+                  minHeight: 0,
+                  overflow: { xs: "visible", lg: "hidden" },
+                }}
+              >
                 {props.children}
               </Box>
             </Box>

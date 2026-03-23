@@ -30,17 +30,27 @@ export function IssueCover(props: Readonly<IssueCoverProps>) {
       <ButtonBase
         onClick={() => setIsOpen(true)}
         aria-label={`${issueLabel} Cover vergrößern`}
-        sx={{
+        sx={(theme) => ({
           width: "100%",
           height: "100%",
           borderRadius: (theme) => `${Number(theme.shape.borderRadius) || 12}px`,
           overflow: "hidden",
-          bgcolor: (theme) => (theme.palette.mode === "dark" ? "#000000" : theme.palette.grey[300]),
-          border: (theme) => `1px solid ${theme.palette.divider}`,
-          boxShadow: 1,
+          backgroundColor: theme.vars?.palette.background.paper ?? theme.palette.background.paper,
+          backgroundImage:
+            "linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(244,246,248,0.9) 100%)",
+          border: `1px solid ${theme.vars?.palette.divider ?? theme.palette.divider}`,
+          boxShadow: theme.shadows[2],
           cursor: "zoom-in",
           display: "block",
-        }}
+          transition:
+            "background-color 180ms ease, background-image 180ms ease, border-color 180ms ease, box-shadow 180ms ease",
+          ...theme.applyStyles("dark", {
+            backgroundColor: "#0b0b0c",
+            backgroundImage:
+              "linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%)",
+            boxShadow: "0 10px 28px rgba(0,0,0,0.42)",
+          }),
+        })}
       >
         <CardMedia
           component="img"
@@ -65,6 +75,13 @@ export function IssueCover(props: Readonly<IssueCoverProps>) {
         onClose={() => setIsOpen(false)}
         maxWidth="md"
         slotProps={{
+          paper: {
+            sx: {
+              backgroundColor: "transparent",
+              backgroundImage: "none",
+              boxShadow: "none",
+            },
+          },
           backdrop: {
             sx: {
               backgroundColor: "rgba(0, 0, 0, 0.88)",
@@ -73,22 +90,40 @@ export function IssueCover(props: Readonly<IssueCoverProps>) {
         }}
       >
         <Box
-          component="img"
-          src={displayUrl}
-          alt={issueLabel}
-          onError={() => {
-            setDisplayUrl((prev) => (prev === fallbackUrl ? prev : fallbackUrl));
-          }}
-          sx={{
-            display: "block",
-            maxWidth: "min(90vw, 960px)",
-            maxHeight: "85vh",
-            width: "auto",
-            height: "auto",
-            objectFit: "contain",
-            bgcolor: (theme) => (theme.palette.mode === "dark" ? "#000000" : theme.palette.grey[200]),
-          }}
-        />
+          sx={(theme) => ({
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            p: 1,
+            borderRadius: (Number(theme.shape.borderRadius) || 12) + 2,
+            backgroundColor: theme.vars?.palette.background.paper ?? theme.palette.background.paper,
+            backgroundImage:
+              "linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(244,246,248,0.92) 100%)",
+            border: `1px solid ${theme.vars?.palette.divider ?? theme.palette.divider}`,
+            ...theme.applyStyles("dark", {
+              backgroundColor: "#0b0b0c",
+              backgroundImage:
+                "linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)",
+            }),
+          })}
+        >
+          <Box
+            component="img"
+            src={displayUrl}
+            alt={issueLabel}
+            onError={() => {
+              setDisplayUrl((prev) => (prev === fallbackUrl ? prev : fallbackUrl));
+            }}
+            sx={{
+              display: "block",
+              maxWidth: "min(90vw, 960px)",
+              maxHeight: "85vh",
+              width: "auto",
+              height: "auto",
+              objectFit: "contain",
+            }}
+          />
+        </Box>
       </Dialog>
     </React.Fragment>
   );
