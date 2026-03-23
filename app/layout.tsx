@@ -7,6 +7,8 @@ import AppProviders from "@/src/components/AppProviders";
 import { AppPageLoader } from "@/src/components/generic/loading";
 import { getInitialResponsiveGuess } from "@/src/app/responsiveGuess";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: {
     default: "Shortbox",
