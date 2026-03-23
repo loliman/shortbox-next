@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import AppPageShell from "@/src/components/app-shell/AppPageShell";
+import CatalogPageShell from "@/src/components/app-shell/CatalogPageShell";
 import SeriesDetails from "@/src/components/details/SeriesDetails";
 import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
 import { readSeriesDetails } from "@/src/lib/read/series-read";
@@ -69,7 +69,7 @@ export default async function DeSeriesPage({
     loggedIn: Boolean(session?.loggedIn),
   });
   return (
-    <AppPageShell
+    <CatalogPageShell
       selected={selected}
       level={level}
       us={false}
@@ -92,6 +92,6 @@ export default async function DeSeriesPage({
         initialSeriesNodesByPublisher={navigationData.initialSeriesNodesByPublisher}
         initialIssueNodesBySeriesKey={navigationData.initialIssueNodesBySeriesKey}
       />
-    </AppPageShell>
+    </CatalogPageShell>
   );
 }

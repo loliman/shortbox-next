@@ -12,7 +12,7 @@ describe("issuePreviewUtils", () => {
     expect(getIssueVariantLabel({ format: "HC", variant: "B" })).toBe("HC (B Variant)");
   });
 
-  it("chooses direct cover and otherwise returns empty preview cover", () => {
+  it("chooses direct cover, then comicguide cover, and otherwise returns empty preview cover", () => {
     expect(
       getIssuePreviewCover(
         {
@@ -22,6 +22,18 @@ describe("issuePreviewUtils", () => {
       )
     ).toEqual({
       coverUrl: "https://cdn/direct.jpg",
+      blurCover: false,
+    });
+
+    expect(
+      getIssuePreviewCover(
+        {
+          comicguideid: 12345,
+        },
+        false
+      )
+    ).toEqual({
+      coverUrl: "https://www.comicguide.de/pics/large/12345.jpg",
       blurCover: false,
     });
 

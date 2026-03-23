@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import AppPageShell from "@/src/components/app-shell/AppPageShell";
+import CatalogPageShell from "@/src/components/app-shell/CatalogPageShell";
 import IssueDetailsUS from "@/src/components/details/IssueDetailsUS";
 import { readIssueDetails } from "@/src/lib/read/issue-read";
 import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
@@ -73,7 +73,7 @@ export default async function UsIssuePage({
     loggedIn: Boolean(session?.loggedIn),
   });
   return (
-    <AppPageShell
+    <CatalogPageShell
       selected={selected}
       level={level}
       us={true}
@@ -96,6 +96,6 @@ export default async function UsIssuePage({
         initialSeriesNodesByPublisher={navigationData.initialSeriesNodesByPublisher}
         initialIssueNodesBySeriesKey={navigationData.initialIssueNodesBySeriesKey}
       />
-    </AppPageShell>
+    </CatalogPageShell>
   );
 }

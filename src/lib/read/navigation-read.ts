@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma/client";
 import type { LayoutRouteData } from "../../types/route-ui";
 import { resolveFilterState } from "./filter-read";
+import { compareIssueNumber, compareIssueVariants } from "./issue-read-shared";
 
 const NAV_PAGE_SIZE = 250;
 
@@ -162,7 +163,10 @@ export async function readNavigationIssues(
     grouped.set(key, current);
   }
 
-  return Array.from(grouped.values()).map((group) => {
+  return Array.from(grouped.entries())
+    .sort(([leftNumber], [rightNumber]) => compareIssueNumber(leftNumber, rightNumber))
+    .map(([, rawGroup]) => {
+    const group = [...rawGroup].sort(compareIssueVariants);
     const primary = group[0];
     const variants = group.map((variant) => ({
       id: String(variant.id),

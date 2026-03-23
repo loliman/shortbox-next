@@ -34,7 +34,7 @@ function TypedRoleAutocomplete({
   disabled,
 }: TypedRoleAutocompleteProps) {
   const selectedValues = sanitizeEntries(values);
-  const pattern = String(getPattern(selectedValues, "name") || "");
+  const pattern = String(getPattern(selectedValues, "name", type) || "");
 
   const queryResult = useAutocompleteQuery<FieldItem>({
     source,
@@ -48,7 +48,9 @@ function TypedRoleAutocomplete({
     debounceMs: DEBOUNCE_MS,
   });
 
-  const visibleValues = selectedValues.filter((entry) => hasTypedRole(entry, type));
+  const visibleValues = selectedValues.filter(
+    (entry) => !entry.pattern && hasTypedRole(entry, type)
+  );
   const noOptionsText = queryResult.isBelowMinLength
     ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
     : queryResult.error
@@ -74,7 +76,7 @@ function TypedRoleAutocomplete({
       }
       onInputChange={(_, value, reason) => {
         if (!isTextInputReason(reason)) return;
-        updateField(value, true, selectedValues, setFieldValue, field, "name");
+        updateField(value, true, selectedValues, setFieldValue, field, "name", type);
       }}
       onChange={(_, value, reason, details) => {
         const action = toTypedAction(reason);
@@ -125,6 +127,7 @@ function sanitizeEntries(values: FieldItem[] | undefined) {
 }
 
 function hasTypedRole(entry: FieldItem, type: string) {
+  if (entry.pattern) return false;
   if (Array.isArray(entry.type) && entry.type.includes(type)) return true;
   if (Array.isArray(entry.role) && entry.role.includes(type)) return true;
   return entry.type === type || entry.role === type;

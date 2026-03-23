@@ -390,19 +390,16 @@ function AdminTasksPage(props: Readonly<AdminTasksProps>) {
                   mb: isLast ? 0 : 1,
                   border: "1px solid",
                   borderColor: "divider",
-                  backgroundColor: (theme) =>
-                    theme.palette.mode === "dark" ? "#161b22" : "#ffffff",
+                  backgroundColor: "background.paper",
                   overflow: "hidden",
                   boxShadow: (theme) => theme.shadows[1],
                   transition: "box-shadow 180ms ease, transform 180ms ease, border-color 180ms ease",
                   "&:before": { display: "none" },
                   "& .MuiAccordionSummary-root": {
-                    backgroundColor: (theme) =>
-                      theme.palette.mode === "dark" ? "#161b22" : "#ffffff",
+                    backgroundColor: "background.paper",
                   },
                   "& .MuiAccordionDetails-root": {
-                    backgroundColor: (theme) =>
-                      theme.palette.mode === "dark" ? "#161b22" : "#ffffff",
+                    backgroundColor: "background.paper",
                   },
                 }}
               >
@@ -498,6 +495,7 @@ function AdminTasksPage(props: Readonly<AdminTasksProps>) {
                     >
                       <span>
                         <Button
+                          component="span"
                           size="small"
                           aria-label="Dry-Run starten"
                           color="primary"
@@ -518,6 +516,7 @@ function AdminTasksPage(props: Readonly<AdminTasksProps>) {
                     >
                       <span>
                         <Button
+                          component="span"
                           size="small"
                           aria-label="Live-Run starten"
                           color="primary"
@@ -560,18 +559,15 @@ function AdminTasksPage(props: Readonly<AdminTasksProps>) {
                             borderRadius: 1,
                             border: "1px solid",
                             borderColor: "divider",
-                            backgroundColor: (theme) =>
-                              theme.palette.mode === "dark" ? "#161b22" : "#ffffff",
+                            backgroundColor: "background.paper",
                             overflow: "hidden",
                             "&:before": { display: "none" },
                             "&.Mui-expanded": { margin: 0 },
                             "& .MuiAccordionSummary-root": {
-                              backgroundColor: (theme) =>
-                                theme.palette.mode === "dark" ? "#161b22" : "#ffffff",
+                              backgroundColor: "background.paper",
                             },
                             "& .MuiAccordionDetails-root": {
-                              backgroundColor: (theme) =>
-                                theme.palette.mode === "dark" ? "#161b22" : "#ffffff",
+                              backgroundColor: "background.paper",
                             },
                           }}
                         >

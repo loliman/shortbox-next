@@ -22,7 +22,7 @@ function StoryFieldsNonExclusive(props: StoryFieldsNonExclusiveProps) {
   const stories = values.stories || [];
   const item = stories[index] || {};
   const parent = (item.parent || {}) as {
-    issue?: { series?: { title?: string; volume?: number } };
+    issue?: { series?: { title?: string; volume?: number; startyear?: number } };
   };
   const parentIssue = parent.issue || {};
   const parentSeries = parentIssue.series || {};
@@ -45,7 +45,14 @@ function StoryFieldsNonExclusive(props: StoryFieldsNonExclusiveProps) {
         normalizeText(entry.title) === normalizeText(parentSeries.title) &&
         normalizeText(String(entry.volume || "")) ===
           normalizeText(String(parentSeries.volume || ""))
-    ) || (seriesPattern.trim().length > 0 ? seriesPattern : null);
+    ) ||
+    (seriesPattern.trim().length > 0
+      ? {
+          title: parentSeries.title,
+          volume: parentSeries.volume,
+          startyear: parentSeries.startyear,
+        }
+      : null);
 
   return (
     <Grid container spacing={2}>

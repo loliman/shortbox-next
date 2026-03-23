@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireApiAdminSession, requireApiWriteSession } from "@/src/lib/server/guards";
+import { requireApiAdminSession } from "@/src/lib/server/guards";
 import {
+  acceptChangeRequestById,
   createIssueChangeRequest,
   discardChangeRequestById,
 } from "@/src/lib/server/change-requests-write";
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireApiWriteSession();
-    if (auth.response) return auth.response;
-
     const body = (await request.json()) as {
       issue?: Record<string, unknown>;
       item?: Record<string, unknown>;
@@ -43,6 +41,25 @@ export async function DELETE(request: NextRequest) {
       {
         error:
           error instanceof Error ? error.message : "Change Request konnte nicht verworfen werden",
+      },
+      { status: 400 }
+    );
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const auth = await requireApiAdminSession();
+    if (auth.response) return auth.response;
+
+    const body = (await request.json()) as { id?: string | number };
+    const item = await acceptChangeRequestById(body.id);
+    return NextResponse.json({ item }, { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Change Request konnte nicht akzeptiert werden",
       },
       { status: 400 }
     );

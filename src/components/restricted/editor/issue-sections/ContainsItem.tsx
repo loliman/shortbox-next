@@ -9,8 +9,9 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import RemoveContainsButton from "./RemoveContainsButton";
 import type { ContainsProps, FieldItem } from "./types";
-import { generateLabel } from "../../../../util/hierarchy";
 import { IssueReferenceInline } from "../../../generic/IssueNumberInline";
+import { editorSurfaceSx } from "../editorLayout";
+import { getSeriesLabel } from "../../../../util/issuePresentation";
 
 interface ContainsItemProps extends ContainsProps {
   item: FieldItem;
@@ -63,28 +64,22 @@ class ContainsItem extends React.Component<ContainsItemProps> {
         data-story-card="true"
         data-story-index={this.props.index}
         onChange={() => this.props.onStoryToggle?.(this.props.index)}
-        sx={{
+        sx={(theme) => ({
+            ...editorSurfaceSx(theme),
             borderRadius,
             width: "auto",
             maxWidth: "100%",
             mb: isLast ? 0 : 1,
-            border: "1px solid",
-            borderColor: "divider",
-            backgroundColor: (theme) =>
-                theme.palette.mode === "dark" ? "#161b22" : "#ffffff",
             overflow: "hidden",
-            boxShadow: (theme) => theme.shadows[1],
             transition: "box-shadow 180ms ease, transform 180ms ease, border-color 180ms ease",
             "&:before": { display: "none" },
             "& .MuiAccordionSummary-root": {
-                backgroundColor: (theme) =>
-                    theme.palette.mode === "dark" ? "#161b22" : "#ffffff",
+                backgroundColor: "transparent",
             },
             "& .MuiAccordionDetails-root": {
-                backgroundColor: (theme) =>
-                    theme.palette.mode === "dark" ? "#161b22" : "#ffffff",
+                backgroundColor: "transparent",
             },
-        }}
+        })}
         onDragOver={(event) => {
           event.preventDefault();
           event.dataTransfer.dropEffect = "move";
@@ -127,6 +122,7 @@ class ContainsItem extends React.Component<ContainsItemProps> {
             >
               <Box sx={{ display: "flex", alignItems: "center", minWidth: 0, flexGrow: 1 }}>
                 <IconButton
+                  component="span"
                   size="small"
                   title="Reihenfolge ändern"
                   draggable
@@ -174,7 +170,7 @@ class ContainsItem extends React.Component<ContainsItemProps> {
                         }}
                     >
                         <IssueReferenceInline
-                            seriesLabel={generateLabel({ series: parent.issue?.series as any } as any)}
+                            seriesLabel={getSeriesLabel(parent.issue?.series as any)}
                             number={ parent.issue?.number}
                             legacy_number={parent.issue?.legacy_number}
                         />

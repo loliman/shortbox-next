@@ -43,8 +43,15 @@ export default function SeriesDetails(props: Readonly<SeriesDetailsProps>) {
   const endYearLabel =
     details && (details.active || details.endyear === 0) ? "heute" : details?.endyear;
   const genreLabel = String(details?.genre || "").trim();
+  const startYearLabel = details?.startyear;
+  const yearLabel =
+    startYearLabel && endYearLabel && String(startYearLabel) === String(endYearLabel)
+      ? String(startYearLabel)
+      : startYearLabel && endYearLabel
+        ? `${startYearLabel}-${endYearLabel}`
+        : String(startYearLabel || endYearLabel || "");
   const subheaderLabel = details
-    ? `${details.startyear}-${endYearLabel}${genreLabel ? ` | ${genreLabel}` : ""}`
+    ? `${yearLabel}${genreLabel ? ` | ${genreLabel}` : ""}`
     : undefined;
   const previewProps = {
     us,

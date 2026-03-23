@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import AppPageShell from "@/src/components/app-shell/AppPageShell";
+import WorkspacePageShell from "@/src/components/app-shell/WorkspacePageShell";
 import PublisherEdit from "@/src/components/restricted/edit/PublisherEdit";
 import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
 import { readPublisherEditData } from "@/src/lib/read/publisher-read";
@@ -31,15 +31,12 @@ export default async function DePublisherEditPage({
   if (!initialPublisher) notFound();
 
   return (
-    <AppPageShell
+    <WorkspacePageShell
       selected={selected}
       level={level}
       us={false}
       query={query}
       session={session}
-      initialFilterCount={navigationData.initialFilterCount}
-      initialPublisherNodes={navigationData.initialPublisherNodes}
-      initialSeriesNodesByPublisher={navigationData.initialSeriesNodesByPublisher}
     >
       <PublisherEdit
         selected={selected}
@@ -52,6 +49,6 @@ export default async function DePublisherEditPage({
         initialSeriesNodesByPublisher={navigationData.initialSeriesNodesByPublisher}
         session={session}
       />
-    </AppPageShell>
+    </WorkspacePageShell>
   );
 }

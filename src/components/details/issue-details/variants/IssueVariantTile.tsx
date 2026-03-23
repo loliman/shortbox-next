@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
 import ImageListItemBar from "@mui/material/ImageListItemBar";
@@ -7,6 +9,7 @@ import ButtonBase from "@mui/material/ButtonBase";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
 import { getIssueUrl } from "../../../../util/issuePresentation";
 import type { VariantIssue } from "./types";
+import { getPreferredCoverUrl } from "../../../generic/coverUrl";
 
 type IssueVariantTileProps = {
   issue: VariantIssue;
@@ -28,13 +31,21 @@ export function IssueVariantTile(props: Readonly<IssueVariantTileProps>) {
     (props.issue.format === props.variant.format && props.issue.variant === props.variant.variant);
   const showBookmark = Boolean(props.session) && Boolean(props.hasStories);
   const showCollected = Boolean(props.session) && Boolean(props.variant.collected);
-  const showVerified = Boolean(props.variant.verified);
   const variantLabel =
     (props.variant.format || "") +
     " (" +
     (props.variant.variant ? props.variant.variant + " Variant" : "Reguläre Ausgabe") +
     ")";
-  const issueUrl = getIssueUrl(props.variant, props.us);
+  const issueUrl = getIssueUrl(
+    {
+      ...props.issue,
+      ...props.variant,
+      number: props.variant.number ?? props.issue.number,
+      legacy_number: props.variant.legacy_number ?? props.issue.legacy_number,
+      series: props.variant.series ?? props.issue.series,
+    },
+    props.us
+  );
 
   React.useEffect(() => {
     setDisplayUrl(coverUrl);
@@ -59,7 +70,7 @@ export function IssueVariantTile(props: Readonly<IssueVariantTileProps>) {
         boxShadow: selected ? "inset 0 0 0 2px rgba(255,255,255,0.92)" : 1,
       }}
     >
-      {showCollected || showVerified || showBookmark ? (
+      {showCollected || showBookmark ? (
         <Box
           sx={{
             position: "absolute",
@@ -76,16 +87,16 @@ export function IssueVariantTile(props: Readonly<IssueVariantTileProps>) {
           {showCollected ? (
             <Chip size="small" label="Gesammelt" color="success" />
           ) : null}
-          {showVerified ? (
-            <Chip size="small" label="Verifiziert" color="info" />
-          ) : null}
           {showBookmark ? (
             <Box component="span" sx={statusChipSx} title="Eigene Stories" aria-label="Eigene Stories">
               <BookmarkIcon
                 sx={(theme) => ({
                   ...outlinedStatusIconSx,
                   fontSize: 18,
-                  color: theme.palette.mode === "dark" ? "common.white" : "text.primary",
+                  color: "text.primary",
+                  ...theme.applyStyles("dark", {
+                    color: "common.white",
+                  }),
                 })}
               />
             </Box>
@@ -157,22 +168,24 @@ const outlinedStatusIconSx = {
   },
 } as const;
 
-const statusChipSx = (theme: { palette: { mode: string } }) => ({
+const statusChipSx = (theme: any) => ({
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   width: 28,
   height: 28,
   borderRadius: "50%",
-  bgcolor: theme.palette.mode === "dark" ? "rgba(0,0,0,0.58)" : "rgba(255,255,255,0.84)",
-  border: `1px solid ${
-    theme.palette.mode === "dark" ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.24)"
-  }`,
+  bgcolor: "rgba(255,255,255,0.84)",
+  border: "1px solid rgba(0,0,0,0.24)",
+  ...theme.applyStyles("dark", {
+    bgcolor: "rgba(0,0,0,0.58)",
+    border: "1px solid rgba(255,255,255,0.28)",
+  }),
 });
 
 function getVariantCoverSource(variant: VariantIssue): { coverUrl: string; blurCover: boolean } {
-  const directCover = variant.cover?.url?.trim();
-  if (directCover) return { coverUrl: directCover, blurCover: false };
+  const coverUrl = getPreferredCoverUrl(variant);
+  if (coverUrl) return { coverUrl, blurCover: false };
 
   return { coverUrl: "/nocover_simple.png", blurCover: false };
 }

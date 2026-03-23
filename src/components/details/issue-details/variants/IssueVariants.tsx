@@ -18,6 +18,7 @@ import BookmarkIcon from "@mui/icons-material/Bookmark";
 import { getVariantKey } from "../utils/issueDetailsUtils";
 import { IssueVariantTile } from "./IssueVariantTile";
 import { useResolvedImageUrl } from "../../../generic/useResolvedImageUrl";
+import { getPreferredCoverUrl } from "../../../generic/coverUrl";
 import type { VariantIssue } from "./types";
 
 type IssueVariantsProps = {
@@ -30,6 +31,12 @@ type IssueVariantsProps = {
 
 const NO_COVER_URL = "/nocover.png";
 const JUMP_BUTTON_HIDE_DELAY_MS = 140;
+const FORMAT_SORT_RANKS: Array<{ rank: number; aliases: string[] }> = [
+  { rank: 0, aliases: ["heft"] },
+  { rank: 1, aliases: ["sc", "softcover"] },
+  { rank: 2, aliases: ["hc", "hardcover"] },
+  { rank: 3, aliases: ["tb", "taschenbuch"] },
+];
 const outlinedStatusIconSx = {
   fontSize: 20,
   "& path": {
@@ -38,17 +45,19 @@ const outlinedStatusIconSx = {
     paintOrder: "stroke fill",
   },
 } as const;
-const statusChipSx = (theme: { palette: { mode: string } }) => ({
+const statusChipSx = (theme: any) => ({
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   width: 28,
   height: 28,
   borderRadius: "50%",
-  bgcolor: theme.palette.mode === "dark" ? "rgba(0,0,0,0.58)" : "rgba(255,255,255,0.84)",
-  border: `1px solid ${
-    theme.palette.mode === "dark" ? "rgba(255,255,255,0.28)" : "rgba(0,0,0,0.24)"
-  }`,
+  bgcolor: "rgba(255,255,255,0.84)",
+  border: "1px solid rgba(0,0,0,0.24)",
+  ...theme.applyStyles("dark", {
+    bgcolor: "rgba(0,0,0,0.58)",
+    border: "1px solid rgba(255,255,255,0.28)",
+  }),
 });
 
 export function IssueVariants(props: Readonly<IssueVariantsProps>) {
@@ -64,10 +73,7 @@ export function IssueVariants(props: Readonly<IssueVariantsProps>) {
   const variantsRaw = (props.issue.variants || []).filter((variant): variant is VariantIssue =>
     Boolean(variant)
   );
-  const variants = [
-    ...variantsRaw.filter((variant) => Boolean(variant.collected)),
-    ...variantsRaw.filter((variant) => !variant.collected),
-  ];
+  const variants = [...variantsRaw].sort(compareVariants);
   const activeKey = getIssueKey({
     format: props.activeFormat ?? props.issue.format,
     variant: props.activeVariant ?? props.issue.variant,
@@ -188,21 +194,21 @@ export function IssueVariants(props: Readonly<IssueVariantsProps>) {
       }}
       sx={(theme) => ({
         position: "relative",
-        backgroundColor:
-          theme.palette.mode === "dark" ? "rgba(9,11,15,0.6)" : "rgba(255,255,255,0.52)",
-        border: `1px solid ${theme.palette.divider}`,
+        backgroundColor: "rgba(255,255,255,0.52)",
+        border: `1px solid ${theme.vars?.palette.divider ?? theme.palette.divider}`,
         borderRadius: 1.5,
         overflow: "hidden",
         boxShadow: theme.shadows[2],
+        ...theme.applyStyles("dark", {
+          backgroundColor: "rgba(9,11,15,0.6)",
+        }),
         "&::after": isActiveCoverLoading
           ? {
               content: '""',
               position: "absolute",
               inset: 0,
               backgroundImage:
-                theme.palette.mode === "dark"
-                  ? "linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), linear-gradient(110deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.04) 75%)"
-                  : "linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)), linear-gradient(110deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.14) 50%, rgba(0, 0, 0, 0.04) 75%)",
+                "linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)), linear-gradient(110deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.14) 50%, rgba(0, 0, 0, 0.04) 75%)",
               backgroundSize: "100% 100%, 220% 100%",
               backgroundPosition: "0 0, 200% 0",
               backgroundRepeat: "no-repeat, no-repeat",
@@ -210,6 +216,10 @@ export function IssueVariants(props: Readonly<IssueVariantsProps>) {
               transform: "scale(1.03)",
               zIndex: 0,
               animation: "variantCoverShimmer 1.4s ease-in-out infinite",
+              ...theme.applyStyles("dark", {
+                backgroundImage:
+                  "linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), linear-gradient(110deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.04) 75%)",
+              }),
             }
           : activeCoverUrl
             ? {
@@ -217,16 +227,17 @@ export function IssueVariants(props: Readonly<IssueVariantsProps>) {
               position: "absolute",
               inset: 0,
               backgroundImage:
-                (theme.palette.mode === "dark"
-                  ? `linear-gradient(to right, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.58) 40%, rgba(0, 0, 0, 0.08) 100%), `
-                  : `linear-gradient(to right, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.62) 40%, rgba(255, 255, 255, 0) 100%), `) +
-                `url("${activeCoverUrl}")`,
+                `linear-gradient(to right, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.62) 40%, rgba(255, 255, 255, 0) 100%), url("${activeCoverUrl}")`,
               backgroundSize: "cover",
               backgroundPosition: "center",
               backgroundRepeat: "no-repeat",
               opacity: 0.7,
               transform: "scale(1.03)",
               zIndex: 0,
+              ...theme.applyStyles("dark", {
+                backgroundImage:
+                  `linear-gradient(to right, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.58) 40%, rgba(0, 0, 0, 0.08) 100%), url("${activeCoverUrl}")`,
+              }),
             }
             : undefined,
         "@keyframes variantCoverShimmer": {
@@ -262,9 +273,6 @@ export function IssueVariants(props: Readonly<IssueVariantsProps>) {
             {props.issue.collected && props.session ? (
               <Chip size="small" label="Gesammelt" color="success" />
             ) : null}
-            {props.issue.verified ? (
-              <Chip size="small" label="Verifiziert" color="info" />
-            ) : null}
             {activeVariantHasOwnStories ? (
               <Box component="span" sx={statusChipSx}>
                 <BookmarkIcon
@@ -272,7 +280,10 @@ export function IssueVariants(props: Readonly<IssueVariantsProps>) {
                   sx={(theme) => ({
                     ...outlinedStatusIconSx,
                     fontSize: 18,
-                    color: theme.palette.mode === "dark" ? "common.white" : "text.primary",
+                    color: "text.primary",
+                    ...theme.applyStyles("dark", {
+                      color: "common.white",
+                    }),
                   })}
                 />
               </Box>
@@ -442,10 +453,42 @@ function getIssueKey(issue: VariantIssue): string {
   return [String(issue.format || "").trim(), String(issue.variant || "").trim()].join("|");
 }
 
+function compareVariants(left: VariantIssue, right: VariantIssue): number {
+  const formatCompare = getFormatSortRank(left.format) - getFormatSortRank(right.format);
+  if (formatCompare !== 0) return formatCompare;
+
+  const variantCompare = normalizeSortText(left.variant).localeCompare(normalizeSortText(right.variant), undefined, {
+    sensitivity: "base",
+    numeric: true,
+  });
+  if (variantCompare !== 0) return variantCompare;
+
+  return normalizeSortText(left.format).localeCompare(normalizeSortText(right.format), undefined, {
+    sensitivity: "base",
+    numeric: true,
+  });
+}
+
+function getFormatSortRank(format: string | null | undefined): number {
+  const normalized = normalizeFormatAlias(format);
+  const matched = FORMAT_SORT_RANKS.find((entry) => entry.aliases.includes(normalized));
+  return matched?.rank ?? 99;
+}
+
+function normalizeFormatAlias(value: string | null | undefined): string {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+function normalizeSortText(value: string | null | undefined): string {
+  return String(value || "").trim();
+}
+
 function getVariantCoverUrl(variant: VariantIssue | null | undefined, us: boolean): string {
-  const direct = variant?.cover?.url?.trim();
-  const hasComicGuide = Boolean(variant?.comicguideid);
-  if (direct && direct !== "" && (us || hasComicGuide)) return direct;
+  void us;
+  const coverUrl = variant ? getPreferredCoverUrl(variant) : "";
+  if (coverUrl) return coverUrl;
   return NO_COVER_URL;
 }
 

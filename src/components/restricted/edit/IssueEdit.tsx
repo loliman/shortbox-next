@@ -1,13 +1,15 @@
 "use client";
 
 import React from "react";
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import QueryResult from "../../generic/QueryResult";
 import IssueEditor from "../editor/IssueEditor";
 import { mapIssueToEditorDefaultValues } from "../editor/issue-editor/defaultValues";
 import { EditorPagePlaceholder } from "../../placeholders/EditorPagePlaceholder";
 import { useSnackbarBridge } from "../../generic/useSnackbarBridge";
 import type { SessionData } from "../../../app/session";
-import { useResponsive } from "../../../app/useResponsive";
+import { useInitialResponsiveGuess } from "../../../app/responsiveGuessContext";
 import type { LayoutRouteData, RouteQuery } from "../../../types/route-ui";
 import type { SelectedRoot } from "../../../types/domain";
 
@@ -29,7 +31,11 @@ type IssueEditRecord = Record<string, unknown> & {
 };
 
 function IssueEdit(props: Readonly<IssueEditProps>) {
-  const responsive = useResponsive();
+  const theme = useTheme();
+  const initialGuess = useInitialResponsiveGuess();
+  const isDesktop = useMediaQuery(theme.breakpoints.up("lg"), {
+    defaultMatches: initialGuess?.isDesktop ?? true,
+  });
   const snackbarBridge = useSnackbarBridge();
   const selected = props.selected;
   const loading = false;
@@ -51,14 +57,21 @@ function IssueEdit(props: Readonly<IssueEditProps>) {
         );
 
       const defaultValues = mapIssueToEditorDefaultValues(issueDetails as any, false);
+      const lockedFields = issueDetails.inheritsStories
+        ? {
+            title: true,
+            stories: true,
+          }
+        : undefined;
 
       return (
         <IssueEditor
           id={issueDetails.id ?? undefined}
           edit
           defaultValues={defaultValues}
+          lockedFields={lockedFields}
           session={props.session}
-          isDesktop={responsive.isDesktop}
+          isDesktop={isDesktop}
           selected={selected}
           enqueueSnackbar={snackbarBridge.enqueueSnackbar}
         />

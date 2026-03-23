@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import AppPageShell from "@/src/components/app-shell/AppPageShell";
+import WorkspacePageShell from "@/src/components/app-shell/WorkspacePageShell";
 import IssueEdit from "@/src/components/restricted/edit/IssueEdit";
 import { readIssueDetails } from "@/src/lib/read/issue-read";
 import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
@@ -37,16 +37,12 @@ export default async function UsIssueVariantEditPage({
   if (!initialIssue) notFound();
 
   return (
-    <AppPageShell
+    <WorkspacePageShell
       selected={selected}
       level={level}
       us={true}
       query={query}
       session={session}
-      initialFilterCount={navigationData.initialFilterCount}
-      initialPublisherNodes={navigationData.initialPublisherNodes}
-      initialSeriesNodesByPublisher={navigationData.initialSeriesNodesByPublisher}
-      initialIssueNodesBySeriesKey={navigationData.initialIssueNodesBySeriesKey}
     >
       <IssueEdit
         selected={selected}
@@ -60,6 +56,6 @@ export default async function UsIssueVariantEditPage({
         initialIssueNodesBySeriesKey={navigationData.initialIssueNodesBySeriesKey}
         session={session}
       />
-    </AppPageShell>
+    </WorkspacePageShell>
   );
 }

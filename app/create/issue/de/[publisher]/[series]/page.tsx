@@ -1,4 +1,4 @@
-import AppPageShell from "@/src/components/app-shell/AppPageShell";
+import WorkspacePageShell from "@/src/components/app-shell/WorkspacePageShell";
 import IssueCreate from "@/src/components/restricted/create/IssueCreate";
 import { buildHierarchyLevel, buildSelectedRoot, normalizePageQuery } from "@/src/lib/routes/page-state";
 import { requirePageWriteSession } from "@/src/lib/server/guards";
@@ -16,7 +16,7 @@ export default async function DeIssueCreateSeriesPage({
   const session = await requirePageWriteSession();
 
   return (
-    <AppPageShell
+    <WorkspacePageShell
       selected={selected}
       level={buildHierarchyLevel(selected)}
       us={false}
@@ -30,6 +30,6 @@ export default async function DeIssueCreateSeriesPage({
         query={query}
         session={session}
       />
-    </AppPageShell>
+    </WorkspacePageShell>
   );
 }

@@ -11,13 +11,9 @@ interface IssuePreviewChipsProps {
 }
 
 export function IssuePreviewChips(props: Readonly<IssuePreviewChipsProps>) {
-  const { issue, flags, us, chipSx } = props;
+  const { flags, us, chipSx } = props;
 
   const chips: React.ReactElement[] = [];
-
-  if (issue.verified) {
-    chips.push(<Chip key="verified" size="small" label="Verifiziert" color="info" sx={chipSx} />);
-  }
 
   if (flags.collected) {
     chips.push(<Chip key="collected" size="small" label="Gesammelt" color="success" sx={chipSx} />);

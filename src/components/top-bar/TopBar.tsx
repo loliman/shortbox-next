@@ -16,12 +16,9 @@ import TopBarFilterMenu from "./TopBarFilterMenu";
 import {
   DesktopActions,
   MobileBottomBar,
+  ThemeToggleButton,
 } from "./TopBarControls";
-import Tooltip from "@mui/material/Tooltip";
 import CloseIcon from "@mui/icons-material/Close";
-import DarkModeIcon from "@mui/icons-material/DarkMode";
-import LightModeIcon from "@mui/icons-material/LightMode";
-import type { AppThemeMode } from "../../app/theme";
 import { isMockMode } from "../../app/mockMode";
 import { mutationRequest } from "../../lib/client/mutation-request";
 import type { RouteQuery } from "../../types/route-ui";
@@ -30,17 +27,12 @@ interface TopBarProps {
   toggleDrawer?: () => void;
   drawerOpen?: boolean;
   us: boolean;
-  isPhone?: boolean;
-  isPhoneLandscape?: boolean;
-  isTablet?: boolean;
-  isTabletLandscape?: boolean;
-  isPhonePortrait?: boolean;
+  showNavigation?: boolean;
   compactLayout?: boolean;
   session?: { loggedIn?: boolean } | null;
   query?: RouteQuery | null;
   selected: SelectedRoot;
   resetNavigationState?: () => void;
-  themeMode?: AppThemeMode;
   toggleTheme?: () => void;
   enqueueSnackbar?: (
     message: string,
@@ -58,15 +50,12 @@ const Android12Switch = styled(Switch)(({ theme }) => ({
   "& .MuiSwitch-track": {
     borderRadius: 22 / 2,
     opacity: 1,
-    backgroundColor:
-      theme.palette.mode === "dark"
-        ? alpha(theme.palette.text.secondary, 0.26)
-        : alpha(theme.palette.common.white, 0.24),
-    border: `1px solid ${
-      theme.palette.mode === "dark"
-        ? alpha(theme.palette.text.secondary, 0.45)
-        : alpha(theme.palette.common.white, 0.32)
-    }`,
+    backgroundColor: alpha(theme.palette.common.white, 0.24),
+    border: `1px solid ${alpha(theme.palette.common.white, 0.32)}`,
+    ...theme.applyStyles("dark", {
+      backgroundColor: alpha(theme.palette.text.secondary, 0.26),
+      border: `1px solid ${alpha(theme.palette.text.secondary, 0.45)}`,
+    }),
     "&::before, &::after": {
       content: '""',
       position: "absolute",
@@ -104,13 +93,12 @@ const Android12Switch = styled(Switch)(({ theme }) => ({
   },
   "& .MuiSwitch-thumb": {
     boxShadow: "0 1px 4px rgba(0,0,0,0.35)",
-    backgroundColor:
-      theme.palette.mode === "dark" ? theme.palette.common.white : theme.palette.background.paper,
-    border: `1px solid ${
-      theme.palette.mode === "dark"
-        ? alpha(theme.palette.common.black, 0.24)
-        : alpha(theme.palette.text.primary, 0.14)
-    }`,
+    backgroundColor: theme.vars?.palette.background.paper ?? theme.palette.background.paper,
+    border: `1px solid ${alpha(theme.palette.text.primary, 0.14)}`,
+    ...theme.applyStyles("dark", {
+      backgroundColor: theme.palette.common.white,
+      border: `1px solid ${alpha(theme.palette.common.black, 0.24)}`,
+    }),
     width: 20,
     height: 20,
     margin: 0,
@@ -127,12 +115,11 @@ export default function TopBar(ownProps: TopBarProps) {
     | { filter?: string | null; order?: string | null; direction?: string | null }
     | null
     | undefined;
-  const compactLayout =
-    ownProps.compactLayout ?? Boolean(ownProps.isPhone || (ownProps.isTablet && !ownProps.isTabletLandscape));
+  const showNavigation = ownProps.showNavigation ?? true;
+  const compactLayout = Boolean(ownProps.compactLayout);
   const [mobileSearchOpen, setMobileSearchOpen] = React.useState(false);
   const isFilter =
     typeof query?.filter === "string" ? query.filter : query?.filter ? String(query.filter) : null;
-  const darkModeEnabled = ownProps.themeMode === "dark";
   const localeSwitchAriaLabel = us ? "Zu Deutsch wechseln" : "Zu US wechseln";
   const changeRequestsCount = ownProps.changeRequestsCount ?? 0;
 
@@ -167,7 +154,16 @@ export default function TopBar(ownProps: TopBarProps) {
   return (
     <AppBar
       position="sticky"
-      sx={{ zIndex: (theme) => theme.zIndex.drawer + 1, position: "sticky", overflow: "visible" }}
+      sx={{
+        zIndex: (theme) => theme.zIndex.drawer + 1,
+        position: "sticky",
+        overflow: "visible",
+        backgroundColor: "rgb(0, 0, 0)",
+        backgroundImage: "none",
+        borderBottomWidth: 1,
+        borderBottomStyle: "solid",
+        borderBottomColor: (theme) => theme.vars?.palette.divider ?? theme.palette.divider,
+      }}
     >
       <Toolbar
         sx={{
@@ -184,6 +180,7 @@ export default function TopBar(ownProps: TopBarProps) {
       >
         <TopBarStart
           compactLayout={compactLayout}
+          showNavigation={showNavigation}
           drawerOpen={drawerOpen}
           toggleDrawer={toggleDrawer}
           us={us}
@@ -192,7 +189,6 @@ export default function TopBar(ownProps: TopBarProps) {
 
         <TopBarCompactActions
           compactLayout={compactLayout}
-          darkModeEnabled={darkModeEnabled}
           toggleTheme={ownProps.toggleTheme}
         />
 
@@ -201,11 +197,9 @@ export default function TopBar(ownProps: TopBarProps) {
           us={us}
           selected={selected}
           isFilterActive={isFilter}
+          initialFilterCount={ownProps.initialFilterCount}
           query={query}
           session={ownProps.session}
-          isPhone={ownProps.isPhone}
-          isTablet={ownProps.isTablet}
-          isTabletLandscape={ownProps.isTabletLandscape}
         />
 
         {compactLayout ? null : (
@@ -215,14 +209,11 @@ export default function TopBar(ownProps: TopBarProps) {
             query={query}
             localeSwitchAriaLabel={localeSwitchAriaLabel}
             changeRequestsCount={changeRequestsCount}
-            darkModeEnabled={darkModeEnabled}
-            themeMode={ownProps.themeMode}
             toggleTheme={ownProps.toggleTheme}
             onNavigate={navigate}
             onLogout={onLogout}
             resetNavigationState={ownProps.resetNavigationState}
             SwitchComponent={Android12Switch as any}
-            darkModeIcon={darkModeEnabled ? <LightModeIcon /> : <DarkModeIcon />}
           />
         )}
       </Toolbar>
@@ -231,9 +222,6 @@ export default function TopBar(ownProps: TopBarProps) {
         <MobileSearchOverlay
           us={us}
           compactLayout={compactLayout}
-          isPhone={ownProps.isPhone}
-          isTablet={ownProps.isTablet}
-          isTabletLandscape={ownProps.isTabletLandscape}
           onClose={() => setMobileSearchOpen(false)}
         />
       ) : null}
@@ -249,13 +237,14 @@ export default function TopBar(ownProps: TopBarProps) {
           localeSwitchAriaLabel={localeSwitchAriaLabel}
           changeRequestsCount={changeRequestsCount}
           onOpenSearch={() => setMobileSearchOpen(true)}
-          onToggleDrawer={() => toggleDrawer?.()}
+          onToggleDrawer={showNavigation ? () => toggleDrawer?.() : undefined}
           onNavigate={navigate}
           onLogout={onLogout}
           resetNavigationState={ownProps.resetNavigationState}
           SwitchComponent={Android12Switch as any}
           HamburgerIconComponent={HamburgerIcon}
           drawerOpen={drawerOpen}
+          showNavigation={showNavigation}
           FilterButton={TopBarFilterMenu as any}
         />
       ) : null}
@@ -266,6 +255,7 @@ export default function TopBar(ownProps: TopBarProps) {
 
 function TopBarStart(props: {
   compactLayout: boolean;
+  showNavigation: boolean;
   drawerOpen?: boolean;
   toggleDrawer?: () => void;
   us: boolean;
@@ -280,7 +270,7 @@ function TopBarStart(props: {
         flexShrink: 0,
       }}
     >
-      {props.compactLayout ? null : (
+      {!props.showNavigation || props.compactLayout ? null : (
         <IconButton
           color="inherit"
           aria-label="Navigation umschalten"
@@ -313,22 +303,13 @@ function TopBarStart(props: {
 
 function TopBarCompactActions(props: {
   compactLayout: boolean;
-  darkModeEnabled: boolean;
   toggleTheme?: () => void;
 }) {
   if (!props.compactLayout) return null;
 
   return (
     <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.25 }}>
-      <Tooltip title={props.darkModeEnabled ? "Zu hellem Modus wechseln" : "Zu dunklem Modus wechseln"}>
-        <IconButton
-          color="inherit"
-          aria-label={props.darkModeEnabled ? "Hellmodus aktivieren" : "Darkmode aktivieren"}
-          onClick={props.toggleTheme}
-        >
-          {props.darkModeEnabled ? <LightModeIcon /> : <DarkModeIcon />}
-        </IconButton>
-      </Tooltip>
+      <ThemeToggleButton onClick={props.toggleTheme} />
     </Box>
   );
 }
@@ -338,15 +319,12 @@ function TopBarSearchCenter(props: {
   us: boolean;
   selected: SelectedRoot;
   isFilterActive?: string | null;
+  initialFilterCount?: number | null;
   query?: { filter?: string | null; order?: string | null; direction?: string | null } | null;
   session?: { loggedIn?: boolean } | null;
-  isPhone?: boolean;
-  isTablet?: boolean;
-  isTabletLandscape?: boolean;
 }) {
   return (
     <Box
-      data-testid="topbar-search-center"
       sx={{
         minWidth: 0,
         width: "100%",
@@ -358,26 +336,20 @@ function TopBarSearchCenter(props: {
         gap: 0.5,
       }}
     >
-      {props.compactLayout ? null : (
-        <>
-          <Box sx={{ minWidth: 0, flex: 1 }}>
-            <SearchBar
-              us={props.us}
-              compactLayout={props.compactLayout}
-              isPhone={props.isPhone}
-              isTablet={props.isTablet}
-              isTabletLandscape={props.isTabletLandscape}
-            />
-          </Box>
-          <TopBarFilterMenu
-            us={props.us}
-            selected={props.selected}
-            isFilterActive={props.isFilterActive}
-            query={props.query}
-            session={props.session}
-          />
-        </>
-      )}
+      <Box sx={{ minWidth: 0, flex: 1 }}>
+        <SearchBar
+          us={props.us}
+          compactLayout={false}
+        />
+      </Box>
+      <TopBarFilterMenu
+        us={props.us}
+        selected={props.selected}
+        isFilterActive={props.isFilterActive}
+        initialFilterCount={props.initialFilterCount}
+        query={props.query}
+        session={props.session}
+      />
     </Box>
   );
 }
@@ -385,9 +357,6 @@ function TopBarSearchCenter(props: {
 function MobileSearchOverlay(props: {
   us: boolean;
   compactLayout: boolean;
-  isPhone?: boolean;
-  isTablet?: boolean;
-  isTabletLandscape?: boolean;
   onClose: () => void;
 }) {
   return (
@@ -410,10 +379,7 @@ function MobileSearchOverlay(props: {
           <SearchBar
             us={props.us}
             autoFocus={true}
-            compactLayout={props.compactLayout}
-            isPhone={props.isPhone}
-            isTablet={props.isTablet}
-            isTabletLandscape={props.isTabletLandscape}
+            compactLayout={true}
             onFocus={(
               _event: React.FocusEvent<HTMLElement> | React.MouseEvent<HTMLElement> | null,
               focus: boolean

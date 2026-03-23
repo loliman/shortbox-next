@@ -1,11 +1,13 @@
 "use client";
 
 import React from "react";
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import IssueEditor from "../editor/IssueEditor";
 import { buildIssueCreateDefaultValues } from "../editor/issue-editor/defaultValues";
 import { useSnackbarBridge } from "../../generic/useSnackbarBridge";
 import type { SessionData } from "../../../app/session";
-import { useResponsive } from "../../../app/useResponsive";
+import { useInitialResponsiveGuess } from "../../../app/responsiveGuessContext";
 import type { LayoutRouteData, RouteQuery } from "../../../types/route-ui";
 import type { SelectedRoot } from "../../../types/domain";
 
@@ -19,7 +21,11 @@ interface IssueCreateProps {
 }
 
 function IssueCreate(props: Readonly<IssueCreateProps>) {
-  const responsive = useResponsive();
+  const theme = useTheme();
+  const initialGuess = useInitialResponsiveGuess();
+  const isDesktop = useMediaQuery(theme.breakpoints.up("lg"), {
+    defaultMatches: initialGuess?.isDesktop ?? true,
+  });
   const snackbarBridge = useSnackbarBridge();
   const defaultValues = buildIssueCreateDefaultValues(
     props.selected as any,
@@ -30,7 +36,7 @@ function IssueCreate(props: Readonly<IssueCreateProps>) {
     <IssueEditor
       defaultValues={defaultValues}
       session={props.session}
-      isDesktop={responsive.isDesktop}
+      isDesktop={isDesktop}
       selected={props.selected}
       enqueueSnackbar={snackbarBridge.enqueueSnackbar}
     />

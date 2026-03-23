@@ -215,10 +215,14 @@ export async function readIssueDetails(selection: IssueSelectionInput) {
       fkSeries: fallback.fkSeries ?? undefined,
     },
     include: {
-      stories: {
-        select: {
-          id: true,
+      series: {
+        include: {
+          publisher: true,
         },
+      },
+      stories: {
+        orderBy: [{ number: "asc" }, { id: "asc" }],
+        include: issueDetailsStoryInclude,
       },
       covers: {
         orderBy: [{ number: "asc" }, { id: "asc" }],
@@ -239,19 +243,25 @@ export async function readIssueDetails(selection: IssueSelectionInput) {
 }
 
 function toIssueDetailsShape(issue: any, variants: any[]) {
-  const canonicalTitle = pickCanonicalIssueTitle([issue, ...variants], issue.title);
   const ownStories = Array.isArray(issue.stories) ? issue.stories : [];
   const sortedVariants = [...variants].sort(compareIssueVariants);
-  const variantStoryOwner =
+  const storySourceIssue =
     ownStories.length > 0
       ? issue
       : sortedVariants.find((variant) => Array.isArray(variant.stories) && variant.stories.length > 0) ?? null;
-  const storyOwner = variantStoryOwner
+  const inheritedStories = Array.isArray(storySourceIssue?.stories) ? storySourceIssue.stories : [];
+  const resolvedStories = storySourceIssue ? inheritedStories : ownStories;
+  const resolvedTitle =
+    pickCanonicalIssueTitle([issue, ...variants], issue.title) ||
+    storySourceIssue?.title ||
+    issue.title ||
+    null;
+  const storyOwner = storySourceIssue
     ? {
-        number: variantStoryOwner.number,
-        legacy_number: variantStoryOwner.legacyNumber || null,
-        format: variantStoryOwner.format || null,
-        variant: variantStoryOwner.variant || null,
+        number: storySourceIssue.number,
+        legacy_number: storySourceIssue.legacyNumber || null,
+        format: storySourceIssue.format || null,
+        variant: storySourceIssue.variant || null,
       }
     : null;
   const isOwnStoryOwner = storyOwner
@@ -274,12 +284,13 @@ function toIssueDetailsShape(issue: any, variants: any[]) {
     collected: variant.collected ?? null,
     comicguideid: serializeNullableIssueId(variant.comicGuideId),
     cover: variant.covers[0] ? toIssueCoverShape(variant.covers[0]) : null,
+    series: toIssueSeriesShape(variant.series),
     stories: Array.isArray(variant.stories) ? variant.stories : [],
   }));
 
   return {
     id: serializeIssueId(issue.id),
-    title: canonicalTitle || null,
+    title: resolvedTitle,
     number: issue.number,
     legacy_number: issue.legacyNumber || null,
     format: issue.format || null,
@@ -297,7 +308,7 @@ function toIssueDetailsShape(issue: any, variants: any[]) {
     createdat: serializeIssueDate(issue.createdAt),
     updatedat: serializeIssueDate(issue.updatedAt),
     series: toIssueSeriesShape(issue.series),
-    stories: issue.stories.map((story: any) => toIssueStoryShape(story, true)),
+    stories: resolvedStories.map((story: any) => toIssueStoryShape(story, true, issue)),
     cover: issue.covers[0] ? toIssueCoverShape(issue.covers[0]) : null,
     individuals: issue.individuals.map(toIssueIndividualEntryShape),
     arcs: issue.arcs.map((entry: any) => ({
@@ -376,7 +387,7 @@ function toIssueIndividualEntryShape(entry: any) {
   };
 }
 
-function toIssueStoryShape(story: any, includeParent: boolean) {
+function toIssueStoryShape(story: any, includeParent: boolean, issueOverride?: any) {
   return {
     id: serializeIssueId(story.id),
     number: serializeNullableIssueNumber(story.number),
@@ -391,7 +402,7 @@ function toIssueStoryShape(story: any, includeParent: boolean) {
     onlyoneprint: story.onlyOnePrint,
     collected: story.collected,
     collectedmultipletimes: story.collectedMultipleTimes,
-    issue: toIssueReferenceShape(story.issue),
+    issue: toIssueReferenceShape(issueOverride || story.issue),
     parent: includeParent ? toIssueParentStoryShape(story.parent) : null,
     reprintOf: story.reprint ? toIssueStoryReferenceShape(story.reprint) : null,
     reprints: Array.isArray(story.reprintedBy) ? story.reprintedBy.map(toIssueStoryReferenceShape) : [],

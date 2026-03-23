@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import Box from "@mui/material/Box";
 import { StoryArcChips } from "../StoryArcChips";
@@ -54,8 +56,10 @@ export function IssueDetailsDEStoryDetails(props: Readonly<IssueDetailsDEStoryDe
             borderColor: "divider",
             borderRadius: 2,
             p: 2,
-            backgroundColor:
-              theme.palette.mode === "dark" ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
+            backgroundColor: "rgba(0,0,0,0.02)",
+            ...theme.applyStyles("dark", {
+              backgroundColor: "rgba(255,255,255,0.02)",
+            }),
           })}
         >
           <StoryPeopleSection item={item} us={props.us} />

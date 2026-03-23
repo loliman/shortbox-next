@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import Typography from "@mui/material/Typography";
 import List from "@mui/material/List";
@@ -58,6 +60,7 @@ function toStoryIssueRelation(value: IssueReference): StoryIssueRelation {
 export function IssueDetailsUSStoryDetails(props: Readonly<IssueDetailsUSStoryDetailsProps>) {
   const currentItem = props.item || {};
   const story = currentItem.parent ? currentItem.parent : currentItem;
+  const currentIssue = props.issue || currentItem.issue || story.issue;
   const us = Boolean(props.us);
   const storyArcs = Array.isArray((currentItem as any)?.parent?.issue?.arcs)
     ? (currentItem as any).parent.issue.arcs.filter(
@@ -240,8 +243,11 @@ export function IssueDetailsUSStoryDetails(props: Readonly<IssueDetailsUSStoryDe
                   if (!child.issue) return null;
                   const relation = toStoryIssueRelation(child);
                   const addinfoText = toChildAddinfo(relation);
+                  const isCurrentIssueRow = isSameIssue(child.issue, currentIssue);
                   const parentLink =
-                    child.parent?.issue && !isSameIssue(child.parent.issue, props.issue)
+                    !isCurrentIssueRow &&
+                    child.parent?.issue &&
+                    !isSameIssue(child.parent.issue, currentIssue)
                       ? {
                           issue: child.parent.issue,
                           number: child.parent.number,
@@ -279,8 +285,10 @@ export function IssueDetailsUSStoryDetails(props: Readonly<IssueDetailsUSStoryDe
           borderColor: "divider",
           borderRadius: 2,
           p: 2,
-          backgroundColor:
-            theme.palette.mode === "dark" ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
+          backgroundColor: "rgba(0,0,0,0.02)",
+          ...theme.applyStyles("dark", {
+            backgroundColor: "rgba(255,255,255,0.02)",
+          }),
           gridColumn: { xs: "auto", md: hasGermanPublished ? "auto" : "1 / -1" },
         })}
       >

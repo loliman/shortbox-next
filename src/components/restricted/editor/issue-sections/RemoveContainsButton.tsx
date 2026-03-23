@@ -14,6 +14,7 @@ function RemoveContainsButton(props: RemoveContainsButtonProps) {
     <Tooltip title="Geschichte entfernen">
       <span>
         <IconButton
+          component="span"
           disabled={props.disabled}
           aria-label="Entfernen"
           color="inherit"

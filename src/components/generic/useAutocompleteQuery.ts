@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import type { AutocompleteSource } from "../../lib/read/autocomplete-read";
 

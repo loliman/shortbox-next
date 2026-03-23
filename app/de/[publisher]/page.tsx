@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import AppPageShell from "@/src/components/app-shell/AppPageShell";
+import CatalogPageShell from "@/src/components/app-shell/CatalogPageShell";
 import PublisherDetails from "@/src/components/details/PublisherDetails";
 import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
 import { readPublisherDetails } from "@/src/lib/read/publisher-read";
@@ -54,7 +54,7 @@ export default async function DePublisherPage({
     loggedIn: Boolean(session?.loggedIn),
   });
   return (
-    <AppPageShell
+    <CatalogPageShell
       selected={selected}
       level={level}
       us={false}
@@ -75,6 +75,6 @@ export default async function DePublisherPage({
         initialPublisherNodes={navigationData.initialPublisherNodes}
         initialSeriesNodesByPublisher={navigationData.initialSeriesNodesByPublisher}
       />
-    </AppPageShell>
+    </CatalogPageShell>
   );
 }

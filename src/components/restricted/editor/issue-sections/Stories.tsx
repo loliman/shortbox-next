@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import Stack from "@mui/material/Stack";
 import Box from "@mui/material/Box";
@@ -50,6 +52,7 @@ function Stories(props: ContainsProps) {
           setDragOverStoryIndex(null);
         }}
         onStoryReorder={(fromIndex, toIndex) => {
+          if (props.disabled) return;
           if (!props.setFieldValue) return;
           if (fromIndex === toIndex) return;
 

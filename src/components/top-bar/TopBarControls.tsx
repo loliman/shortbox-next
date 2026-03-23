@@ -6,14 +6,14 @@ import Typography from "@mui/material/Typography";
 import Tooltip from "@mui/material/Tooltip";
 import IconButton from "@mui/material/IconButton";
 import Badge from "@mui/material/Badge";
-import type { ReactNode } from "react";
 import BugReportIcon from "@mui/icons-material/BugReport";
 import BugReportOutlinedIcon from "@mui/icons-material/BugReportOutlined";
 import WatchLaterIcon from "@mui/icons-material/WatchLater";
 import LoginIcon from "@mui/icons-material/Login";
 import LogoutIcon from "@mui/icons-material/Logout";
 import SearchIcon from "@mui/icons-material/Search";
-import type { AppThemeMode } from "../../app/theme";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
+import LightModeIcon from "@mui/icons-material/LightMode";
 import { buildRouteHref } from "../generic/routeHref";
 
 type LocaleSwitchProps = {
@@ -33,7 +33,7 @@ type LocaleSwitchProps = {
 export function LocaleSwitch(props: Readonly<LocaleSwitchProps>) {
   return (
     <Box
-      sx={{
+      sx={(theme) => ({
         ml: 0.75,
         display: "inline-flex",
         alignItems: "center",
@@ -42,21 +42,17 @@ export function LocaleSwitch(props: Readonly<LocaleSwitchProps>) {
         py: 0.5,
         borderRadius: 999,
         border: "1px solid",
-        borderColor: (theme) =>
-          props.us
-            ? theme.palette.mode === "dark"
-              ? "rgba(96, 165, 250, 0.6)"
-              : "rgba(59, 130, 246, 0.28)"
-            : theme.palette.divider,
-        backgroundColor: (theme) =>
-          props.us
-            ? theme.palette.mode === "dark"
-              ? "rgba(30, 64, 175, 0.25)"
-              : "rgba(191, 219, 254, 0.2)"
-            : theme.palette.mode === "dark"
-              ? "rgba(255,255,255,0.04)"
-              : "rgba(0,0,0,0.02)",
-      }}
+        borderColor: props.us ? "rgba(59, 130, 246, 0.28)" : (theme.vars?.palette.divider ?? theme.palette.divider),
+        backgroundColor: props.us ? "rgba(191, 219, 254, 0.2)" : "rgba(0,0,0,0.02)",
+        ...(props.us
+          ? theme.applyStyles("dark", {
+              borderColor: "rgba(96, 165, 250, 0.6)",
+              backgroundColor: "rgba(30, 64, 175, 0.25)",
+            })
+          : theme.applyStyles("dark", {
+              backgroundColor: "rgba(255,255,255,0.04)",
+            })),
+      })}
     >
       <Typography
         sx={{
@@ -182,10 +178,12 @@ type MobileBottomBarProps = {
   SwitchComponent: LocaleSwitchProps["SwitchComponent"];
   HamburgerIconComponent: React.ComponentType<{ open: boolean }>;
   drawerOpen?: boolean;
+  showNavigation?: boolean;
   FilterButton: React.ComponentType<{
     us: boolean;
     selected: unknown;
     isFilterActive?: boolean | string | null;
+    initialFilterCount?: number | null;
     query?: { filter?: string | null } | null;
     session?: { loggedIn?: boolean } | null;
   }>;
@@ -214,9 +212,15 @@ export function MobileBottomBar(props: Readonly<MobileBottomBarProps>) {
         boxShadow: "0 -6px 18px rgba(0,0,0,0.12)",
       }}
     >
-      <IconButton color="inherit" aria-label="Navigation umschalten" onClick={props.onToggleDrawer}>
-        <props.HamburgerIconComponent open={Boolean(props.drawerOpen)} />
-      </IconButton>
+      {props.showNavigation ? (
+        <IconButton
+          color="inherit"
+          aria-label="Navigation umschalten"
+          onClick={props.onToggleDrawer}
+        >
+          <props.HamburgerIconComponent open={Boolean(props.drawerOpen)} />
+        </IconButton>
+      ) : null}
       <IconButton color="inherit" aria-label="Suche öffnen" onClick={props.onOpenSearch}>
         <SearchIcon />
       </IconButton>
@@ -224,6 +228,7 @@ export function MobileBottomBar(props: Readonly<MobileBottomBarProps>) {
         us={props.us}
         selected={props.selected}
         isFilterActive={props.isFilterActive}
+        initialFilterCount={props.initialFilterCount}
         query={props.query as { filter?: string | null } | null}
         session={props.session}
       />
@@ -263,14 +268,11 @@ type DesktopActionsProps = {
   query?: { filter?: string | null; order?: string | null; direction?: string | null } | null;
   localeSwitchAriaLabel: string;
   changeRequestsCount: number;
-  darkModeEnabled: boolean;
-  themeMode?: AppThemeMode;
   toggleTheme?: () => void;
   onNavigate: (href: string) => void;
   onLogout: () => void;
   resetNavigationState?: () => void;
   SwitchComponent: LocaleSwitchProps["SwitchComponent"];
-  darkModeIcon: ReactNode;
 };
 
 export function DesktopActions(props: Readonly<DesktopActionsProps>) {
@@ -299,15 +301,42 @@ export function DesktopActions(props: Readonly<DesktopActionsProps>) {
         onNavigate={props.onNavigate}
         SwitchComponent={props.SwitchComponent}
       />
-      <Tooltip title={props.darkModeEnabled ? "Zu hellem Modus wechseln" : "Zu dunklem Modus wechseln"}>
-        <IconButton
-          color="inherit"
-          aria-label={props.darkModeEnabled ? "Hellmodus aktivieren" : "Darkmode aktivieren"}
-          onClick={props.toggleTheme}
-        >
-          {props.darkModeIcon}
-        </IconButton>
-      </Tooltip>
+      <ThemeToggleButton onClick={props.toggleTheme} />
     </Box>
+  );
+}
+
+export function ThemeToggleButton(props: Readonly<{ onClick?: () => void }>) {
+  return (
+    <Tooltip title="Theme umschalten">
+      <IconButton color="inherit" aria-label="Theme umschalten" onClick={props.onClick}>
+        <Box
+          sx={(theme) => ({
+            position: "relative",
+            width: 24,
+            height: 24,
+            "& .theme-icon": {
+              position: "absolute",
+              inset: 0,
+              transition: "opacity 180ms ease",
+            },
+            "& .theme-icon-light": {
+              opacity: 0,
+            },
+            ...theme.applyStyles("dark", {
+              "& .theme-icon-dark": {
+                opacity: 0,
+              },
+              "& .theme-icon-light": {
+                opacity: 1,
+              },
+            }),
+          })}
+        >
+          <DarkModeIcon className="theme-icon theme-icon-dark" />
+          <LightModeIcon className="theme-icon theme-icon-light" />
+        </Box>
+      </IconButton>
+    </Tooltip>
   );
 }

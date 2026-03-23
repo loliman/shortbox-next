@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
 import Card from "@mui/material/Card";
@@ -43,9 +45,7 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
   const url = getIssueUrl(props.issue, us);
   const accentKey = flags.collected
     ? "success"
-    : props.issue.verified
-      ? "info"
-      : !us && flags.hasFirstApp
+    : !us && flags.hasFirstApp
         ? "secondary"
         : "default";
 
@@ -57,9 +57,7 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
         borderLeftColor:
           accentKey === "success"
             ? theme.palette.success.main
-            : accentKey === "info"
-              ? theme.palette.info.main
-              : accentKey === "secondary"
+            : accentKey === "secondary"
                 ? theme.palette.secondary.main
                 : theme.palette.divider,
         boxShadow: theme.shadows[2],

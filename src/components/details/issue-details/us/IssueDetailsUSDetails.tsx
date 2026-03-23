@@ -1,6 +1,10 @@
+"use client";
+
 import React from "react";
 import dateFormat from "dateformat";
-import { DetailsRow, toChipList, toShortboxDate } from "../shared";
+import { DetailsRow } from "../DetailsRow";
+import { toChipList } from "../contains/toChipList";
+import { toShortboxDate } from "../utils/issueMetaFormatters";
 
 interface IssueDetailsUSDetailsProps {
   issue?: {

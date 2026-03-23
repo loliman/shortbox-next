@@ -50,6 +50,7 @@ type ChangeRequestEntry = {
 };
 
 function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
+  const canAdmin = Boolean(props.session?.canAdmin);
   const [hiddenIds, setHiddenIds] = React.useState<Record<string, boolean>>({});
   const [data, setData] = React.useState<{ changeRequests?: ChangeRequestEntry[] }>({
     changeRequests: props.initialItems || [],
@@ -115,27 +116,13 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
     const id = String(entry?.id || "");
     if (!id) return;
 
-    const parsed = parseChangeRequest(entry?.changeRequest);
-    if (!parsed.issue || !parsed.item) {
-      props.enqueueSnackbar?.("Change Request enthält keine gültigen Issue-Daten.", {
-        variant: "error",
-      });
-      return;
-    }
-
     try {
       setAccepting(true);
-      const oldInput = sanitizeIssueInputForMutation(parsed.issue);
-      const fallbackReleaseDate =
-        typeof oldInput.releasedate === "string" ? oldInput.releasedate : undefined;
-      const itemInput = sanitizeIssueInputForMutation(parsed.item, fallbackReleaseDate);
-
       await mutationRequest({
-        url: "/api/issues",
+        url: "/api/change-requests",
         method: "PATCH",
         body: {
-          old: oldInput,
-          item: itemInput,
+          id,
         },
       });
 
@@ -143,19 +130,6 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
       props.enqueueSnackbar?.("Change Request akzeptiert und Issue aktualisiert.", {
         variant: "success",
       });
-
-      try {
-        await mutationRequest({
-          url: "/api/change-requests",
-          method: "DELETE",
-          body: { id },
-        });
-      } catch {
-        props.enqueueSnackbar?.(
-          "Issue aktualisiert. Der Change Request konnte nicht gelöscht werden.",
-          { variant: "warning" }
-        );
-      }
 
       await refetch();
     } catch (acceptError) {
@@ -211,19 +185,16 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
                     mb: isLast ? 0 : 1,
                     border: "1px solid",
                     borderColor: "divider",
-                    backgroundColor: (theme) =>
-                      theme.palette.mode === "dark" ? "#161b22" : "#ffffff",
+                    backgroundColor: "background.paper",
                     overflow: "hidden",
                     boxShadow: (theme) => theme.shadows[1],
                     transition: "box-shadow 180ms ease, transform 180ms ease, border-color 180ms ease",
                     "&:before": { display: "none" },
                     "& .MuiAccordionSummary-root": {
-                      backgroundColor: (theme) =>
-                        theme.palette.mode === "dark" ? "#161b22" : "#ffffff",
+                      backgroundColor: "background.paper",
                     },
                     "& .MuiAccordionDetails-root": {
-                      backgroundColor: (theme) =>
-                        theme.palette.mode === "dark" ? "#161b22" : "#ffffff",
+                      backgroundColor: "background.paper",
                     },
                   }}
                 >
@@ -300,18 +271,20 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
 
                       <Divider />
 
-                      <Stack direction="row" spacing={1} justifyContent="flex-end">
-                        <Button color="error" variant="outlined" onClick={() => handleDiscard(id)}>
-                          Verwerfen
-                        </Button>
-                        <Button
-                          disabled={accepting}
-                          variant="contained"
-                          onClick={() => handleAccept(entry)}
-                        >
-                          Akzeptieren
-                        </Button>
-                      </Stack>
+                      {canAdmin ? (
+                        <Stack direction="row" spacing={1} justifyContent="flex-end">
+                          <Button color="error" variant="outlined" onClick={() => handleDiscard(id)}>
+                            Verwerfen
+                          </Button>
+                          <Button
+                            disabled={accepting}
+                            variant="contained"
+                            onClick={() => handleAccept(entry)}
+                          >
+                            Akzeptieren
+                          </Button>
+                        </Stack>
+                      ) : null}
                     </Stack>
                   </AccordionDetails>
                 </Accordion>
@@ -529,71 +502,6 @@ function toJsonValue(value: unknown): JsonValue {
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function sanitizeIssueInputForMutation(
-  value: Record<string, unknown>,
-  fallbackReleaseDate?: string
-): Record<string, unknown> {
-  const normalized: Record<string, unknown> = {};
-
-  Object.keys(value || {}).forEach((key) => {
-    normalized[key] = normalizeInputValue((value as Record<string, unknown>)[key], key);
-  });
-
-  const normalizedReleaseDate = normalizeDateForGraphQL(normalized.releasedate);
-  if (normalizedReleaseDate) {
-    normalized.releasedate = normalizedReleaseDate;
-  } else if (fallbackReleaseDate) {
-    normalized.releasedate = fallbackReleaseDate;
-  } else {
-    delete normalized.releasedate;
-  }
-
-  return normalized;
-}
-
-function normalizeInputValue(value: unknown, keyName?: string): unknown {
-  if (keyName === "id" && (typeof value === "number" || typeof value === "bigint")) {
-    return String(value);
-  }
-
-  if (value instanceof Date) {
-    return toIsoDateOnly(value);
-  }
-  if (Array.isArray(value)) {
-    return value.map((entry) => normalizeInputValue(entry));
-  }
-  if (isPlainObject(value)) {
-    const record = value as Record<string, unknown>;
-    const normalized: Record<string, unknown> = {};
-    Object.keys(record).forEach((key) => {
-      normalized[key] = normalizeInputValue(record[key], key);
-    });
-    return normalized;
-  }
-  return value;
-}
-
-function normalizeDateForGraphQL(value: unknown): string | undefined {
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
-    const parsed = new Date(trimmed);
-    if (!Number.isNaN(parsed.getTime())) return toIsoDateOnly(parsed);
-    return undefined;
-  }
-
-  if (value instanceof Date) {
-    if (Number.isNaN(value.getTime())) return undefined;
-    return toIsoDateOnly(value);
-  }
-
-  return undefined;
-}
-
-function toIsoDateOnly(value: Date): string {
-  return value.toISOString().slice(0, 10);
 }
 
 export default function ChangeRequests(props: Readonly<ChangeRequestsProps>) {

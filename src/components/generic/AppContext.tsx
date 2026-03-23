@@ -6,16 +6,19 @@ import type { AppThemeMode } from "../../app/theme";
 interface ThemeModeProviderProps {
   children?: React.ReactNode;
   themeMode?: AppThemeMode;
+  themeReady?: boolean;
   toggleTheme?: () => void;
 }
 
 export interface ThemeContextValue {
   themeMode: AppThemeMode;
+  themeReady: boolean;
   toggleTheme: () => void;
 }
 
 const defaultThemeContextValue: ThemeContextValue = {
   themeMode: "light",
+  themeReady: false,
   toggleTheme: () => {},
 };
 
@@ -24,14 +27,16 @@ export const ThemeModeContext = React.createContext<ThemeContextValue>(defaultTh
 export function ThemeModeProvider({
   children,
   themeMode = "light",
+  themeReady = false,
   toggleTheme = () => {},
 }: Readonly<ThemeModeProviderProps>) {
   const themeValue = useMemo<ThemeContextValue>(
     () => ({
       themeMode,
+      themeReady,
       toggleTheme,
     }),
-    [themeMode, toggleTheme]
+    [themeMode, themeReady, toggleTheme]
   );
 
   return (

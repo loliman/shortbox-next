@@ -1,17 +1,18 @@
 import { generateLabel } from "../../../../util/hierarchy";
-import type { SelectedRoot } from "../../../../types/domain";
 import type { IssueEditorProps, IssueEditorState, IssueEditorFormValues } from "./types";
 
 export function buildIssueEditorState(
   props: Pick<IssueEditorProps, "edit" | "copy">,
   defaultValues: IssueEditorFormValues
 ): IssueEditorState {
+  const issueLabel = generateLabel({ issue: defaultValues, us: defaultValues.series.publisher.us } as any);
+
   return {
     defaultValues,
     header: props.edit
-      ? generateLabel(defaultValues as unknown as SelectedRoot) + " bearbeiten"
+      ? issueLabel + " bearbeiten"
       : props.copy
-        ? generateLabel(defaultValues as unknown as SelectedRoot) + " kopieren"
+        ? issueLabel + " kopieren"
         : "Ausgabe erstellen",
     submitLabel: "Fertig",
     submitAndCopyLabel: "Fertig und kopieren",
@@ -21,7 +22,7 @@ export function buildIssueEditorState(
         ? " erfolgreich kopiert"
         : " erfolgreich erstellt",
     errorMessage: props.edit
-      ? generateLabel(defaultValues as unknown as SelectedRoot) + " konnte nicht gespeichert werden"
+      ? issueLabel + " konnte nicht gespeichert werden"
       : props.copy
         ? " konnte nicht kopiert werden"
         : "Ausgabe konnte nicht erstellt werden",

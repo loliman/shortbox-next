@@ -27,7 +27,7 @@ export default function ListingToolbar(props: Readonly<ListingToolbarProps>) {
             width: "100%",
           }}
         >
-          <SortContainer {...previewProps} />
+          <SortContainer {...previewProps} query={props.query} />
         </Box>
       ) : null}
 

@@ -1,13 +1,15 @@
 "use client";
 
 import React from "react";
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import QueryResult from "../../generic/QueryResult";
 import IssueEditor from "../editor/IssueEditor";
 import { mapIssueToEditorDefaultValues } from "../editor/issue-editor/defaultValues";
 import { EditorPagePlaceholder } from "../../placeholders/EditorPagePlaceholder";
 import { useSnackbarBridge } from "../../generic/useSnackbarBridge";
 import type { SessionData } from "../../../app/session";
-import { useResponsive } from "../../../app/useResponsive";
+import { useInitialResponsiveGuess } from "../../../app/responsiveGuessContext";
 import type { LayoutRouteData, RouteQuery } from "../../../types/route-ui";
 import type { SelectedRoot } from "../../../types/domain";
 
@@ -25,7 +27,11 @@ interface IssueCopyProps {
 }
 
 function IssueCopy(props: Readonly<IssueCopyProps>) {
-  const responsive = useResponsive();
+  const theme = useTheme();
+  const initialGuess = useInitialResponsiveGuess();
+  const isDesktop = useMediaQuery(theme.breakpoints.up("lg"), {
+    defaultMatches: initialGuess?.isDesktop ?? true,
+  });
   const snackbarBridge = useSnackbarBridge();
   const selected = props.selected;
   const loading = false;
@@ -53,7 +59,7 @@ function IssueCopy(props: Readonly<IssueCopyProps>) {
           copy
           defaultValues={defaultValues}
           session={props.session}
-          isDesktop={responsive.isDesktop}
+          isDesktop={isDesktop}
           selected={selected}
           enqueueSnackbar={snackbarBridge.enqueueSnackbar}
         />

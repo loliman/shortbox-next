@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import AppPageShell from "@/src/components/app-shell/AppPageShell";
+import CatalogPageShell from "@/src/components/app-shell/CatalogPageShell";
 import Home from "@/src/components/Home";
 import { readHomeFeed } from "@/src/lib/read/home-read";
 import { parseFilter } from "@/src/components/nav-bar/listUtils";
@@ -26,7 +26,7 @@ export default async function DeHomePage({
     loggedIn: Boolean(page.session?.loggedIn),
   });
   return (
-    <AppPageShell
+    <CatalogPageShell
       selected={page.selected}
       level={page.level}
       us={page.us}
@@ -51,6 +51,6 @@ export default async function DeHomePage({
         initialSeriesNodesByPublisher={page.navigationData?.initialSeriesNodesByPublisher}
         initialIssueNodesBySeriesKey={page.navigationData?.initialIssueNodesBySeriesKey}
       />
-    </AppPageShell>
+    </CatalogPageShell>
   );
 }

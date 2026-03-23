@@ -1,5 +1,3 @@
-"use client";
-
 import queryString from "query-string";
 
 type QueryValue = string | number | boolean | null | undefined;
@@ -26,4 +24,3 @@ export function buildRouteHref(
   const search = queryString.stringify(merged);
   return search ? `${pathname}?${search}` : pathname;
 }
-

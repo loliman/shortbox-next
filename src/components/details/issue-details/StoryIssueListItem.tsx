@@ -160,8 +160,6 @@ export function StoryIssueListItem(props: Readonly<StoryIssueListItemProps>) {
           <Chip size="small" label="Gesammelt" color="success" />
         ) : null}
 
-        {props.issue.verified ? <Chip size="small" label="Verifiziert" color="info" /> : null}
-
         <CoverTooltip issue={props.issue} us={coverUs} number={props.number}>
           <IconButton
             onClick={(e) => {

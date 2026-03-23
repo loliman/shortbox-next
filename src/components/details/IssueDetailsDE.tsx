@@ -30,8 +30,8 @@ export default function IssueDetailsDE(props: Readonly<IssueDetailsDEProps>) {
       initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher}
       initialIssueNodesBySeriesKey={props.initialIssueNodesBySeriesKey}
       session={props.session}
-      bottom={<IssueDetailsDEBottom session={props.session} />}
-      details={<IssueDetailsDEDetails />}
+      bottom={IssueDetailsDEBottom}
+      details={IssueDetailsDEDetails}
       subheader
     />
   );

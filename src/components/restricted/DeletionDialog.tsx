@@ -17,6 +17,7 @@ import {
 } from "../../util/hierarchy";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import { mutationRequest } from "../../lib/client/mutation-request";
+import type { SelectedRoot } from "../../types/domain";
 
 type VariantLike = {
   number?: string;
@@ -55,7 +56,7 @@ function DeletionDialogView(props: Readonly<DeletionDialogProps>) {
   const level = props.level;
   const { item, open, handleClose, enqueueSnackbar } = props;
   const itemOrFallback: DeletionDialogItem = item ?? { us: Boolean(props.us) };
-  const parent = toParent(itemOrFallback);
+  const parent = toParent(level, itemOrFallback);
   const itemLabel = getItemLabel(itemOrFallback);
 
   if (!item) return null;
@@ -90,8 +91,8 @@ function DeletionDialogView(props: Readonly<DeletionDialogProps>) {
                   item: stripItem(toDeletePayload(level, item)),
                 },
               });
-
-              router.push(generateUrl(parent as never, Boolean(props.us)));
+              router.replace(generateUrl(parent as never, Boolean(props.us)));
+              router.refresh();
 
               if (result.success) {
                 enqueueSnackbar?.(itemLabel + " erfolgreich gelöscht", { variant: "success" });
@@ -117,8 +118,11 @@ function DeletionDialogView(props: Readonly<DeletionDialogProps>) {
   );
 }
 
-function toParent(item: DeletionDialogItem): Record<string, unknown> {
-  if (item.__typename === "Issue") {
+function toParent(
+  level: string | undefined,
+  item: DeletionDialogItem
+): Record<string, unknown> {
+  if (level === HierarchyLevel.ISSUE) {
     const series = structuredClone(item.series || { publisher: {} }) as Record<string, unknown> & {
       publisher?: { us?: boolean };
     };
@@ -128,7 +132,7 @@ function toParent(item: DeletionDialogItem): Record<string, unknown> {
     return stripItem(parent);
   }
 
-  if (item.__typename === "Series") {
+  if (level === HierarchyLevel.SERIES) {
     const publisher = structuredClone(item.publisher || {}) as Record<string, unknown> & {
       us?: boolean;
     };
@@ -200,7 +204,34 @@ function getDeleteConfimText(l: string | undefined, item: DeletionDialogItem) {
 }
 
 function getItemLabel(item: DeletionDialogItem): string {
-  return generateLabel(item as unknown as import("../../types/domain").SelectedRoot);
+  return generateLabel({
+    ...toSelectedRoot(item),
+    us: resolveDeleteItemUs(item),
+  } as SelectedRoot);
+}
+
+function toSelectedRoot(item: DeletionDialogItem): SelectedRoot {
+  if (item.__typename === "Issue") {
+    return { issue: item as SelectedRoot["issue"] };
+  }
+
+  if (item.__typename === "Series") {
+    return { series: item as SelectedRoot["series"] };
+  }
+
+  return { publisher: item as SelectedRoot["publisher"] };
+}
+
+function resolveDeleteItemUs(item: DeletionDialogItem): boolean {
+  if (item.__typename === "Issue") {
+    return Boolean(item.series?.publisher?.us);
+  }
+
+  if (item.__typename === "Series") {
+    return Boolean(item.publisher?.us);
+  }
+
+  return Boolean(item.us);
 }
 
 export default function DeletionDialog(props: Readonly<DeletionDialogProps>) {

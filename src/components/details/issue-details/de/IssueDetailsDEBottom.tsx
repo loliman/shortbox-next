@@ -1,6 +1,7 @@
 import React from "react";
 import Box from "@mui/material/Box";
-import { Contains, ContainsTitleDetailed } from "../shared";
+import { Contains } from "../contains/Contains";
+import { ContainsTitleDetailed } from "../contains/ContainsTitleDetailed";
 import { IssueDetailsDEStoryDetails } from "./IssueDetailsDEStoryDetails";
 import type { ItemLike } from "../contains/expanded";
 
@@ -27,8 +28,8 @@ export function IssueDetailsDEBottom(props: Readonly<IssueDetailsDEBottomProps>)
         header=""
         noEntriesHint="Dieser Ausgabe sind noch keine Geschichten zugeordnet"
         items={stories}
-        itemTitle={<ContainsTitleDetailed {...(props as any)} />}
-        itemDetails={<IssueDetailsDEStoryDetails />}
+        itemTitle={ContainsTitleDetailed}
+        itemDetails={IssueDetailsDEStoryDetails}
       />
     </Box>
   );

@@ -20,11 +20,12 @@ const FilterToggleSwitch = styled(Switch)(({ theme }) => ({
   "& .MuiSwitch-track": {
     borderRadius: 22 / 2,
     opacity: 1,
-    backgroundColor: alpha(
-      theme.palette.text.secondary,
-      theme.palette.mode === "dark" ? 0.35 : 0.42
-    ),
-    border: `1px solid ${alpha(theme.palette.text.secondary, theme.palette.mode === "dark" ? 0.65 : 0.7)}`,
+    backgroundColor: alpha(theme.palette.common.white, 0.24),
+    border: `1px solid ${alpha(theme.palette.common.white, 0.32)}`,
+    ...theme.applyStyles("dark", {
+      backgroundColor: alpha(theme.palette.text.secondary, 0.26),
+      border: `1px solid ${alpha(theme.palette.text.secondary, 0.45)}`,
+    }),
     "&::before, &::after": {
       content: '""',
       position: "absolute",
@@ -55,20 +56,19 @@ const FilterToggleSwitch = styled(Switch)(({ theme }) => ({
       color: theme.palette.common.white,
       "& + .MuiSwitch-track": {
         backgroundColor: theme.palette.success.main,
-        borderColor: theme.palette.success.dark,
+        borderColor: theme.palette.success.main,
         opacity: 1,
       },
     },
   },
   "& .MuiSwitch-thumb": {
     boxShadow: "0 1px 4px rgba(0,0,0,0.35)",
-    backgroundColor:
-      theme.palette.mode === "dark" ? theme.palette.common.white : theme.palette.background.paper,
-    border: `1px solid ${
-      theme.palette.mode === "dark"
-        ? alpha(theme.palette.common.black, 0.24)
-        : alpha(theme.palette.text.primary, 0.14)
-    }`,
+    backgroundColor: theme.vars?.palette.background.paper ?? theme.palette.background.paper,
+    border: `1px solid ${alpha(theme.palette.text.primary, 0.14)}`,
+    ...theme.applyStyles("dark", {
+      backgroundColor: theme.palette.common.white,
+      border: `1px solid ${alpha(theme.palette.common.black, 0.24)}`,
+    }),
     width: 20,
     height: 20,
     margin: 0,
@@ -91,16 +91,20 @@ function FilterSwitch({ checked, label, onToggle, disabled = false, sx }: Filter
           border: "1px solid",
           borderColor: "divider",
           bgcolor: (theme) =>
-            alpha(theme.palette.background.paper, theme.palette.mode === "dark" ? 0.78 : 0.9),
+            theme.palette.mode === "dark"
+              ? alpha(theme.palette.common.black, 0.28)
+              : theme.vars?.palette.background.paper ?? theme.palette.background.paper,
           boxShadow: (theme) =>
             theme.palette.mode === "dark"
-              ? "0 2px 8px rgba(0,0,0,0.45)"
+              ? "0 4px 14px rgba(0,0,0,0.42)"
               : "0 1px 3px rgba(0,0,0,0.08)",
           transition: "border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease",
           opacity: disabled ? 0.6 : 1,
           "&:hover": {
-            borderColor: (theme) => alpha(theme.palette.success.main, 0.55),
-            boxShadow: (theme) => `0 2px 9px ${alpha(theme.palette.success.main, 0.16)}`,
+            borderColor: (theme) =>
+              alpha(theme.palette.success.main, theme.palette.mode === "dark" ? 0.72 : 0.55),
+            boxShadow: (theme) =>
+              `0 2px 9px ${alpha(theme.palette.success.main, theme.palette.mode === "dark" ? 0.28 : 0.16)}`,
             transform: "translateY(-1px)",
           },
         }}

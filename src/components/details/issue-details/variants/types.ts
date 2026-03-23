@@ -7,6 +7,11 @@ export type VariantIssue = {
   collected?: boolean | null;
   verified?: boolean | null;
   cover?: { url?: string | null } | null;
+  series?: {
+    title?: string | null;
+    volume?: number | null;
+    publisher?: { name?: string | null; us?: boolean | null } | null;
+  } | null;
   stories?: Array<unknown | null> | null;
   storyOwner?: {
     number?: string | null;

@@ -1,3 +1,5 @@
+"use client";
+
 import CardHeader from "@mui/material/CardHeader";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
@@ -36,7 +38,7 @@ export default function FilterPage(props: Readonly<FilterPageProps>) {
           borderRadius: 2,
           border: "1px solid",
           borderColor: "divider",
-          boxShadow: (theme) => theme.shadows[1],
+          boxShadow: 1,
           backgroundColor: "background.paper",
         }}
       >

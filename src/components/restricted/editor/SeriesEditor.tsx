@@ -1,3 +1,5 @@
+"use client";
+
 import { useRouter } from "next/navigation";
 import { SeriesSchema } from "../../../util/yupSchema";
 import { FastField, Form, Formik } from "formik";
@@ -82,11 +84,12 @@ function SeriesEditorView(props: Readonly<SeriesEditorProps>) {
     createInitialSeriesValues(props.defaultValues)
   );
 
-  const header = edit ? generateLabel(defaultValues) + " bearbeiten" : "Serie erstellen";
+  const seriesLabel = generateLabel({ series: defaultValues, us: defaultValues.publisher.us } as any);
+  const header = edit ? seriesLabel + " bearbeiten" : "Serie erstellen";
   const submitLabel = edit ? "Speichern" : "Erstellen";
   const successMessage = edit ? " erfolgreich gespeichert" : " erfolgreich erstellt";
   const errorMessage = edit
-    ? generateLabel(defaultValues) + " konnte nicht gespeichert werden"
+    ? seriesLabel + " konnte nicht gespeichert werden"
     : "Serie konnte nicht erstellt werden";
 
   const toggleUs = React.useCallback(() => {
@@ -121,10 +124,19 @@ function SeriesEditorView(props: Readonly<SeriesEditorProps>) {
           const nextItem = result.item;
           if (!nextItem) throw new Error("Serie konnte nicht gespeichert werden");
 
-          enqueueSnackbar(generateLabel(nextItem) + successMessage, {
-            variant: "success",
-          });
-          router.push(generateUrl(nextItem, Boolean(nextItem.publisher?.us)));
+          enqueueSnackbar(
+            generateLabel({ series: nextItem, us: Boolean(nextItem.publisher?.us) } as any) +
+              successMessage,
+            {
+              variant: "success",
+            }
+          );
+          router.push(
+            generateUrl(
+              { series: nextItem, us: Boolean(nextItem.publisher?.us) } as any,
+              Boolean(nextItem.publisher?.us)
+            )
+          );
         } catch (error) {
           const message = error instanceof Error && error.message ? ` [${error.message}]` : "";
           enqueueSnackbar(errorMessage + message, { variant: "error" });
@@ -360,7 +372,7 @@ function SeriesGenreAutocomplete({
   const [pattern, setPattern] = React.useState("");
   const selectedGenreNames = React.useMemo(() => parseGenreString(genre), [genre]);
 
-  const query = useAutocompleteQuery<string>({
+  const query = useAutocompleteQuery<FieldItem>({
     source: "genres",
     variables: {
       pattern,
@@ -374,7 +386,7 @@ function SeriesGenreAutocomplete({
     () =>
       normalizeGenreNames([
         ...selectedGenreNames,
-        ...query.options.map((entry) => String(entry || "")),
+        ...query.options.map((entry) => String(entry?.name || "")),
       ])
         .map((name) => ({ name })),
     [query.options, selectedGenreNames]

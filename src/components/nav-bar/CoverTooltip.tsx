@@ -1,9 +1,13 @@
+"use client";
+
 import Tooltip from "@mui/material/Tooltip";
 import Box from "@mui/material/Box";
 import React from "react";
+import { getPreferredCoverUrl } from "../generic/coverUrl";
 
 type CoverTooltipIssue = {
   cover?: { url?: string | null } | null;
+  comicguideid?: string | number | null;
   series?: { publisher?: { us?: boolean | null } | null } | null;
 };
 
@@ -15,8 +19,8 @@ type CoverTooltipProps = {
 };
 
 function getCoverSource(issue: CoverTooltipIssue): { coverUrl: string; blurCover: boolean } {
-  const directCover = issue.cover?.url?.trim();
-  if (directCover) return { coverUrl: directCover, blurCover: false };
+  const coverUrl = getPreferredCoverUrl(issue);
+  if (coverUrl) return { coverUrl, blurCover: false };
 
   return { coverUrl: "/nocover.png", blurCover: false };
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import AppPageShell from "@/src/components/app-shell/AppPageShell";
+import WorkspacePageShell from "@/src/components/app-shell/WorkspacePageShell";
 import FilterPage from "@/src/components/filter/FilterPage";
-import { resolveAppPage } from "@/src/lib/routes/app-page";
+import { resolveWorkspacePage } from "@/src/lib/routes/app-page";
 import { createStaticMetadata } from "@/src/lib/routes/metadata";
 
 export const metadata: Metadata = createStaticMetadata(
@@ -14,16 +14,14 @@ export default async function DeFilterPage({
 }: Readonly<{
   searchParams?: Promise<Record<string, string | string[] | undefined> | undefined>;
 }>) {
-  const page = await resolveAppPage({ us: false, searchParams, session: "optional" });
+  const page = await resolveWorkspacePage({ us: false, searchParams, session: "optional" });
   return (
-    <AppPageShell
+    <WorkspacePageShell
       selected={page.selected}
       level={page.level}
       us={page.us}
       query={page.query}
       session={page.session}
-      initialFilterCount={page.navigationData?.initialFilterCount}
-      initialPublisherNodes={page.navigationData?.initialPublisherNodes}
     >
       <FilterPage
         selected={page.selected}
@@ -31,6 +29,6 @@ export default async function DeFilterPage({
         query={page.query as { filter?: string } | null}
         hasSession={Boolean(page.session?.loggedIn)}
       />
-    </AppPageShell>
+    </WorkspacePageShell>
   );
 }

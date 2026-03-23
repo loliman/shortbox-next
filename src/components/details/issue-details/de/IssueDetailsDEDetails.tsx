@@ -1,6 +1,7 @@
 import React from "react";
 import dateFormat from "dateformat";
-import { DetailsRow, toIsbn10, toIsbn13, toShortboxDate } from "../shared";
+import { DetailsRow } from "../DetailsRow";
+import { toIsbn10, toIsbn13, toShortboxDate } from "../utils/issueMetaFormatters";
 
 interface IssueDetailsDEDetailsProps {
   issue?: {

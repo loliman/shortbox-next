@@ -114,66 +114,89 @@ export function updateField(
   values: FieldItem[] | undefined,
   setFieldValue: (field: string, value: unknown) => void,
   field: string,
-  pattern: string
+  pattern: string,
+  scope?: string
 ) {
-  if (typeof option !== "string" || option.trim() !== "") {
-    if (live) {
-      const nextValues = cloneValues(values);
+  if (live) {
+    const nextValues = cloneValues(values).filter((entry) => {
+      if (!entry.pattern) return true;
+      return scope ? !matchesPatternScope(entry, scope) : false;
+    });
 
-      if (nextValues.length === 0 || !nextValues[nextValues.length - 1].pattern) {
-        const dummy: FieldItem = { pattern: true };
-        dummy[pattern] = option;
-        nextValues.push(dummy);
-      } else {
-        const updated = { ...nextValues[nextValues.length - 1] };
-        updated[pattern] = option;
-        nextValues[nextValues.length - 1] = updated;
+    const liveValue = typeof option === "string" ? option : "";
+    if (liveValue.trim() !== "") {
+      const dummy: FieldItem = { pattern: true };
+      dummy[pattern] = liveValue;
+      if (scope) {
+        dummy.type = scope;
+        dummy.role = scope;
+      }
+      nextValues.push(dummy);
+    }
+
+    setFieldValue(field, nextValues);
+    return;
+  }
+
+  if (typeof option !== "string" || option.trim() !== "") {
+    if (!live) {
+      let selected = cloneValues(values);
+      const payload = option as ChangePayload;
+      const appearanceMode = isAppearanceField(payload.name);
+
+      switch (payload.action) {
+        case "deselect-option":
+        case "select-option":
+        case "create-option":
+          upsertSelectedEntry(selected, payload, appearanceMode);
+          break;
+
+        case "remove-value":
+          if (appearanceMode) {
+            selected = selected.filter(
+              (entry) =>
+                `${entry.name}${entry.type}` !== `${payload.removedValue?.name}${payload.type}`
+            );
+          } else {
+            const previous = selected.find((entry) => entry.name === payload.removedValue?.name);
+            if (previous) removeIndividualType(previous, payload.type);
+          }
+          break;
+
+        case "clear":
+          if (appearanceMode) {
+            selected = selected.filter((entry) => entry.type !== payload.type);
+          } else {
+            selected.forEach((entry) => removeIndividualType(entry, payload.type));
+          }
+          break;
+
+        default:
+          return;
       }
 
-      setFieldValue(field, nextValues);
-      return;
+      setFieldValue(field, stripPlaceholderEntries(selected, appearanceMode));
     }
-
-    let selected = cloneValues(values);
-    const payload = option as ChangePayload;
-    const appearanceMode = isAppearanceField(payload.name);
-
-    switch (payload.action) {
-      case "deselect-option":
-      case "select-option":
-      case "create-option":
-        upsertSelectedEntry(selected, payload, appearanceMode);
-        break;
-
-      case "remove-value":
-        if (appearanceMode) {
-          selected = selected.filter(
-            (entry) =>
-              `${entry.name}${entry.type}` !== `${payload.removedValue?.name}${payload.type}`
-          );
-        } else {
-          const previous = selected.find((entry) => entry.name === payload.removedValue?.name);
-          if (previous) removeIndividualType(previous, payload.type);
-        }
-        break;
-
-      case "clear":
-        if (appearanceMode) {
-          selected = selected.filter((entry) => entry.type !== payload.type);
-        } else {
-          selected.forEach((entry) => removeIndividualType(entry, payload.type));
-        }
-        break;
-
-      default:
-        return;
-    }
-
-    setFieldValue(field, stripPlaceholderEntries(selected, appearanceMode));
   }
 }
 
-export function getPattern(arr: FieldItem[] | null | undefined, pattern: string) {
-  if (!arr || arr.length === 0 || !arr[arr.length - 1].pattern) return null;
-  return arr[arr.length - 1][pattern];
+export function getPattern(
+  arr: FieldItem[] | null | undefined,
+  pattern: string,
+  scope?: string
+) {
+  if (!arr || arr.length === 0) return null;
+
+  for (let index = arr.length - 1; index >= 0; index -= 1) {
+    const entry = arr[index];
+    if (!entry?.pattern) continue;
+    if (scope && !matchesPatternScope(entry, scope)) continue;
+    return entry[pattern];
+  }
+
+  return null;
+}
+
+function matchesPatternScope(entry: FieldItem, scope: string) {
+  return entry.type === scope || entry.role === scope;
 }

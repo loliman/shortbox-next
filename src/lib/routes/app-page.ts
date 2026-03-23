@@ -64,3 +64,11 @@ export async function resolveAppPage(options: Readonly<ResolveAppPageOptions>): 
     navigationData,
   };
 }
+
+type ResolveWorkspacePageOptions = Omit<ResolveAppPageOptions, "includeNavigation">;
+
+export async function resolveWorkspacePage(
+  options: Readonly<ResolveWorkspacePageOptions>
+): Promise<ResolvedAppPage> {
+  return resolveAppPage({ ...options, includeNavigation: false });
+}

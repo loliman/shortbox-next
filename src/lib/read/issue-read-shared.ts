@@ -25,6 +25,9 @@ const UNICODE_FRACTION_VALUES: Record<string, number> = {
   "¾": 0.75,
 };
 
+const PARENS_PATTERN = /[()]/g;
+const ALPHA_ONLY_PATTERN = /^[A-Z]+$/;
+
 export function buildConnectionFromNodes<T>(nodes: T[]): Connection<T> {
   const edges: Array<Edge<T>> = nodes.map((node, index) => ({
     cursor: String(index),
@@ -53,13 +56,21 @@ export function normalizeText(value: unknown) {
   return String(value ?? "").trim();
 }
 
+function normalizeIssueNumberForSort(value: unknown) {
+  return String(value ?? "")
+    .trim()
+    .replace(PARENS_PATTERN, "")
+    .replace(/\s+/g, " ")
+    .toUpperCase();
+}
+
 export function toOptionalText(value: unknown) {
   const normalized = normalizeText(value);
   return normalized === "" ? null : normalized;
 }
 
 function parseSortableIssueNumber(value: string): number | null {
-  const trimmed = value.trim();
+  const trimmed = normalizeIssueNumberForSort(value);
   const unicodeFractionMatch = trimmed.match(/^(-?\d+)?\s*([¼½¾])$/);
   if (unicodeFractionMatch) {
     const whole = Number(unicodeFractionMatch[1] || 0);
@@ -106,6 +117,13 @@ function naturalCompare(left: string, right: string) {
   return left.localeCompare(right, undefined, { numeric: true, sensitivity: "base" });
 }
 
+function getIssueNumberSortBucket(value: string): 0 | 1 | 2 | 3 {
+  if (value !== "" && ROMAN_NUMBER_PATTERN.test(value)) return 0;
+  if (value !== "" && ALPHA_ONLY_PATTERN.test(value)) return 1;
+  if (parseSortableIssueNumber(value) != null) return 2;
+  return 3;
+}
+
 export function pickCanonicalIssueTitle(
   issues: Array<{ title?: unknown }>,
   fallbackTitle: unknown
@@ -122,14 +140,17 @@ export function pickCanonicalIssueTitle(
 }
 
 export function compareIssueNumber(leftRaw: unknown, rightRaw: unknown): number {
-  const left = String(leftRaw ?? "").trim();
-  const right = String(rightRaw ?? "").trim();
+  const left = normalizeIssueNumberForSort(leftRaw);
+  const right = normalizeIssueNumberForSort(rightRaw);
+  const leftBucket = getIssueNumberSortBucket(left);
+  const rightBucket = getIssueNumberSortBucket(right);
+
+  if (leftBucket !== rightBucket) return leftBucket - rightBucket;
+
   const leftIsRoman = left !== "" && ROMAN_NUMBER_PATTERN.test(left);
   const rightIsRoman = right !== "" && ROMAN_NUMBER_PATTERN.test(right);
 
   if (leftIsRoman && rightIsRoman) return fromRoman(left) - fromRoman(right);
-  if (leftIsRoman) return -1;
-  if (rightIsRoman) return 1;
 
   const leftSortable = parseSortableIssueNumber(left);
   const rightSortable = parseSortableIssueNumber(right);

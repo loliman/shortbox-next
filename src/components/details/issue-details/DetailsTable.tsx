@@ -2,14 +2,17 @@ import React from "react";
 import Paper from "@mui/material/Paper";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
+import type { IssueDetailsSlotComponent } from "./slotTypes";
 
 interface DetailsTableProps {
-  details: React.ReactElement;
+  details: IssueDetailsSlotComponent;
   issue: unknown;
   [key: string]: unknown;
 }
 
 export function DetailsTable(props: Readonly<DetailsTableProps>) {
+  const DetailsComponent = props.details;
+
   return (
     <Paper variant="outlined" sx={{ width: "100%", boxShadow: 1 }}>
       <Table
@@ -25,10 +28,7 @@ export function DetailsTable(props: Readonly<DetailsTableProps>) {
         }}
       >
         <TableBody>
-          {React.cloneElement(props.details as React.ReactElement<any>, {
-            ...props,
-            issue: props.issue,
-          })}
+          <DetailsComponent {...props} issue={props.issue} />
         </TableBody>
       </Table>
     </Paper>

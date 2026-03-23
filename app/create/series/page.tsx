@@ -1,13 +1,18 @@
-import AppPageShell from "@/src/components/app-shell/AppPageShell";
+import WorkspacePageShell from "@/src/components/app-shell/WorkspacePageShell";
 import SeriesCreate from "@/src/components/restricted/create/SeriesCreate";
-import { resolveAppPage } from "@/src/lib/routes/app-page";
+import { resolveWorkspacePage } from "@/src/lib/routes/app-page";
 
 export default async function SeriesCreatePage() {
-  const page = await resolveAppPage({ us: false, includeNavigation: false, session: "write" });
+  const page = await resolveWorkspacePage({ us: false, session: "write" });
 
   return (
-    <AppPageShell selected={page.selected} level={page.level} us={page.us} session={page.session}>
+    <WorkspacePageShell
+      selected={page.selected}
+      level={page.level}
+      us={page.us}
+      session={page.session}
+    >
       <SeriesCreate selected={page.selected} level={page.level} us={page.us} session={page.session} />
-    </AppPageShell>
+    </WorkspacePageShell>
   );
 }

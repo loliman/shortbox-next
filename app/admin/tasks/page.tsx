@@ -1,36 +1,34 @@
-import AppPageShell from "@/src/components/app-shell/AppPageShell";
+import WorkspacePageShell from "@/src/components/app-shell/WorkspacePageShell";
 import AdminTasks from "@/src/components/admin/AdminTasks";
 import { countChangeRequests } from "@/src/lib/read/issue-read";
 import { readAdminTasks } from "@/src/lib/read/admin-read";
-import { resolveAppPage } from "@/src/lib/routes/app-page";
+import { resolveWorkspacePage } from "@/src/lib/routes/app-page";
+import { requirePageAdminSession } from "@/src/lib/server/guards";
 
 export default async function AdminTasksPage() {
-  const page = await resolveAppPage({ us: false, session: "admin" });
+  const session = await requirePageAdminSession();
+  const page = await resolveWorkspacePage({ us: false, session: "admin" });
   const initialItems = await readAdminTasks(10);
   const changeRequestsCount = await countChangeRequests().catch(() => 0);
 
   return (
-    <AppPageShell
+    <WorkspacePageShell
       selected={page.selected}
       level={page.level}
       us={page.us}
       query={page.query}
-      session={page.session}
-      initialFilterCount={page.navigationData?.initialFilterCount}
-      initialPublisherNodes={page.navigationData?.initialPublisherNodes}
+      session={session}
       changeRequestsCount={changeRequestsCount}
     >
       <AdminTasks
         selected={page.selected}
         level={page.level}
         us={page.us}
-        session={page.session}
+        session={session}
         query={page.query}
-        initialFilterCount={page.navigationData?.initialFilterCount}
         initialItems={initialItems}
-        initialPublisherNodes={page.navigationData?.initialPublisherNodes}
         changeRequestsCount={changeRequestsCount}
       />
-    </AppPageShell>
+    </WorkspacePageShell>
   );
 }

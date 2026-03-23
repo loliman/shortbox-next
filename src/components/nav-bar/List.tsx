@@ -32,12 +32,8 @@ interface ListProps {
   initialIssueNodesBySeriesKey?: Record<string, IssueNode[]>;
   drawerOpen?: boolean;
   toggleDrawer?: () => void;
-  compactLayout?: boolean;
-  isPhone?: boolean;
-  isPhoneLandscape?: boolean;
-  isPhonePortrait?: boolean;
-  isTablet?: boolean;
-  isTabletLandscape?: boolean;
+  temporaryDrawer: boolean;
+  phonePortrait: boolean;
   query?: { filter?: string | null; navPublisher?: string | null; navSeries?: string | null } | null;
   selected: SelectedRoot;
   session?: unknown;
@@ -49,14 +45,13 @@ export default function List(props: Readonly<ListProps>) {
   const router = useRouter();
   const pathname = usePathname();
   const { drawerOpen, toggleDrawer } = props;
-  const temporaryDrawer =
-    props.compactLayout ?? Boolean(props.isPhone || (props.isTablet && !props.isTabletLandscape));
+  const temporaryDrawer = props.temporaryDrawer;
   const filterQuery = props.query?.filter ?? null;
   const queryExpandedPublisher = props.query?.navPublisher ?? null;
   const queryExpandedSeries = props.query?.navSeries ?? null;
   const us = Boolean(props.us);
   const navStateKey = React.useMemo(() => `${us}|${filterQuery || ""}`, [us, filterQuery]);
-  const phonePortrait = props.isPhonePortrait ?? Boolean(props.isPhone && !props.isPhoneLandscape);
+  const phonePortrait = props.phonePortrait;
   const listRef = React.useRef<HTMLUListElement | null>(null);
   const navScrollContainerRef = React.useRef<HTMLDivElement | null>(null);
   const suppressIssueAutoScrollRef = React.useRef(false);
@@ -73,7 +68,7 @@ export default function List(props: Readonly<ListProps>) {
     }
   }, [navStateKey]);
   const [expandedPublishers, setExpandedPublishers] = React.useState<Record<string, boolean>>(
-    () => readNavExpansionState(navStateKey)
+    {}
   );
 
   React.useEffect(() => {

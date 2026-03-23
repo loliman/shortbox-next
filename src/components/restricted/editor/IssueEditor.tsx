@@ -1,3 +1,5 @@
+"use client";
+
 import { useRouter } from "next/navigation";
 import { IssueSchema } from "../../../util/yupSchema";
 import { Form, Formik } from "formik";
@@ -12,13 +14,54 @@ import { mutationRequest } from "../../../lib/client/mutation-request";
 
 type IssueMutationResult = Record<string, unknown>;
 
+function normalizeIssueEditorValues(
+  value: IssueEditorFormValues | undefined
+): IssueEditorFormValues {
+  const defaults = createEmptyIssueValues();
+  const source = value || defaults;
+
+  return {
+    ...defaults,
+    ...source,
+    title: String(source.title || ""),
+    number: String(source.number || ""),
+    variant: String(source.variant || ""),
+    format: String(source.format || defaults.format || ""),
+    limitation: String(source.limitation || ""),
+    releasedate: String(source.releasedate || ""),
+    price: source.price == null ? "" : String(source.price),
+    currency: String(source.currency || ""),
+    addinfo: String(source.addinfo || ""),
+    isbn: String(source.isbn || ""),
+    series: {
+      ...defaults.series,
+      ...source.series,
+      title: String(source.series?.title || ""),
+      volume: source.series?.volume ?? defaults.series.volume,
+      publisher: {
+        ...defaults.series.publisher,
+        ...source.series?.publisher,
+        name: String(source.series?.publisher?.name || ""),
+        us: Boolean(source.series?.publisher?.us),
+      },
+    },
+    individuals: Array.isArray(source.individuals) ? source.individuals : [],
+    arcs: Array.isArray(source.arcs) ? source.arcs : [],
+    stories: Array.isArray(source.stories) ? source.stories : [],
+  };
+}
+
 function IssueEditorView(props: Readonly<IssueEditorProps>) {
   const router = useRouter();
   const { enqueueSnackbar, edit, selected } = props;
 
   const [defaultValues, setDefaultValues] = React.useState<IssueEditorFormValues>(() => {
-    return props.defaultValues || createEmptyIssueValues();
+    return normalizeIssueEditorValues(props.defaultValues);
   });
+
+  React.useEffect(() => {
+    setDefaultValues(normalizeIssueEditorValues(props.defaultValues));
+  }, [props.defaultValues]);
   const [copyMode, setCopyMode] = React.useState(Boolean(props.copy));
   const copyModeRef = React.useRef(copyMode);
 
@@ -80,12 +123,17 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
           const nextItem = result.item;
           if (!nextItem) throw new Error("Ausgabe konnte nicht gespeichert werden");
 
-          enqueueSnackbar(generateLabel(nextItem) + successMessage, {
+          enqueueSnackbar(generateLabel({ issue: nextItem, us: Boolean((nextItem.series as any)?.publisher?.us) } as any) + successMessage, {
             variant: "success",
           });
 
           if (!copyModeRef.current) {
-            router.push(generateUrl(nextItem, Boolean((nextItem.series as any)?.publisher?.us)));
+            router.push(
+              generateUrl(
+                { issue: nextItem, us: Boolean((nextItem.series as any)?.publisher?.us) } as any,
+                Boolean((nextItem.series as any)?.publisher?.us)
+              )
+            );
             return;
           }
 
@@ -94,7 +142,13 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
           copiedSelection.variant = undefined;
           router.push(
             "/copy/issue" +
-              generateUrl(copiedSelection, Boolean((copiedSelection.series as any)?.publisher?.us))
+              generateUrl(
+                {
+                  issue: copiedSelection,
+                  us: Boolean((copiedSelection.series as any)?.publisher?.us),
+                } as any,
+                Boolean((copiedSelection.series as any)?.publisher?.us)
+              )
           );
         } catch (error) {
           const message = error instanceof Error && error.message ? ` [${error.message}]` : "";
@@ -124,6 +178,7 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
               setCopyMode(nextCopyMode);
               submitForm();
             }}
+            lockedFields={props.lockedFields}
           />
         </Form>
       )}

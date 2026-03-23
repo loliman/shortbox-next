@@ -152,7 +152,7 @@ export function IssueHistoryPlaceholder(
 }
 
 function buildIssueKey(issue: PreviewIssue, idx: number): string {
-  if (issue.id) return String(issue.id);
+  if (issue.id) return "issue-id|" + issue.id + "|" + idx;
 
   const publisher = issue.series?.publisher?.name || "";
   const series = issue.series?.title || "";
@@ -162,7 +162,7 @@ function buildIssueKey(issue: PreviewIssue, idx: number): string {
   const variant = issue.variant || "";
 
   if (publisher && series && number) {
-    return ["issue", publisher, series, volume, number, format, variant].join("|");
+    return ["issue", publisher, series, volume, number, format, variant, idx].join("|");
   }
 
   return "issue|" + idx;

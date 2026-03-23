@@ -1,18 +1,22 @@
+import { headers } from "next/headers";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import FooterLinks from "../footer/FooterLinks";
 import LayoutChromeClient from "../LayoutChromeClient";
 import AddFab from "../fab/AddFab";
 import ErrorFab from "../fab/ErrorFab";
-import { COMPACT_BOTTOM_BAR_CLEARANCE } from "../layoutMetrics";
+import { COMPACT_BOTTOM_BAR_CLEARANCE, getNavDrawerWidth } from "../layoutMetrics";
+import { getInitialResponsiveGuess } from "../../app/responsiveGuess";
+import { countChangeRequests } from "../../lib/read/issue-read";
 import type { IssueNode, PublisherNode, SeriesNode } from "../nav-bar/listTreeUtils";
 import type { SessionData } from "../../app/session";
 import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
 
-interface AppPageShellProps {
+export interface CatalogPageShellProps {
   selected: LayoutRouteData["selected"];
   level: LayoutRouteData["level"];
   us: boolean;
+  showNavigation?: boolean;
   query?: RouteQuery | null;
   initialPublisherNodes?: PublisherNode[];
   initialSeriesNodesByPublisher?: Record<string, SeriesNode[]>;
@@ -24,12 +28,38 @@ interface AppPageShellProps {
   children?: React.ReactNode;
 }
 
-export default function AppPageShell(props: Readonly<AppPageShellProps>) {
+export default async function CatalogPageShell(props: Readonly<CatalogPageShellProps>) {
+  const showNavigation = props.showNavigation ?? true;
+  const resolvedChangeRequestsCount =
+    typeof props.changeRequestsCount === "number"
+      ? props.changeRequestsCount
+      : props.session?.canAdmin
+        ? await countChangeRequests().catch(() => 0)
+        : 0;
+  let initialNavOffset = "0px";
+
+  if (showNavigation) {
+    const headerStore = await headers();
+    const initialResponsiveGuess = getInitialResponsiveGuess(headerStore.get("user-agent"));
+    const initialTablet = !initialResponsiveGuess.isPhone && !initialResponsiveGuess.isDesktop;
+    const initialNavWide =
+      initialResponsiveGuess.isDesktop || (initialTablet && initialResponsiveGuess.isLandscape);
+    initialNavOffset = initialNavWide ? `${getNavDrawerWidth(false)}px` : "0px";
+  }
+
   return (
-    <Box sx={{ minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
+    <Box
+      sx={{
+        minHeight: "100dvh",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: "background.default",
+      }}
+    >
       <LayoutChromeClient
         selected={props.selected}
         us={props.us}
+        showNavigation={showNavigation}
         query={props.query}
         initialPublisherNodes={props.initialPublisherNodes}
         initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher}
@@ -37,25 +67,40 @@ export default function AppPageShell(props: Readonly<AppPageShellProps>) {
         drawerOpen={props.drawerOpen}
         session={props.session}
         initialFilterCount={props.initialFilterCount}
-        changeRequestsCount={props.changeRequestsCount}
+        changeRequestsCount={resolvedChangeRequestsCount}
       />
-      {props.session?.canWrite ? (
-        <AddFab session={props.session} level={props.level} selected={props.selected} us={props.us} />
-      ) : props.us ? null : (
-        <ErrorFab level={props.level} selected={props.selected} us={props.us} />
-      )}
+      {showNavigation
+        ? props.session?.canWrite ? (
+            <AddFab
+              session={props.session}
+              level={props.level}
+              selected={props.selected}
+              us={props.us}
+            />
+          ) : props.us ? null : (
+            <ErrorFab level={props.level} selected={props.selected} us={props.us} />
+          )
+        : null}
 
-      <Box component="main" sx={{ display: "flex", flexGrow: 1, minHeight: 0 }}>
+      <Box
+        component="main"
+        sx={{ display: "flex", flexGrow: 1, minHeight: 0, backgroundColor: "background.default" }}
+      >
         <Box
           sx={{
             display: "flex",
             flexGrow: 1,
             minWidth: 0,
+            backgroundColor: "background.default",
             px: { xs: 0, sm: 2 },
             pt: { xs: 0, sm: 2 },
-            pb: { xs: COMPACT_BOTTOM_BAR_CLEARANCE, sm: COMPACT_BOTTOM_BAR_CLEARANCE, lg: 2 },
-            ml: "var(--shortbox-nav-offset, 0px)",
-            transition: "margin-left 225ms cubic-bezier(0.4, 0, 0.6, 1)",
+            pb: showNavigation
+              ? { xs: COMPACT_BOTTOM_BAR_CLEARANCE, sm: COMPACT_BOTTOM_BAR_CLEARANCE, lg: 2 }
+              : { xs: 0, sm: 2 },
+            ml: showNavigation ? `var(--shortbox-nav-offset, ${initialNavOffset})` : 0,
+            transition: showNavigation
+              ? "margin-left 225ms cubic-bezier(0.4, 0, 0.6, 1)"
+              : undefined,
           }}
         >
           <Card
@@ -65,6 +110,7 @@ export default function AppPageShell(props: Readonly<AppPageShellProps>) {
               flexDirection: "column",
               minWidth: 0,
               overflow: "visible",
+              backgroundColor: "background.paper",
             }}
           >
             <Box sx={{ flexGrow: 1, p: { xs: 0, sm: 2 }, minHeight: 0, position: "relative" }}>
@@ -85,7 +131,7 @@ export default function AppPageShell(props: Readonly<AppPageShellProps>) {
                   zIndex: 0,
                 }}
               />
-              <Box className="main-content data-fade" sx={{ position: "relative", zIndex: 1 }}>
+              <Box className="main-content" sx={{ position: "relative", zIndex: 1 }}>
                 {props.children}
               </Box>
             </Box>

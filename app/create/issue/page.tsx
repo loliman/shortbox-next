@@ -1,16 +1,22 @@
-import AppPageShell from "@/src/components/app-shell/AppPageShell";
+import WorkspacePageShell from "@/src/components/app-shell/WorkspacePageShell";
 import IssueCreate from "@/src/components/restricted/create/IssueCreate";
-import { resolveAppPage } from "@/src/lib/routes/app-page";
+import { resolveWorkspacePage } from "@/src/lib/routes/app-page";
 
 export default async function IssueCreatePage({
   searchParams,
 }: Readonly<{
   searchParams?: Promise<Record<string, string | string[] | undefined> | undefined>;
 }>) {
-  const page = await resolveAppPage({ us: false, searchParams, includeNavigation: false, session: "write" });
+  const page = await resolveWorkspacePage({ us: false, searchParams, session: "write" });
 
   return (
-    <AppPageShell selected={page.selected} level={page.level} us={page.us} query={page.query} session={page.session}>
+    <WorkspacePageShell
+      selected={page.selected}
+      level={page.level}
+      us={page.us}
+      query={page.query}
+      session={page.session}
+    >
       <IssueCreate
         selected={page.selected}
         level={page.level}
@@ -18,6 +24,6 @@ export default async function IssueCreatePage({
         session={page.session}
         query={page.query}
       />
-    </AppPageShell>
+    </WorkspacePageShell>
   );
 }

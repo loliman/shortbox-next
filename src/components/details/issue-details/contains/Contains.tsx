@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import CardHeader from "@mui/material/CardHeader";
 import Typography from "@mui/material/Typography";
@@ -6,13 +8,17 @@ import { getContainsItemKey } from "../utils/issueDetailsUtils";
 import { ContainsSimpleItem } from "./ContainsSimpleItem";
 import { ContainsItem } from "./ContainsItem";
 import type { ItemLike, QueryParams } from "./expanded";
+import type {
+  ContainsDetailsSlotComponent,
+  ContainsTitleSlotComponent,
+} from "../slotTypes";
 
 interface ContainsProps {
   header?: string;
   noEntriesHint?: string;
   items?: ItemLike[] | null;
-  itemTitle: React.ReactElement;
-  itemDetails?: React.ReactElement;
+  itemTitle: ContainsTitleSlotComponent;
+  itemDetails?: ContainsDetailsSlotComponent;
   query?: QueryParams;
   us?: boolean;
   [key: string]: unknown;
@@ -20,6 +26,14 @@ interface ContainsProps {
 
 export function Contains(props: Readonly<ContainsProps>) {
   const items = Array.isArray(props.items) ? props.items : [];
+  const ItemTitle = props.itemTitle;
+  const ItemDetails = props.itemDetails;
+  const slotProps: Record<string, unknown> = { ...props };
+  delete slotProps.header;
+  delete slotProps.noEntriesHint;
+  delete slotProps.items;
+  delete slotProps.itemTitle;
+  delete slotProps.itemDetails;
 
   return (
     <Box>
@@ -29,14 +43,15 @@ export function Contains(props: Readonly<ContainsProps>) {
         <Typography color="text.secondary">{props.noEntriesHint}</Typography>
       ) : (
         items.map((item, idx) => {
-          if (!props.itemDetails) {
+          if (!ItemDetails) {
             return (
               <ContainsSimpleItem
                 key={getContainsItemKey(item, idx)}
                 item={item}
-                itemTitle={props.itemTitle}
+                itemTitle={ItemTitle}
                 query={props.query}
                 us={props.us}
+                {...slotProps}
               />
             );
           }
@@ -47,10 +62,11 @@ export function Contains(props: Readonly<ContainsProps>) {
               key={getContainsItemKey(item, idx)}
               isLast={idx === items.length - 1}
               item={item}
-              itemTitle={props.itemTitle}
-              itemDetails={props.itemDetails}
+              itemTitle={ItemTitle}
+              itemDetails={ItemDetails as ContainsDetailsSlotComponent}
               query={props.query}
               us={props.us}
+              {...slotProps}
             />
           );
         })

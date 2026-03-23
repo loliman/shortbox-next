@@ -29,7 +29,11 @@ function normalizeStory(story: Record<string, unknown>, usIssue: boolean) {
   const parent = (story.parent || {}) as {
     number?: number;
     title?: string;
-    issue?: { number?: string; legacy_number?: string; series?: { title?: string; volume?: number } };
+    issue?: {
+      number?: string;
+      legacy_number?: string;
+      series?: { title?: string; volume?: number; startyear?: number };
+    };
   };
   const parentIssue = parent.issue || {};
   const parentSeries = parentIssue.series || {};
@@ -62,6 +66,7 @@ function normalizeStory(story: Record<string, unknown>, usIssue: boolean) {
             series: {
               title: String(parentSeries.title || ""),
               volume: parentSeries.volume || 0,
+              startyear: parentSeries.startyear || undefined,
             },
             number: String(parentIssue.number || ""),
             legacy_number: String(parentIssue.legacy_number || ""),

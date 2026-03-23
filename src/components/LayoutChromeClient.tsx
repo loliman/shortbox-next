@@ -1,9 +1,11 @@
 "use client";
 
 import React from "react";
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import type { IssueNode, PublisherNode, SeriesNode } from "./nav-bar/listTreeUtils";
 import type { SessionData } from "../app/session";
-import { useResponsive } from "../app/useResponsive";
+import { useInitialResponsiveGuess } from "../app/responsiveGuessContext";
 import type { LayoutRouteData, RouteQuery } from "../types/route-ui";
 import TopBar from "./top-bar/TopBar";
 import List from "./nav-bar/List";
@@ -14,6 +16,7 @@ import { useLayoutChromeState } from "./useLayoutChromeState";
 interface LayoutChromeClientProps {
   selected: LayoutRouteData["selected"];
   us: boolean;
+  showNavigation?: boolean;
   query?: RouteQuery | null;
   initialPublisherNodes?: PublisherNode[];
   initialSeriesNodesByPublisher?: Record<string, SeriesNode[]>;
@@ -25,16 +28,36 @@ interface LayoutChromeClientProps {
 }
 
 export default function LayoutChromeClient(props: Readonly<LayoutChromeClientProps>) {
-  const responsive = useResponsive();
+  const showNavigation = props.showNavigation ?? true;
+  const theme = useTheme();
+  const initialGuess = useInitialResponsiveGuess();
+  const isLandscape = useMediaQuery("(orientation: landscape)", {
+    defaultMatches: initialGuess?.isLandscape ?? true,
+  });
+  const isPhone = useMediaQuery(theme.breakpoints.down("sm"), {
+    defaultMatches: initialGuess?.isPhone ?? false,
+  });
+  const isDesktop = useMediaQuery(theme.breakpoints.up("lg"), {
+    defaultMatches: initialGuess?.isDesktop ?? true,
+  });
+  const isTablet = !isPhone && !isDesktop;
+  const isTabletLandscape = isTablet && isLandscape;
+  const isPhonePortrait = isPhone && !isLandscape;
+  const isCompact = isPhone || (isTablet && !isLandscape);
+  const navWide = isDesktop || isTabletLandscape;
   const session = props.session ?? null;
-  const temporaryDrawer = responsive.isCompact;
+  const temporaryDrawer = isCompact;
   const themeContext = useThemeModeContext();
   const snackbarBridge = useSnackbarBridge();
-  const chromeState = useLayoutChromeState({
-    drawerOpen: props.drawerOpen,
-    navWide: responsive.navWide,
-    temporaryDrawer,
-  });
+  const chromeState = useLayoutChromeState(
+    showNavigation
+      ? {
+          drawerOpen: props.drawerOpen,
+          navWide,
+          temporaryDrawer,
+        }
+      : null
+  );
 
   return (
     <>
@@ -42,44 +65,37 @@ export default function LayoutChromeClient(props: Readonly<LayoutChromeClientPro
         toggleDrawer={chromeState.toggleDrawer}
         drawerOpen={chromeState.drawerOpen}
         us={props.us}
-        isPhone={responsive.isPhone}
-        isPhoneLandscape={responsive.isPhoneLandscape}
-        isTablet={responsive.isTablet}
-        isTabletLandscape={responsive.isTabletLandscape}
-        isPhonePortrait={responsive.isPhonePortrait}
-        compactLayout={responsive.isCompact}
+        showNavigation={showNavigation}
+        compactLayout={isCompact}
         session={session}
         query={props.query}
         selected={props.selected}
         resetNavigationState={chromeState.resetNavigationState}
-        themeMode={themeContext.themeMode}
         toggleTheme={themeContext.toggleTheme}
         enqueueSnackbar={snackbarBridge.enqueueSnackbar}
         initialFilterCount={props.initialFilterCount}
         changeRequestsCount={props.changeRequestsCount ?? 0}
       />
 
-      <List
-        initialPublisherNodes={props.initialPublisherNodes}
-        initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher}
-        initialIssueNodesBySeriesKey={props.initialIssueNodesBySeriesKey}
-        drawerOpen={chromeState.drawerOpen}
-        toggleDrawer={chromeState.toggleDrawer}
-        compactLayout={responsive.isCompact}
-        isPhone={responsive.isPhone}
-        isPhoneLandscape={responsive.isPhoneLandscape}
-        isPhonePortrait={responsive.isPhonePortrait}
-        isTablet={responsive.isTablet}
-        isTabletLandscape={responsive.isTabletLandscape}
-        query={
-          props.query as
-            | { filter?: string | null; navPublisher?: string | null; navSeries?: string | null }
-            | null
-        }
-        selected={props.selected}
-        session={session}
-        us={props.us}
-      />
+      {showNavigation ? (
+        <List
+          initialPublisherNodes={props.initialPublisherNodes}
+          initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher}
+          initialIssueNodesBySeriesKey={props.initialIssueNodesBySeriesKey}
+          drawerOpen={chromeState.drawerOpen}
+          toggleDrawer={chromeState.toggleDrawer}
+          temporaryDrawer={temporaryDrawer}
+          phonePortrait={isPhonePortrait}
+          query={
+            props.query as
+              | { filter?: string | null; navPublisher?: string | null; navSeries?: string | null }
+              | null
+          }
+          selected={props.selected}
+          session={session}
+          us={props.us}
+        />
+      ) : null}
     </>
   );
 }

@@ -1,3 +1,5 @@
+"use client";
+
 import { useRouter } from "next/navigation";
 import { PublisherSchema } from "../../../util/yupSchema";
 import { FastField, Form, Formik } from "formik";
@@ -49,14 +51,12 @@ type PublisherMutationResult = {
 };
 
 function createInitialPublisherValues(defaultValues?: PublisherFormValues): PublisherFormValues {
-  if (defaultValues) return defaultValues;
-
   return {
-    name: "",
-    startyear: 1900,
-    endyear: 1900,
-    addinfo: "",
-    us: false,
+    name: String(defaultValues?.name || ""),
+    startyear: Number(defaultValues?.startyear ?? 1900),
+    endyear: Number(defaultValues?.endyear ?? 1900),
+    addinfo: String(defaultValues?.addinfo || ""),
+    us: Boolean(defaultValues?.us),
   };
 }
 
@@ -68,11 +68,12 @@ function PublisherEditorView(props: Readonly<PublisherEditorProps>) {
     createInitialPublisherValues(props.defaultValues)
   );
 
-  const header = edit ? generateLabel(defaultValues) + " bearbeiten" : "Verlag erstellen";
+  const publisherLabel = generateLabel({ publisher: defaultValues, us: defaultValues.us } as any);
+  const header = edit ? publisherLabel + " bearbeiten" : "Verlag erstellen";
   const submitLabel = edit ? "Speichern" : "Erstellen";
   const successMessage = edit ? " erfolgreich gespeichert" : " erfolgreich erstellt";
   const errorMessage = edit
-    ? generateLabel(defaultValues) + " konnte nicht gespeichert werden"
+    ? publisherLabel + " konnte nicht gespeichert werden"
     : "Verlag konnte nicht erstellt werden";
 
   const toggleUs = React.useCallback(() => {
@@ -104,10 +105,10 @@ function PublisherEditorView(props: Readonly<PublisherEditorProps>) {
           const nextItem = result.item;
           if (!nextItem) throw new Error("Publisher konnte nicht gespeichert werden");
 
-          enqueueSnackbar(generateLabel(nextItem) + successMessage, {
+          enqueueSnackbar(generateLabel({ publisher: nextItem, us: Boolean(nextItem.us) } as any) + successMessage, {
             variant: "success",
           });
-          router.push(generateUrl(nextItem, Boolean(nextItem.us)));
+          router.push(generateUrl({ publisher: nextItem, us: Boolean(nextItem.us) } as any, Boolean(nextItem.us)));
         } catch (error) {
           const message = error instanceof Error && error.message ? ` [${error.message}]` : "";
           enqueueSnackbar(errorMessage + message, { variant: "error" });

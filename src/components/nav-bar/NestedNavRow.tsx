@@ -61,6 +61,7 @@ const ExpandToggle = React.memo(function ExpandToggle(props: Readonly<ExpandTogg
   return (
     <ListItemIcon sx={{ minWidth: 32 }}>
       <IconButton
+        component="span"
         size="small"
         aria-label={props.expanded ? "Einklappen" : "Ausklappen"}
         onClick={(e) => {

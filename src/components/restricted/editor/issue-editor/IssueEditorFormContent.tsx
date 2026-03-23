@@ -112,6 +112,7 @@ function IssueEditorFormContent(props: IssueEditorFormContentProps) {
               isDesktop={isDesktop}
               setFieldValue={setFieldValue}
               showHints={showHints}
+              lockedFields={lockedFields}
             />
           </IssueEditorSection>
 
@@ -123,7 +124,6 @@ function IssueEditorFormContent(props: IssueEditorFormContentProps) {
               bottom: 0,
               zIndex: theme.zIndex.appBar - 1,
               p: "12px 16px",
-              backgroundColor: `var(--surface-1, ${theme.palette.background.default})`,
               borderTop: `1px solid var(--border-subtle, ${theme.palette.divider})`,
             })}
           >
@@ -158,7 +158,6 @@ function IssueEditorSection({ title, children }: Readonly<IssueEditorSectionProp
         mt: 3.5,
         p: "20px",
         borderRadius: "10px",
-        backgroundColor: `var(--surface-1, ${theme.palette.background.default})`,
         boxShadow: "none",
       })}
     >

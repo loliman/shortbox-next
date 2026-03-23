@@ -47,6 +47,7 @@ function IssueEditorSeriesFields({
   const seriesPattern = String(values.series.title || "");
   const publisherUs = Boolean(values.series.publisher.us);
   const isSeriesDisabled = publisherPattern.trim().length === 0;
+  const titleLocked = Boolean(lockedFields?.title);
   const publisherLocked = Boolean(lockedFields?.publisher);
   const seriesLocked = Boolean(lockedFields?.series);
   const numberLocked = Boolean(lockedFields?.number);
@@ -103,13 +104,15 @@ function IssueEditorSeriesFields({
   return (
     <Grid container spacing={2}>
       <Grid size={{ xs: 12, md: 8 }}>
-        <FastField name="title" label="Titel" component={TextField} fullWidth />
+        <FastField disabled={titleLocked} name="title" label="Titel" component={TextField} fullWidth />
       </Grid>
 
       <Grid size={12}>
         {showHints ? (
           <Typography variant="body2" color="text.secondary">
-            {TITLE_HINT}
+            {titleLocked
+              ? "Hinweis: Titel wird von der Story-Owner-Ausgabe geerbt und kann nur dort bearbeitet werden."
+              : TITLE_HINT}
           </Typography>
         ) : null}
       </Grid>

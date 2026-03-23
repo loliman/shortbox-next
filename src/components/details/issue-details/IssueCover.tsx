@@ -7,6 +7,7 @@ import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import type { PreviewIssue } from "../../issue-preview/utils/issuePreviewUtils";
 import { getIssueLabel } from "../../../util/issuePresentation";
+import { getPreferredCoverUrl } from "../../generic/coverUrl";
 
 type IssueCoverProps = {
   issue: PreviewIssue;
@@ -94,8 +95,8 @@ export function IssueCover(props: Readonly<IssueCoverProps>) {
 }
 
 function getIssueCoverSource(issue: PreviewIssue): { coverUrl: string; blurCover: boolean } {
-  const directCover = issue.cover?.url?.trim();
-  if (directCover) return { coverUrl: directCover, blurCover: false };
+  const coverUrl = getPreferredCoverUrl(issue);
+  if (coverUrl) return { coverUrl, blurCover: false };
 
   return { coverUrl: "/nocover.png", blurCover: false };
 }

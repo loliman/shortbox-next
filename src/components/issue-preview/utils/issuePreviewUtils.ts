@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { getPreferredCoverUrl } from "../../generic/coverUrl";
 
 interface StoryParent {
   children?: Array<unknown | null> | null;
@@ -78,9 +79,9 @@ export function getIssuePreviewCover(
   issue: PreviewIssue,
   us: boolean
 ): { coverUrl: string; blurCover: boolean } {
-  const directCover = issue.cover?.url?.trim();
-  const hasComicGuide = Boolean(issue.comicguideid);
-  if (directCover && (us || hasComicGuide)) return { coverUrl: directCover, blurCover: false };
+  void us;
+  const coverUrl = getPreferredCoverUrl(issue);
+  if (coverUrl) return { coverUrl, blurCover: false };
 
   return { coverUrl: "", blurCover: false };
 }

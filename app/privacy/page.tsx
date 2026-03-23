@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import AppPageShell from "@/src/components/app-shell/AppPageShell";
+import StaticPageShell from "@/src/components/app-shell/StaticPageShell";
 import Privacy from "@/src/components/footer/Privacy";
 import { createStaticMetadata } from "@/src/lib/routes/metadata";
 import { resolveAppPage } from "@/src/lib/routes/app-page";
@@ -13,8 +13,14 @@ export default async function PrivacyPage() {
   const page = await resolveAppPage({ us: false, includeNavigation: false });
 
   return (
-    <AppPageShell selected={page.selected} level={page.level} us={page.us}>
+    <StaticPageShell
+      selected={page.selected}
+      level={page.level}
+      us={page.us}
+      query={page.query}
+      session={page.session}
+    >
       <Privacy />
-    </AppPageShell>
+    </StaticPageShell>
   );
 }

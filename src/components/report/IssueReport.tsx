@@ -86,7 +86,10 @@ function IssueReportView(props: Readonly<IssueReportProps>) {
                 url: "/api/change-requests",
                 method: "POST",
                 body: {
-                  issue: payload.old || { id: String(issueDetails.id || "") },
+                  issue: {
+                    ...(payload.old || {}),
+                    id: String(issueDetails.id || ""),
+                  },
                   item: payload.item,
                 },
               });

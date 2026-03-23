@@ -1,12 +1,14 @@
 "use client";
 
 import React from "react";
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import QueryResult from "../../generic/QueryResult";
 import SeriesEditor from "../editor/SeriesEditor";
 import { EditorPagePlaceholder } from "../../placeholders/EditorPagePlaceholder";
 import { useSnackbarBridge } from "../../generic/useSnackbarBridge";
 import type { SessionData } from "../../../app/session";
-import { useResponsive } from "../../../app/useResponsive";
+import { useInitialResponsiveGuess } from "../../../app/responsiveGuessContext";
 import type { LayoutRouteData, RouteQuery } from "../../../types/route-ui";
 import type { SelectedRoot } from "../../../types/domain";
 
@@ -32,7 +34,11 @@ type SeriesEditorDefaultValues = NonNullable<
 >;
 
 function SeriesEdit(props: Readonly<SeriesEditProps>) {
-  const responsive = useResponsive();
+  const theme = useTheme();
+  const initialGuess = useInitialResponsiveGuess();
+  const isDesktop = useMediaQuery(theme.breakpoints.up("lg"), {
+    defaultMatches: initialGuess?.isDesktop ?? true,
+  });
   const snackbarBridge = useSnackbarBridge();
   const selected = props.selected;
   const loading = false;
@@ -66,7 +72,7 @@ function SeriesEdit(props: Readonly<SeriesEditProps>) {
           id={seriesDetails.id}
           defaultValues={defaultValues}
           session={props.session}
-          isDesktop={responsive.isDesktop}
+          isDesktop={isDesktop}
           enqueueSnackbar={snackbarBridge.enqueueSnackbar}
         />
       );

@@ -10,39 +10,52 @@ type LayoutChromeStateArgs = {
   temporaryDrawer: boolean;
 };
 
-export function useLayoutChromeState(args: Readonly<LayoutChromeStateArgs>) {
+export function useLayoutChromeState(args: Readonly<LayoutChromeStateArgs> | null) {
+  const navWide = args?.navWide ?? false;
+  const temporaryDrawer = args?.temporaryDrawer ?? false;
   const [localDrawerOpen, setLocalDrawerOpen] = React.useState<boolean>(
-    args.drawerOpen ?? args.navWide
+    args?.drawerOpen ?? navWide
   );
-  const drawerOpen = args.navWide ? true : localDrawerOpen;
+  const previousNavWideRef = React.useRef(navWide);
+  const drawerOpen = localDrawerOpen;
 
   React.useEffect(() => {
-    if (typeof args.drawerOpen === "boolean") {
-      setLocalDrawerOpen(args.drawerOpen);
+    if (!args) {
+      setLocalDrawerOpen(false);
+      previousNavWideRef.current = false;
       return;
     }
-    if (args.navWide) {
+    if (typeof args.drawerOpen === "boolean") {
+      setLocalDrawerOpen(args.drawerOpen);
+      previousNavWideRef.current = navWide;
+      return;
+    }
+    if (!previousNavWideRef.current && navWide) {
       setLocalDrawerOpen(true);
     }
-  }, [args.drawerOpen, args.navWide]);
+    previousNavWideRef.current = navWide;
+  }, [args, navWide]);
 
   const toggleDrawer = React.useCallback(() => {
-    if (args.navWide) return;
+    if (!args) return;
     setLocalDrawerOpen((prev) => !prev);
-  }, [args.navWide]);
+  }, [args]);
 
   const resetNavigationState = React.useCallback(() => {
     clearAllNavState();
   }, []);
 
-  React.useEffect(() => {
-    const nextOffset =
-      !args.temporaryDrawer && drawerOpen ? `${getNavDrawerWidth(false)}px` : "0px";
+  React.useLayoutEffect(() => {
+    if (!args) {
+      document.documentElement.style.removeProperty("--shortbox-nav-offset");
+      return;
+    }
+    const nextOffset = !temporaryDrawer && drawerOpen ? `${getNavDrawerWidth(false)}px` : "0px";
     document.documentElement.style.setProperty("--shortbox-nav-offset", nextOffset);
     return () => {
       document.documentElement.style.removeProperty("--shortbox-nav-offset");
     };
-  }, [drawerOpen, args.temporaryDrawer]);
+  }, [args, drawerOpen, temporaryDrawer]);
 
   return {
     drawerOpen,

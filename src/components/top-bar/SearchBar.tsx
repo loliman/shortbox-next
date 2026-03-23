@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Autocomplete from "@mui/material/Autocomplete";
@@ -24,9 +26,6 @@ interface SearchBarProps {
   us?: boolean;
   autoFocus?: boolean;
   compactLayout?: boolean;
-  isPhone?: boolean;
-  isTablet?: boolean;
-  isTabletLandscape?: boolean;
   onFocus?: (
     event: React.FocusEvent<HTMLElement> | React.MouseEvent<HTMLElement> | null,
     focus: boolean
@@ -41,10 +40,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
   const [hintDotCount, setHintDotCount] = useState(0);
   const queryPattern = debouncedPattern;
   const us = Boolean(ownProps.us);
-  const compactLayout = Boolean(
-    ownProps.compactLayout ??
-      Boolean(ownProps.isPhone || (ownProps.isTablet && !ownProps.isTabletLandscape))
-  );
+  const compactLayout = Boolean(ownProps.compactLayout);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -121,6 +117,8 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
     RESULT_PANEL_MAX_HEIGHT,
     resultRows * RESULT_ROW_HEIGHT + RESULT_PANEL_BOTTOM_BUFFER
   );
+  const getResultsSurfaceColor = (theme: any) =>
+    theme.vars?.palette.background.paper ?? theme.palette.background.paper;
 
   const handleFocus = (
     e: React.FocusEvent<HTMLElement> | React.MouseEvent<HTMLElement> | null,
@@ -175,16 +173,10 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
               border: "2px solid",
               borderColor: (theme) =>
                 alpha(theme.palette.text.primary, theme.palette.mode === "dark" ? 0.3 : 0.22),
-              boxShadow: (theme) =>
-                `0 18px 44px ${alpha(theme.palette.common.black, 0.42)}, 0 0 0 1px ${alpha(
-                  theme.palette.mode === "dark"
-                    ? theme.palette.text.secondary
-                    : theme.palette.common.white,
-                  theme.palette.mode === "dark" ? 0.22 : 0.65
-                )} inset`,
+              boxShadow: (theme) => `0 18px 44px ${alpha(theme.palette.common.black, 0.42)}`,
               backdropFilter: "blur(10px)",
-              backgroundColor: (theme) =>
-                alpha(theme.palette.background.paper, theme.palette.mode === "dark" ? 0.94 : 0.98),
+              backgroundColor: getResultsSurfaceColor,
+              backgroundImage: "none",
               width: "100%",
               height: `${resultsPanelHeight}px`,
               minHeight: `${resultsPanelHeight}px`,
@@ -202,6 +194,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                 width: "100%",
                 fontSize: "1.35rem",
                 py: 0,
+                backgroundColor: "transparent",
               },
             },
           },
@@ -212,10 +205,25 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
               maxHeight: `${RESULT_PANEL_MAX_HEIGHT}px`,
               overflowY: "auto",
               py: 0.5,
+              backgroundColor: getResultsSurfaceColor,
+              backgroundImage: "none",
+              "& li": {
+                backgroundColor: "transparent",
+              },
               "& .MuiAutocomplete-option": {
                 minHeight: 44,
                 borderBottom: "1px solid",
                 borderColor: "divider",
+                backgroundColor: getResultsSurfaceColor,
+                color: "text.primary",
+                "&[aria-selected='true']": {
+                  backgroundColor: (theme) =>
+                    alpha(theme.palette.primary.main, theme.palette.mode === "dark" ? 0.24 : 0.08),
+                },
+                "&.Mui-focused": {
+                  backgroundColor: (theme) =>
+                    alpha(theme.palette.primary.main, theme.palette.mode === "dark" ? 0.18 : 0.06),
+                },
               },
               "& .MuiAutocomplete-option:last-of-type": {
                 borderBottom: "none",
@@ -279,8 +287,11 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
         }}
         onFocus={(e) => handleFocus(e, true)}
         onBlur={(e) => handleFocus(e, false)}
-        renderOption={(optionProps, option) => (
-          <li {...optionProps}>
+        renderOption={(optionProps, option) => {
+          const { key, ...restOptionProps } = optionProps;
+
+          return (
+          <li key={key} {...restOptionProps}>
             <Box
               sx={{ width: "100%", display: "flex", alignItems: "center", gap: 1.25, minWidth: 0 }}
             >
@@ -303,7 +314,8 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
               </Typography>
             </Box>
           </li>
-        )}
+          );
+        }}
         sx={{
           width: "100%",
           position: "relative",
@@ -333,6 +345,17 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                 )}`,
               backgroundColor: "background.paper",
             },
+          },
+          "& .MuiAutocomplete-paper": {
+            backgroundColor: getResultsSurfaceColor,
+            backgroundImage: "none",
+          },
+          "& .MuiAutocomplete-listbox": {
+            backgroundColor: getResultsSurfaceColor,
+            backgroundImage: "none",
+          },
+          "& .MuiAutocomplete-option": {
+            backgroundColor: getResultsSurfaceColor,
           },
           "& .MuiInputBase-input::placeholder": {
             color: "text.secondary",
@@ -383,24 +406,33 @@ function getNodeTypeBadgeSx(type?: string | null) {
   switch (type) {
     case "publisher":
       return {
-        bgcolor: (theme: any) => alpha(theme.palette.warning.main, 0.16),
-        color: (theme: any) => theme.palette.warning.dark,
+        bgcolor: (theme: any) =>
+          alpha(theme.palette.warning.main, theme.palette.mode === "dark" ? 0.24 : 0.16),
+        color: (theme: any) =>
+          theme.palette.mode === "dark" ? theme.palette.warning.light : theme.palette.warning.dark,
         border: "1px solid",
-        borderColor: (theme: any) => alpha(theme.palette.warning.main, 0.35),
+        borderColor: (theme: any) =>
+          alpha(theme.palette.warning.main, theme.palette.mode === "dark" ? 0.46 : 0.35),
       };
     case "series":
       return {
-        bgcolor: (theme: any) => alpha(theme.palette.info.main, 0.14),
-        color: (theme: any) => theme.palette.info.dark,
+        bgcolor: (theme: any) =>
+          alpha(theme.palette.info.main, theme.palette.mode === "dark" ? 0.22 : 0.14),
+        color: (theme: any) =>
+          theme.palette.mode === "dark" ? theme.palette.info.light : theme.palette.info.dark,
         border: "1px solid",
-        borderColor: (theme: any) => alpha(theme.palette.info.main, 0.3),
+        borderColor: (theme: any) =>
+          alpha(theme.palette.info.main, theme.palette.mode === "dark" ? 0.42 : 0.3),
       };
     default:
       return {
-        bgcolor: (theme: any) => alpha(theme.palette.primary.main, 0.12),
-        color: (theme: any) => theme.palette.primary.dark,
+        bgcolor: (theme: any) =>
+          alpha(theme.palette.primary.main, theme.palette.mode === "dark" ? 0.24 : 0.12),
+        color: (theme: any) =>
+          theme.palette.mode === "dark" ? theme.palette.primary.light : theme.palette.primary.dark,
         border: "1px solid",
-        borderColor: (theme: any) => alpha(theme.palette.primary.main, 0.28),
+        borderColor: (theme: any) =>
+          alpha(theme.palette.primary.main, theme.palette.mode === "dark" ? 0.4 : 0.28),
       };
   }
 }

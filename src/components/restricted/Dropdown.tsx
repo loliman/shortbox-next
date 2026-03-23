@@ -8,14 +8,13 @@ import Tooltip from "@mui/material/Tooltip";
 import { generateLabel, generateUrl, HierarchyLevel } from "../../util/hierarchy";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
-import VerifiedIcon from "@mui/icons-material/Verified";
-import VerifiedOutlinedIcon from "@mui/icons-material/VerifiedOutlined";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import DeletionDialog from "./DeletionDialog";
 import { stripItem } from "../../util/util";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import { mutationRequest } from "../../lib/client/mutation-request";
+import type { SelectedRoot } from "../../types/domain";
 
 const actionButtonSx = {
   border: "1px solid",
@@ -79,6 +78,7 @@ interface DropdownState {
 }
 
 type IssueMutationInput = {
+  id?: string | number;
   title?: string;
   number?: string;
   format?: string;
@@ -114,7 +114,6 @@ class DropdownBase extends React.Component<DropdownProps, DropdownState> {
       !isUsIssue ||
       (selectedItem.stories || []).every((story) => (story.children?.length || 0) === 0);
     const isIssueLevel = this.props.level === HierarchyLevel.ISSUE;
-    const isVerified = Boolean(selectedItem.verified);
     const isCollected = Boolean(selectedItem.collected);
 
     return (
@@ -124,15 +123,6 @@ class DropdownBase extends React.Component<DropdownProps, DropdownState> {
             <CollectionActionButton
               item={selectedItem}
               collected={isCollected}
-              onClose={this.props.handleClose}
-              enqueueSnackbar={this.props.enqueueSnackbar}
-            />
-          ) : null}
-
-          {isIssueLevel && !isUsIssue ? (
-            <VerifyActionButton
-              item={selectedItem}
-              verified={isVerified}
               onClose={this.props.handleClose}
               enqueueSnackbar={this.props.enqueueSnackbar}
             />
@@ -157,11 +147,7 @@ class DropdownBase extends React.Component<DropdownProps, DropdownState> {
               onClick={() => {
                 const us = resolveItemUs(selectedItem, this.props.level, Boolean(this.props.us));
                 this.props.onNavigate?.(
-                  "/edit" +
-                    generateUrl(
-                      selectedItem as unknown as import("../../types/domain").SelectedRoot,
-                      us
-                    )
+                  "/edit" + generateUrl(toSelectedRoot(selectedItem, this.props.level), us)
                 );
                 this.props.handleClose?.();
               }}
@@ -210,6 +196,7 @@ interface ActionMenuItemProps {
 function buildIssueMutationInput(item: DropdownItem): IssueMutationInput {
   const stripped = stripItem(structuredClone(item));
   const input: IssueMutationInput = {
+    id: stripped.id as string | number | undefined,
     title: String(stripped.title || ""),
     number: String(stripped.number || ""),
     format: String(stripped.format || ""),
@@ -231,65 +218,35 @@ function buildIssueMutationInput(item: DropdownItem): IssueMutationInput {
   return input;
 }
 
-function VerifyActionButton(props: Readonly<ActionMenuItemProps>) {
-  const label = props.verified ? "Falsifizieren" : "Verifizieren";
+function buildIssueLookupInput(item: DropdownItem): IssueMutationInput {
+  const stripped = stripItem(structuredClone(item));
+  const input: IssueMutationInput = {
+    id: stripped.id as string | number | undefined,
+    number: String(stripped.number || ""),
+    format: String(stripped.format || ""),
+    series: (stripped.series as DropdownItem["series"]) || undefined,
+  };
 
-  return (
-    <Tooltip title={label}>
-      <IconButton
-        aria-label={label}
-        onClick={async () => {
-          const oldInput = buildIssueMutationInput(props.item);
-          const nextInput = {
-            ...oldInput,
-            verified: !props.verified,
-          };
+  const variant = String(stripped.variant || "");
+  if (variant !== "") input.variant = variant;
 
-          try {
-            await mutationRequest({
-              url: "/api/issues",
-              method: "PATCH",
-              body: {
-                old: oldInput,
-                item: nextInput,
-              },
-            });
-
-            props.enqueueSnackbar?.(
-              `${generateLabel(props.item as never)} erfolgreich ${label.toLowerCase()}`,
-              {
-                variant: "success",
-              }
-            );
-          } catch (error) {
-            const message = error instanceof Error ? error.message : "Unbekannter Fehler";
-            props.enqueueSnackbar?.(
-              `Ausgabe konnte nicht ${label.toLowerCase()} werden: ${message}`,
-              { variant: "error" }
-            );
-          } finally {
-            props.onClose?.();
-          }
-        }}
-        sx={actionButtonSx}
-      >
-        {props.verified ? <VerifiedIcon /> : <VerifiedOutlinedIcon />}
-      </IconButton>
-    </Tooltip>
-  );
+  return input;
 }
 
 function CollectionActionButton(props: Readonly<ActionMenuItemProps>) {
+  const router = useRouter();
   const label = props.collected ? "Aus Sammlung entfernen" : "Zur Sammlung hinzufügen";
+  const actionLabel = props.collected ? "aus Sammlung entfernen" : "zur Sammlung hinzufügen";
 
   return (
     <Tooltip title={label}>
       <IconButton
         aria-label={label}
         onClick={async () => {
-          const oldInput = buildIssueMutationInput(props.item);
+          const oldInput = buildIssueLookupInput(props.item);
+          const currentInput = buildIssueMutationInput(props.item);
           const nextInput = {
-            ...oldInput,
+            ...currentInput,
             collected: !props.collected,
           };
 
@@ -302,14 +259,15 @@ function CollectionActionButton(props: Readonly<ActionMenuItemProps>) {
                 item: nextInput,
               },
             });
+            router.refresh();
 
-            props.enqueueSnackbar?.(`${generateLabel(props.item as never)} ${label.toLowerCase()}`, {
+            props.enqueueSnackbar?.(`${generateLabel(props.item as never)} ${actionLabel}`, {
               variant: "success",
             });
           } catch (error) {
             const message = error instanceof Error ? error.message : "Unbekannter Fehler";
             props.enqueueSnackbar?.(
-              `Ausgabe konnte nicht ${label.toLowerCase()} werden: ${message}`,
+              `Ausgabe konnte nicht ${actionLabel} werden: ${message}`,
               { variant: "error" }
             );
           } finally {
@@ -336,6 +294,19 @@ function resolveItemUs(
       return Boolean(item.publisher?.us);
     default:
       return item.us === null || item.us === undefined ? fallbackUs : Boolean(item.us);
+  }
+}
+
+function toSelectedRoot(item: DropdownItem, level: string | undefined): SelectedRoot {
+  switch (level) {
+    case HierarchyLevel.ISSUE:
+      return { issue: item as SelectedRoot["issue"] };
+    case HierarchyLevel.SERIES:
+      return { series: item as SelectedRoot["series"] };
+    case HierarchyLevel.PUBLISHER:
+      return { publisher: item as SelectedRoot["publisher"] };
+    default:
+      return item as unknown as SelectedRoot;
   }
 }
 

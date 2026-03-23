@@ -57,6 +57,11 @@ function createPalette(mode: AppThemeMode) {
       secondary: tokens.textSecondary,
     },
     divider: tokens.border,
+    AppBar: {
+      defaultBg: "#000000",
+      darkBg: "#000000",
+      darkColor: tokens.text,
+    },
   };
 }
 
@@ -169,13 +174,15 @@ export const appTheme = createTheme({
     MuiAppBar: {
       styleOverrides: {
         root: ({ theme }) => ({
-          backgroundColor: "#000000",
+          backgroundColor: "rgb(0, 0, 0)",
           color:
             theme.palette.mode === "dark"
               ? theme.palette.common.white
               : theme.palette.getContrastText(theme.palette.primary.main),
           backgroundImage: "none",
-          borderBottom: `1px solid ${theme.palette.divider}`,
+          borderBottomWidth: 1,
+          borderBottomStyle: "solid",
+          borderBottomColor: theme.vars?.palette.divider ?? theme.palette.divider,
         }),
       },
     },
@@ -186,6 +193,32 @@ export const appTheme = createTheme({
       styleOverrides: {
         root: ({ theme }) => ({
           borderRadius: (Number(theme.shape.borderRadius) || 12) - 2,
+        }),
+      },
+    },
+    MuiSwitch: {
+      styleOverrides: {
+        track: ({ theme }) => ({
+          backgroundColor: alpha(
+            theme.palette.text.secondary,
+            theme.palette.mode === "dark" ? 0.35 : 0.42
+          ),
+          border: `1px solid ${alpha(
+            theme.palette.text.secondary,
+            theme.palette.mode === "dark" ? 0.55 : 0.28
+          )}`,
+          opacity: 1,
+        }),
+        thumb: ({ theme }) => ({
+          backgroundColor:
+            theme.palette.mode === "dark" ? theme.palette.common.white : theme.palette.background.paper,
+        }),
+        switchBase: ({ theme }) => ({
+          "&.Mui-checked + .MuiSwitch-track": {
+            backgroundColor: theme.palette.success.main,
+            borderColor: theme.palette.success.dark,
+            opacity: 1,
+          },
         }),
       },
     },

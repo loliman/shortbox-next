@@ -45,7 +45,7 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
   const selectedIssue = props.selectedIssue;
   const updateNavRoute = props.updateNavRoute;
   const [expandedSeries, setExpandedSeries] = React.useState<Record<string, boolean>>(
-    () => readNavExpansionState(seriesStateKey)
+    {}
   );
 
   React.useEffect(() => {

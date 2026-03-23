@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import AppPageShell from "@/src/components/app-shell/AppPageShell";
+import WorkspacePageShell from "@/src/components/app-shell/WorkspacePageShell";
 import SeriesEdit from "@/src/components/restricted/edit/SeriesEdit";
 import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
 import { readSeriesEditData } from "@/src/lib/read/series-read";
@@ -34,16 +34,12 @@ export default async function DeSeriesEditPage({
   if (!initialSeries) notFound();
 
   return (
-    <AppPageShell
+    <WorkspacePageShell
       selected={selected}
       level={level}
       us={false}
       query={query}
       session={session}
-      initialFilterCount={navigationData.initialFilterCount}
-      initialPublisherNodes={navigationData.initialPublisherNodes}
-      initialSeriesNodesByPublisher={navigationData.initialSeriesNodesByPublisher}
-      initialIssueNodesBySeriesKey={navigationData.initialIssueNodesBySeriesKey}
     >
       <SeriesEdit
         selected={selected}
@@ -57,6 +53,6 @@ export default async function DeSeriesEditPage({
         initialIssueNodesBySeriesKey={navigationData.initialIssueNodesBySeriesKey}
         session={session}
       />
-    </AppPageShell>
+    </WorkspacePageShell>
   );
 }

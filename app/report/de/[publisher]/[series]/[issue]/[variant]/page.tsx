@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
-import AppPageShell from "@/src/components/app-shell/AppPageShell";
+import WorkspacePageShell from "@/src/components/app-shell/WorkspacePageShell";
 import IssueReport from "@/src/components/report/IssueReport";
 import { readIssueDetails } from "@/src/lib/read/issue-read";
 import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
 import { buildHierarchyLevel, buildSelectedRoot, normalizePageQuery } from "@/src/lib/routes/page-state";
-import { requirePageWriteSession } from "@/src/lib/server/guards";
+import { readServerSession } from "@/src/lib/server/session";
 
 export default async function DeIssueReportVariantPage({
   params,
@@ -18,7 +18,7 @@ export default async function DeIssueReportVariantPage({
   const selected = buildSelectedRoot(resolvedParams, false);
   const level = buildHierarchyLevel(selected);
   const issue = selected.issue;
-  const session = await requirePageWriteSession();
+  const session = await readServerSession();
   const navigationData = await readInitialNavigationData({
     us: false,
     query,
@@ -37,16 +37,12 @@ export default async function DeIssueReportVariantPage({
   if (!initialIssue) notFound();
 
   return (
-    <AppPageShell
+    <WorkspacePageShell
       selected={selected}
       level={level}
       us={false}
       query={query}
       session={session}
-      initialFilterCount={navigationData.initialFilterCount}
-      initialPublisherNodes={navigationData.initialPublisherNodes}
-      initialSeriesNodesByPublisher={navigationData.initialSeriesNodesByPublisher}
-      initialIssueNodesBySeriesKey={navigationData.initialIssueNodesBySeriesKey}
     >
       <IssueReport
         selected={selected}
@@ -60,6 +56,6 @@ export default async function DeIssueReportVariantPage({
         initialIssueNodesBySeriesKey={navigationData.initialIssueNodesBySeriesKey}
         session={session}
       />
-    </AppPageShell>
+    </WorkspacePageShell>
   );
 }

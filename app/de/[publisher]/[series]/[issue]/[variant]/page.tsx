@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import AppPageShell from "@/src/components/app-shell/AppPageShell";
+import CatalogPageShell from "@/src/components/app-shell/CatalogPageShell";
 import IssueDetailsDE from "@/src/components/details/IssueDetailsDE";
 import { readIssueDetails } from "@/src/lib/read/issue-read";
 import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
@@ -78,7 +78,7 @@ export default async function DeIssueVariantPage({
     loggedIn: Boolean(session?.loggedIn),
   });
   return (
-    <AppPageShell
+    <CatalogPageShell
       selected={selected}
       level={level}
       us={false}
@@ -101,6 +101,6 @@ export default async function DeIssueVariantPage({
         initialSeriesNodesByPublisher={navigationData.initialSeriesNodesByPublisher}
         initialIssueNodesBySeriesKey={navigationData.initialIssueNodesBySeriesKey}
       />
-    </AppPageShell>
+    </CatalogPageShell>
   );
 }

@@ -39,8 +39,11 @@ export default function FooterLinks() {
           href="/contact"
         >
           Kontakt
-          <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
-            {" / Fehler melden / Unterstützen"}
+          <Box
+            component="span"
+            sx={{ display: { xs: "none", sm: "inline" }, ml: 0.5 }}
+          >
+            / Fehler melden / Unterstützen
           </Box>
         </Button>
         <Button

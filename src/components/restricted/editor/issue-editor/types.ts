@@ -40,6 +40,15 @@ export interface IssueEditorProps {
     options?: { variant?: "success" | "error" | "warning" | "info" }
   ) => void;
   selected?: SelectedRoot;
+  lockedFields?: {
+    title?: boolean;
+    publisher?: boolean;
+    series?: boolean;
+    number?: boolean;
+    format?: boolean;
+    variant?: boolean;
+    stories?: boolean;
+  };
   [key: string]: unknown;
 }
 
@@ -72,10 +81,12 @@ export interface IssueEditorFormContentProps {
   actions?: ReactNode;
   showHints?: boolean;
   lockedFields?: {
+    title?: boolean;
     publisher?: boolean;
     series?: boolean;
     number?: boolean;
     format?: boolean;
     variant?: boolean;
+    stories?: boolean;
   };
 }

@@ -10,6 +10,8 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import React from "react";
 import Box from "@mui/material/Box";
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ViewStreamIcon from "@mui/icons-material/ViewStream";
@@ -22,7 +24,7 @@ import {
   getListingView,
   type ListingQuery,
 } from "../util/listingQuery";
-import { useResponsive } from "../app/useResponsive";
+import { useInitialResponsiveGuess } from "../app/responsiveGuessContext";
 import { buildRouteHref } from "./generic/routeHref";
 
 const SORT_OPTIONS = ["updatedat", "createdat", "releasedate", "series", "publisher"] as const;
@@ -35,26 +37,29 @@ type SortContainerProps = {
   selected?: SelectedRoot;
   us?: boolean;
   compactLayout?: boolean;
-  isPhone?: boolean;
-  isTablet?: boolean;
-  isTabletLandscape?: boolean;
 };
 
 export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
   const router = useRouter();
   const pathname = usePathname();
-  const responsive = useResponsive();
+  const theme = useTheme();
+  const initialGuess = useInitialResponsiveGuess();
+  const isLandscape = useMediaQuery("(orientation: landscape)", {
+    defaultMatches: initialGuess?.isLandscape ?? true,
+  });
+  const isPhone = useMediaQuery(theme.breakpoints.down("sm"), {
+    defaultMatches: initialGuess?.isPhone ?? false,
+  });
+  const isDesktop = useMediaQuery(theme.breakpoints.up("lg"), {
+    defaultMatches: initialGuess?.isDesktop ?? true,
+  });
+  const isTablet = !isPhone && !isDesktop;
   const query = ownProps.query;
   const us = Boolean(ownProps.us);
   const selected = ownProps.selected;
   const compactLayout =
     ownProps.compactLayout ??
-    responsive.isCompact ??
-    Boolean(
-      (ownProps.isPhone ?? responsive.isPhone) ||
-        ((ownProps.isTablet ?? responsive.isTablet) &&
-          !(ownProps.isTabletLandscape ?? responsive.isTabletLandscape))
-    );
+    Boolean(isPhone || (isTablet && !isLandscape));
   const currentOrder = toValidSortOption(getListingOrder(query));
   const currentDirection = toDirection(getListingDirection(query));
   const currentView = getListingView(query);

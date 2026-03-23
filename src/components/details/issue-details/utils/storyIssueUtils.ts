@@ -2,6 +2,8 @@ export type StoryIssue = {
   number?: string | number;
   legacy_number?: string | null;
   title?: string | null;
+  format?: string | null;
+  variant?: string | null;
   collected?: boolean;
   verified?: boolean;
   series?: {
@@ -40,10 +42,17 @@ export function isSameIssue(issueA?: StoryIssue, issueB?: StoryIssue): boolean {
   if (!issueA || !issueB || !issueA.series || !issueB.series) return false;
 
   return (
-    String(issueA.number) === String(issueB.number) &&
-    issueA.series.title === issueB.series.title &&
-    issueA.series.volume === issueB.series.volume
+    normalizeText(issueA.series.publisher?.name) === normalizeText(issueB.series.publisher?.name) &&
+    normalizeText(issueA.series.title) === normalizeText(issueB.series.title) &&
+    String(issueA.series.volume || "") === String(issueB.series.volume || "") &&
+    String(issueA.number || "") === String(issueB.number || "")
   );
+}
+
+function normalizeText(value: unknown): string {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 export function toIssueRowKey(item: StoryIssueRelation, idx: number): string {

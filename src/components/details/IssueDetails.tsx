@@ -6,7 +6,6 @@ import CardHeader from "@mui/material/CardHeader";
 import CardContent from "@mui/material/CardContent";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import SnackbarContent from "@mui/material/SnackbarContent";
 import { generateIssueSubHeader } from "../../util/issues";
 import { generateLabel } from "../../util/hierarchy";
 import { isMockMode } from "../../app/mockMode";
@@ -21,11 +20,12 @@ import type { VariantIssue } from "./issue-details/variants/types";
 import { IssueDetailsPreview } from "./issue-details/preview/IssueDetailsPreview";
 import { DetailsTable } from "./issue-details/DetailsTable";
 import type { PreviewIssue } from "../issue-preview/utils/issuePreviewUtils";
-import { collectIssueArcs, getTodayLocalDate } from "./issue-details/utils/issueDetailsUtils";
+import { collectIssueArcs } from "./issue-details/utils/issueDetailsUtils";
 import { generateComicGuideUrl, generateMarvelDbUrl } from "./issue-details/utils/externalLinks";
 import { IssueCoverGalleryClient } from "./issue-details/IssueCoverGalleryClient";
 import type { SessionData } from "../../app/session";
 import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
+import type { IssueDetailsSlotComponent } from "./issue-details/slotTypes";
 
 interface IssueDetailsProps {
   initialIssue?: unknown;
@@ -37,8 +37,8 @@ interface IssueDetailsProps {
   us: boolean;
   session?: SessionData | null;
   subheader?: boolean;
-  details?: React.ReactElement;
-  bottom?: React.ReactElement;
+  details?: IssueDetailsSlotComponent;
+  bottom?: IssueDetailsSlotComponent;
   query?: RouteQuery | null;
   initialFilterCount?: number | null;
 }
@@ -46,7 +46,8 @@ interface IssueDetailsProps {
 export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
   const selected = props.selected;
   const us = Boolean(props.us);
-  const details = props.details || <></>;
+  const DetailsComponent = props.details ?? (() => null);
+  const BottomComponent = props.bottom;
   const loadedIssue = (props.initialIssue as Issue | null | undefined) || null;
   const loading = false;
   const error = null;
@@ -83,8 +84,6 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
   }
 
   const arcs = collectIssueArcs(issueForVariants, us);
-  const today = getTodayLocalDate();
-  const releaseDate = issueForVariants.releasedate ? new Date(issueForVariants.releasedate) : null;
   const coverGalleryIssues = buildCoverGalleryIssues(issueForVariants);
   const coverAttribution = !us && issueForVariants.comicguideid ? (
     <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.82, textAlign: "left" }}>
@@ -138,18 +137,6 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
 
   return (
     <Box className="data-fade" key={loadedIssue.id || "issue-details"} sx={{ width: "100%", display: "flex", flexDirection: "column" }}>
-        {!us && !loadedIssue.verified && releaseDate && today < releaseDate ? (
-          <SnackbarContent
-            id="notVerifiedWarning"
-            message="Diese Ausgabe ist noch nicht im Handel erhältlich und noch nicht vorab verifiziert worden. Die angezeigten Informationen weichen gegebenenfalls von den tatsächlichen Daten ab."
-            sx={{
-              width: { xs: "calc(100% - 16px)", sm: "100%" },
-              mx: "auto",
-              borderRadius: { xs: 1, sm: 0 },
-            }}
-          />
-        ) : null}
-
         <CardHeader
           title={
             <TitleLine
@@ -193,17 +180,22 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
 
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "minmax(0, 1fr) clamp(320px, 36vw, 480px)" }, gap: 2, alignItems: "start", width: "100%" }}>
             <Box sx={{ minWidth: 0, width: "100%", display: "flex", flexDirection: "column", gap: 2 }}>
-              <DetailsTable issue={issueForVariants} details={details} query={props.query} us={us} />
+              <DetailsTable
+                issue={issueForVariants}
+                details={DetailsComponent}
+                query={props.query}
+                us={us}
+              />
 
-              {props.bottom ? (
+              {BottomComponent ? (
                 <Box sx={{ minWidth: 0, width: "100%", mt: 0 }}>
-                  {React.cloneElement(props.bottom as React.ReactElement<any>, {
-                    query: props.query,
-                    selected: issueForVariants,
-                    issue: issueForVariants,
-                    us,
-                    session: props.session,
-                  })}
+                  <BottomComponent
+                    query={props.query}
+                    selected={issueForVariants}
+                    issue={issueForVariants}
+                    us={us}
+                    session={props.session}
+                  />
                 </Box>
               ) : null}
 

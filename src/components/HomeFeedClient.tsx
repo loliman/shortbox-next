@@ -3,6 +3,8 @@
 import React from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import { useSnackbarBridge } from "./generic/useSnackbarBridge";
 import IssuePreview from "./issue-preview/IssuePreview";
 import IssuePreviewSmall from "./issue-preview/IssuePreviewSmall";
@@ -16,7 +18,7 @@ import {
 } from "../util/listingQuery";
 import ListingToolbar from "./listing/ListingToolbar";
 import type { SessionData } from "../app/session";
-import { useResponsive } from "../app/useResponsive";
+import { useInitialResponsiveGuess } from "../app/responsiveGuessContext";
 import type { LayoutRouteData, RouteQuery } from "../types/route-ui";
 
 const GALLERY_GRID_SX = {
@@ -36,7 +38,18 @@ interface HomeFeedClientProps {
 }
 
 export default function HomeFeedClient(props: Readonly<HomeFeedClientProps>) {
-  const responsive = useResponsive();
+  const theme = useTheme();
+  const initialGuess = useInitialResponsiveGuess();
+  const isLandscape = useMediaQuery("(orientation: landscape)", {
+    defaultMatches: initialGuess?.isLandscape ?? true,
+  });
+  const isPhone = useMediaQuery(theme.breakpoints.down("sm"), {
+    defaultMatches: initialGuess?.isPhone ?? false,
+  });
+  const isDesktop = useMediaQuery(theme.breakpoints.up("lg"), {
+    defaultMatches: initialGuess?.isDesktop ?? true,
+  });
+  const isTablet = !isPhone && !isDesktop;
   const { enqueueSnackbar } = useSnackbarBridge();
   const query = props.query as
     | { filter?: string; order?: string; direction?: string; view?: string }
@@ -44,7 +57,7 @@ export default function HomeFeedClient(props: Readonly<HomeFeedClientProps>) {
     | undefined;
   const routeUs = Boolean(props.us);
   const filter = parseListingFilter(query, routeUs);
-  const compactLayout = responsive.isCompact;
+  const compactLayout = isPhone || (isTablet && !isLandscape);
   const listingView = getListingView(query);
   const galleryGridColumns = compactLayout
     ? "repeat(1, minmax(0, 1fr))"
@@ -64,18 +77,10 @@ export default function HomeFeedClient(props: Readonly<HomeFeedClientProps>) {
       us: routeUs,
       session: props.session,
       selected: props.selected,
-      compactLayout,
-      isPhone: responsive.isPhone,
-      isTablet: responsive.isTablet,
-      isTabletLandscape: responsive.isTabletLandscape,
     }),
     [
-      compactLayout,
       props.selected,
       props.session,
-      responsive.isPhone,
-      responsive.isTablet,
-      responsive.isTabletLandscape,
       routeUs,
     ]
   );
@@ -232,7 +237,7 @@ function buildIssueKey(
   issue: { id?: string | number | null; number?: string | number | null },
   idx: number
 ) {
-  if (issue.id) return String(issue.id);
-  if (issue.number) return "issue|" + issue.number + "|" + idx;
+  if (issue.id) return "issue-id|" + issue.id + "|" + idx;
+  if (issue.number) return "issue-number|" + issue.number + "|" + idx;
   return "issue|" + idx;
 }

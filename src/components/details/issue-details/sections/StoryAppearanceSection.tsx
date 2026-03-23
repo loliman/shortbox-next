@@ -6,7 +6,7 @@ import Box from "@mui/material/Box";
 import Collapse from "@mui/material/Collapse";
 import IconButton from "@mui/material/IconButton";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { AppearanceList } from "../shared";
+import { AppearanceList } from "../contains/AppearanceList";
 
 type StoryAppearanceSectionProps = {
   item: Record<string, unknown>;
