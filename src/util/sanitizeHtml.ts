@@ -22,7 +22,7 @@ function hardenLinks(html: string): string {
 }
 
 function sanitizeHtmlOnServer(input: string): string {
-  const $ = load(`<body>${input}</body>`, { decodeEntities: false });
+  const $ = load(`<body>${input}</body>`);
 
   $("body *").each((_, element) => {
     const tagName = element.tagName?.toLowerCase();
