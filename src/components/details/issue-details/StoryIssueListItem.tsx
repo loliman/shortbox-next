@@ -152,14 +152,16 @@ export function StoryIssueListItem(props: Readonly<StoryIssueListItemProps>) {
               {publisherTitle || null}
             </Typography>
           ) : null}
+
+          {props.showCollected && props.issue.collected && props.session ? (
+            <Box sx={{ mt: 0.75 }}>
+              <Chip size="small" label="Gesammelt" color="success" />
+            </Box>
+          ) : null}
         </Box>
       </Box>
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0 }}>
-        {props.showCollected && props.issue.collected && props.session ? (
-          <Chip size="small" label="Gesammelt" color="success" />
-        ) : null}
-
         <CoverTooltip issue={props.issue} us={coverUs} number={props.number}>
           <IconButton
             onClick={(e) => {

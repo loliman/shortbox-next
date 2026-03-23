@@ -9,7 +9,7 @@ import type { SessionData } from "../app/session";
 import type { LayoutRouteData, RouteQuery } from "../types/route-ui";
 
 const HOME_SEO_SUMMARY =
-  "Shortbox listet alle deutschen Marvel Veröffentlichungen detailliert auf und ordnet diese den entsprechenden US Geschichten zu.";
+  "Shortbox listet alle deutschen Marvel Veröffentlichungen detailliert auf und ordnet diese den entsprechenden US Geschichten zu. Angefangen ueber Geschichten der bekanntesten Superhelden Spider-Man, Deadpool, den X-Men oder den Avengers oder unbekannteren Helden wie Moon Knight und den New Mutants, ueber Comics zum Marvel Cinematic Universe mit Captain America, Captain Marvel und Iron Man bis hin zu Western-Comics, Horror-Comics und Kinder-Comics wie den Gluecksbaerchis oder der Police Acadamy findet ihr hier alle Veroeffentlichungen in offiziellen Ausgaben, Raubkopien oder Fan-Comics.";
 
 interface HomeProps {
   selected: LayoutRouteData["selected"];

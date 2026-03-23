@@ -38,6 +38,7 @@ export default function FilterPage(props: Readonly<FilterPageProps>) {
               key={tab.value}
               component={Link}
               href={buildRouteHref(`/${props.us ? "filter/us" : "filter/de"}`, query, {
+                from: from || null,
                 tab: String(tab.value),
               })}
               label={tab.label}

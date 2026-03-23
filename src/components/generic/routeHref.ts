@@ -2,7 +2,7 @@ import queryString from "query-string";
 
 type QueryValue = string | number | boolean | null | undefined;
 type QueryRecord = Record<string, QueryValue>;
-const TRANSIENT_QUERY_KEYS = ["expand", "navPublisher", "navSeries"] as const;
+const TRANSIENT_QUERY_KEYS = ["expand", "from", "navPublisher", "navSeries"] as const;
 
 export function buildRouteHref(
   pathname: string,
