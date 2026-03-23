@@ -8,8 +8,6 @@ import {
   Alert,
   Box,
   Button,
-  CardContent,
-  CardHeader,
   Divider,
   Stack,
   Typography,
@@ -22,6 +20,8 @@ import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import { mutationRequest } from "../../lib/client/mutation-request";
 import type { SessionData } from "../../app/session";
 import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
+import FormPageShell from "../form-shell/FormPageShell";
+import FormSection from "../form-shell/FormSection";
 
 type SnackbarVariant = "success" | "error" | "warning" | "info";
 
@@ -142,23 +142,23 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
   };
 
   return (
-    <>
-      <CardHeader title="Change Requests" />
-      <CardContent sx={{ pt: 1 }}>
-        {loading ? <Typography>Lade Change Requests...</Typography> : null}
-        {error ? (
-          <Alert severity="warning">
-            Change Requests konnten aktuell nicht geladen werden. Die Ansicht bleibt leer.
-          </Alert>
-        ) : null}
+    <FormPageShell title="Change Requests">
+      <FormSection title="Offene Anfragen">
+        <>
+          {loading ? <Typography>Lade Change Requests...</Typography> : null}
+          {error ? (
+            <Alert severity="warning">
+              Change Requests konnten aktuell nicht geladen werden. Die Ansicht bleibt leer.
+            </Alert>
+          ) : null}
 
-        {!loading && !error && visibleChangeRequests.length === 0 ? (
-          <Alert severity="info">Keine offenen Change Requests.</Alert>
-        ) : null}
+          {!loading && !error && visibleChangeRequests.length === 0 ? (
+            <Alert severity="info">Keine offenen Change Requests.</Alert>
+          ) : null}
 
-        <Box>
-          {visibleChangeRequests.map(
-            (entry: ChangeRequestEntry, idx: number) => {
+          <Box>
+            {visibleChangeRequests.map(
+              (entry: ChangeRequestEntry, idx: number) => {
               const id = String(entry.id || "");
               const isLast = idx === visibleChangeRequests.length - 1;
               const borderRadius =
@@ -174,52 +174,52 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
                 sanitizeForDiffView(parseJsonish(rawItem), usContext)
               );
 
-              return (
-                <Accordion
-                  key={id}
-                  disableGutters
-                  sx={{
-                    borderRadius,
-                    width: "auto",
-                    maxWidth: "100%",
-                    mb: isLast ? 0 : 1,
-                    border: "1px solid",
-                    borderColor: "divider",
-                    backgroundColor: "background.paper",
-                    overflow: "hidden",
-                    boxShadow: (theme) => theme.shadows[1],
-                    transition: "box-shadow 180ms ease, transform 180ms ease, border-color 180ms ease",
-                    "&:before": { display: "none" },
-                    "& .MuiAccordionSummary-root": {
-                      backgroundColor: "background.paper",
-                    },
-                    "& .MuiAccordionDetails-root": {
-                      backgroundColor: "background.paper",
-                    },
-                  }}
-                >
-                  <AccordionSummary
-                    expandIcon={<ExpandMoreIcon />}
+                return (
+                  <Accordion
+                    key={id}
+                    disableGutters
                     sx={{
-                      py: 1.25,
-                      minHeight: 0,
-                      "&.Mui-expanded": {
-                        minHeight: 0,
+                      borderRadius,
+                      width: "auto",
+                      maxWidth: "100%",
+                      mb: isLast ? 0 : 1,
+                      border: "1px solid",
+                      borderColor: "divider",
+                      backgroundColor: "background.paper",
+                      overflow: "hidden",
+                      boxShadow: (theme) => theme.shadows[1],
+                      transition: "box-shadow 180ms ease, transform 180ms ease, border-color 180ms ease",
+                      "&:before": { display: "none" },
+                      "& .MuiAccordionSummary-root": {
+                        backgroundColor: "background.paper",
                       },
-                      "& .MuiAccordionSummary-content": {
-                        width: "100%",
-                        margin: 0,
-                        "&.Mui-expanded": {
-                          margin: 0,
-                        },
-                      },
-                      "& .MuiAccordionSummary-expandIconWrapper": {
-                        margin: 0,
-                        alignSelf: "center",
+                      "& .MuiAccordionDetails-root": {
+                        backgroundColor: "background.paper",
                       },
                     }}
                   >
-                    <Stack sx={{ width: "100%" }}>
+                    <AccordionSummary
+                      expandIcon={<ExpandMoreIcon />}
+                      sx={{
+                        py: 1.25,
+                        minHeight: 0,
+                        "&.Mui-expanded": {
+                          minHeight: 0,
+                        },
+                        "& .MuiAccordionSummary-content": {
+                          width: "100%",
+                          margin: 0,
+                          "&.Mui-expanded": {
+                            margin: 0,
+                          },
+                        },
+                        "& .MuiAccordionSummary-expandIconWrapper": {
+                          margin: 0,
+                          alignSelf: "center",
+                        },
+                      }}
+                    >
+                      <Stack sx={{ width: "100%" }}>
                       <Typography
                           variant="overline"
                           sx={{
@@ -263,37 +263,38 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
                       >
                         {buildAddInfo(rawIssue as any)}
                       </Typography>
-                    </Stack>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <Stack spacing={1.25}>
-                      <JsonDiffReactView before={issue} after={item} />
+                      </Stack>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                      <Stack spacing={1.25}>
+                        <JsonDiffReactView before={issue} after={item} />
 
-                      <Divider />
+                        <Divider />
 
-                      {canAdmin ? (
-                        <Stack direction="row" spacing={1} justifyContent="flex-end">
-                          <Button color="error" variant="outlined" onClick={() => handleDiscard(id)}>
-                            Verwerfen
-                          </Button>
-                          <Button
-                            disabled={accepting}
-                            variant="contained"
-                            onClick={() => handleAccept(entry)}
-                          >
-                            Akzeptieren
-                          </Button>
-                        </Stack>
-                      ) : null}
-                    </Stack>
-                  </AccordionDetails>
-                </Accordion>
-              );
-            }
-          )}
-        </Box>
-      </CardContent>
-    </>
+                        {canAdmin ? (
+                          <Stack direction="row" spacing={1} justifyContent="flex-end">
+                            <Button color="error" variant="outlined" onClick={() => handleDiscard(id)}>
+                              Verwerfen
+                            </Button>
+                            <Button
+                              disabled={accepting}
+                              variant="contained"
+                              onClick={() => handleAccept(entry)}
+                            >
+                              Akzeptieren
+                            </Button>
+                          </Stack>
+                        ) : null}
+                      </Stack>
+                    </AccordionDetails>
+                  </Accordion>
+                );
+              }
+            )}
+          </Box>
+        </>
+      </FormSection>
+    </FormPageShell>
   );
 }
 

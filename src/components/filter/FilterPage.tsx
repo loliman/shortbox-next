@@ -1,8 +1,5 @@
 "use client";
 
-import CardHeader from "@mui/material/CardHeader";
-import Paper from "@mui/material/Paper";
-import Stack from "@mui/material/Stack";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Link from "next/link";
@@ -11,6 +8,7 @@ import FilterFormClient from "./FilterFormClient";
 import type { FilterPageProps } from "./types";
 import { buildRouteHref } from "../generic/routeHref";
 import { generateUrl } from "../../util/hierarchy";
+import FormPageShell from "../form-shell/FormPageShell";
 
 const FILTER_TABS = [
   { label: "Erscheinung", value: 0 },
@@ -31,24 +29,10 @@ export default function FilterPage(props: Readonly<FilterPageProps>) {
   const activeTab = normalizeFilterTab(typeof query?.tab === "string" ? query.tab : undefined);
 
   return (
-    <Stack spacing={2.25}>
-      <Paper
-        elevation={0}
-        sx={{
-          borderRadius: 2,
-          border: "1px solid",
-          borderColor: "divider",
-          boxShadow: 1,
-          backgroundColor: "background.paper",
-        }}
-      >
-        <CardHeader title="Filter" />
-        <Tabs
-          value={activeTab}
-          variant="scrollable"
-          allowScrollButtonsMobile
-          sx={{ px: { xs: 1.25, sm: 1.75 } }}
-        >
+    <FormPageShell
+      title="Filter"
+      tabs={
+        <Tabs value={activeTab} variant="scrollable" allowScrollButtonsMobile>
           {FILTER_TABS.map((tab) => (
             <Tab
               key={tab.value}
@@ -61,8 +45,8 @@ export default function FilterPage(props: Readonly<FilterPageProps>) {
             />
           ))}
         </Tabs>
-      </Paper>
-
+      }
+    >
       <FilterFormClient
         us={props.us}
         query={props.query}
@@ -72,6 +56,6 @@ export default function FilterPage(props: Readonly<FilterPageProps>) {
         initialValues={initialValues}
         targetPath={targetPath}
       />
-    </Stack>
+    </FormPageShell>
   );
 }

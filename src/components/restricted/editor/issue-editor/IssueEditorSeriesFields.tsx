@@ -14,6 +14,7 @@ interface IssueEditorSeriesFieldsProps {
   setFieldValue: (field: string, value: unknown, shouldValidate?: boolean) => void;
   showHints?: boolean;
   lockedFields?: {
+    title?: boolean;
     publisher?: boolean;
     series?: boolean;
     number?: boolean;

@@ -38,7 +38,7 @@ export function toChildAddinfo(child: StoryIssueRelation): string {
   return addinfoText;
 }
 
-export function isSameIssue(issueA?: StoryIssue, issueB?: StoryIssue): boolean {
+export function isSameIssue(issueA?: StoryIssue | null, issueB?: StoryIssue | null): boolean {
   if (!issueA || !issueB || !issueA.series || !issueB.series) return false;
 
   return (
