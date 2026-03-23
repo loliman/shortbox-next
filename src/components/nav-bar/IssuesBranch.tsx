@@ -9,7 +9,7 @@ import Typography from "@mui/material/Typography";
 import CircularProgress from "@mui/material/CircularProgress";
 import type { Issue, SelectedRoot } from "../../types/domain";
 import CoverTooltip from "./CoverTooltip";
-import { NestedEmptyRow } from "./NestedNavRow";
+import { NestedEmptyRow, NestedLoadingRow } from "./NestedNavRow";
 import {
   createIssueSecondary,
   createSidebarIssueLabel,
@@ -37,6 +37,7 @@ type IssuesBranchProps = {
   suppressAutoScrollRef: React.MutableRefObject<boolean>;
   navigationPending?: boolean;
   pendingNavigationKey?: string | null;
+  loading?: boolean;
 };
 
 const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBranchProps>) {
@@ -113,6 +114,10 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
     suppressAutoScrollRef,
     scrollSelectedIssueIntoView,
   ]);
+
+  if (props.loading) {
+    return <NestedLoadingRow depth={2} message="Ausgaben werden geladen..." />;
+  }
 
   if (issueNodes.length === 0) return <NestedEmptyRow depth={2} message="Keine Ausgaben vorhanden" />;
 

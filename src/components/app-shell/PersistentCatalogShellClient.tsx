@@ -1,4 +1,7 @@
-import { headers } from "next/headers";
+"use client";
+
+import React from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import FooterLinks from "../footer/FooterLinks";
@@ -6,53 +9,86 @@ import LayoutChromeClient from "../LayoutChromeClient";
 import AddFab from "../fab/AddFab";
 import ErrorFab from "../fab/ErrorFab";
 import { COMPACT_BOTTOM_BAR_CLEARANCE, getNavDrawerWidth } from "../layoutMetrics";
-import { getInitialResponsiveGuess } from "../../app/responsiveGuess";
-import { countChangeRequests } from "../../lib/read/issue-read";
-import { readServerSession } from "../../lib/server/session";
-import type { IssueNode, PublisherNode, SeriesNode } from "../nav-bar/listTreeUtils";
+import { useInitialResponsiveGuess } from "../../app/responsiveGuessContext";
+import { getHierarchyLevel, getSelected, HierarchyLevel } from "../../util/hierarchy";
 import type { SessionData } from "../../app/session";
-import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
+import type { IssueNode, PublisherNode, SeriesNode } from "../nav-bar/listTreeUtils";
 
-export interface CatalogPageShellProps {
-  selected: LayoutRouteData["selected"];
-  level: LayoutRouteData["level"];
-  us: boolean;
-  showNavigation?: boolean;
-  lockViewportHeight?: boolean;
-  query?: RouteQuery | null;
+type NavigationState = {
   initialPublisherNodes?: PublisherNode[];
   initialSeriesNodesByPublisher?: Record<string, SeriesNode[]>;
   initialIssueNodesBySeriesKey?: Record<string, IssueNode[]>;
-  drawerOpen?: boolean;
+  initialFilterCount?: number;
+};
+
+type PersistentCatalogShellClientProps = {
+  children: React.ReactNode;
+  us: boolean;
   session?: SessionData | null;
-  initialFilterCount?: number | null;
   changeRequestsCount?: number;
-  navigationLoading?: boolean;
-  children?: React.ReactNode;
-}
+};
 
-export default async function CatalogPageShell(props: Readonly<CatalogPageShellProps>) {
-  const showNavigation = props.showNavigation ?? true;
-  const lockViewportHeight = props.lockViewportHeight ?? true;
-  const sessionPromise =
-    props.session === undefined ? readServerSession() : Promise.resolve(props.session);
+export default function PersistentCatalogShellClient(
+  props: Readonly<PersistentCatalogShellClientProps>
+) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const initialGuess = useInitialResponsiveGuess();
+  const query = React.useMemo(() => {
+    const entries = Array.from(searchParams.entries());
+    return entries.length > 0 ? Object.fromEntries(entries) : null;
+  }, [searchParams]);
+  const selected = React.useMemo(() => {
+    const parts = (pathname || "").split("/").filter(Boolean);
+    const params = {
+      publisher: parts[1],
+      series: parts[2],
+      issue: parts[3],
+      variant: parts[4],
+    };
+    return getSelected(params, props.us);
+  }, [pathname, props.us]);
+  const level = React.useMemo(() => getHierarchyLevel(selected), [selected]);
+  const lockViewportHeight = level !== HierarchyLevel.ROOT;
+  const [navigationState, setNavigationState] = React.useState<NavigationState | null>(null);
+  const [navigationLoading, setNavigationLoading] = React.useState(true);
 
-  const [resolvedSession, resolvedChangeRequestsCount, initialNavOffset] = await Promise.all([
-    sessionPromise,
-    typeof props.changeRequestsCount === "number"
-      ? Promise.resolve(props.changeRequestsCount)
-      : sessionPromise.then((session) => (session?.canAdmin ? countChangeRequests().catch(() => 0) : 0)),
-    (async () => {
-      if (!showNavigation) return "0px";
+  React.useEffect(() => {
+    const controller = new AbortController();
+    const params = new URLSearchParams({ us: String(props.us) });
+    const parts = (pathname || "").split("/").filter(Boolean);
+    if (parts[1]) params.set("publisher", parts[1]);
+    if (parts[2]) params.set("series", parts[2]);
+    if (parts[3]) params.set("issue", parts[3]);
+    if (parts[4]) params.set("variant", parts[4]);
+    const filter = searchParams.get("filter");
+    if (filter) params.set("filter", filter);
 
-      const headerStore = await headers();
-      const initialResponsiveGuess = getInitialResponsiveGuess(headerStore.get("user-agent"));
-      const initialTablet = !initialResponsiveGuess.isPhone && !initialResponsiveGuess.isDesktop;
-      const initialNavWide =
-        initialResponsiveGuess.isDesktop || (initialTablet && initialResponsiveGuess.isLandscape);
-      return initialNavWide ? `${getNavDrawerWidth(false)}px` : "0px";
-    })(),
-  ]);
+    fetch(`/api/public-navigation-state?${params.toString()}`, {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return (await response.json()) as NavigationState;
+      })
+      .then((data) => {
+        if (!data) return;
+        setNavigationState(data);
+        setNavigationLoading(false);
+      })
+      .catch((error: unknown) => {
+        if ((error as { name?: string } | null)?.name === "AbortError") return;
+        setNavigationLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [pathname, searchParams, props.us]);
+
+  const initialTablet = !initialGuess?.isPhone && !initialGuess?.isDesktop;
+  const initialNavWide =
+    Boolean(initialGuess?.isDesktop) || Boolean(initialTablet && initialGuess?.isLandscape);
+  const initialNavOffset = initialNavWide ? `${getNavDrawerWidth(false)}px` : "0px";
 
   return (
     <Box
@@ -66,31 +102,24 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
       }}
     >
       <LayoutChromeClient
-        selected={props.selected}
+        selected={selected}
         us={props.us}
-        showNavigation={showNavigation}
-        query={props.query}
-        initialPublisherNodes={props.initialPublisherNodes}
-        initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher}
-        initialIssueNodesBySeriesKey={props.initialIssueNodesBySeriesKey}
-        drawerOpen={props.drawerOpen}
-        session={resolvedSession}
-        initialFilterCount={props.initialFilterCount}
-        changeRequestsCount={resolvedChangeRequestsCount}
-        navigationLoading={props.navigationLoading}
+        showNavigation={true}
+        query={query}
+        initialPublisherNodes={navigationState?.initialPublisherNodes}
+        initialSeriesNodesByPublisher={navigationState?.initialSeriesNodesByPublisher}
+        initialIssueNodesBySeriesKey={navigationState?.initialIssueNodesBySeriesKey}
+        session={props.session}
+        initialFilterCount={navigationState?.initialFilterCount}
+        changeRequestsCount={props.changeRequestsCount ?? 0}
+        navigationLoading={navigationLoading}
       />
-      {showNavigation
-        ? resolvedSession?.canWrite ? (
-            <AddFab
-              session={resolvedSession}
-              level={props.level}
-              selected={props.selected}
-              us={props.us}
-            />
-          ) : props.us ? null : (
-            <ErrorFab level={props.level} selected={props.selected} us={props.us} />
-          )
-        : null}
+
+      {props.session?.canWrite ? (
+        <AddFab session={props.session} level={level} selected={selected} us={props.us} />
+      ) : props.us ? null : (
+        <ErrorFab level={level} selected={selected} us={props.us} />
+      )}
 
       <Box
         component="main"
@@ -112,13 +141,9 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
             backgroundColor: "background.default",
             px: { xs: 0, sm: 2 },
             pt: { xs: 0, sm: 2 },
-            pb: showNavigation
-              ? { xs: COMPACT_BOTTOM_BAR_CLEARANCE, sm: COMPACT_BOTTOM_BAR_CLEARANCE, lg: 2 }
-              : { xs: 0, sm: 2 },
-            ml: showNavigation ? `var(--shortbox-nav-offset, ${initialNavOffset})` : 0,
-            transition: showNavigation
-              ? "margin-left 225ms cubic-bezier(0.4, 0, 0.6, 1)"
-              : undefined,
+            pb: { xs: COMPACT_BOTTOM_BAR_CLEARANCE, sm: COMPACT_BOTTOM_BAR_CLEARANCE, lg: 2 },
+            ml: `var(--shortbox-nav-offset, ${initialNavOffset})`,
+            transition: "margin-left 225ms cubic-bezier(0.4, 0, 0.6, 1)",
           }}
         >
           <Card

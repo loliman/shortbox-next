@@ -13,7 +13,7 @@ const task: Task = async (rawPayload, helpers) => {
       throw new Error("Cleanup run failed");
     }
 
-    await persistTaskResult(helpers, "cleanup", {
+    await persistTaskResult(helpers, "cleanup-db", {
       status: "SUCCESS",
       dryRun: report.dryRun,
       summary: `affected=${report.totalAffected}, stages=${report.stages.length}, dryRun=${report.dryRun}`,
@@ -23,7 +23,7 @@ const task: Task = async (rawPayload, helpers) => {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    await persistTaskResult(helpers, "cleanup", {
+    await persistTaskResult(helpers, "cleanup-db", {
       status: "FAILED",
       dryRun,
       summary: message,

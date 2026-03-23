@@ -13,12 +13,7 @@ export default function StickyActionBar({ children, sx }: Readonly<StickyActionB
       elevation={0}
       sx={[
         (theme) => ({
-          position: "sticky",
-          bottom: {
-            xs: "calc(4.5rem + env(safe-area-inset-bottom))",
-            sm: "3.5rem",
-          },
-          zIndex: theme.zIndex.appBar - 1,
+          position: "static",
           px: { xs: 1.5, sm: 2 },
           py: 1.5,
           borderRadius: "calc(2 * var(--mui-shape-borderRadius))",

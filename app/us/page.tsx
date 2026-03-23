@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import CatalogPageShell from "@/src/components/app-shell/CatalogPageShell";
 import Home from "@/src/components/Home";
 import { readHomeFeed } from "@/src/lib/read/home-read";
 import { parseFilter } from "@/src/components/nav-bar/listUtils";
@@ -39,32 +38,16 @@ export default async function UsHomePage({
     }),
   ]);
   return (
-    <CatalogPageShell
+    <Home
       selected={selected}
       level={level}
       us={true}
-      lockViewportHeight={false}
       query={query}
       session={session}
       initialFilterCount={navigationData.initialFilterCount}
-      initialPublisherNodes={navigationData.initialPublisherNodes}
-      initialSeriesNodesByPublisher={navigationData.initialSeriesNodesByPublisher}
-      initialIssueNodesBySeriesKey={navigationData.initialIssueNodesBySeriesKey}
-    >
-      <Home
-        selected={selected}
-        level={level}
-        us={true}
-        query={query}
-        session={session}
-        initialFilterCount={navigationData.initialFilterCount}
-        initialItems={initialHomeData.items.filter(Boolean) as PreviewIssue[]}
-        initialHasMore={initialHomeData.hasMore}
-        initialNextCursor={initialHomeData.nextCursor}
-        initialPublisherNodes={navigationData.initialPublisherNodes}
-        initialSeriesNodesByPublisher={navigationData.initialSeriesNodesByPublisher}
-        initialIssueNodesBySeriesKey={navigationData.initialIssueNodesBySeriesKey}
-      />
-    </CatalogPageShell>
+      initialItems={initialHomeData.items.filter(Boolean) as PreviewIssue[]}
+      initialHasMore={initialHomeData.hasMore}
+      initialNextCursor={initialHomeData.nextCursor}
+    />
   );
 }

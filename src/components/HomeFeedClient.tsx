@@ -77,8 +77,10 @@ export default function HomeFeedClient(props: Readonly<HomeFeedClientProps>) {
       us: routeUs,
       session: props.session,
       selected: props.selected,
+      query: props.query,
     }),
     [
+      props.query,
       props.selected,
       props.session,
       routeUs,

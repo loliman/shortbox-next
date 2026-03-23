@@ -70,12 +70,27 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
     <Box
       sx={{
         display: "grid",
-        gridTemplateColumns: compactLayout ? "1fr auto auto auto" : "minmax(220px, 1fr) auto auto auto",
+        gridTemplateColumns: compactLayout
+          ? "auto 1fr auto auto"
+          : "auto minmax(220px, 1fr) auto auto",
         alignItems: "center",
         gap: 1,
         width: compactLayout ? "100%" : "auto",
       }}
     >
+      <Box
+        aria-live="polite"
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minWidth: 24,
+          visibility: isPending ? "visible" : "hidden",
+        }}
+      >
+        <CircularProgress size={18} />
+      </Box>
+
       <FormControl
         size="small"
         fullWidth={compactLayout}
@@ -164,19 +179,6 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
         </ToggleButton>
       </ToggleButtonGroup>
 
-      {isPending ? (
-        <Box
-          aria-live="polite"
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            minWidth: 24,
-          }}
-        >
-          <CircularProgress size={18} />
-        </Box>
-      ) : null}
     </Box>
   );
 }

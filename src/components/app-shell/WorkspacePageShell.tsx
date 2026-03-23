@@ -12,5 +12,11 @@ type WorkspacePageShellProps = Omit<
 >;
 
 export default function WorkspacePageShell(props: Readonly<WorkspacePageShellProps>) {
-  return <CatalogPageShell {...props} showNavigation={false} />;
+  return (
+    <CatalogPageShell
+      {...props}
+      showNavigation={false}
+      lockViewportHeight={props.lockViewportHeight ?? false}
+    />
+  );
 }

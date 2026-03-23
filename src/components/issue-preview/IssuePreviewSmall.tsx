@@ -10,6 +10,7 @@ import Skeleton from "@mui/material/Skeleton";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import { useResolvedImageUrl } from "../generic/useResolvedImageUrl";
+import { buildRouteHref } from "../generic/routeHref";
 import { getIssueLabel, getIssueUrl } from "../../util/issuePresentation";
 import {
   getIssuePreviewCover,
@@ -23,6 +24,7 @@ interface IssuePreviewSmallProps {
   issue: PreviewIssue;
   us?: boolean;
   session?: unknown;
+  query?: Record<string, unknown> | null;
   idx?: number;
   isLast?: boolean;
 }
@@ -40,7 +42,7 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
     NO_COVER_URL
   );
   const flags = getIssuePreviewFlags(props.issue, us, hasSession);
-  const url = getIssueUrl(props.issue, us);
+  const url = buildRouteHref(getIssueUrl(props.issue, us), props.query);
   const issueLabel = getIssueLabel(props.issue);
 
   return (

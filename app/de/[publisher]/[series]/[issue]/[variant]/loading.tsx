@@ -1,5 +1,5 @@
-import { CatalogIssueLoadingScreen } from "@/src/components/placeholders/RouteLoadingScreens";
+import { IssueDetailsPreview } from "@/src/components/details/issue-details/preview/IssueDetailsPreview";
 
 export default function Loading() {
-  return <CatalogIssueLoadingScreen us={false} />;
+  return <IssueDetailsPreview />;
 }

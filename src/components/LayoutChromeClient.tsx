@@ -89,7 +89,12 @@ export default function LayoutChromeClient(props: Readonly<LayoutChromeClientPro
           phonePortrait={isPhonePortrait}
           query={
             props.query as
-              | { filter?: string | null; navPublisher?: string | null; navSeries?: string | null }
+              | {
+                  filter?: string | null;
+                  navOpen?: string | null;
+                  navPublisher?: string | null;
+                  navSeries?: string | null;
+                }
               | null
           }
           selected={props.selected}

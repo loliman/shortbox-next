@@ -44,6 +44,7 @@ export default function PublisherDetails(props: Readonly<PublisherDetailsProps>)
     us,
     session: props.session,
     selected,
+    query: props.query,
   };
 
   return (

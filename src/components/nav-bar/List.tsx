@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { usePathname } from "next/navigation";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import Collapse from "@mui/material/Collapse";
@@ -29,6 +28,7 @@ import {
   writeNavExpansionState,
   writeNavScrollTop,
 } from "./navStateStorage";
+import { readCachedIssues, readCachedSeries, writeCachedIssues, writeCachedSeries } from "./navDataCache";
 
 interface ListProps {
   initialPublisherNodes?: PublisherNode[];
@@ -38,7 +38,12 @@ interface ListProps {
   toggleDrawer?: () => void;
   temporaryDrawer: boolean;
   phonePortrait: boolean;
-  query?: { filter?: string | null; navPublisher?: string | null; navSeries?: string | null } | null;
+  query?: {
+    filter?: string | null;
+    navOpen?: string | null;
+    navPublisher?: string | null;
+    navSeries?: string | null;
+  } | null;
   selected: SelectedRoot;
   session?: unknown;
   us?: boolean;
@@ -47,13 +52,10 @@ interface ListProps {
 }
 
 export default function List(props: Readonly<ListProps>) {
-  const pathname = usePathname();
   const { isPending, push } = usePendingNavigation();
   const { drawerOpen, toggleDrawer } = props;
   const temporaryDrawer = props.temporaryDrawer;
   const filterQuery = props.query?.filter ?? null;
-  const queryExpandedPublisher = props.query?.navPublisher ?? null;
-  const queryExpandedSeries = props.query?.navSeries ?? null;
   const us = Boolean(props.us);
   const loading = Boolean(props.loading);
   const navStateKey = React.useMemo(() => `${us}|${filterQuery || ""}`, [us, filterQuery]);
@@ -73,30 +75,100 @@ export default function List(props: Readonly<ListProps>) {
       writeNavScrollTop(navStateKey, listElement.scrollTop);
     }
   }, [navStateKey]);
-  const [expandedPublishers, setExpandedPublishers] = React.useState<Record<string, boolean>>(
-    {}
-  );
-  const [hasStoredPublisherExpansion, setHasStoredPublisherExpansion] = React.useState(false);
+  const selectedPublisherName = getSelectedPublisherName(props.selected);
+  const selectedSeriesKey = getSelectedSeriesKey(props.selected);
+  const selectedIssue = props.selected?.issue;
+  const publisherNodes = props.initialPublisherNodes || [];
+  const visiblePublisherNodes = publisherNodes;
+  const [expandedPublishers, setExpandedPublishers] = React.useState<Record<string, boolean>>({});
+  const [publisherExpansionReady, setPublisherExpansionReady] = React.useState(false);
   const [pendingPublisherKey, setPendingPublisherKey] = React.useState<string | null>(null);
   const [pendingNavigationKey, setPendingNavigationKey] = React.useState<string | null>(null);
+  const [contentReady, setContentReady] = React.useState(false);
+  const [seriesNodesByPublisher, setSeriesNodesByPublisher] = React.useState<Record<string, SeriesNode[]>>(
+    () => {
+      const nextState: Record<string, SeriesNode[]> = { ...(props.initialSeriesNodesByPublisher || {}) };
+      for (const publisherName of Object.keys(nextState)) {
+        writeCachedSeries(navStateKey, publisherName, nextState[publisherName] || []);
+      }
+      return nextState;
+    }
+  );
+  const [issueNodesBySeriesKey, setIssueNodesBySeriesKey] = React.useState<Record<string, IssueNode[]>>(
+    () => {
+      const nextState: Record<string, IssueNode[]> = { ...(props.initialIssueNodesBySeriesKey || {}) };
+      for (const seriesKey of Object.keys(nextState)) {
+        writeCachedIssues(navStateKey, seriesKey, nextState[seriesKey] || []);
+      }
+      return nextState;
+    }
+  );
+  const renderSignature = React.useMemo(
+    () =>
+      JSON.stringify({
+        loading,
+        publishers: visiblePublisherNodes.map((publisherNode) => publisherNode.name || ""),
+        expandedPublishers: Object.keys(expandedPublishers).filter((key) => expandedPublishers[key]),
+        selectedPublisherName,
+        selectedSeriesKey,
+        selectedIssueNumber: selectedIssue?.number || "",
+      }),
+    [
+      loading,
+      visiblePublisherNodes,
+      expandedPublishers,
+      selectedPublisherName,
+      selectedSeriesKey,
+      selectedIssue?.number,
+    ]
+  );
 
   React.useEffect(() => {
-    setHasStoredPublisherExpansion(hasNavExpansionState(navStateKey));
-    setExpandedPublishers(readNavExpansionState(navStateKey));
-  }, [navStateKey]);
+    const storedExpansion = readNavExpansionState(navStateKey);
+    const hasStoredExpansion = hasNavExpansionState(navStateKey);
+    const requiredExpansion = buildExpandedPublishers(
+      selectedPublisherName ? [selectedPublisherName] : []
+    );
+    setExpandedPublishers(
+      hasStoredExpansion
+        ? { ...storedExpansion, ...requiredExpansion }
+        : requiredExpansion
+    );
+    setPublisherExpansionReady(true);
+  }, [navStateKey, selectedPublisherName]);
 
   React.useEffect(() => {
+    if (!publisherExpansionReady) return;
     writeNavExpansionState(navStateKey, expandedPublishers);
-  }, [expandedPublishers, navStateKey]);
+  }, [expandedPublishers, navStateKey, publisherExpansionReady]);
+
+  React.useEffect(() => {
+    setSeriesNodesByPublisher((prev) => {
+      const nextState = { ...prev };
+      for (const [publisherName, seriesNodes] of Object.entries(props.initialSeriesNodesByPublisher || {})) {
+        nextState[publisherName] = seriesNodes;
+        writeCachedSeries(navStateKey, publisherName, seriesNodes);
+      }
+      return nextState;
+    });
+  }, [props.initialSeriesNodesByPublisher, navStateKey]);
+
+  React.useEffect(() => {
+    setIssueNodesBySeriesKey((prev) => {
+      const nextState = { ...prev };
+      for (const [seriesKey, issueNodes] of Object.entries(props.initialIssueNodesBySeriesKey || {})) {
+        nextState[seriesKey] = issueNodes;
+        writeCachedIssues(navStateKey, seriesKey, issueNodes);
+      }
+      return nextState;
+    });
+  }, [props.initialIssueNodesBySeriesKey, navStateKey]);
 
   React.useEffect(() => {
     if (isPending) return;
     setPendingPublisherKey(null);
     setPendingNavigationKey(null);
   }, [isPending]);
-
-  const publisherNodes = props.initialPublisherNodes || [];
-  const visiblePublisherNodes = publisherNodes;
 
   React.useLayoutEffect(() => {
     const targetScrollTop = readNavScrollTop(navStateKey);
@@ -107,42 +179,27 @@ export default function List(props: Readonly<ListProps>) {
     if (listElement) listElement.scrollTop = targetScrollTop;
   }, [navStateKey, visiblePublisherNodes.length]);
 
+  React.useLayoutEffect(() => {
+    setContentReady(false);
+    const frame = window.requestAnimationFrame(() => {
+      setContentReady(true);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [renderSignature]);
+
   React.useEffect(() => {
     return () => {
       storeScrollTop();
     };
   }, [storeScrollTop]);
 
-  const selectedPublisherName = getSelectedPublisherName(props.selected);
-  const selectedSeriesKey = getSelectedSeriesKey(props.selected);
-  const selectedIssue = props.selected?.issue;
-  const currentPath = pathname || generateUrl(props.selected, us);
-
   React.useEffect(() => {
     if (selectedIssue?.number) return;
     suppressIssueAutoScrollRef.current = false;
   }, [selectedIssue?.number]);
-
-  React.useEffect(() => {
-    if (hasStoredPublisherExpansion) return;
-    if (!selectedPublisherName) return;
-    const resolvedPublisherName =
-      visiblePublisherNodes.find((publisherNode) =>
-        isSameEntityName(publisherNode.name, selectedPublisherName)
-      )?.name || selectedPublisherName;
-
-    setExpandedPublishers((prev) =>
-      prev[resolvedPublisherName] ? prev : { ...prev, [resolvedPublisherName]: true }
-    );
-  }, [hasStoredPublisherExpansion, selectedPublisherName, visiblePublisherNodes]);
-
-  React.useEffect(() => {
-    if (!queryExpandedPublisher) return;
-
-    setExpandedPublishers((prev) =>
-      prev[queryExpandedPublisher] ? prev : { ...prev, [queryExpandedPublisher]: true }
-    );
-  }, [queryExpandedPublisher]);
 
   React.useEffect(() => {
     if (!selectedPublisherName) return;
@@ -163,23 +220,83 @@ export default function List(props: Readonly<ListProps>) {
     });
   }, [selectedPublisherName, expandedPublishers, visiblePublisherNodes.length]);
 
-  const updateNavRoute = React.useCallback(
-    (
-      nextQuery: { navPublisher?: string | null; navSeries?: string | null },
-      pendingKey?: string | null
-    ) => {
-      storeScrollTop();
-      setPendingPublisherKey(pendingKey ?? null);
-      push(
-        buildRouteHref(currentPath, props.query, {
-          filter: filterQuery,
-          navPublisher: nextQuery.navPublisher ?? null,
-          navSeries: nextQuery.navSeries ?? null,
-        })
-      );
+  const updateNavOpenState = React.useCallback(
+    async (publisherName: string) => {
+      if (seriesNodesByPublisher[publisherName]) return true;
+      const cached = readCachedSeries(navStateKey, publisherName);
+      if (cached) {
+        setSeriesNodesByPublisher((prev) => (prev[publisherName] ? prev : { ...prev, [publisherName]: cached }));
+        return true;
+      }
+
+      setPendingPublisherKey(`publisher:${publisherName}`);
+      try {
+        const params = new URLSearchParams({
+          scope: "series",
+          publisher: publisherName,
+          us: String(us),
+        });
+        if (filterQuery) params.set("filter", filterQuery);
+        const response = await fetch(`/api/public-navigation?${params.toString()}`, { cache: "no-store" });
+        if (!response.ok) return false;
+        const payload = (await response.json()) as { items?: SeriesNode[] };
+        const seriesNodes = payload.items || [];
+        writeCachedSeries(navStateKey, publisherName, seriesNodes);
+        setSeriesNodesByPublisher((prev) => ({ ...prev, [publisherName]: seriesNodes }));
+        return true;
+      } finally {
+        setPendingPublisherKey((prev) =>
+          prev === `publisher:${publisherName}` ? null : prev
+        );
+      }
     },
-    [storeScrollTop, push, currentPath, props.query, filterQuery]
+    [seriesNodesByPublisher, navStateKey, us, filterQuery]
   );
+
+  const ensureIssueNodesLoaded = React.useCallback(
+    async (seriesNode: SeriesNode) => {
+      const publisherName = seriesNode.publisher?.name || "";
+      const seriesTitle = seriesNode.title || "";
+      const seriesKey = [publisherName, seriesTitle, String(seriesNode.volume ?? "")].join("|");
+      if (issueNodesBySeriesKey[seriesKey]) return true;
+      const cached = readCachedIssues(navStateKey, seriesKey);
+      if (cached) {
+        setIssueNodesBySeriesKey((prev) => (prev[seriesKey] ? prev : { ...prev, [seriesKey]: cached }));
+        return true;
+      }
+
+      setPendingPublisherKey(`series:${publisherName}:${seriesKey}`);
+      try {
+        const params = new URLSearchParams({
+          scope: "issues",
+          publisher: publisherName,
+          series: seriesTitle,
+          volume: String(seriesNode.volume ?? 0),
+          us: String(us),
+        });
+        if (filterQuery) params.set("filter", filterQuery);
+        const response = await fetch(`/api/public-navigation?${params.toString()}`, { cache: "no-store" });
+        if (!response.ok) return false;
+        const payload = (await response.json()) as { items?: IssueNode[] };
+        const issueNodes = payload.items || [];
+        writeCachedIssues(navStateKey, seriesKey, issueNodes);
+        setIssueNodesBySeriesKey((prev) => ({ ...prev, [seriesKey]: issueNodes }));
+        return true;
+      } finally {
+        setPendingPublisherKey((prev) =>
+          prev === `series:${publisherName}:${seriesKey}` ? null : prev
+        );
+      }
+    },
+    [issueNodesBySeriesKey, navStateKey, us, filterQuery]
+  );
+
+  React.useEffect(() => {
+    for (const publisherName of Object.keys(expandedPublishers)) {
+      if (!expandedPublishers[publisherName]) continue;
+      void updateNavOpenState(publisherName);
+    }
+  }, [expandedPublishers, updateNavOpenState]);
 
   const pushSelection = React.useCallback(
     (_event: unknown, item: SelectedRoot, closeOnPhone = false) => {
@@ -200,29 +317,27 @@ export default function List(props: Readonly<ListProps>) {
   const handleTogglePublisher = React.useCallback(
     (publisherName: string) => {
       const isExpanded = Boolean(expandedPublishers[publisherName]);
-      const hasServerData = Array.isArray(props.initialSeriesNodesByPublisher?.[publisherName]);
-
-      if (!isExpanded && !hasServerData) {
-        updateNavRoute({ navPublisher: publisherName, navSeries: null }, `publisher:${publisherName}`);
+      if (isExpanded) {
+        setExpandedPublishers((prev) =>
+          Object.fromEntries(Object.entries(prev).filter(([key]) => key !== publisherName))
+        );
         return;
       }
 
-      setExpandedPublishers((prev) => ({ ...prev, [publisherName]: !prev[publisherName] }));
-
-      if (isExpanded && queryExpandedPublisher === publisherName) {
-        updateNavRoute({ navPublisher: null, navSeries: null });
-      }
+      void updateNavOpenState(publisherName).then((loaded) => {
+        if (!loaded) return;
+        setExpandedPublishers((prev) => ({ ...prev, [publisherName]: true }));
+      });
     },
-    [
-      expandedPublishers,
-      props.initialSeriesNodesByPublisher,
-      queryExpandedPublisher,
-      updateNavRoute,
-    ]
+    [expandedPublishers, updateNavOpenState]
   );
 
   const handlePublisherClick = React.useCallback(
     (event: React.MouseEvent<HTMLElement>, publisherName: string) => {
+      void updateNavOpenState(publisherName).then((loaded) => {
+        if (!loaded) return;
+        setExpandedPublishers((prev) => ({ ...prev, [publisherName]: true }));
+      });
       pushSelection(event, {
         publisher: {
           name: publisherName,
@@ -230,7 +345,7 @@ export default function List(props: Readonly<ListProps>) {
         },
       });
     },
-    [pushSelection, us]
+    [pushSelection, us, updateNavOpenState]
   );
 
   const content =
@@ -280,15 +395,14 @@ export default function List(props: Readonly<ListProps>) {
               <SeriesBranch
                 us={us}
                 publisher={publisherNode}
-                initialSeriesNodes={props.initialSeriesNodesByPublisher?.[publisherName] || []}
-                initialIssueNodesBySeriesKey={props.initialIssueNodesBySeriesKey}
+                initialSeriesNodes={seriesNodesByPublisher[publisherName]}
+                initialIssueNodesBySeriesKey={issueNodesBySeriesKey}
                 navStateKey={navStateKey}
                 activeSeriesKey={selected ? selectedSeriesKey : null}
-                queryExpandedSeriesKey={queryExpandedSeries}
                 selectedIssue={selectedIssue}
                 session={props.session}
                 pushSelection={pushSelection}
-                updateNavRoute={updateNavRoute}
+                ensureIssueNodesLoaded={ensureIssueNodesLoaded}
                 navScrollContainerRef={navScrollContainerRef}
                 suppressAutoScrollRef={suppressIssueAutoScrollRef}
                 navigationPending={isPending}
@@ -307,12 +421,21 @@ export default function List(props: Readonly<ListProps>) {
       drawerOpen={drawerOpen}
       toggleDrawer={toggleDrawer}
       navStateKey={navStateKey}
+      contentReady={contentReady}
       navScrollContainerRef={navScrollContainerRef}
       listRef={listRef}
     >
       {content}
     </NavDrawer>
   );
+}
+
+function buildExpandedPublishers(openPublisherNames: string[]) {
+  const nextExpandedPublishers: Record<string, boolean> = {};
+  for (const publisherName of openPublisherNames) {
+    nextExpandedPublishers[publisherName] = true;
+  }
+  return nextExpandedPublishers;
 }
 
 function buildPendingNavigationKey(item: SelectedRoot) {

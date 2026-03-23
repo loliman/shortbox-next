@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import CatalogPageShell from "@/src/components/app-shell/CatalogPageShell";
 import IssueDetailsDE from "@/src/components/details/IssueDetailsDE";
 import { readIssueDetails } from "@/src/lib/read/issue-read";
 import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
@@ -76,7 +75,7 @@ export default async function DeIssuePage({
   ]);
   if (!initialIssue) notFound();
   return (
-    <CatalogPageShell
+    <IssueDetailsDE
       selected={selected}
       level={level}
       us={false}
@@ -86,19 +85,7 @@ export default async function DeIssuePage({
       initialPublisherNodes={navigationData.initialPublisherNodes}
       initialSeriesNodesByPublisher={navigationData.initialSeriesNodesByPublisher}
       initialIssueNodesBySeriesKey={navigationData.initialIssueNodesBySeriesKey}
-    >
-      <IssueDetailsDE
-        selected={selected}
-        level={level}
-        us={false}
-        query={query}
-        session={session}
-        initialFilterCount={navigationData.initialFilterCount}
-        initialIssue={initialIssue}
-        initialPublisherNodes={navigationData.initialPublisherNodes}
-        initialSeriesNodesByPublisher={navigationData.initialSeriesNodesByPublisher}
-        initialIssueNodesBySeriesKey={navigationData.initialIssueNodesBySeriesKey}
-      />
-    </CatalogPageShell>
+      initialIssue={initialIssue}
+    />
   );
 }

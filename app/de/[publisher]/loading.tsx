@@ -1,5 +1,5 @@
-import { CatalogDetailsLoadingScreen } from "@/src/components/placeholders/RouteLoadingScreens";
+import { DetailsPagePlaceholder } from "@/src/components/placeholders/DetailsPagePlaceholder";
 
 export default function Loading() {
-  return <CatalogDetailsLoadingScreen us={false} />;
+  return <DetailsPagePlaceholder compactLayout={false} />;
 }

@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import CardHeader from "@mui/material/CardHeader";
 import Paper from "@mui/material/Paper";
@@ -71,7 +73,12 @@ export default function FormPageShell({
         {children}
       </Stack>
 
-      {actions ? <StickyActionBar sx={{ mt: "auto" }}>{actions}</StickyActionBar> : null}
+      {actions ? (
+        <Box sx={{ mt: "auto" }}>
+          <StickyActionBar>{actions}</StickyActionBar>
+          <Box sx={{ height: { xs: 16, sm: 20 } }} />
+        </Box>
+      ) : null}
     </Stack>
   );
 }

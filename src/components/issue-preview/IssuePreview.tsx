@@ -10,6 +10,7 @@ import Skeleton from "@mui/material/Skeleton";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import { useResolvedImageUrl } from "../generic/useResolvedImageUrl";
+import { buildRouteHref } from "../generic/routeHref";
 import { getIssueLabel, getIssueUrl, getSeriesLabel } from "../../util/issuePresentation";
 import { IssueReferenceInline } from "../generic/IssueNumberInline";
 import {
@@ -24,6 +25,7 @@ interface IssuePreviewProps {
   issue: PreviewIssue;
   us?: boolean;
   session?: unknown;
+  query?: Record<string, unknown> | null;
   isPhone?: boolean;
   isTablet?: boolean;
   drawerOpen?: boolean;
@@ -42,7 +44,7 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
     NO_COVER_URL
   );
   const flags = getIssuePreviewFlags(props.issue, us, hasSession);
-  const url = getIssueUrl(props.issue, us);
+  const url = buildRouteHref(getIssueUrl(props.issue, us), props.query);
   const accentKey = flags.collected
     ? "success"
     : !us && flags.hasFirstApp

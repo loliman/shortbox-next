@@ -8,6 +8,7 @@ import type { LayoutRouteData } from "../../types/route-ui";
 import { NAVIGATION_CACHE_TAG } from "../cache-tags";
 import { resolveFilterState } from "./filter-read";
 import { compareIssueNumber, compareIssueVariants } from "./issue-read-shared";
+import { readNavOpenStateFromQuery } from "../../components/nav-bar/navOpenState";
 
 type NavigationScope = {
   us: boolean;
@@ -284,7 +285,7 @@ export type InitialNavigationData = {
   initialFilterCount?: number;
 };
 
-async function readNavigationFilterState(rawFilter: string | null | undefined, loggedIn = false) {
+export async function readNavigationFilterState(rawFilter: string | null | undefined, loggedIn = false) {
   const normalizedFilter = typeof rawFilter === "string" ? rawFilter.trim() : "";
   if (!normalizedFilter) {
     return {
@@ -325,9 +326,7 @@ export async function readInitialNavigationData(
     input.selected.issue?.series?.publisher?.name ||
     "";
   const selectedSeries = input.selected.series || input.selected.issue?.series || null;
-  const queryExpandedPublisher =
-    typeof input.query?.navPublisher === "string" ? input.query.navPublisher : "";
-  const queryExpandedSeriesKey = typeof input.query?.navSeries === "string" ? input.query.navSeries : "";
+  const navOpenState = readNavOpenStateFromQuery(input.query);
 
   const directIssueWhereJson = toJsonOrNull(navigationFilterState.directIssueWhere);
   const filteredIssueIdsJson = toJsonOrNull(navigationFilterState.filteredIssueIds);
@@ -339,7 +338,9 @@ export async function readInitialNavigationData(
 
   const publishersToExpand = new Set<string>();
   if (selectedPublisherName) publishersToExpand.add(selectedPublisherName);
-  if (queryExpandedPublisher) publishersToExpand.add(queryExpandedPublisher);
+  for (const publisherName of navOpenState.publishers) {
+    publishersToExpand.add(publisherName);
+  }
 
   const initialSeriesNodesByPublisher: Record<string, Awaited<ReturnType<typeof readNavigationSeries>>> = {};
 
@@ -382,8 +383,8 @@ export async function readInitialNavigationData(
     );
   }
 
-  if (queryExpandedSeriesKey) {
-    const [publisher = "", ...rest] = queryExpandedSeriesKey.split("|");
+  for (const openSeriesKey of navOpenState.series) {
+    const [publisher = "", ...rest] = openSeriesKey.split("|");
     const volumeText = rest.pop() || "0";
     const title = rest.join("|");
     const volume = Number(volumeText || "0");
@@ -398,7 +399,7 @@ export async function readInitialNavigationData(
           filteredIssueIdsJson
         );
       }
-      seriesToExpand.set(queryExpandedSeriesKey, {
+      seriesToExpand.set(openSeriesKey, {
         publisher,
         series: title,
         volume,

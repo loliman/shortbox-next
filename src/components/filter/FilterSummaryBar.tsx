@@ -5,7 +5,6 @@ import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
 import { generateUrl } from "../../util/hierarchy";
 import type { SelectedRoot } from "../../types/domain";
@@ -80,22 +79,25 @@ export default function FilterSummaryBar(props: Readonly<FilterSummaryBarProps>)
           <Button
             size="small"
             variant="outlined"
-            disabled={isPending}
-            onClick={() =>
+            disabled={false}
+            onClick={() => {
+              if (isPending) return;
               push(
                 buildRouteHref(us ? "/filter/us" : "/filter/de", props.query, {
+                  filter: props.query?.filter ?? null,
                   from: generateUrl((props.selected || { us }) as SelectedRoot, us),
                 })
-              )
-            }
+              );
+            }}
           >
             Bearbeiten
           </Button>
           <Button
             size="small"
             variant="contained"
-            disabled={isPending}
+            disabled={false}
             onClick={() => {
+              if (isPending) return;
               const target = props.selected || { us };
               if (!props.selected) {
                 push(us ? "/us" : "/de");
@@ -106,7 +108,6 @@ export default function FilterSummaryBar(props: Readonly<FilterSummaryBarProps>)
           >
             Zurücksetzen
           </Button>
-          {isPending ? <CircularProgress size={16} /> : null}
         </Stack>
       </Stack>
     </Box>

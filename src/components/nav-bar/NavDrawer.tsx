@@ -17,6 +17,7 @@ type NavDrawerProps = {
   drawerOpen?: boolean;
   toggleDrawer?: () => void;
   navStateKey: string;
+  contentReady?: boolean;
   navScrollContainerRef: React.RefObject<HTMLDivElement | null>;
   listRef: React.RefObject<HTMLUListElement | null>;
   children: React.ReactNode;
@@ -28,6 +29,7 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
     drawerOpen,
     toggleDrawer,
     navStateKey,
+    contentReady = true,
     navScrollContainerRef,
     listRef,
     children,
@@ -51,11 +53,13 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
   const drawerContent = (
     <MuiList
       ref={listRef}
-      className="data-fade"
+      className={contentReady ? "data-fade" : undefined}
       sx={{
         width: "100%",
         p: 0,
         pb: temporary ? COMPACT_BOTTOM_BAR_CLEARANCE : 0,
+        visibility: contentReady ? "visible" : "hidden",
+        opacity: contentReady ? 1 : 0,
       }}
     >
       {children}

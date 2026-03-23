@@ -1,15 +1,36 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getSelected } from "../../util/hierarchy";
 
 const useQueryMock = vi.hoisted(() => vi.fn());
+const pushMock = vi.hoisted(() => vi.fn());
+const replaceMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@apollo/client", () => ({
   useQuery: (...args: unknown[]) => useQueryMock(...args),
 }));
 
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/de",
+  useRouter: () => ({
+    push: pushMock,
+    replace: replaceMock,
+    refresh: vi.fn(),
+  }),
+}));
+
+vi.mock("../generic/usePendingNavigation", () => ({
+  usePendingNavigation: () => ({
+    isPending: false,
+    push: pushMock,
+    replace: replaceMock,
+    refresh: vi.fn(),
+  }),
+}));
+
 import List from "./List";
+import { parseNavOpenState } from "./navOpenState";
 
 function toRect(top: number, height: number): DOMRect {
   return {
@@ -147,6 +168,8 @@ describe("nav-bar List", () => {
 
   beforeEach(() => {
     useQueryMock.mockReset();
+    pushMock.mockReset();
+    replaceMock.mockReset();
     originalScrollIntoView = (HTMLElement.prototype as unknown as { scrollIntoView?: unknown })
       .scrollIntoView;
     Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
@@ -253,5 +276,42 @@ describe("nav-bar List", () => {
       expect(kioskButton?.classList.contains("Mui-selected")).toBe(true);
       expect(comicshopButton?.classList.contains("Mui-selected")).toBe(true);
     });
+  });
+
+  it("navigates on row click but only expands on chevron click", async () => {
+    render(
+      <List
+        initialPublisherNodes={[{ name: PUBLISHER, us: false }]}
+        initialSeriesNodesByPublisher={{
+          [PUBLISHER]: [{ title: SERIES_TITLE, volume: SERIES_VOLUME, publisher: { name: PUBLISHER, us: false } }],
+        }}
+        drawerOpen={true}
+        phonePortrait={false}
+        temporaryDrawer={false}
+        query={null}
+        selected={{} as any}
+        us={false}
+      />
+    );
+
+    fireEvent.click(screen.getByLabelText("Ausklappen"));
+
+    expect(replaceMock).toHaveBeenCalledTimes(1);
+    expect(pushMock).not.toHaveBeenCalled();
+    const replaceHref = replaceMock.mock.calls[0][0] as string;
+    expect(replaceHref.startsWith("/de?navOpen=")).toBe(true);
+    const replaceNavOpen = parseNavOpenState(
+      new URL(replaceHref, "http://localhost").searchParams.get("navOpen")
+    );
+    expect(replaceNavOpen.publishers).toEqual([PUBLISHER]);
+
+    fireEvent.click(screen.getByText(PUBLISHER));
+
+    expect(pushMock).toHaveBeenCalledTimes(1);
+    const pushHref = pushMock.mock.calls[0][0] as string;
+    const pushUrl = new URL(pushHref, "http://localhost");
+    expect(decodeURIComponent(pushUrl.pathname)).toBe(`/de/${PUBLISHER}`);
+    const pushNavOpen = parseNavOpenState(pushUrl.searchParams.get("navOpen"));
+    expect(pushNavOpen.publishers).toContain(PUBLISHER);
   });
 });

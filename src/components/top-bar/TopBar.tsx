@@ -22,6 +22,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { isMockMode } from "../../app/mockMode";
 import { mutationRequest } from "../../lib/client/mutation-request";
 import type { RouteQuery } from "../../types/route-ui";
+import { buildRouteHref } from "../generic/routeHref";
 import { usePendingNavigation } from "../generic/usePendingNavigation";
 
 interface TopBarProps {
@@ -189,6 +190,7 @@ export default function TopBar(ownProps: TopBarProps) {
           drawerOpen={drawerOpen}
           toggleDrawer={toggleDrawer}
           us={us}
+          query={query}
           resetNavigationState={ownProps.resetNavigationState}
         />
 
@@ -267,8 +269,11 @@ function TopBarStart(props: {
   drawerOpen?: boolean;
   toggleDrawer?: () => void;
   us: boolean;
+  query?: RouteQuery | null;
   resetNavigationState?: () => void;
 }) {
+  const homeHref = buildRouteHref(props.us ? "/us" : "/de", props.query);
+
   return (
     <Box
       sx={{
@@ -291,7 +296,7 @@ function TopBarStart(props: {
 
       <ButtonBase
         component={Link}
-        href={props.us ? "/us" : "/de"}
+        href={homeHref}
         aria-label="Zur Startseite"
         onClick={() => {
           props.resetNavigationState?.();

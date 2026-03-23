@@ -59,6 +59,7 @@ export default function SeriesDetails(props: Readonly<SeriesDetailsProps>) {
     us,
     session: props.session,
     selected: props.selected,
+    query: props.query,
   };
 
   return (

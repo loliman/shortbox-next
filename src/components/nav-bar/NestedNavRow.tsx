@@ -103,3 +103,20 @@ export function NestedEmptyRow({
     </ListItem>
   );
 }
+
+export function NestedLoadingRow({
+  depth,
+  message = "Wird geladen...",
+}: {
+  depth: number;
+  message?: string;
+}) {
+  return (
+    <ListItem sx={{ pl: getDepthPadding(depth) }}>
+      <ListItemIcon sx={{ minWidth: 28 }}>
+        <CircularProgress size={14} />
+      </ListItemIcon>
+      <ListItemText primary={message} />
+    </ListItem>
+  );
+}

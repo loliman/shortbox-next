@@ -5,7 +5,6 @@ import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
 import Badge from "@mui/material/Badge";
 import Box from "@mui/material/Box";
-import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
 import { generateUrl } from "../../util/hierarchy";
 import type { SelectedRoot } from "../../types/domain";
@@ -55,18 +54,18 @@ export default function TopBarFilterMenu(props: Readonly<TopBarFilterMenuProps>)
             <IconButton
               color={isFilterActive ? "secondary" : "inherit"}
               aria-label="Filter öffnen"
-              disabled={isPending}
+              disabled={false}
               onClick={() => {
+                if (isPending) return;
                 push(
                   buildRouteHref(us ? "/filter/us" : "/filter/de", props.query, {
+                    filter: props.query?.filter ?? null,
                     from: generateUrl(selected, us),
                   })
                 );
               }}
             >
-              {isPending ? (
-                <CircularProgress size={18} color="inherit" />
-              ) : isFilterActive ? (
+              {isFilterActive ? (
                 <FilterAltIcon sx={{ color: "common.white" }} />
               ) : (
                 <FilterAltOutlinedIcon />
