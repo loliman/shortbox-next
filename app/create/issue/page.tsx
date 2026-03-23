@@ -2,6 +2,8 @@ import WorkspacePageShell from "@/src/components/app-shell/WorkspacePageShell";
 import IssueCreate from "@/src/components/restricted/create/IssueCreate";
 import { resolveWorkspacePage } from "@/src/lib/routes/app-page";
 
+export const dynamic = "force-dynamic";
+
 export default async function IssueCreatePage({
   searchParams,
 }: Readonly<{
