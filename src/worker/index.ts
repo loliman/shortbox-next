@@ -1,5 +1,3 @@
-import "dotenv/config";
-
 import { run, type Runner } from "graphile-worker";
 import { getWorkerUtils, releaseWorkerUtils } from "../lib/worker-utils";
 import { loadTaskList } from "./task-loader";
