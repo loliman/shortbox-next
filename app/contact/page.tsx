@@ -4,6 +4,8 @@ import Contact from "@/src/components/footer/Contact";
 import { createStaticMetadata } from "@/src/lib/routes/metadata";
 import { resolveAppPage } from "@/src/lib/routes/app-page";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = createStaticMetadata(
   "Kontakt",
   "Kontaktinformationen, Fehlermeldungen und Unterstützung für Shortbox."
