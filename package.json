@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:docker": "next build --experimental-build-mode compile",
     "build:worker": "tsc -p tsconfig.worker.json",
     "start": "next start",
     "start:container": "node scripts/container-runner.mjs",

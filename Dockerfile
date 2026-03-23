@@ -9,9 +9,10 @@ COPY prisma ./prisma
 RUN npm ci
 
 FROM deps AS builder
+ENV NODE_ENV=production
 COPY . .
 RUN npm run prisma:generate
-RUN npm run build
+RUN npm run build:docker
 RUN npm run build:worker
 RUN npm prune --omit=dev
 
