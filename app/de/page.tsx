@@ -8,6 +8,8 @@ import { createHomeMetadata } from "@/src/lib/routes/metadata";
 import { buildHierarchyLevel, normalizePageQuery } from "@/src/lib/routes/page-state";
 import { readServerSession } from "@/src/lib/server/session";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = createHomeMetadata(false);
 
 export default async function DeHomePage({
