@@ -1,0 +1,14 @@
+services:
+  app:
+    image: ${SHORTBOX_IMAGE:-ghcr.io/OWNER/REPO:main}
+    container_name: shortbox-next
+    restart: unless-stopped
+    init: true
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+    ports:
+      - "${APP_PORT:-3000}:3000"

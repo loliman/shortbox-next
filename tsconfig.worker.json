@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "baseUrl": ".",
+    "lib": ["ES2022", "DOM"],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": false,
+    "esModuleInterop": true,
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "resolveJsonModule": true,
+    "isolatedModules": false,
+    "incremental": false,
+    "declaration": false,
+    "sourceMap": false,
+    "outDir": "dist/worker",
+    "rootDir": "src",
+    "tsBuildInfoFile": "dist/worker.tsbuildinfo",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "files": ["src/worker/index.ts"],
+  "exclude": [
+    "node_modules",
+    ".next",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/services/MarvelCrawlerService.ts"
+  ]
+}
