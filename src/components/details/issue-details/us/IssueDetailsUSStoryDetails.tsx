@@ -132,45 +132,6 @@ export function IssueDetailsUSStoryDetails(props: Readonly<IssueDetailsUSStoryDe
           </Box>
         ) : null}
 
-        {reprints.length === 0 ? null : (
-          <Box sx={{ mt: 2.5 }}>
-            <Typography
-              sx={{
-                fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif',
-                fontSize: "0.78rem",
-                lineHeight: 1.5,
-                fontWeight: 600,
-                textTransform: "uppercase",
-                letterSpacing: "0.16em",
-                color: "text.secondary",
-                display: "block",
-                mb: 0.5,
-              }}
-            >
-              Nachgedruckt in
-            </Typography>
-
-            <List sx={{ p: 0 }}>
-              {reprints.map((child, idx) => {
-                if (!child.issue) return null;
-                const relation = toStoryIssueRelation(child);
-
-                return (
-                  <StoryIssueListItem
-                    key={toIssueRowKey(relation, idx)}
-                    issue={child.issue}
-                    number={child.number}
-                    subtitle={child.addinfo ? child.addinfo : null}
-                    routeUs={true}
-                    coverUs={true}
-                    divider={reprints.length - 1 !== idx}
-                  />
-                );
-              })}
-            </List>
-          </Box>
-        )}
-
         {!reprintOf?.issue ? null : (
           <Box sx={{ mt: 2.5 }}>
             <Typography
@@ -200,6 +161,45 @@ export function IssueDetailsUSStoryDetails(props: Readonly<IssueDetailsUSStoryDe
             </List>
           </Box>
         )}
+
+          {reprints.length === 0 ? null : (
+              <Box sx={{ mt: 2.5 }}>
+                  <Typography
+                      sx={{
+                          fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif',
+                          fontSize: "0.78rem",
+                          lineHeight: 1.5,
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.16em",
+                          color: "text.secondary",
+                          display: "block",
+                          mb: 0.5,
+                      }}
+                  >
+                      Nachgedruckt in
+                  </Typography>
+                  
+                  <List sx={{ p: 0 }}>
+                      {reprints.map((child, idx) => {
+                          if (!child.issue) return null;
+                          const relation = toStoryIssueRelation(child);
+
+                          return (
+                              <StoryIssueListItem
+                                  key={toIssueRowKey(relation, idx)}
+                                  issue={child.issue}
+                                  number={child.number}
+                                  subtitle={child.addinfo ? child.addinfo : null}
+                                  routeUs={true}
+                                  coverUs={true}
+                                  divider={reprints.length - 1 !== idx}
+                              />
+                          );
+                      })}
+                  </List>
+              </Box>
+          )}
 
         {children.length === 0 ? null : (
           <Box sx={{ mt: 2.5 }}>

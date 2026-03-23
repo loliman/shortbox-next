@@ -31,6 +31,17 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
           publisher: true,
         },
       },
+      covers: {
+        orderBy: [{ number: "asc" }, { id: "asc" }],
+        take: 1,
+        include: {
+          individuals: {
+            include: {
+              individual: true,
+            },
+          },
+        },
+      },
     },
   },
   reprint: {
@@ -42,6 +53,17 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
               publisher: true,
             },
           },
+          covers: {
+            orderBy: [{ number: "asc" }, { id: "asc" }],
+            take: 1,
+            include: {
+              individuals: {
+                include: {
+                  individual: true,
+                },
+              },
+            },
+          },
         },
       },
       parent: {
@@ -51,6 +73,17 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
               series: {
                 include: {
                   publisher: true,
+                },
+              },
+              covers: {
+                orderBy: [{ number: "asc" }, { id: "asc" }],
+                take: 1,
+                include: {
+                  individuals: {
+                    include: {
+                      individual: true,
+                    },
+                  },
                 },
               },
             },
@@ -68,6 +101,17 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
               publisher: true,
             },
           },
+          covers: {
+            orderBy: [{ number: "asc" }, { id: "asc" }],
+            take: 1,
+            include: {
+              individuals: {
+                include: {
+                  individual: true,
+                },
+              },
+            },
+          },
         },
       },
       parent: {
@@ -77,6 +121,17 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
               series: {
                 include: {
                   publisher: true,
+                },
+              },
+              covers: {
+                orderBy: [{ number: "asc" }, { id: "asc" }],
+                take: 1,
+                include: {
+                  individuals: {
+                    include: {
+                      individual: true,
+                    },
+                  },
                 },
               },
             },
@@ -94,6 +149,17 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
               publisher: true,
             },
           },
+          covers: {
+            orderBy: [{ number: "asc" }, { id: "asc" }],
+            take: 1,
+            include: {
+              individuals: {
+                include: {
+                  individual: true,
+                },
+              },
+            },
+          },
         },
       },
       parent: {
@@ -103,6 +169,17 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
               series: {
                 include: {
                   publisher: true,
+                },
+              },
+              covers: {
+                orderBy: [{ number: "asc" }, { id: "asc" }],
+                take: 1,
+                include: {
+                  individuals: {
+                    include: {
+                      individual: true,
+                    },
+                  },
                 },
               },
             },
@@ -118,6 +195,17 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
           series: {
             include: {
               publisher: true,
+            },
+          },
+          covers: {
+            orderBy: [{ number: "asc" }, { id: "asc" }],
+            take: 1,
+            include: {
+              individuals: {
+                include: {
+                  individual: true,
+                },
+              },
             },
           },
         },
@@ -359,6 +447,8 @@ function toIssueReferenceShape(issue: any) {
     variant: issue.variant || null,
     releasedate: serializeIssueDate(issue.releaseDate),
     collected: issue.collected ?? null,
+    comicguideid: serializeNullableIssueNumber(issue.comicGuideId),
+    cover: issue.covers?.[0] ? toIssueCoverShape(issue.covers[0]) : null,
     series: toIssueSeriesShape(issue.series),
   };
 }

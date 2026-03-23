@@ -6,6 +6,10 @@ export type StoryIssue = {
   variant?: string | null;
   collected?: boolean;
   verified?: boolean;
+  comicguideid?: string | number | null;
+  cover?: {
+    url?: string | null;
+  } | null;
   series?: {
     title?: string;
     volume?: number;
