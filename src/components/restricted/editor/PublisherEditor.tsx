@@ -115,7 +115,7 @@ function PublisherEditorView(props: Readonly<PublisherEditorProps>) {
       }}
     >
       {({ values, resetForm, submitForm, isSubmitting }) => (
-        <Form>
+        <Form style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
           <FormPageShell
             title={<TitleLine title={header} id={props.id} session={props.session} />}
             headerAction={

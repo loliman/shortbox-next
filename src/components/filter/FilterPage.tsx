@@ -31,8 +31,8 @@ export default function FilterPage(props: Readonly<FilterPageProps>) {
   return (
     <FormPageShell
       title="Filter"
-      tabs={
-        <Tabs value={activeTab} variant="scrollable" allowScrollButtonsMobile>
+      headerCenter={
+        <Tabs value={activeTab} variant="fullWidth">
           {FILTER_TABS.map((tab) => (
             <Tab
               key={tab.value}

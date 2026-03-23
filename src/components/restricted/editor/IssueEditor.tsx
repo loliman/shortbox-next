@@ -159,7 +159,7 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
       }}
     >
       {({ values, resetForm, submitForm, isSubmitting, setFieldValue }) => (
-        <Form>
+        <Form style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
           <IssueEditorFormContent
             values={values}
             edit={edit}

@@ -12,6 +12,8 @@ import { DetailsAddInfo } from "./DetailsAddInfo";
 import type { SelectedRoot } from "../../types/domain";
 import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
 import type { SessionData } from "../../app/session";
+import SortContainer from "../SortContainer";
+import Box from "@mui/material/Box";
 
 interface SeriesDetailsProps {
   initialData?: { details?: Record<string, unknown> | null; issues?: unknown[] } | null;
@@ -88,13 +90,28 @@ export default function SeriesDetails(props: Readonly<SeriesDetailsProps>) {
           title={
             <TitleLine
               title={generateLabel({ series: details as any, us })}
-              id={(details.id as string | undefined) ?? undefined}
-              session={props.session}
             />
           }
           subheader={subheaderLabel}
           action={
-            <Stack direction="row" spacing={1} alignItems="center">
+            <Stack direction="row" spacing={1.25} alignItems="center" justifyContent="flex-end">
+              {props.session ? (
+                <Box
+                  component="span"
+                  sx={{
+                    flexShrink: 0,
+                    color: "text.secondary",
+                    fontSize: "0.75rem",
+                    fontWeight: 500,
+                    opacity: 0.8,
+                    whiteSpace: "nowrap",
+                    lineHeight: 1,
+                  }}
+                >
+                  #{(details.id as string | number | undefined) ?? ""}
+                </Box>
+              ) : null}
+              <SortContainer query={props.query as any} selected={props.selected} us={us} />
               <EditButton
                 session={props.session}
                 item={details}
@@ -114,7 +131,7 @@ export default function SeriesDetails(props: Readonly<SeriesDetailsProps>) {
             issues={issues as any}
             loadingMore={false}
             previewProps={previewProps}
-            showSort
+            showSort={false}
           />
         </CardContent>
       </>

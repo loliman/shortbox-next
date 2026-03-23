@@ -1,7 +1,6 @@
 import React from "react";
 import Paper from "@mui/material/Paper";
 import type { SxProps, Theme } from "@mui/material/styles";
-import { editorSectionSx } from "../restricted/editor/editorLayout";
 
 interface StickyActionBarProps {
   children: React.ReactNode;
@@ -14,13 +13,22 @@ export default function StickyActionBar({ children, sx }: Readonly<StickyActionB
       elevation={0}
       sx={[
         (theme) => ({
-          ...editorSectionSx(theme),
           position: "sticky",
-          bottom: 0,
+          bottom: {
+            xs: "calc(4.5rem + env(safe-area-inset-bottom))",
+            sm: "3.5rem",
+          },
           zIndex: theme.zIndex.appBar - 1,
           px: { xs: 1.5, sm: 2 },
           py: 1.5,
-          borderTop: `1px solid var(--border-subtle, ${theme.palette.divider})`,
+          borderRadius: "calc(2 * var(--mui-shape-borderRadius))",
+          backgroundColor: theme.vars?.palette.background.paper ?? theme.palette.background.paper,
+          boxShadow:
+            theme.palette.mode === "dark"
+              ? "0 10px 30px rgba(0,0,0,0.42)"
+              : theme.shadows[1],
+          border: "1px solid",
+          borderColor: theme.vars?.palette.divider ?? theme.palette.divider,
           backdropFilter: "blur(12px)",
         }),
         ...(Array.isArray(sx) ? sx : sx ? [sx] : []),

@@ -2,6 +2,7 @@ import queryString from "query-string";
 
 type QueryValue = string | number | boolean | null | undefined;
 type QueryRecord = Record<string, QueryValue>;
+const TRANSIENT_QUERY_KEYS = ["expand", "navPublisher", "navSeries"] as const;
 
 export function buildRouteHref(
   pathname: string,
@@ -9,7 +10,9 @@ export function buildRouteHref(
   nextQuery?: QueryRecord
 ) {
   const merged: Record<string, unknown> = currentQuery ? { ...currentQuery } : {};
-  delete merged.expand;
+  for (const key of TRANSIENT_QUERY_KEYS) {
+    delete merged[key];
+  }
 
   if (nextQuery) {
     for (const [key, value] of Object.entries(nextQuery)) {

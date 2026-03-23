@@ -128,7 +128,9 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
             <Box
               sx={{
                 flexGrow: 1,
-                p: { xs: 0, sm: 2 },
+                px: { xs: 0, sm: 2 },
+                pt: { xs: 0, sm: 2 },
+                pb: 0,
                 minHeight: 0,
                 position: "relative",
                 display: "flex",

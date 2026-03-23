@@ -11,7 +11,9 @@ interface FormPageShellProps {
   title: React.ReactNode;
   subtitle?: React.ReactNode;
   headerAction?: React.ReactNode;
+  headerCenter?: React.ReactNode;
   headerContent?: React.ReactNode;
+  headerSx?: SxProps<Theme>;
   notice?: React.ReactNode;
   tabs?: React.ReactNode;
   children: React.ReactNode;
@@ -23,7 +25,9 @@ export default function FormPageShell({
   title,
   subtitle,
   headerAction,
+  headerCenter,
   headerContent,
+  headerSx,
   notice,
   tabs,
   children,
@@ -31,20 +35,43 @@ export default function FormPageShell({
   contentSx,
 }: Readonly<FormPageShellProps>) {
   return (
-    <Stack spacing={2.25}>
+    <Stack
+      spacing={2.25}
+      sx={{
+        minHeight: "100%",
+        flex: 1,
+      }}
+    >
       <Paper elevation={0} sx={editorSectionSx}>
-        <CardHeader title={title} subheader={subtitle} action={headerAction} />
+        <Box sx={{ position: "relative" }}>
+          <CardHeader title={title} subheader={subtitle} action={headerAction} sx={headerSx} />
+          {headerCenter ? (
+            <Box
+              sx={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                px: { xs: 8, sm: 10 },
+                pointerEvents: "none",
+              }}
+            >
+              <Box sx={{ width: "100%", maxWidth: 720, pointerEvents: "auto" }}>{headerCenter}</Box>
+            </Box>
+          ) : null}
+        </Box>
         {headerContent ? <Box sx={{ px: { xs: 2, sm: 3 }, pb: 2 }}>{headerContent}</Box> : null}
         {tabs ? <Box sx={{ px: { xs: 1.25, sm: 1.75 }, pb: 1 }}>{tabs}</Box> : null}
       </Paper>
 
       {notice ? <Paper elevation={0} sx={editorSectionSx}>{notice}</Paper> : null}
 
-      <Stack spacing={2.25} sx={contentSx}>
+      <Stack spacing={2.25} sx={{ flexGrow: 1, ...contentSx }}>
         {children}
       </Stack>
 
-      {actions ? <StickyActionBar>{actions}</StickyActionBar> : null}
+      {actions ? <StickyActionBar sx={{ mt: "auto" }}>{actions}</StickyActionBar> : null}
     </Stack>
   );
 }

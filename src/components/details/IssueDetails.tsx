@@ -150,10 +150,6 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
     pt: 0.5,
     pb: 1,
     scrollbarGutter: "stable",
-    maskImage:
-      "linear-gradient(to bottom, transparent 0, black 12px, black calc(100% - 20px), transparent 100%)",
-    WebkitMaskImage:
-      "linear-gradient(to bottom, transparent 0, black 12px, black calc(100% - 20px), transparent 100%)",
   } as const;
 
   return (
@@ -187,9 +183,9 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
       <CardContent
         sx={{
           pt: 1,
-          pb: 0.5,
+          pb: 0,
           "&:last-child": {
-            pb: 0.5,
+            pb: 0,
           },
           display: "flex",
           flexDirection: "column",
@@ -269,7 +265,7 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
         <Box
           sx={{
             display: { xs: "none", lg: "grid" },
-            gridTemplateColumns: "minmax(0, 1fr) clamp(320px, 36vw, 480px)",
+            gridTemplateColumns: "minmax(0, 1fr) clamp(230px, 26vw, 345px)",
             gap: 2,
             alignItems: "stretch",
             width: "100%",

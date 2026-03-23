@@ -144,7 +144,7 @@ function SeriesEditorView(props: Readonly<SeriesEditorProps>) {
     >
       {({ values, resetForm, submitForm, isSubmitting, setFieldValue }) => {
         return (
-          <Form>
+          <Form style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
             <FormPageShell
               title={<TitleLine title={header} id={props.id} session={props.session} />}
               headerAction={

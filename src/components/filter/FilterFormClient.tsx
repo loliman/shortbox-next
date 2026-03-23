@@ -46,7 +46,7 @@ export default function FilterFormClient(props: Readonly<FilterFormClientProps>)
       }}
     >
       {({ values, resetForm, submitForm, isSubmitting, setFieldValue }) => (
-        <Form>
+        <Form style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
           <Stack spacing={2.25}>
             <FormSection title="Kriterien">
               <Stack spacing={2}>
