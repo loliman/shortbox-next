@@ -26,7 +26,7 @@ import { IssueCoverGalleryClient } from "./issue-details/IssueCoverGalleryClient
 import type { SessionData } from "../../app/session";
 import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
 import type { IssueDetailsSlotComponent } from "./issue-details/slotTypes";
-import { buildIssueBreadcrumbStructuredData } from "@/src/lib/routes/structured-data";
+import { buildIssueBreadcrumbStructuredData, buildIssueComicStructuredData } from "@/src/lib/routes/structured-data";
 
 interface IssueDetailsProps {
   initialIssue?: unknown;
@@ -86,6 +86,7 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
 
   const arcs = collectIssueArcs(issueForVariants, us);
   const breadcrumbJsonLd = buildIssueBreadcrumbStructuredData(issueForVariants as any, us ? "us" : "de");
+  const comicIssueJsonLd = buildIssueComicStructuredData(issueForVariants as any, us ? "us" : "de");
   const coverGalleryIssues = buildCoverGalleryIssues(issueForVariants);
   const hasComicGuideAttribution =
     !us &&
@@ -165,6 +166,13 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
           key={`issue-breadcrumb-jsonld-${loadedIssue.id || issueForVariants.number || "issue"}`}
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        />
+      ) : null}
+      {comicIssueJsonLd ? (
+        <script
+          key={`issue-comic-jsonld-${loadedIssue.id || issueForVariants.number || "issue"}`}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(comicIssueJsonLd) }}
         />
       ) : null}
       <CardHeader

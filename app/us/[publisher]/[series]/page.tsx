@@ -4,7 +4,7 @@ import SeriesDetails from "@/src/components/details/SeriesDetails";
 import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
 import { readSeriesDetails } from "@/src/lib/read/series-read";
 import { buildHierarchyLevel, buildSelectedRoot, normalizePageQuery } from "@/src/lib/routes/page-state";
-import { buildSeriesBreadcrumbStructuredData } from "@/src/lib/routes/structured-data";
+import { buildSeriesBreadcrumbStructuredData, buildSeriesCollectionPageStructuredData } from "@/src/lib/routes/structured-data";
 import { createRouteMetadata } from "@/src/lib/routes/metadata";
 import { readServerSession } from "@/src/lib/server/session";
 import { generateSeoUrl } from "@/src/util/hierarchy";
@@ -37,14 +37,14 @@ export async function generateMetadata({
   const canonicalSeriesVolume = Number(details?.volume || selectedSeries?.volume || 0) || undefined;
   const canonicalSeriesYear = Number(details?.startyear || 0) || undefined;
   const title = details
-    ? `${String(details.title || selectedSeries?.title || "")} ${Number(details.volume || selectedSeries?.volume || 0)} | Shortbox`
-    : "Series | Shortbox";
+    ? `${String(details.title || selectedSeries?.title || "")} ${Number(details.volume || selectedSeries?.volume || 0)}`
+    : "Serie";
 
   return createRouteMetadata({
     title,
     description: details
-      ? `Details and issues for ${String(details.title || "")} volume ${Number(details.volume || 0)}.`
-      : "Series details on Shortbox.",
+      ? `${String(details.title || "")} Band ${Number(details.volume || 0)}: Ausgaben, Varianten und Seriendetails in Shortbox mit Verlag, Jahrgang und Heftuebersicht.`
+      : "Seriendetails auf Shortbox.",
     canonical:
       canonicalPublisherName && canonicalSeriesTitle
         ? generateSeoUrl(
@@ -99,19 +99,36 @@ export default async function UsSeriesPage({
   ]);
   if (!initialData?.details) notFound();
   const details = initialData.details as Record<string, unknown>;
+  const resolvedPublisherName = String((details.publisher as Record<string, unknown> | undefined)?.name || selectedSeries?.publisher?.name || "");
+  const resolvedSeriesTitle = String(details.title || selectedSeries?.title || "");
+  const resolvedSeriesYear = details.startyear as string | number | null | undefined;
+  const resolvedSeriesVolume = details.volume as string | number | null | undefined;
   const breadcrumbJsonLd = buildSeriesBreadcrumbStructuredData({
     locale: "us",
-    publisherName: String((details.publisher as Record<string, unknown> | undefined)?.name || selectedSeries?.publisher?.name || ""),
-    seriesTitle: String(details.title || selectedSeries?.title || ""),
-    seriesYear: details.startyear as string | number | null | undefined,
-    seriesVolume: details.volume as string | number | null | undefined,
+    publisherName: resolvedPublisherName,
+    seriesTitle: resolvedSeriesTitle,
+    seriesYear: resolvedSeriesYear,
+    seriesVolume: resolvedSeriesVolume,
+  });
+  const collectionPageJsonLd = buildSeriesCollectionPageStructuredData({
+    locale: "us",
+    publisherName: resolvedPublisherName,
+    seriesTitle: resolvedSeriesTitle,
+    seriesYear: resolvedSeriesYear,
+    seriesVolume: resolvedSeriesVolume,
+    description: `${resolvedSeriesTitle} Band ${Number(resolvedSeriesVolume || 0)}: Ausgaben, Varianten und Seriendetails in Shortbox mit Verlag, Jahrgang und Heftuebersicht.`,
   });
   return (
     <>
       <script
-        key={`series-breadcrumb-jsonld-${String(details.title || selectedSeries?.title || "series")}`}
+        key={`series-breadcrumb-jsonld-${resolvedSeriesTitle}`}
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <script
+        key={`series-collectionpage-jsonld-${resolvedSeriesTitle}`}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageJsonLd) }}
       />
       <SeriesDetails
         selected={selected as any}
@@ -120,7 +137,7 @@ export default async function UsSeriesPage({
         query={query}
         session={session}
         initialFilterCount={navigationData.initialFilterCount}
-        initialData={initialData}
+        initialData={initialData as any}
       />
     </>
   );

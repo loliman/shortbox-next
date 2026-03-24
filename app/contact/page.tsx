@@ -8,7 +8,8 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = createStaticMetadata(
   "Kontakt",
-  "Kontaktinformationen, Fehlermeldungen und Unterstützung für Shortbox."
+  "Kontaktinformationen, Fehlermeldungen und Unterstützung für Shortbox.",
+  { canonical: "/contact" }
 );
 
 export default async function ContactPage() {

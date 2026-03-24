@@ -12,6 +12,8 @@
     "worker": "node --env-file=.env --import tsx src/worker/index.ts",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:seo:smoke": "node scripts/seo-smoke-test.mjs",
+    "test:seo:sitemap": "node scripts/sitemap-monitor.mjs",
     "lint": "eslint .",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate"

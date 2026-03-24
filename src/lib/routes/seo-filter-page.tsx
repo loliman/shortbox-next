@@ -11,6 +11,7 @@ import { createPageMetadata, createRouteMetadata } from "@/src/lib/routes/metada
 import { buildHierarchyLevel, normalizePageQuery } from "@/src/lib/routes/page-state";
 import { readServerSession } from "@/src/lib/server/session";
 import { resolveSeoFilterLanding, type SeoFilterKind } from "@/src/lib/routes/seo-filter-landing";
+import { buildFilterLandingCollectionPageStructuredData } from "@/src/lib/routes/structured-data";
 
 function withRouteFilter(
   query: Record<string, unknown> | null | undefined,
@@ -36,10 +37,13 @@ export async function generateSeoFilterPageMetadata(input: {
   });
 
   if (!resolved) {
+    const fallbackTitle = "Gefilterte Hefte";
+    const fallbackDescription =
+      "Gefilterte Comic-Ergebnisse auf Shortbox mit Heftdetails, Story-Informationen und zusaetzlichen Metadaten.";
+
     return createPageMetadata({
-      title: input.us ? "Filtered Issues | Shortbox" : "Gefilterte Hefte | Shortbox",
-      description:
-        "Filtered comic results on Shortbox, including issue details, story information, and related metadata.",
+      title: fallbackTitle,
+      description: fallbackDescription,
       noIndex: true,
     });
   }
@@ -96,23 +100,36 @@ export async function renderSeoFilterHomePage(input: {
   ]);
 
   const visibleItems = initialHomeData.items.filter(Boolean) as PreviewIssue[];
+  const collectionPageJsonLd = buildFilterLandingCollectionPageStructuredData({
+    kind: resolvedFilter.kind,
+    entityLabel: resolvedFilter.entityLabel,
+    canonicalPath: resolvedFilter.canonicalPath,
+    description: resolvedFilter.metadataDescription,
+  });
 
   return (
-    <Home
-      selected={selected}
-      level={level}
-      us={input.us}
-      query={query}
-      session={session}
-      initialFilterCount={navigationData.initialFilterCount}
-      initialItems={visibleItems}
-      initialHasMore={initialHomeData.hasMore}
-      initialNextCursor={initialHomeData.nextCursor}
-      seoSnapshot={{
-        heading: `${resolvedFilter.entityLabel} - filtered issues`,
-        items: visibleItems,
-      }}
-    />
+    <>
+      <script
+        key={`filter-collectionpage-jsonld-${resolvedFilter.canonicalPath}`}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageJsonLd) }}
+      />
+      <Home
+        selected={selected}
+        level={level}
+        us={input.us}
+        query={query}
+        session={session}
+        initialFilterCount={navigationData.initialFilterCount}
+        initialItems={visibleItems}
+        initialHasMore={initialHomeData.hasMore}
+        initialNextCursor={initialHomeData.nextCursor}
+        seoSnapshot={{
+          heading: `${resolvedFilter.entityLabel} - gefilterte Hefte`,
+          items: visibleItems,
+        }}
+      />
+    </>
   );
 }
 

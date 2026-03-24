@@ -73,9 +73,9 @@ export function buildIssueMetadataParts(
 
   if (!seriesTitle || !issueNumber) {
     return {
-      title: locale === "de" ? "Heftdetails | Shortbox" : "Issue Details | Shortbox",
+      title: "Heftdetails",
       description:
-        "Details for comic issues, including publication format, variant, story information, and related metadata.",
+        "Comic-Heftdetails in Shortbox mit Format, Variante, Story-Informationen und weiterfuehrenden Metadaten.",
       canonical: undefined,
     };
   }
@@ -84,8 +84,8 @@ export function buildIssueMetadataParts(
   const formatPart = formatVariant ? ` - ${formatVariant}` : "";
 
   return {
-    title: `${seriesTitle}${yearPart} #${issueNumber}${formatPart} | Shortbox`,
-    description: `Details for ${seriesTitle} issue ${issueNumber}, including publication format, variant, story information, and related metadata.`,
+    title: `${seriesTitle}${yearPart} #${issueNumber}${formatPart}`,
+    description: `${seriesTitle} #${issueNumber}: Format, Variante, Storys und Publikationsdetails in Shortbox auf einen Blick.`,
     canonical: buildCanonicalIssueUrl(issue, locale),
   };
 }

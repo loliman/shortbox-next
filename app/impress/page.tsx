@@ -6,7 +6,8 @@ import { resolveAppPage } from "@/src/lib/routes/app-page";
 
 export const metadata: Metadata = createStaticMetadata(
   "Impressum",
-  "Impressum und rechtliche Angaben zu Shortbox."
+  "Impressum und rechtliche Angaben zu Shortbox.",
+  { canonical: "/impress" }
 );
 
 export default async function ImpressPage() {

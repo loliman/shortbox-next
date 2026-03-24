@@ -6,7 +6,8 @@ import { resolveAppPage } from "@/src/lib/routes/app-page";
 
 export const metadata: Metadata = createStaticMetadata(
   "Datenschutz",
-  "Datenschutzerklärung von Shortbox."
+  "Datenschutzerklärung von Shortbox.",
+  { canonical: "/privacy" }
 );
 
 export default async function PrivacyPage() {

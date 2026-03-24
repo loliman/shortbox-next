@@ -4,7 +4,7 @@ import PublisherDetails from "@/src/components/details/PublisherDetails";
 import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
 import { readPublisherDetails } from "@/src/lib/read/publisher-read";
 import { buildHierarchyLevel, buildSelectedRoot, normalizePageQuery } from "@/src/lib/routes/page-state";
-import { buildPublisherBreadcrumbStructuredData } from "@/src/lib/routes/structured-data";
+import { buildPublisherBreadcrumbStructuredData, buildPublisherCollectionPageStructuredData } from "@/src/lib/routes/structured-data";
 import { createPageMetadata, createRouteMetadata } from "@/src/lib/routes/metadata";
 import { readServerSession } from "@/src/lib/server/session";
 import { generateSeoUrl } from "@/src/util/hierarchy";
@@ -23,14 +23,14 @@ export async function generateMetadata({
     ? await readPublisherDetails({ us: true, publisher: publisherName })
     : null;
   if (!initialData?.details) {
-    return createPageMetadata({ title: "Publisher" });
+    return createPageMetadata({ title: "Verlag" });
   }
 
   const canonicalPublisherName = String(initialData.details.name || publisherName);
 
   return createRouteMetadata({
-    title: `${canonicalPublisherName} | Shortbox`,
-    description: `Series and recent issues for ${canonicalPublisherName}.`,
+    title: canonicalPublisherName,
+    description: `${canonicalPublisherName}: Serien, Ausgaben und Aktualisierungen in Shortbox mit direkten Links zu Heften und Detailseiten.`,
     canonical: canonicalPublisherName
       ? generateSeoUrl({ us: true, publisher: { name: canonicalPublisherName } }, true)
       : undefined,
@@ -66,16 +66,27 @@ export default async function UsPublisherPage({
     }),
   ]);
   if (!initialData?.details) notFound();
+  const resolvedPublisherName = String(initialData.details.name || publisherName);
   const breadcrumbJsonLd = buildPublisherBreadcrumbStructuredData({
     locale: "us",
-    publisherName: String(initialData.details.name || publisherName),
+    publisherName: resolvedPublisherName,
+  });
+  const collectionPageJsonLd = buildPublisherCollectionPageStructuredData({
+    locale: "us",
+    publisherName: resolvedPublisherName,
+    description: `${resolvedPublisherName}: Serien, Ausgaben und Aktualisierungen in Shortbox mit direkten Links zu Heften und Detailseiten.`,
   });
   return (
     <>
       <script
-        key={`publisher-breadcrumb-jsonld-${String(initialData.details.name || publisherName)}`}
+        key={`publisher-breadcrumb-jsonld-${resolvedPublisherName}`}
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <script
+        key={`publisher-collectionpage-jsonld-${resolvedPublisherName}`}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageJsonLd) }}
       />
       <PublisherDetails
         selected={selected as any}

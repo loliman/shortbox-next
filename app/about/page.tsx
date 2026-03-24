@@ -6,7 +6,8 @@ import { resolveAppPage } from "@/src/lib/routes/app-page";
 
 export const metadata: Metadata = createStaticMetadata(
   "Über Shortbox",
-  "Informationen über Shortbox, das Projekt und den Hintergrund der Anwendung."
+  "Informationen über Shortbox, das Projekt und den Hintergrund der Anwendung.",
+  { canonical: "/about" }
 );
 
 export default async function AboutPage() {

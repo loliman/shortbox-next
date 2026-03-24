@@ -6,7 +6,8 @@ import { createStaticMetadata } from "@/src/lib/routes/metadata";
 
 export const metadata: Metadata = createStaticMetadata(
   "Login",
-  "Login für redaktionelle Funktionen und Bearbeitung in Shortbox."
+  "Login für redaktionelle Funktionen und Bearbeitung in Shortbox.",
+  { noIndex: true, canonical: "/login" }
 );
 
 export default async function LoginPage() {

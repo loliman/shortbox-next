@@ -32,6 +32,10 @@ type MetadataSearchParamsInput = Record<string, string | string[] | undefined> |
 
 type RouteQueryMode = "clean" | "tracking" | "variant" | "search";
 
+function normalizeMetadataTitle(title: string): string {
+  return title.replace(/\s*\|\s*shortbox\s*$/i, "").trim();
+}
+
 function buildRobots(index: boolean, follow: boolean): NonNullable<Metadata["robots"]> {
   return {
     index,
@@ -63,19 +67,20 @@ export function createPageMetadata(input: {
   noIndex?: boolean;
   robots?: Metadata["robots"];
 }): Metadata {
+  const normalizedTitle = normalizeMetadataTitle(input.title);
   const description = input.description || DEFAULT_DESCRIPTION;
   const metadata: Metadata = {
-    title: input.title,
+    title: normalizedTitle,
     description,
     openGraph: {
-      title: input.title,
+      title: normalizedTitle,
       description,
       siteName: "Shortbox",
       type: "website",
     },
     twitter: {
       card: "summary",
-      title: input.title,
+      title: normalizedTitle,
       description,
     },
   };
@@ -124,8 +129,8 @@ export function createHomeMetadata(us: boolean, searchParams?: MetadataSearchPar
   return createRouteMetadata({
     title: us ? "US-Ausgaben" : "Deutsche Ausgaben",
     description: us
-      ? "Shortbox listet US-Marvel-Ausgaben mit Serien, Heften und Varianten."
-      : "Shortbox listet deutsche Marvel-Ausgaben mit Serien, Heften und Varianten.",
+      ? "US-Marvel-Ausgaben in Shortbox mit Serien, Heften, Varianten und direkten Detailseiten auf einen Blick."
+      : "Deutsche Marvel-Ausgaben in Shortbox mit Serien, Heften, Varianten und direkten Detailseiten auf einen Blick.",
     canonical: us ? "/us" : "/de",
     searchParams,
   });

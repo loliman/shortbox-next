@@ -28,28 +28,30 @@ export function StoryArcChips(props: Readonly<StoryArcChipsProps>) {
         mt: props.inline ? 0 : 1,
         width: "100%",
         display: "flex",
-        flexWrap: "wrap",
-        justifyContent: "flex-start",
+        flexDirection: "column",
+        alignItems: "flex-start",
         gap: 1,
       }}
     >
-      {arcs.map((arc) => {
-        const arcTitle = arc.title || "";
-        const { color, type } = toArcMeta(arc.type || "");
-        return (
-          <Chip
-            key={`${arc.type || "ARC"}|${arcTitle}`}
-            variant="outlined"
-            label={arcTitle + " (" + type + ")"}
-            color={color}
-            onClick={() =>
-              router.push(
-                buildArcFilterUrl(props.us ? "us" : "de", arcTitle)
-              )
-            }
-          />
-        );
-      })}
+      <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-start", gap: 1 }}>
+        {arcs.map((arc) => {
+          const arcTitle = arc.title || "";
+          const { color, type } = toArcMeta(arc.type || "");
+          return (
+            <Chip
+              key={`${arc.type || "ARC"}|${arcTitle}`}
+              variant="outlined"
+              label={arcTitle + " (" + type + ")"}
+              color={color}
+              onClick={() =>
+                router.push(
+                  buildArcFilterUrl(props.us ? "us" : "de", arcTitle)
+                )
+              }
+            />
+          );
+        })}
+      </Box>
     </Box>
   );
 }

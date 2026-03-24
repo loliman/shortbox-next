@@ -88,10 +88,9 @@ export function ChipList(props: Readonly<ChipListProps>) {
       <Box
         sx={{
           display: "flex",
-          flexWrap: "wrap",
-          alignItems: "center",
-          columnGap: 1,
-          rowGap: 1,
+          flexDirection: "column",
+          alignItems: "flex-start",
+          rowGap: 0.75,
           minWidth: 0,
         }}
       >
@@ -100,6 +99,17 @@ export function ChipList(props: Readonly<ChipListProps>) {
     </Box>
   );
 }
+
+const APPEARANCE_TYPES = new Set([
+  "CHARACTER",
+  "GROUP",
+  "RACE",
+  "ANIMAL",
+  "ITEM",
+  "VEHICLE",
+  "LOCATION",
+]);
+
 
 function normalizeToken(value: unknown): string {
   if (!value) return "";

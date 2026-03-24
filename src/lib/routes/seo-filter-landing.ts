@@ -39,30 +39,31 @@ function localeFromUs(us: boolean): "de" | "us" {
 }
 
 function buildMetadataForKind(kind: SeoFilterKind, entityLabel: string) {
+
   if (kind === "person") {
     return {
-      title: `${entityLabel} - Comics, Stories and Appearances | Shortbox`,
-      description: `${entityLabel} comic entries in Shortbox, including matching stories, appearances, and publication details.`,
+      title: `${entityLabel} - Comics, Stories und Auftritte`,
+      description: `${entityLabel}: Comics, Stories und Auftritte in Shortbox mit direkten Treffern auf Ausgaben und Details.`,
     };
   }
 
   if (kind === "arc") {
     return {
-      title: `${entityLabel} - Story arc issues and publications | Shortbox`,
-      description: `${entityLabel} story arc issues and publications listed in Shortbox with matching release details.`,
+      title: `${entityLabel} - Story-Arc-Ausgaben und Veroeffentlichungen`,
+      description: `${entityLabel}: Story-Arc-Ausgaben und Veroeffentlichungen in Shortbox mit Hefttreffern und Release-Details.`,
     };
   }
 
   if (kind === "appearance") {
     return {
-      title: `${entityLabel} - Comic appearances and publications | Shortbox`,
-      description: `${entityLabel} comic appearances and related publications in Shortbox with issue-level matches.`,
+      title: `${entityLabel} - Comic-Auftritte und Veroeffentlichungen`,
+      description: `${entityLabel}: Comic-Auftritte und zugehoerige Veroeffentlichungen in Shortbox mit direkten Ausgabe-Treffern.`,
     };
   }
 
   return {
-    title: `${entityLabel} - Comics and stories by genre | Shortbox`,
-    description: `${entityLabel} genre issues and stories in Shortbox with publication and series context.`,
+    title: `${entityLabel} - Comics und Stories nach Genre`,
+    description: `${entityLabel}: Genre-Ausgaben und Stories in Shortbox mit Serienkontext und direkten Hefttreffern.`,
   };
 }
 

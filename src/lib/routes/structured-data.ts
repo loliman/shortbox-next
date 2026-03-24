@@ -24,6 +24,17 @@ type IssueLike = {
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://shortbox.de";
 
+export function buildWebsiteStructuredData() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Shortbox",
+    url: SITE_URL,
+    inLanguage: "de",
+    description: "Shortbox listet deutsche und US-Marvel-Veroeffentlichungen serverseitig und detailreich auf.",
+  };
+}
+
 function toStringValue(value: unknown): string {
   if (value === null || value === undefined) return "";
   return String(value).trim();
@@ -127,6 +138,147 @@ export function buildSeriesBreadcrumbStructuredData(input: {
       }),
     },
   ]);
+}
+
+function filterKindToSchemaType(kind: string): string {
+  if (kind === "person") return "Person";
+  if (kind === "arc") return "CreativeWorkSeries";
+  return "Thing";
+}
+
+export function buildFilterLandingCollectionPageStructuredData(input: {
+  kind: string;
+  entityLabel: string;
+  canonicalPath: string;
+  description?: string;
+}) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: `${input.entityLabel}: Hefte und Ausgaben`,
+    url: toAbsoluteUrl(input.canonicalPath),
+    description: input.description || `${input.entityLabel}: Hefte und Ausgaben in Shortbox.`,
+    inLanguage: "de",
+    isPartOf: {
+      "@type": "WebSite",
+      name: "Shortbox",
+      url: SITE_URL,
+    },
+    about: {
+      "@type": filterKindToSchemaType(input.kind),
+      name: input.entityLabel,
+    },
+  };
+}
+
+export function buildIssueComicStructuredData(issue: IssueLike, locale: Locale) {
+  const publisherName = toStringValue(issue.series?.publisher?.name);
+  const seriesTitle = toStringValue(issue.series?.title);
+  const issueNumber = toStringValue(issue.number);
+  const seriesVolume = toPositiveNumber(issue.series?.volume) || 1;
+  const seriesYear = toPositiveNumber(issue.series?.startyear);
+  const format = toStringValue(issue.format) || undefined;
+  const variant = toStringValue(issue.variant) || undefined;
+
+  if (!publisherName || !seriesTitle || !issueNumber) return null;
+
+  const canonicalPath = buildIssueCanonicalPath(issue, locale);
+  const seriesName = `${seriesTitle}${seriesYear ? ` (${seriesYear})` : ""}`;
+  const variantSuffix = [format ? `[${format}]` : "", variant ? `– ${variant}` : ""].filter(Boolean).join(" ");
+  const issueName = `${seriesTitle} #${issueNumber}${variantSuffix ? ` ${variantSuffix}` : ""}`;
+
+  const isPartOf: Record<string, unknown> = {
+    "@type": "ComicSeries",
+    name: seriesName,
+    volumeNumber: String(seriesVolume),
+    publisher: { "@type": "Organization", name: publisherName },
+  };
+  if (seriesYear) isPartOf["dateCreated"] = String(seriesYear);
+
+  const result: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "ComicIssue",
+    name: issueName,
+    issueNumber,
+    inLanguage: "de",
+    publisher: { "@type": "Organization", name: publisherName },
+    isPartOf,
+  };
+  if (canonicalPath) result["url"] = toAbsoluteUrl(canonicalPath);
+
+  return result;
+}
+
+export function buildPublisherCollectionPageStructuredData(input: {
+  locale: Locale;
+  publisherName: string;
+  description?: string;
+}) {
+  const canonicalPath = buildPublisherCanonicalPath(input.publisherName, input.locale);
+  return {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: `${input.publisherName}: Serien und Ausgaben`,
+    url: toAbsoluteUrl(canonicalPath),
+    description: input.description || `${input.publisherName}: Serien, Ausgaben und Aktualisierungen in Shortbox.`,
+    inLanguage: "de",
+    isPartOf: {
+      "@type": "WebSite",
+      name: "Shortbox",
+      url: SITE_URL,
+    },
+    about: {
+      "@type": "Organization",
+      name: input.publisherName,
+    },
+  };
+}
+
+export function buildSeriesCollectionPageStructuredData(input: {
+  locale: Locale;
+  publisherName: string;
+  seriesTitle: string;
+  seriesYear?: number | string | null;
+  seriesVolume?: number | string | null;
+  description?: string;
+}) {
+  const year = toPositiveNumber(input.seriesYear);
+  const volume = toPositiveNumber(input.seriesVolume) || 1;
+  const seriesName = `${input.seriesTitle}${year ? ` (${year})` : ""}`;
+  const canonicalPath = buildSeriesCanonicalPath({
+    locale: input.locale,
+    publisherName: input.publisherName,
+    seriesTitle: input.seriesTitle,
+    seriesYear: year,
+    seriesVolume: volume,
+  });
+
+  const about: Record<string, unknown> = {
+    "@type": "CreativeWorkSeries",
+    name: seriesName,
+    publisher: {
+      "@type": "Organization",
+      name: input.publisherName,
+    },
+  };
+  if (year) {
+    about["dateCreated"] = String(year);
+  }
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: `${input.seriesTitle} Band ${volume}: Ausgaben und Varianten`,
+    url: toAbsoluteUrl(canonicalPath),
+    description: input.description || `${input.seriesTitle} Band ${volume}: Ausgaben, Varianten und Seriendetails in Shortbox.`,
+    inLanguage: "de",
+    isPartOf: {
+      "@type": "WebSite",
+      name: "Shortbox",
+      url: SITE_URL,
+    },
+    about,
+  };
 }
 
 export function buildIssueBreadcrumbStructuredData(issue: IssueLike, locale: Locale) {

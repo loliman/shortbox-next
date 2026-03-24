@@ -1,0 +1,93 @@
+[
+  {
+    "name": "de-home",
+    "path": "/de",
+    "expect": {
+      "title": "Deutsche Ausgaben | Shortbox",
+      "canonicalPath": "/de",
+      "robots": "absent"
+    }
+  },
+  {
+    "name": "us-home",
+    "path": "/us",
+    "expect": {
+      "title": "US-Ausgaben | Shortbox",
+      "canonicalPath": "/us",
+      "robots": "absent"
+    }
+  },
+  {
+    "name": "about",
+    "path": "/about",
+    "expect": {
+      "title": "Über Shortbox | Shortbox",
+      "canonicalPath": "/about",
+      "robots": "absent"
+    }
+  },
+  {
+    "name": "contact",
+    "path": "/contact",
+    "expect": {
+      "title": "Kontakt | Shortbox",
+      "canonicalPath": "/contact",
+      "robots": "absent"
+    }
+  },
+  {
+    "name": "privacy",
+    "path": "/privacy",
+    "expect": {
+      "title": "Datenschutz | Shortbox",
+      "canonicalPath": "/privacy",
+      "robots": "absent"
+    }
+  },
+  {
+    "name": "impress",
+    "path": "/impress",
+    "expect": {
+      "title": "Impressum | Shortbox",
+      "canonicalPath": "/impress",
+      "robots": "absent"
+    }
+  },
+  {
+    "name": "login-noindex",
+    "path": "/login",
+    "expect": {
+      "title": "Login | Shortbox",
+      "canonicalPath": "/login",
+      "robots": "noindex,follow"
+    }
+  },
+  {
+    "name": "filter-de-noindex",
+    "path": "/filter/de",
+    "expect": {
+      "title": "Filter | Shortbox",
+      "canonicalPath": "/filter/de",
+      "robots": "noindex,follow"
+    }
+  },
+  {
+    "name": "de-search-query",
+    "path": "/de?q=spider-man",
+    "expect": {
+      "title": "Deutsche Ausgaben | Shortbox",
+      "canonicalPath": null,
+      "robots": "noindex,nofollow"
+    }
+  },
+  {
+    "name": "de-variant-query",
+    "path": "/de?order=updated",
+    "expect": {
+      "title": "Deutsche Ausgaben | Shortbox",
+      "canonicalPath": "/de",
+      "robots": "noindex,follow"
+    }
+  }
+]
+
