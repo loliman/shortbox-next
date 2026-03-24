@@ -6,7 +6,7 @@ import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
-import { generateUrl } from "../../util/hierarchy";
+import { generateSeoUrl } from "../../util/hierarchy";
 import type { SelectedRoot } from "../../types/domain";
 import { CONTRIBUTOR_FIELDS, TRANSLATOR_FIELD } from "./constants";
 import { buildRouteHref } from "../generic/routeHref";
@@ -85,7 +85,7 @@ export default function FilterSummaryBar(props: Readonly<FilterSummaryBarProps>)
               push(
                 buildRouteHref(us ? "/filter/us" : "/filter/de", props.query, {
                   filter: props.query?.filter ?? null,
-                  from: generateUrl((props.selected || { us }) as SelectedRoot, us),
+                  from: generateSeoUrl((props.selected || { us }) as SelectedRoot, us),
                 })
               );
             }}
@@ -103,7 +103,7 @@ export default function FilterSummaryBar(props: Readonly<FilterSummaryBarProps>)
                 push(us ? "/us" : "/de");
                 return;
               }
-              push(generateUrl(target, us));
+              push(generateSeoUrl(target, us));
             }}
           >
             Zurücksetzen

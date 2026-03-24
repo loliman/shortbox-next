@@ -6,7 +6,8 @@ import { createStaticMetadata } from "@/src/lib/routes/metadata";
 
 export const metadata: Metadata = createStaticMetadata(
   "US-Filter",
-  "Filter für US-Marvel-Ausgaben in Shortbox."
+  "Filter für US-Marvel-Ausgaben in Shortbox.",
+  { noIndex: true, canonical: "/filter/us" }
 );
 
 export default async function UsFilterPage({

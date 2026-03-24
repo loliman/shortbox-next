@@ -148,6 +148,97 @@ describe("hierarchy util", () => {
     });
   });
 
+  it("parses SEO publisher slug on legacy publisher param", () => {
+    const selected = getSelected({ publisher: "marvel" }, false);
+
+    expect(selected).toEqual({
+      us: false,
+      publisher: {
+        name: "Marvel",
+      },
+    });
+  });
+
+  it("parses SEO series slug on legacy publisher/series params", () => {
+    const selected = getSelected(
+      {
+        publisher: "marvel",
+        series: "amazing-spider-man-1963-vol1",
+      },
+      false
+    );
+
+    expect(selected).toEqual({
+      us: false,
+      series: {
+        title: "Amazing Spider Man",
+        volume: 1,
+        startyear: 1963,
+        publisher: {
+          name: "Marvel",
+        },
+      },
+    });
+  });
+
+  it("parses SEO issue slug on legacy publisher/series/issue params", () => {
+    const selected = getSelected(
+      {
+        publisher: "marvel",
+        series: "amazing-spider-man-1963-vol1",
+        issue: "1",
+        variant: "heft",
+      },
+      true
+    );
+
+    expect(selected).toEqual({
+      us: true,
+      issue: {
+        number: "1",
+        format: "Heft",
+        series: {
+          title: "Amazing Spider Man",
+          volume: 1,
+          startyear: 1963,
+          publisher: {
+            name: "Marvel",
+          },
+        },
+      },
+    });
+  });
+
+  it("parses SEO issue slug on explicit format/variant params", () => {
+    const selected = getSelected(
+      {
+        publisher: "panini-marvel-icon",
+        series: "spider-man-2004-vol2",
+        issue: "100",
+        format: "heft",
+        variant: "analph-comics-zuerich",
+      },
+      false
+    );
+
+    expect(selected).toEqual({
+      us: false,
+      issue: {
+        number: "100",
+        format: "Heft",
+        variant: "Analph Comics Zuerich",
+        series: {
+          title: "Spider Man",
+          volume: 2,
+          startyear: 2004,
+          publisher: {
+            name: "Panini Marvel Icon",
+          },
+        },
+      },
+    });
+  });
+
   it("parses legacy route params with underscore series separator", () => {
     const selected = getSelected(
       {

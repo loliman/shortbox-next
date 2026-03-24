@@ -10,6 +10,8 @@
     "start": "next start",
     "start:container": "node scripts/container-runner.mjs",
     "worker": "node --env-file=.env --import tsx src/worker/index.ts",
+    "test": "jest",
+    "test:watch": "jest --watch",
     "lint": "eslint .",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate"
@@ -41,12 +43,15 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",
+    "@types/jest": "^30.0.0",
     "@types/node": "^25.5.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "dotenv": "^17.3.1",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.1",
+    "jest": "^30.3.0",
+    "ts-jest": "^29.4.6",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }

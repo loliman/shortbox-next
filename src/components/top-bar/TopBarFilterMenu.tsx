@@ -6,7 +6,7 @@ import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
 import Badge from "@mui/material/Badge";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import { generateUrl } from "../../util/hierarchy";
+import { generateSeoUrl } from "../../util/hierarchy";
 import type { SelectedRoot } from "../../types/domain";
 import { CONTRIBUTOR_FIELDS, TRANSLATOR_FIELD } from "../filter/constants";
 import { buildRouteHref } from "../generic/routeHref";
@@ -60,7 +60,7 @@ export default function TopBarFilterMenu(props: Readonly<TopBarFilterMenuProps>)
                 push(
                   buildRouteHref(us ? "/filter/us" : "/filter/de", props.query, {
                     filter: props.query?.filter ?? null,
-                    from: generateUrl(selected, us),
+                    from: generateSeoUrl(selected, us),
                   })
                 );
               }}

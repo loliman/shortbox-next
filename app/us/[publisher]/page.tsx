@@ -4,15 +4,19 @@ import PublisherDetails from "@/src/components/details/PublisherDetails";
 import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
 import { readPublisherDetails } from "@/src/lib/read/publisher-read";
 import { buildHierarchyLevel, buildSelectedRoot, normalizePageQuery } from "@/src/lib/routes/page-state";
-import { createPageMetadata } from "@/src/lib/routes/metadata";
+import { buildPublisherBreadcrumbStructuredData } from "@/src/lib/routes/structured-data";
+import { createPageMetadata, createRouteMetadata } from "@/src/lib/routes/metadata";
 import { readServerSession } from "@/src/lib/server/session";
+import { generateSeoUrl } from "@/src/util/hierarchy";
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: Readonly<{
   params: Promise<Record<string, string>>;
+  searchParams?: Promise<Record<string, string | string[] | undefined> | undefined>;
 }>): Promise<Metadata> {
-  const resolvedParams = await params;
+  const [resolvedParams, resolvedSearchParams] = await Promise.all([params, searchParams]);
   const selected = buildSelectedRoot(resolvedParams, true);
   const publisherName = selected.publisher?.name || "";
   const initialData = publisherName
@@ -22,9 +26,15 @@ export async function generateMetadata({
     return createPageMetadata({ title: "Publisher" });
   }
 
-  return createPageMetadata({
-    title: String(initialData.details.name || publisherName),
-    description: `Series and recent issues for ${String(initialData.details.name || publisherName)}.`,
+  const canonicalPublisherName = String(initialData.details.name || publisherName);
+
+  return createRouteMetadata({
+    title: `${canonicalPublisherName} | Shortbox`,
+    description: `Series and recent issues for ${canonicalPublisherName}.`,
+    canonical: canonicalPublisherName
+      ? generateSeoUrl({ us: true, publisher: { name: canonicalPublisherName } }, true)
+      : undefined,
+    searchParams: resolvedSearchParams,
   });
 }
 
@@ -56,15 +66,26 @@ export default async function UsPublisherPage({
     }),
   ]);
   if (!initialData?.details) notFound();
+  const breadcrumbJsonLd = buildPublisherBreadcrumbStructuredData({
+    locale: "us",
+    publisherName: String(initialData.details.name || publisherName),
+  });
   return (
-    <PublisherDetails
-      selected={selected as any}
-      level={level}
-      us={true}
-      query={query}
-      session={session}
-      initialFilterCount={navigationData.initialFilterCount}
-      initialData={initialData}
-    />
+    <>
+      <script
+        key={`publisher-breadcrumb-jsonld-${String(initialData.details.name || publisherName)}`}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <PublisherDetails
+        selected={selected as any}
+        level={level}
+        us={true}
+        query={query}
+        session={session}
+        initialFilterCount={navigationData.initialFilterCount}
+        initialData={initialData}
+      />
+    </>
   );
 }

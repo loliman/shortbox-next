@@ -4,7 +4,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import Chip from "@mui/material/Chip";
 import Box from "@mui/material/Box";
-import { buildRouteHref } from "../../generic/routeHref";
+import { buildArcFilterUrl } from "@/src/lib/url-builder";
 
 type ArcLike = {
   title?: string | null;
@@ -44,9 +44,7 @@ export function StoryArcChips(props: Readonly<StoryArcChipsProps>) {
             color={color}
             onClick={() =>
               router.push(
-                buildRouteHref(props.us ? "/us" : "/de", null, {
-                  filter: JSON.stringify({ arcs: [{ title: arcTitle }], us: props.us }),
-                })
+                buildArcFilterUrl(props.us ? "us" : "de", arcTitle)
               )
             }
           />

@@ -1,5 +1,12 @@
 import { romanize, wrapItem } from "./util";
 import type { Issue, Publisher, RouteParams, SelectedRoot, Series } from "../types/domain";
+import {
+  generatePublisherSlug,
+  generateSeriesSlug,
+  generateFormatSlug,
+  generateVariantSlug,
+} from "../lib/slug-builder";
+import { parseIssueUrl, parsePublisherSlug, parseSeriesSlug } from "../lib/slug-parser";
 
 export const HierarchyLevel = Object.freeze({
   ROOT: "ROOT",
@@ -80,9 +87,151 @@ export function generateUrl(item: SelectedRoot, us: boolean): string {
   );
 }
 
+export function generateSeoUrl(item: SelectedRoot, us: boolean): string {
+  if (hasTypename(item)) item = wrapItem(item);
+
+  const url = us ? "/us/" : "/de/";
+
+  if (!item.publisher && !item.series && !item.issue) return url;
+
+  if (item.publisher) {
+    const publisherSlug = generatePublisherSlug(item.publisher.name);
+    return url + publisherSlug;
+  }
+
+  if (item.series) {
+    const publisherSlug = generatePublisherSlug(item.series.publisher?.name);
+    const seriesSlug = generateSeriesSlug(
+      item.series.title,
+      item.series.startyear,
+      item.series.volume
+    );
+    return url + publisherSlug + "/" + seriesSlug;
+  }
+
+  if (item.issue) {
+    const publisherSlug = generatePublisherSlug(item.issue.series.publisher?.name);
+    const seriesSlug = generateSeriesSlug(
+      item.issue.series.title,
+      item.issue.series.startyear,
+      item.issue.series.volume
+    );
+    const issueNumber = encodeURIComponent(item.issue.number || "");
+
+    let result = url + publisherSlug + "/" + seriesSlug + "/" + issueNumber;
+
+    if (item.issue.format) {
+      const formatSlug = generateFormatSlug(item.issue.format);
+      result += "/" + formatSlug;
+
+      if (item.issue.variant) {
+        const variantSlug = generateVariantSlug(item.issue.variant);
+        result += "/" + variantSlug;
+      }
+    }
+
+    return result;
+  }
+
+  return url;
+}
+
 export function getSelected(params: RouteParams, us: boolean): SelectedRoot {
   const selected: SelectedRoot = { us };
 
+  const legacyPublisher = params.publisher ? decodeURIComponent(params.publisher) : "";
+  const legacySeries = params.series ? decodeURIComponent(params.series) : "";
+  const legacyIssue = params.issue ? decodeURIComponent(params.issue) : "";
+  const hasFormatParam = typeof params.format === "string";
+  const routeFormat = params.format ? decodeURIComponent(params.format) : "";
+  const routeVariant = params.variant ? decodeURIComponent(params.variant) : "";
+  const legacyFormatSegment = hasFormatParam ? "" : routeVariant;
+  const hasLegacyVariantSeparator = legacyFormatSegment.includes("_");
+
+  // Check if this is a new SEO-friendly URL structure
+  if (params.publisherSlug && params.seriesSlug && params.issueNumber) {
+    // Parse new SEO URL structure
+    const parsed = parseIssueUrl(
+      params.publisherSlug,
+      params.seriesSlug,
+      params.issueNumber,
+      params.formatSlug,
+      params.variantSlug
+    );
+
+    if (parsed) {
+      selected.issue = {
+        number: parsed.issueNumber,
+        format: parsed.format,
+        variant: parsed.variant,
+        series: {
+          title: parsed.seriesTitle,
+          volume: parsed.seriesVolume,
+          startyear: parsed.seriesYear || undefined,
+          publisher: { name: parsed.publisherName },
+        },
+      };
+      return selected;
+    }
+  }
+
+  // Also support SEO slugs on existing dynamic param names
+  // (/[publisher]/[series]/[issue]/[format]/[variant]) and legacy
+  // (/[publisher]/[series]/[issue]/[variant]) so both formats resolve.
+  if (legacyPublisher && legacySeries && legacyIssue) {
+    const formatSlug = hasFormatParam
+      ? routeFormat || undefined
+      : legacyFormatSegment && !hasLegacyVariantSeparator
+        ? legacyFormatSegment
+        : undefined;
+    const variantSlug = hasFormatParam ? routeVariant || undefined : undefined;
+    const parsed = parseIssueUrl(
+      legacyPublisher,
+      legacySeries,
+      legacyIssue,
+      formatSlug,
+      variantSlug
+    );
+
+    if (parsed) {
+      selected.issue = {
+        number: parsed.issueNumber,
+        format: parsed.format,
+        variant: parsed.variant,
+        series: {
+          title: parsed.seriesTitle,
+          volume: parsed.seriesVolume,
+          startyear: parsed.seriesYear || undefined,
+          publisher: { name: parsed.publisherName },
+        },
+      };
+      return selected;
+    }
+  }
+
+  if (legacyPublisher && legacySeries && !legacyIssue) {
+    const parsedPublisher = parsePublisherSlug(legacyPublisher);
+    const parsedSeries = parseSeriesSlug(legacySeries);
+    if (parsedPublisher && parsedSeries) {
+      selected.series = {
+        title: parsedSeries.title,
+        volume: parsedSeries.volume,
+        startyear: parsedSeries.year || undefined,
+        publisher: { name: parsedPublisher },
+      };
+      return selected;
+    }
+  }
+
+  if (legacyPublisher && !legacySeries && !legacyIssue) {
+    const parsedPublisher = parsePublisherSlug(legacyPublisher);
+    if (parsedPublisher) {
+      selected.publisher = { name: parsedPublisher };
+      return selected;
+    }
+  }
+
+  // Legacy URL structure handling
   if (params.publisher) {
     selected.publisher = { name: decodeURIComponent(params.publisher) };
   }
@@ -127,14 +276,18 @@ export function getSelected(params: RouteParams, us: boolean): SelectedRoot {
     selected.series = undefined;
   }
 
-  if (params.variant && selected.issue) {
-    const variant = decodeURIComponent(params.variant);
-    const separatorIndex = variant.indexOf("_");
-    if (separatorIndex > -1) {
-      selected.issue.format = variant.substring(0, separatorIndex);
-      selected.issue.variant = variant.substring(separatorIndex + 1);
-    } else {
-      selected.issue.format = variant;
+  if (selected.issue) {
+    if (hasFormatParam) {
+      if (routeFormat) selected.issue.format = routeFormat;
+      if (routeVariant) selected.issue.variant = routeVariant;
+    } else if (legacyFormatSegment) {
+      const separatorIndex = legacyFormatSegment.indexOf("_");
+      if (separatorIndex > -1) {
+        selected.issue.format = legacyFormatSegment.substring(0, separatorIndex);
+        selected.issue.variant = legacyFormatSegment.substring(separatorIndex + 1);
+      } else {
+        selected.issue.format = legacyFormatSegment;
+      }
     }
   }
 

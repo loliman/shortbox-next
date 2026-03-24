@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
-import { generateLabel, generateUrl, HierarchyLevel } from "../../util/hierarchy";
+import { generateLabel, generateSeoUrl, HierarchyLevel } from "../../util/hierarchy";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
@@ -147,7 +147,7 @@ class DropdownBase extends React.Component<DropdownProps, DropdownState> {
               onClick={() => {
                 const us = resolveItemUs(selectedItem, this.props.level, Boolean(this.props.us));
                 this.props.onNavigate?.(
-                  "/edit" + generateUrl(toSelectedRoot(selectedItem, this.props.level), us)
+                  "/edit" + generateSeoUrl(toSelectedRoot(selectedItem, this.props.level), us)
                 );
                 this.props.handleClose?.();
               }}

@@ -5,7 +5,7 @@ import ListItemText from "@mui/material/ListItemText";
 import Typography from "@mui/material/Typography";
 import Tooltip from "@mui/material/Tooltip";
 import Box from "@mui/material/Box";
-import { generateLabel, generateUrl, HierarchyLevel } from "../../util/hierarchy";
+import { generateLabel, generateSeoUrl, HierarchyLevel } from "../../util/hierarchy";
 import CoverTooltip from "./CoverTooltip";
 import type { SelectedRoot } from "../../types/domain";
 import { buildRouteHref } from "../generic/routeHref";
@@ -68,7 +68,7 @@ export default function TypeListEntry(props: Readonly<TypeListEntryProps>) {
         }
 
         router.push(
-          buildRouteHref(generateUrl(item as any, Boolean(us)), props.query, {
+          buildRouteHref(generateSeoUrl(item as any, Boolean(us)), props.query, {
             expand: null,
             filter: props.query ? props.query.filter : null,
           })

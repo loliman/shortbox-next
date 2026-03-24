@@ -2,33 +2,31 @@ import "server-only";
 
 import { cache } from "react";
 import { readSeriesDetailsQuery } from "./series-details-read";
+import type { SeriesSelectionInput } from "./series-selection";
 
 const readSeriesDetailsCached = cache(
-  async (us: boolean, publisher: string, series: string, volume: number) =>
+  async (us: boolean, publisher: string, series: string, volume: number, startyear?: number) =>
     readSeriesDetailsQuery({
       us,
       publisher,
       series,
       volume,
+      startyear,
     })
 );
 
-export async function readSeriesDetails(options: {
-  us: boolean;
-  publisher: string;
-  series: string;
-  volume: number;
-}) {
-  return readSeriesDetailsCached(options.us, options.publisher, options.series, options.volume);
+export async function readSeriesDetails(options: SeriesSelectionInput) {
+  return readSeriesDetailsCached(
+    options.us,
+    options.publisher,
+    options.series,
+    options.volume,
+    Number(options.startyear || 0) || undefined
+  );
 }
 
 export async function readSeriesEditData(
-  options: {
-    us: boolean;
-    publisher: string;
-    series: string;
-    volume: number;
-  }
+  options: SeriesSelectionInput
 ): Promise<Record<string, unknown> | null> {
   const result = await readSeriesDetails({
     us: options.us,

@@ -22,14 +22,7 @@ describe("toChipList", () => {
     chip.props.onClick?.({ type: "click" });
 
     expect(navigate).toHaveBeenCalledTimes(1);
-    const [, path, query] = navigate.mock.calls[0];
-    expect(path).toBe("/de");
-    expect(query).toEqual({
-      filter: JSON.stringify({
-        us: false,
-        appearances: [{ name: "Spider-Man" }],
-      }),
-    });
+    expect(navigate.mock.calls[0][0]).toBe("/de/appearance/spider-man");
   });
 
   it("builds arc and individual filter payloads", () => {
@@ -43,13 +36,7 @@ describe("toChipList", () => {
     const arcChip = React.Children.toArray(arcElement.props.children)[0] as React.ReactElement;
     arcChip.props.onClick?.({ type: "click" });
 
-    expect(navigate.mock.calls[0][1]).toBe("/us");
-    expect(navigate.mock.calls[0][2]).toEqual({
-      filter: JSON.stringify({
-        us: true,
-        arcs: [{ title: "Maximum Carnage" }],
-      }),
-    });
+    expect(navigate.mock.calls[0][0]).toBe("/us/arc/maximum-carnage");
 
     navigate.mockClear();
 
@@ -63,11 +50,32 @@ describe("toChipList", () => {
     )[0] as React.ReactElement;
     individualChip.props.onClick?.({ type: "click" });
 
-    expect(navigate.mock.calls[0][2]).toEqual({
-      filter: JSON.stringify({
-        us: true,
-        individuals: [{ name: "Peter Parker", type: "WRITER" }],
-      }),
-    });
+    expect(navigate.mock.calls[0][0]).toBe("/us/person/peter-parker");
+  });
+
+  it("routes appearance-like entries without __typename to appearance landing", () => {
+    const navigate = vi.fn();
+    const element = toChipList([{ name: "Spider-Man", type: "CHARACTER" }], { us: false, navigate }, "CHARACTER") as React.ReactElement<{
+      children: React.ReactNode;
+    }>;
+
+    const chip = React.Children.toArray(element.props.children)[0] as React.ReactElement;
+    chip.props.onClick?.({ type: "click" });
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(navigate.mock.calls[0][0]).toBe("/de/appearance/spider-man");
+  });
+
+  it("keeps individual fallback for creator-like entries without __typename", () => {
+    const navigate = vi.fn();
+    const element = toChipList([{ name: "Stan Lee", type: "WRITER" }], { us: false, navigate }, "WRITER") as React.ReactElement<{
+      children: React.ReactNode;
+    }>;
+
+    const chip = React.Children.toArray(element.props.children)[0] as React.ReactElement;
+    chip.props.onClick?.({ type: "click" });
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(navigate.mock.calls[0][0]).toBe("/de/person/stan-lee");
   });
 });

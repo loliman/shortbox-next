@@ -8,7 +8,7 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import { Form, Formik } from "formik";
 import QueryResult from "../generic/QueryResult";
-import { generateUrl } from "../../util/hierarchy";
+import { generateSeoUrl } from "../../util/hierarchy";
 import { mapIssueToEditorDefaultValues } from "../restricted/editor/issue-editor/defaultValues";
 import { buildIssueMutationVariables } from "../restricted/editor/issue-editor/payload";
 import IssueEditorFormContent from "../restricted/editor/issue-editor/IssueEditorFormContent";
@@ -66,7 +66,7 @@ function IssueReportView(props: Readonly<IssueReportProps>) {
         mapIssueToEditorDefaultValues(issueDetails, false),
         issueDetails
       );
-      const fallbackUrl = generateUrl(selected, Boolean(selected.us));
+      const fallbackUrl = generateSeoUrl(selected, Boolean(selected.us));
 
       return (
         <Formik

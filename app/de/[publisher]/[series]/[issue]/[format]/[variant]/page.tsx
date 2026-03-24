@@ -3,16 +3,19 @@ import { notFound } from "next/navigation";
 import IssueDetailsDE from "@/src/components/details/IssueDetailsDE";
 import { readIssueDetails } from "@/src/lib/read/issue-read";
 import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
+import { buildIssueMetadataParts } from "@/src/lib/routes/issue-metadata";
 import { buildHierarchyLevel, buildSelectedRoot, normalizePageQuery } from "@/src/lib/routes/page-state";
-import { createPageMetadata } from "@/src/lib/routes/metadata";
+import { createRouteMetadata } from "@/src/lib/routes/metadata";
 import { readServerSession } from "@/src/lib/server/session";
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: Readonly<{
   params: Promise<Record<string, string>>;
+  searchParams?: Promise<Record<string, string | string[] | undefined> | undefined>;
 }>): Promise<Metadata> {
-  const resolvedParams = await params;
+  const [resolvedParams, resolvedSearchParams] = await Promise.all([params, searchParams]);
   const selected = buildSelectedRoot(resolvedParams, false);
   const selectedIssue = selected.issue;
   const initialIssue =
@@ -22,60 +25,60 @@ export async function generateMetadata({
           publisher: selectedIssue.series.publisher.name,
           series: selectedIssue.series.title,
           volume: Number(selectedIssue.series.volume || 0),
+          startyear: Number(selectedIssue.series.startyear || 0) || undefined,
           number: selectedIssue.number,
           format: selectedIssue.format || undefined,
           variant: selectedIssue.variant || undefined,
         })
       : null;
-  const seriesTitle = String(initialIssue?.series?.title || selectedIssue?.series?.title || "");
-  const issueNumber = String(initialIssue?.number || selectedIssue?.number || "");
-  const variantText = String(initialIssue?.variant || selectedIssue?.variant || "").trim();
+  const metadataParts = buildIssueMetadataParts(initialIssue || selectedIssue, "de");
 
-  return createPageMetadata({
-    title:
-      seriesTitle && issueNumber
-        ? `${seriesTitle} #${issueNumber}${variantText ? ` (${variantText})` : ""}`
-        : "Varianten-Details",
-    description:
-      seriesTitle && issueNumber
-        ? `Details zur Variante ${variantText || "des Hefts"} von ${seriesTitle} #${issueNumber} auf Shortbox.`
-        : "Varianten-Details auf Shortbox.",
+  return createRouteMetadata({
+    title: metadataParts.title,
+    description: metadataParts.description,
+    canonical: metadataParts.canonical,
+    searchParams: resolvedSearchParams,
   });
 }
 
-export default async function DeIssueVariantPage({
+export default async function DeIssueSeoVariantPage({
   params,
   searchParams,
 }: Readonly<{
   params: Promise<Record<string, string>>;
   searchParams?: Promise<Record<string, string | string[] | undefined> | undefined>;
 }>) {
-  const resolvedParams = await params;
-  const resolvedSearchParams = await searchParams;
+  const [resolvedParams, resolvedSearchParams, session] = await Promise.all([
+    params,
+    searchParams,
+    readServerSession(),
+  ]);
   const query = normalizePageQuery(resolvedSearchParams);
   const selected = buildSelectedRoot(resolvedParams, false);
   const level = buildHierarchyLevel(selected);
-  const session = await readServerSession();
   const selectedIssue = selected.issue;
-  const initialIssue =
+  const [initialIssue, navigationData] = await Promise.all([
     selectedIssue?.series?.publisher?.name && selectedIssue?.series?.title && selectedIssue?.number
-      ? await readIssueDetails({
+      ? readIssueDetails({
           us: false,
           publisher: selectedIssue.series.publisher.name,
           series: selectedIssue.series.title,
           volume: Number(selectedIssue.series.volume || 0),
+          startyear: Number(selectedIssue.series.startyear || 0) || undefined,
           number: selectedIssue.number,
           format: selectedIssue.format || undefined,
           variant: selectedIssue.variant || undefined,
         })
-      : null;
+      : Promise.resolve(null),
+    readInitialNavigationData({
+      us: false,
+      query,
+      selected,
+      loggedIn: Boolean(session?.loggedIn),
+    }),
+  ]);
   if (!initialIssue) notFound();
-  const navigationData = await readInitialNavigationData({
-    us: false,
-    query,
-    selected,
-    loggedIn: Boolean(session?.loggedIn),
-  });
+
   return (
     <IssueDetailsDE
       selected={selected}
@@ -91,3 +94,4 @@ export default async function DeIssueVariantPage({
     />
   );
 }
+

@@ -9,8 +9,8 @@ import {
 } from "./change-requests-read";
 import {
   readIssueDetails as readIssueDetailsQuery,
-  type IssueSelectionInput,
 } from "./issue-details-read";
+import type { IssueSelectionInput } from "./issue-selection";
 
 type IssueDetailsResult = Awaited<ReturnType<typeof readIssueDetailsQuery>>;
 type IssueSelectionOptions = IssueSelectionInput;

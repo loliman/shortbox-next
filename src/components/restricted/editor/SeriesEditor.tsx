@@ -5,7 +5,7 @@ import { SeriesSchema } from "../../../util/yupSchema";
 import { FastField, Form, Formik } from "formik";
 import { TextField } from "../../generic/FormikTextField";
 import React from "react";
-import { generateLabel, generateUrl } from "../../../util/hierarchy";
+import { generateLabel, generateSeoUrl } from "../../../util/hierarchy";
 import Button from "@mui/material/Button";
 import { stripItem } from "../../../util/util";
 import AutocompleteBase from "../../generic/AutocompleteBase";
@@ -129,7 +129,7 @@ function SeriesEditorView(props: Readonly<SeriesEditorProps>) {
             }
           );
           router.push(
-            generateUrl(
+            generateSeoUrl(
               { series: nextItem, us: Boolean(nextItem.publisher?.us) } as any,
               Boolean(nextItem.publisher?.us)
             )

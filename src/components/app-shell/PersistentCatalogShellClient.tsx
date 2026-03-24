@@ -13,12 +13,14 @@ import { useInitialResponsiveGuess } from "../../app/responsiveGuessContext";
 import { getHierarchyLevel, getSelected, HierarchyLevel } from "../../util/hierarchy";
 import type { SessionData } from "../../app/session";
 import type { IssueNode, PublisherNode, SeriesNode } from "../nav-bar/listTreeUtils";
+import { parseSeoFilterRoutePathname } from "../../lib/routes/seo-filter-route";
 
 type NavigationState = {
   initialPublisherNodes?: PublisherNode[];
   initialSeriesNodesByPublisher?: Record<string, SeriesNode[]>;
   initialIssueNodesBySeriesKey?: Record<string, IssueNode[]>;
   initialFilterCount?: number;
+  resolvedFilterQuery?: string | null;
 };
 
 type PersistentCatalogShellClientProps = {
@@ -34,33 +36,56 @@ export default function PersistentCatalogShellClient(
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const initialGuess = useInitialResponsiveGuess();
+  const [navigationState, setNavigationState] = React.useState<NavigationState | null>(null);
+  const [navigationLoading, setNavigationLoading] = React.useState(true);
+  const routeFilter = React.useMemo(() => parseSeoFilterRoutePathname(pathname), [pathname]);
   const query = React.useMemo(() => {
     const entries = Array.from(searchParams.entries());
-    return entries.length > 0 ? Object.fromEntries(entries) : null;
-  }, [searchParams]);
+    const nextQuery = entries.length > 0 ? Object.fromEntries(entries) : {};
+
+    if (navigationState?.resolvedFilterQuery) {
+      nextQuery.filter = navigationState.resolvedFilterQuery;
+    }
+
+    if (routeFilter) {
+      nextQuery.routeFilterKind = routeFilter.kind;
+      nextQuery.routeFilterSlug = routeFilter.slug;
+    }
+
+    return Object.keys(nextQuery).length > 0 ? nextQuery : null;
+  }, [navigationState?.resolvedFilterQuery, routeFilter, searchParams]);
   const selected = React.useMemo(() => {
+    if (routeFilter) return { us: props.us };
+
     const parts = (pathname || "").split("/").filter(Boolean);
     const params = {
       publisher: parts[1],
       series: parts[2],
       issue: parts[3],
-      variant: parts[4],
+      format: parts[4],
+      variant: parts[5],
     };
     return getSelected(params, props.us);
-  }, [pathname, props.us]);
+  }, [pathname, props.us, routeFilter]);
   const level = React.useMemo(() => getHierarchyLevel(selected), [selected]);
   const lockViewportHeight = level !== HierarchyLevel.ROOT;
-  const [navigationState, setNavigationState] = React.useState<NavigationState | null>(null);
-  const [navigationLoading, setNavigationLoading] = React.useState(true);
 
   React.useEffect(() => {
     const controller = new AbortController();
+    setNavigationLoading(true);
+
     const params = new URLSearchParams({ us: String(props.us) });
     const parts = (pathname || "").split("/").filter(Boolean);
-    if (parts[1]) params.set("publisher", parts[1]);
-    if (parts[2]) params.set("series", parts[2]);
-    if (parts[3]) params.set("issue", parts[3]);
-    if (parts[4]) params.set("variant", parts[4]);
+    if (routeFilter) {
+      params.set("routeFilterKind", routeFilter.kind);
+      params.set("routeFilterSlug", routeFilter.slug);
+    } else {
+      if (parts[1]) params.set("publisher", parts[1]);
+      if (parts[2]) params.set("series", parts[2]);
+      if (parts[3]) params.set("issue", parts[3]);
+      if (parts[4]) params.set("format", parts[4]);
+      if (parts[5]) params.set("variant", parts[5]);
+    }
     const filter = searchParams.get("filter");
     if (filter) params.set("filter", filter);
 
@@ -83,7 +108,7 @@ export default function PersistentCatalogShellClient(
       });
 
     return () => controller.abort();
-  }, [pathname, searchParams, props.us]);
+  }, [pathname, routeFilter, searchParams, props.us]);
 
   const initialTablet = !initialGuess?.isPhone && !initialGuess?.isDesktop;
   const initialNavWide =

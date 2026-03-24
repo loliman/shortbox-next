@@ -13,10 +13,18 @@ type IndividualListProps = {
 };
 
 export function IndividualList(props: Readonly<IndividualListProps>) {
+  const issueIndividuals = Array.isArray(props.item.individuals) ? props.item.individuals : [];
+  const parentIndividuals = Array.isArray(props.item.parent?.individuals)
+    ? props.item.parent.individuals
+    : [];
+
+  // Prefer issue-level individuals for deterministic SSR/CSR output.
   const individuals =
-    props.item.parent && props.type !== "TRANSLATOR"
-      ? props.item.parent.individuals
-      : props.item.individuals;
+    props.type === "TRANSLATOR"
+      ? issueIndividuals
+      : issueIndividuals.length > 0
+        ? issueIndividuals
+        : parentIndividuals;
 
   return (
     <ChipList

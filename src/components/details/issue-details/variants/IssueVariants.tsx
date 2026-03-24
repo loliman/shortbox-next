@@ -15,7 +15,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import FirstPageIcon from "@mui/icons-material/FirstPage";
 import LastPageIcon from "@mui/icons-material/LastPage";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
-import { getVariantKey } from "../utils/issueDetailsUtils";
+import { buildIssueVariantKey, getVariantKey } from "../utils/issueDetailsUtils";
 import { IssueVariantTile } from "./IssueVariantTile";
 import { useResolvedImageUrl } from "../../../generic/useResolvedImageUrl";
 import { getPreferredCoverUrl } from "../../../generic/coverUrl";
@@ -74,11 +74,12 @@ export function IssueVariants(props: Readonly<IssueVariantsProps>) {
     Boolean(variant)
   );
   const variants = [...variantsRaw].sort(compareVariants);
-  const activeKey = getIssueKey({
+  const activeKey = buildIssueVariantKey({
     format: props.activeFormat ?? props.issue.format,
     variant: props.activeVariant ?? props.issue.variant,
   });
-  const activeVariant = variants.find((variant) => getIssueKey(variant) === activeKey) || variants[0];
+  const activeVariant =
+    variants.find((variant) => buildIssueVariantKey(variant) === activeKey) || variants[0];
   const activeVariantHasOwnStories =
     Boolean(props.session) && hasOwnStoriesForBadge(activeVariant, props.issue.storyOwner);
   const candidateActiveCoverUrl = getVariantCoverUrl(activeVariant, Boolean(props.us));
@@ -379,7 +380,7 @@ export function IssueVariants(props: Readonly<IssueVariantsProps>) {
             }}
           >
             {variants.map((variant, idx) => {
-              const selected = getIssueKey(variant) === activeKey;
+              const selected = buildIssueVariantKey(variant) === activeKey;
               const hasStories = hasOwnStoriesForBadge(variant, props.issue.storyOwner);
 
               return (
@@ -449,9 +450,6 @@ function getIssueIdentityKey(
   ].join("|");
 }
 
-function getIssueKey(issue: VariantIssue): string {
-  return [String(issue.format || "").trim(), String(issue.variant || "").trim()].join("|");
-}
 
 function compareVariants(left: VariantIssue, right: VariantIssue): number {
   const formatCompare = getFormatSortRank(left.format) - getFormatSortRank(right.format);

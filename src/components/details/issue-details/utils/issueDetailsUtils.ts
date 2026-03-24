@@ -1,4 +1,5 @@
 import type { Issue } from "../../../../types/domain";
+import { slugify } from "../../../../lib/slug-builder";
 
 type ArcLike = {
   title?: string | null;
@@ -48,6 +49,10 @@ export function getVariantKey(
   idx: number
 ): string {
   return `${variant.format || ""}|${variant.variant || ""}|${variant.number || idx}`;
+}
+
+export function buildIssueVariantKey(issue: { format?: string | null; variant?: string | null }): string {
+  return [slugify(String(issue.format || "")), slugify(String(issue.variant || ""))].join("|");
 }
 
 export function compareIssueNumbers(issueNumber: string, filterNumber: string): number {

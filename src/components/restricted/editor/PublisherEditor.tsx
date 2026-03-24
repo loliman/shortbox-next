@@ -5,7 +5,7 @@ import { PublisherSchema } from "../../../util/yupSchema";
 import { FastField, Form, Formik } from "formik";
 import { TextField } from "../../generic/FormikTextField";
 import React from "react";
-import { generateLabel, generateUrl } from "../../../util/hierarchy";
+import { generateLabel, generateSeoUrl } from "../../../util/hierarchy";
 import Button from "@mui/material/Button";
 import { stripItem } from "../../../util/util";
 import Box from "@mui/material/Box";
@@ -105,7 +105,9 @@ function PublisherEditorView(props: Readonly<PublisherEditorProps>) {
           enqueueSnackbar(generateLabel({ publisher: nextItem, us: Boolean(nextItem.us) } as any) + successMessage, {
             variant: "success",
           });
-          router.push(generateUrl({ publisher: nextItem, us: Boolean(nextItem.us) } as any, Boolean(nextItem.us)));
+          router.push(
+            generateSeoUrl({ publisher: nextItem, us: Boolean(nextItem.us) } as any, Boolean(nextItem.us))
+          );
         } catch (error) {
           const message = error instanceof Error && error.message ? ` [${error.message}]` : "";
           enqueueSnackbar(errorMessage + message, { variant: "error" });

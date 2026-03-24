@@ -9,7 +9,7 @@ import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import SearchIcon from "@mui/icons-material/Search";
 import CoverTooltip from "../../../nav-bar/CoverTooltip";
-import { generateLabel, generateUrl } from "../../../../util/hierarchy";
+import { generateLabel, generateSeoUrl } from "../../../../util/hierarchy";
 import type { SelectedRoot } from "../../../../types/domain";
 import { IssueReferenceInline } from "../../../generic/IssueNumberInline";
 import { buildRouteHref } from "../../../generic/routeHref";
@@ -210,7 +210,7 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
           onClick={(e) => {
             e.stopPropagation();
             router.push(
-              buildRouteHref(generateUrl(issueSelection, !props.us), props.query, {
+              buildRouteHref(generateSeoUrl(issueSelection, !props.us), props.query, {
                 filter: null,
                 expand: storyExpandNumber || undefined,
               })
@@ -364,7 +364,7 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
                   e.stopPropagation();
                   if (!reprintSelection) return;
                   router.push(
-                    buildRouteHref(generateUrl(reprintSelection, true), props.query, {
+                    buildRouteHref(generateSeoUrl(reprintSelection, true), props.query, {
                       expand: item.parent?.reprintOf?.number,
                       filter: null,
                     })

@@ -10,7 +10,14 @@ import { readServerSession } from "@/src/lib/server/session";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = createHomeMetadata(false);
+export async function generateMetadata({
+  searchParams,
+}: Readonly<{
+  searchParams?: Promise<Record<string, string | string[] | undefined> | undefined>;
+}>): Promise<Metadata> {
+  const resolvedSearchParams = await searchParams;
+  return createHomeMetadata(false, resolvedSearchParams);
+}
 
 export default async function DeHomePage({
   searchParams,

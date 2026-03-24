@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { IssueSchema } from "../../../util/yupSchema";
 import { Form, Formik } from "formik";
 import React from "react";
-import { generateLabel, generateUrl } from "../../../util/hierarchy";
+import { generateLabel, generateSeoUrl } from "../../../util/hierarchy";
 import { createEmptyIssueValues } from "./issue-editor/constants";
 import { buildIssueMutationVariables } from "./issue-editor/payload";
 import { buildIssueEditorState } from "./issue-editor/state";
@@ -97,7 +97,7 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
   const onCancel = React.useCallback(
     () => {
       if (copyModeRef.current && selected) {
-        router.push(generateUrl(selected, Boolean(selected.us)));
+        router.push(generateSeoUrl(selected, Boolean(selected.us)));
         return;
       }
 
@@ -129,7 +129,7 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
 
           if (!copyModeRef.current) {
             router.push(
-              generateUrl(
+              generateSeoUrl(
                 { issue: nextItem, us: Boolean((nextItem.series as any)?.publisher?.us) } as any,
                 Boolean((nextItem.series as any)?.publisher?.us)
               )
@@ -142,7 +142,7 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
           copiedSelection.variant = undefined;
           router.push(
             "/copy/issue" +
-              generateUrl(
+              generateSeoUrl(
                 {
                   issue: copiedSelection,
                   us: Boolean((copiedSelection.series as any)?.publisher?.us),

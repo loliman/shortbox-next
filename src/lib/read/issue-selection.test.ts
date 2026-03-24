@@ -1,0 +1,160 @@
+import { describe, expect, it } from "@jest/globals";
+import {
+  hasExplicitIssueVariantSelection,
+  matchesIssueSelectionBySlug,
+  type IssueSelectionInput,
+} from "./issue-selection";
+
+describe("issue-selection", () => {
+  it("matches format-only SEO selections against hyphenated series titles", () => {
+    const selection: IssueSelectionInput = {
+      us: false,
+      publisher: "Panini Marvel Icon",
+      series: "Spider Man",
+      startyear: 2004,
+      volume: 2,
+      number: "100",
+      format: "Heft",
+    };
+
+    const candidate = {
+      number: "100",
+      format: "Heft",
+      variant: null,
+      series: {
+        title: "Spider-Man",
+        startYear: 2004,
+        volume: 2,
+        publisher: {
+          name: "Panini Marvel Icon",
+          original: false,
+        },
+      },
+    };
+
+    expect(matchesIssueSelectionBySlug(candidate, selection)).toBe(true);
+  });
+
+  it("does not match a base issue when a format-specific route is requested", () => {
+    const selection: IssueSelectionInput = {
+      us: false,
+      publisher: "Panini Marvel Icon",
+      series: "Spider Man",
+      startyear: 2004,
+      volume: 2,
+      number: "100",
+      format: "Heft",
+    };
+
+    const candidate = {
+      number: "100",
+      format: "",
+      variant: null,
+      series: {
+        title: "Spider-Man",
+        startYear: 2004,
+        volume: 2,
+        publisher: {
+          name: "Panini Marvel Icon",
+          original: false,
+        },
+      },
+    };
+
+    expect(matchesIssueSelectionBySlug(candidate, selection)).toBe(false);
+  });
+
+  it("requires the exact startyear when the SEO route provides one", () => {
+    const selection: IssueSelectionInput = {
+      us: false,
+      publisher: "Panini Marvel Icon",
+      series: "Spider Man",
+      startyear: 2004,
+      volume: 2,
+      number: "100",
+      format: "Heft",
+    };
+
+    const candidate = {
+      number: "100",
+      format: "Heft",
+      variant: null,
+      series: {
+        title: "Spider-Man",
+        startYear: 2005,
+        volume: 2,
+        publisher: {
+          name: "Panini Marvel Icon",
+          original: false,
+        },
+      },
+    };
+
+    expect(matchesIssueSelectionBySlug(candidate, selection)).toBe(false);
+  });
+
+  it("matches variant values by slug equivalence (case/umlaut tolerant)", () => {
+    const selection: IssueSelectionInput = {
+      us: false,
+      publisher: "Panini Marvel Icon",
+      series: "Spider Man",
+      startyear: 2004,
+      volume: 2,
+      number: "100",
+      format: "Heft",
+      variant: "Analph Comics Zuerich",
+    };
+
+    const candidate = {
+      number: "100",
+      format: "HEFT",
+      variant: "Analph Comics Zürich",
+      series: {
+        title: "Spider-Man",
+        startYear: 2004,
+        volume: 2,
+        publisher: {
+          name: "Panini Marvel Icon",
+          original: false,
+        },
+      },
+    };
+
+    expect(matchesIssueSelectionBySlug(candidate, selection)).toBe(true);
+  });
+
+  it("treats format or variant as an explicit variant selection", () => {
+    expect(
+      hasExplicitIssueVariantSelection({
+        us: false,
+        publisher: "Marvel",
+        series: "Spider Man",
+        volume: 1,
+        number: "1",
+        variant: "B",
+      })
+    ).toBe(true);
+
+    expect(
+      hasExplicitIssueVariantSelection({
+        us: false,
+        publisher: "Marvel",
+        series: "Spider Man",
+        volume: 1,
+        number: "1",
+        format: "Heft",
+      })
+    ).toBe(true);
+
+    expect(
+      hasExplicitIssueVariantSelection({
+        us: false,
+        publisher: "Marvel",
+        series: "Spider Man",
+        volume: 1,
+        number: "1",
+      })
+    ).toBe(false);
+  });
+});
+

@@ -2,26 +2,53 @@ import "server-only";
 
 import { prisma } from "../prisma/client";
 import { serializePreviewIssue } from "./issue-read-shared";
+import { matchesPublisherSelectionBySlug } from "./publisher-selection";
 
 export async function readPublisherDetailsQuery(input: { us: boolean; publisher: string }) {
   const publisher = await prisma.publisher.findFirst({
     where: {
-      name: input.publisher,
+      name: {
+        equals: input.publisher,
+        mode: "insensitive",
+      },
       original: input.us,
     },
     include: {
       series: true,
     },
+    orderBy: [{ id: "asc" }],
   });
 
-  if (!publisher) return null;
+  const slugCandidates = publisher
+    ? []
+    : await prisma.publisher.findMany({
+        where: {
+          original: input.us,
+        },
+        include: {
+          series: true,
+        },
+        orderBy: [{ id: "asc" }],
+      });
+
+  const resolvedPublisher =
+    publisher ||
+    slugCandidates.find((candidate) =>
+      matchesPublisherSelectionBySlug(candidate, {
+        us: input.us,
+        publisher: input.publisher,
+      })
+    ) ||
+    null;
+
+  if (!resolvedPublisher) return null;
 
   const [issueCount, recentIssues] = await Promise.all([
     prisma.issue.count({
       where: {
         series: {
           publisher: {
-            id: publisher.id,
+            id: resolvedPublisher.id,
           },
         },
       },
@@ -30,7 +57,7 @@ export async function readPublisherDetailsQuery(input: { us: boolean; publisher:
       where: {
         series: {
           publisher: {
-            id: publisher.id,
+            id: resolvedPublisher.id,
           },
         },
       },
@@ -86,14 +113,14 @@ export async function readPublisherDetailsQuery(input: { us: boolean; publisher:
 
   return {
     details: {
-      id: String(publisher.id),
-      name: publisher.name,
-      us: publisher.original,
-      addinfo: publisher.addInfo || null,
-      startyear: Number(publisher.startYear),
-      endyear: publisher.endYear === null ? null : Number(publisher.endYear),
-      active: publisher.endYear === null || Number(publisher.endYear) === 0,
-      seriesCount: publisher.series.length,
+      id: String(resolvedPublisher.id),
+      name: resolvedPublisher.name,
+      us: resolvedPublisher.original,
+      addinfo: resolvedPublisher.addInfo || null,
+      startyear: Number(resolvedPublisher.startYear),
+      endyear: resolvedPublisher.endYear === null ? null : Number(resolvedPublisher.endYear),
+      active: resolvedPublisher.endYear === null || Number(resolvedPublisher.endYear) === 0,
+      seriesCount: resolvedPublisher.series.length,
       issueCount,
       lastEdited: [],
     },

@@ -4,15 +4,19 @@ import SeriesDetails from "@/src/components/details/SeriesDetails";
 import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
 import { readSeriesDetails } from "@/src/lib/read/series-read";
 import { buildHierarchyLevel, buildSelectedRoot, normalizePageQuery } from "@/src/lib/routes/page-state";
-import { createPageMetadata } from "@/src/lib/routes/metadata";
+import { buildSeriesBreadcrumbStructuredData } from "@/src/lib/routes/structured-data";
+import { createRouteMetadata } from "@/src/lib/routes/metadata";
 import { readServerSession } from "@/src/lib/server/session";
+import { generateSeoUrl } from "@/src/util/hierarchy";
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: Readonly<{
   params: Promise<Record<string, string>>;
+  searchParams?: Promise<Record<string, string | string[] | undefined> | undefined>;
 }>): Promise<Metadata> {
-  const resolvedParams = await params;
+  const [resolvedParams, resolvedSearchParams] = await Promise.all([params, searchParams]);
   const selected = buildSelectedRoot(resolvedParams, true);
   const selectedSeries = selected.series;
   const initialData =
@@ -22,18 +26,41 @@ export async function generateMetadata({
           publisher: selectedSeries.publisher.name,
           series: selectedSeries.title,
           volume: Number(selectedSeries.volume || 0),
+          startyear: Number(selectedSeries.startyear || 0) || undefined,
         })
       : null;
   const details = initialData?.details;
+  const canonicalPublisherName = String(
+    (details?.publisher as Record<string, unknown> | undefined)?.name || selectedSeries?.publisher?.name || ""
+  );
+  const canonicalSeriesTitle = String(details?.title || selectedSeries?.title || "");
+  const canonicalSeriesVolume = Number(details?.volume || selectedSeries?.volume || 0) || undefined;
+  const canonicalSeriesYear = Number(details?.startyear || 0) || undefined;
   const title = details
-    ? `${String(details.title || selectedSeries?.title || "")} ${Number(details.volume || selectedSeries?.volume || 0)}`
-    : "Series";
+    ? `${String(details.title || selectedSeries?.title || "")} ${Number(details.volume || selectedSeries?.volume || 0)} | Shortbox`
+    : "Series | Shortbox";
 
-  return createPageMetadata({
+  return createRouteMetadata({
     title,
     description: details
       ? `Details and issues for ${String(details.title || "")} volume ${Number(details.volume || 0)}.`
       : "Series details on Shortbox.",
+    canonical:
+      canonicalPublisherName && canonicalSeriesTitle
+        ? generateSeoUrl(
+            {
+              us: true,
+              series: {
+                title: canonicalSeriesTitle,
+                startyear: canonicalSeriesYear,
+                volume: canonicalSeriesVolume,
+                publisher: { name: canonicalPublisherName },
+              },
+            },
+            true
+          )
+        : undefined,
+    searchParams: resolvedSearchParams,
   });
 }
 
@@ -60,6 +87,7 @@ export default async function UsSeriesPage({
           publisher: selectedSeries.publisher.name,
           series: selectedSeries.title,
           volume: Number(selectedSeries.volume || 0),
+          startyear: Number(selectedSeries.startyear || 0) || undefined,
         })
       : Promise.resolve(null),
     readInitialNavigationData({
@@ -70,15 +98,30 @@ export default async function UsSeriesPage({
     }),
   ]);
   if (!initialData?.details) notFound();
+  const details = initialData.details as Record<string, unknown>;
+  const breadcrumbJsonLd = buildSeriesBreadcrumbStructuredData({
+    locale: "us",
+    publisherName: String((details.publisher as Record<string, unknown> | undefined)?.name || selectedSeries?.publisher?.name || ""),
+    seriesTitle: String(details.title || selectedSeries?.title || ""),
+    seriesYear: details.startyear as string | number | null | undefined,
+    seriesVolume: details.volume as string | number | null | undefined,
+  });
   return (
-    <SeriesDetails
-      selected={selected as any}
-      level={level}
-      us={true}
-      query={query}
-      session={session}
-      initialFilterCount={navigationData.initialFilterCount}
-      initialData={initialData}
-    />
+    <>
+      <script
+        key={`series-breadcrumb-jsonld-${String(details.title || selectedSeries?.title || "series")}`}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <SeriesDetails
+        selected={selected as any}
+        level={level}
+        us={true}
+        query={query}
+        session={session}
+        initialFilterCount={navigationData.initialFilterCount}
+        initialData={initialData}
+      />
+    </>
   );
 }

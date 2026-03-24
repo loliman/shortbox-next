@@ -2,6 +2,7 @@ import { countChangeRequests } from "@/src/lib/read/issue-read";
 import { readServerSession } from "@/src/lib/server/session";
 import PersistentCatalogShellClient from "@/src/components/app-shell/PersistentCatalogShellClient";
 
+
 export default async function UsLayout({
   children,
 }: Readonly<{

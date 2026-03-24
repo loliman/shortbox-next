@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Fab from "@mui/material/Fab";
 import BugReportIcon from "@mui/icons-material/BugReport";
-import { generateUrl, HierarchyLevel } from "../../util/hierarchy";
+import { generateSeoUrl, HierarchyLevel } from "../../util/hierarchy";
 import type { SelectedRoot } from "../../types/domain";
 
 interface ErrorFabProps {
@@ -158,7 +158,7 @@ class ErrorFabBase extends React.Component<ErrorFabProps, ErrorFabState> {
   handleClick = () => {
     const selected = this.props.selected || { us: Boolean(this.props.us) };
     const us = Boolean(this.props.us);
-    this.props.onNavigate?.("/report" + generateUrl(selected, us));
+    this.props.onNavigate?.("/report" + generateSeoUrl(selected, us));
   };
 
   handleMouseEnter = () => {

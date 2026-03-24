@@ -38,7 +38,7 @@ describe("issuePresentation util", () => {
       },
     };
 
-    expect(getIssueUrl(baseIssue, false)).toBe("/de/Marvel/Spider-Man_Vol_1/1");
+    expect(getIssueUrl(baseIssue, false)).toBe("/de/marvel/spider-man-vol1/1");
 
     expect(
       getIssueUrl(
@@ -49,7 +49,7 @@ describe("issuePresentation util", () => {
         },
         false
       )
-    ).toBe("/de/Marvel/Spider-Man_Vol_1/1/HC");
+    ).toBe("/de/marvel/spider-man-vol1/1/hc");
 
     expect(
       getIssueUrl(
@@ -60,7 +60,7 @@ describe("issuePresentation util", () => {
         },
         false
       )
-    ).toBe("/de/Marvel/Spider-Man_Vol_1/1/HC_B");
+    ).toBe("/de/marvel/spider-man-vol1/1/hc/b");
   });
 
   it("escapes percent characters safely in URL segments", () => {
@@ -76,6 +76,6 @@ describe("issuePresentation util", () => {
       true
     );
 
-    expect(url).toBe("/us/Marvel%20100%2525/Spider%2525Man_Vol_2/1%2525");
+    expect(url).toBe("/us/marvel-100/spiderman-vol2/1%25");
   });
 });

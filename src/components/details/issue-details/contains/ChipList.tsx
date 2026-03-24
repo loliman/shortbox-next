@@ -27,7 +27,7 @@ type ChipListProps = ChipNavigationProps & {
 export function ChipList(props: Readonly<ChipListProps>) {
   const sourceItems = Array.isArray(props.items) ? props.items : [];
   const hasLabel = Boolean(props.label);
-  const items = sourceItems
+  const filteredItems = sourceItems
     .map((item) => (item || {}) as ChipListItem)
     .filter((item) => {
       const itemType = normalizeToken(item.type);
@@ -36,10 +36,22 @@ export function ChipList(props: Readonly<ChipListProps>) {
       const wantedRole = normalizeToken(props.appRole);
 
       if (props.individual) {
-        return (item.type || "").includes(props.type || "");
+        return normalizeToken(item.type) === normalizeToken(props.type);
       }
       return matchesAppearance(itemType, itemRole, wantedType, wantedRole);
     });
+
+  const seenLabels = new Set<string>();
+  const items = filteredItems.filter((item) => {
+    const rawName = item["name"];
+    const rawTitle = item["title"];
+    const nameStr = typeof rawName === "string" ? rawName : "";
+    const titleStr = typeof rawTitle === "string" ? rawTitle : "";
+    const label = (nameStr || titleStr).trim().toLowerCase();
+    if (!label || seenLabels.has(label)) return false;
+    seenLabels.add(label);
+    return true;
+  });
 
   if (items.length === 0 && props.hideIfEmpty) return null;
 

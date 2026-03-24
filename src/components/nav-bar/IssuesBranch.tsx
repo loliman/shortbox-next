@@ -133,6 +133,7 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
           issueSeries.publisher.name,
           issueSeries.title,
           issueSeries.volume,
+          issueSeries.startyear || "",
           issueNumber,
           issueNode.format || "",
           getIssueNodeVariant(issueNode) || "",

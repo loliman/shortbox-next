@@ -30,6 +30,7 @@ interface LayoutChromeClientProps {
 
 export default function LayoutChromeClient(props: Readonly<LayoutChromeClientProps>) {
   const showNavigation = props.showNavigation ?? true;
+  const navigationInstanceKey = `${props.us}|${String(props.query?.filter || "")}|${String(props.query?.routeFilterKind || "")}|${String(props.query?.routeFilterSlug || "")}`;
   const theme = useTheme();
   const initialGuess = useInitialResponsiveGuess();
   const isLandscape = useMediaQuery("(orientation: landscape)", {
@@ -80,6 +81,7 @@ export default function LayoutChromeClient(props: Readonly<LayoutChromeClientPro
 
       {showNavigation ? (
         <List
+          key={navigationInstanceKey}
           initialPublisherNodes={props.initialPublisherNodes}
           initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher}
           initialIssueNodesBySeriesKey={props.initialIssueNodesBySeriesKey}
@@ -91,6 +93,8 @@ export default function LayoutChromeClient(props: Readonly<LayoutChromeClientPro
             props.query as
               | {
                   filter?: string | null;
+                  routeFilterKind?: string | null;
+                  routeFilterSlug?: string | null;
                   navOpen?: string | null;
                   navPublisher?: string | null;
                   navSeries?: string | null;

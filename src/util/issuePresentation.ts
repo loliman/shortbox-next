@@ -1,4 +1,5 @@
 import { romanize } from "./util";
+import { buildDetailPageUrl } from "../lib/url-builder";
 
 type PublisherLike = {
   name?: string | null;
@@ -53,7 +54,6 @@ export function getLegacyNumberLabel(issue?: Pick<IssueLike, "legacy_number"> | 
 }
 
 export function getIssueUrl(issue: IssueLike | undefined, us: boolean): string {
-  const base = us ? "/us/" : "/de/";
   if (
     !issue?.series?.title ||
     !issue?.series?.publisher?.name ||
@@ -63,19 +63,19 @@ export function getIssueUrl(issue: IssueLike | undefined, us: boolean): string {
     return us ? "/us" : "/de";
   }
 
-  const publisher = encodeURIComponent(issue.series.publisher.name.replace(/%/g, "%25"));
-  const series = encodeURIComponent(
-    issue.series.title.replace(/%/g, "%25") + "_Vol_" + (issue.series.volume ?? "")
-  );
-  const number = encodeURIComponent(String(issue.number).replace(/%/g, "%25"));
-  const format = issue.format ? "/" + encodeURIComponent(issue.format) : "";
+  const rawYear = Number(issue.series.startyear);
+  const seriesYear = Number.isFinite(rawYear) && rawYear > 0 ? rawYear : undefined;
+  const rawVolume = Number(issue.series.volume ?? 1);
+  const seriesVolume = Number.isFinite(rawVolume) && rawVolume > 0 ? rawVolume : 1;
 
-  if (!issue.variant || issue.variant === "") {
-    return `${base}${publisher}/${series}/${number}${format}`;
-  }
-
-  return (
-    `${base}${publisher}/${series}/${number}/` +
-    encodeURIComponent((issue.format || "") + "_" + issue.variant)
-  );
+  return buildDetailPageUrl({
+    locale: us ? "us" : "de",
+    publisherName: issue.series.publisher.name,
+    seriesTitle: issue.series.title,
+    seriesYear,
+    seriesVolume,
+    issueNumber: String(issue.number),
+    format: issue.format || undefined,
+    variant: issue.variant || undefined,
+  });
 }

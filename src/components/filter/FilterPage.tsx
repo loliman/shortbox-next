@@ -7,7 +7,7 @@ import { parseFilterValues } from "./defaults";
 import FilterFormClient from "./FilterFormClient";
 import type { FilterPageProps } from "./types";
 import { buildRouteHref } from "../generic/routeHref";
-import { generateUrl } from "../../util/hierarchy";
+import { generateSeoUrl } from "../../util/hierarchy";
 import FormPageShell from "../form-shell/FormPageShell";
 
 const FILTER_TABS = [
@@ -25,7 +25,7 @@ export default function FilterPage(props: Readonly<FilterPageProps>) {
   const query = props.query as { filter?: string; from?: string; tab?: string } | null | undefined;
   const initialValues = parseFilterValues(query?.filter);
   const from = typeof query?.from === "string" ? query.from.trim() : "";
-  const targetPath = from || generateUrl(props.selected, props.us);
+  const targetPath = from || generateSeoUrl(props.selected, props.us);
   const activeTab = normalizeFilterTab(typeof query?.tab === "string" ? query.tab : undefined);
 
   return (

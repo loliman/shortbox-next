@@ -9,11 +9,29 @@ import { NAVIGATION_CACHE_TAG } from "../cache-tags";
 import { resolveFilterState } from "./filter-read";
 import { compareIssueNumber, compareIssueVariants } from "./issue-read-shared";
 import { readNavOpenStateFromQuery } from "../../components/nav-bar/navOpenState";
+import { matchesSeriesSelectionBySlug } from "./series-selection";
+import { slugify } from "../slug-builder";
+import {
+  getNavigationSeriesKey,
+  matchesNavigationSeriesKey,
+  parseNavigationSeriesKey,
+} from "./navigation-key";
+import {
+  pickNavigationIssuePreviewSource,
+  serializeNavigationComicGuideId,
+} from "./navigation-issue-preview";
 
 type NavigationScope = {
   us: boolean;
   filteredIssueIds?: bigint[] | null;
   directIssueWhere?: Prisma.IssueWhereInput | null;
+};
+
+export type NavigationIssuesScope = NavigationScope & {
+  publisher: string;
+  series: string;
+  volume: number;
+  startyear?: number | null;
 };
 
 function toJsonOrNull(value: unknown) {
@@ -87,14 +105,24 @@ const readNavigationPublishersCached = unstable_cache(
   { revalidate: 300, tags: [NAVIGATION_CACHE_TAG] }
 );
 
-export function getNavigationSeriesKey(input: {
-  publisher?: string | null;
-  title?: string | null;
-  volume?: number | string | null;
-}) {
-  const numericVolume = Number(input.volume ?? 0);
-  return [input.publisher || "", input.title || "", Number.isFinite(numericVolume) ? String(numericVolume) : ""].join(
-    "|"
+function resolveSeriesNode(
+  seriesNodes: Awaited<ReturnType<typeof readNavigationSeries>>,
+  selection: {
+    publisher?: string | null;
+    series?: string | null;
+    volume?: number | null;
+    startyear?: number | null;
+    us: boolean;
+  }
+) {
+  return seriesNodes.find((seriesNode) =>
+    matchesSeriesSelectionBySlug(seriesNode, {
+      us: selection.us,
+      publisher: String(selection.publisher || ""),
+      series: String(selection.series || ""),
+      volume: Number(selection.volume || 0),
+      startyear: Number(selection.startyear || 0) || undefined,
+    })
   );
 }
 
@@ -164,13 +192,7 @@ const readNavigationSeriesCached = unstable_cache(
   { revalidate: 300, tags: [NAVIGATION_CACHE_TAG] }
 );
 
-export async function readNavigationIssues(
-  scope: NavigationScope & {
-    publisher: string;
-    series: string;
-    volume: number;
-  }
-) {
+export async function readNavigationIssues(scope: NavigationIssuesScope) {
   const issues = await prisma.issue.findMany({
     where: {
       ...(scope.directIssueWhere || {}),
@@ -184,6 +206,7 @@ export async function readNavigationIssues(
       series: {
         title: scope.series,
         volume: scope.volume,
+        ...(Number(scope.startyear || 0) > 0 ? { startYear: BigInt(Number(scope.startyear)) } : {}),
         publisher: {
           name: scope.publisher,
           original: scope.us,
@@ -217,6 +240,7 @@ export async function readNavigationIssues(
     .map(([, rawGroup]) => {
     const group = [...rawGroup].sort(compareIssueVariants);
     const primary = group[0];
+    const previewSource = pickNavigationIssuePreviewSource(group) || primary;
     const variants = group.map((variant) => ({
       id: String(variant.id),
       collected: variant.collected ?? null,
@@ -226,15 +250,16 @@ export async function readNavigationIssues(
 
     return {
       id: String(primary.id),
+      comicguideid: serializeNavigationComicGuideId(previewSource?.comicGuideId),
       number: primary.number,
       legacy_number: primary.legacyNumber || null,
       title: primary.title || null,
       format: primary.format || null,
       variant: primary.variant || null,
       collected: primary.collected ?? null,
-      cover: primary.covers[0]
+      cover: previewSource?.covers?.[0]
         ? {
-            url: primary.covers[0].url || null,
+            url: previewSource.covers[0].url || null,
           }
         : null,
       variants,
@@ -242,6 +267,8 @@ export async function readNavigationIssues(
         ? {
             title: primary.series.title || "",
             volume: Number(primary.series.volume),
+            startyear: Number(primary.series.startYear),
+            endyear: primary.series.endYear === null ? null : Number(primary.series.endYear),
             publisher: primary.series.publisher
               ? {
                   name: primary.series.publisher.name,
@@ -260,6 +287,7 @@ const readNavigationIssuesCached = unstable_cache(
     publisher: string,
     series: string,
     volume: number,
+    startyear: number | null,
     directIssueWhereJson: string | null,
     filteredIssueIdsJson: string | null
   ) => {
@@ -268,6 +296,7 @@ const readNavigationIssuesCached = unstable_cache(
       publisher,
       series,
       volume,
+      startyear,
       directIssueWhere: directIssueWhereJson
         ? (JSON.parse(directIssueWhereJson) as Prisma.IssueWhereInput)
         : null,
@@ -335,9 +364,13 @@ export async function readInitialNavigationData(
     directIssueWhereJson,
     filteredIssueIdsJson
   );
+  const resolvedSelectedPublisherName = selectedPublisherName
+    ? publishers.find((publisherNode) => slugify(String(publisherNode.name || "")) === slugify(selectedPublisherName))
+        ?.name || selectedPublisherName
+    : "";
 
   const publishersToExpand = new Set<string>();
-  if (selectedPublisherName) publishersToExpand.add(selectedPublisherName);
+  if (resolvedSelectedPublisherName) publishersToExpand.add(resolvedSelectedPublisherName);
   for (const publisherName of navOpenState.publishers) {
     publishersToExpand.add(publisherName);
   }
@@ -365,44 +398,94 @@ export async function readInitialNavigationData(
       publisher: string;
       series: string;
       volume: number;
+      startyear?: number | null;
     }
   >();
 
-  if (selectedSeries?.publisher?.name && selectedSeries.title) {
-    seriesToExpand.set(
-      getNavigationSeriesKey({
-        publisher: selectedSeries.publisher.name,
-        title: selectedSeries.title,
-        volume: Number(selectedSeries.volume || 0),
-      }),
+  if ((resolvedSelectedPublisherName || selectedSeries?.publisher?.name) && selectedSeries?.title) {
+    const matchingSelectedSeriesNode = resolveSeriesNode(
+      initialSeriesNodesByPublisher[resolvedSelectedPublisherName || selectedSeries?.publisher?.name || ""] || [],
       {
-        publisher: selectedSeries.publisher.name,
+        publisher: resolvedSelectedPublisherName || selectedSeries?.publisher?.name,
         series: selectedSeries.title,
         volume: Number(selectedSeries.volume || 0),
+        startyear: Number(selectedSeries.startyear || 0) || undefined,
+        us: input.us,
       }
+    );
+    const effectiveSelectedSeries = matchingSelectedSeriesNode
+      ? {
+          publisher:
+            matchingSelectedSeriesNode.publisher?.name ||
+            resolvedSelectedPublisherName ||
+            selectedSeries?.publisher?.name ||
+            "",
+          series: matchingSelectedSeriesNode.title || selectedSeries.title,
+          volume: Number(matchingSelectedSeriesNode.volume || selectedSeries.volume || 0),
+          startyear:
+            Number(matchingSelectedSeriesNode.startyear || selectedSeries.startyear || 0) || undefined,
+        }
+      : {
+          publisher: resolvedSelectedPublisherName || selectedSeries?.publisher?.name || "",
+          series: selectedSeries.title,
+          volume: Number(selectedSeries.volume || 0),
+          startyear: Number(selectedSeries.startyear || 0) || undefined,
+        };
+    seriesToExpand.set(
+      getNavigationSeriesKey({
+        publisher: effectiveSelectedSeries.publisher,
+        title: effectiveSelectedSeries.series,
+        volume: effectiveSelectedSeries.volume,
+        startyear: effectiveSelectedSeries.startyear,
+      }),
+      effectiveSelectedSeries
     );
   }
 
   for (const openSeriesKey of navOpenState.series) {
-    const [publisher = "", ...rest] = openSeriesKey.split("|");
-    const volumeText = rest.pop() || "0";
-    const title = rest.join("|");
-    const volume = Number(volumeText || "0");
+    const parsedSeriesKey = parseNavigationSeriesKey(openSeriesKey);
+    const volume = Number(parsedSeriesKey?.volume || "0");
+    const publisherSlug = parsedSeriesKey?.publisher || "";
 
-    if (publisher && title) {
-      publishersToExpand.add(publisher);
-      if (!initialSeriesNodesByPublisher[publisher]) {
-        initialSeriesNodesByPublisher[publisher] = await readNavigationSeriesCached(
+    if (publisherSlug && volume > 0) {
+      const matchingPublisher = publishers.find(
+        (publisherNode) => slugify(String(publisherNode.name || "")) === publisherSlug
+      );
+      const publisherName = matchingPublisher?.name || "";
+      if (!publisherName) continue;
+
+      publishersToExpand.add(publisherName);
+      if (!initialSeriesNodesByPublisher[publisherName]) {
+        initialSeriesNodesByPublisher[publisherName] = await readNavigationSeriesCached(
           input.us,
-          publisher,
+          publisherName,
           directIssueWhereJson,
           filteredIssueIdsJson
         );
       }
-      seriesToExpand.set(openSeriesKey, {
-        publisher,
-        series: title,
-        volume,
+      const matchingSeriesNode = (initialSeriesNodesByPublisher[publisherName] || []).find(
+        (seriesNode) =>
+          matchesNavigationSeriesKey(openSeriesKey, {
+            publisher: seriesNode.publisher?.name,
+            title: seriesNode.title,
+            volume: seriesNode.volume,
+            startyear: seriesNode.startyear,
+          })
+      );
+      if (!matchingSeriesNode?.title) continue;
+
+      const resolvedSeriesKey = getNavigationSeriesKey({
+        publisher: matchingSeriesNode.publisher?.name,
+        title: matchingSeriesNode.title,
+        volume: matchingSeriesNode.volume,
+        startyear: matchingSeriesNode.startyear,
+      });
+
+      seriesToExpand.set(resolvedSeriesKey, {
+        publisher: publisherName,
+        series: matchingSeriesNode.title,
+        volume: Number(matchingSeriesNode.volume || volume),
+        startyear: Number(matchingSeriesNode.startyear || 0) || undefined,
       });
     }
   }
@@ -420,6 +503,7 @@ export async function readInitialNavigationData(
         seriesInput.publisher,
         seriesInput.series,
         seriesInput.volume,
+        seriesInput.startyear ?? null,
         directIssueWhereJson,
         filteredIssueIdsJson
       ),

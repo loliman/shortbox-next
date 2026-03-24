@@ -23,7 +23,7 @@ vi.mock("@apollo/client", () => ({
 
 vi.mock("../../../util/hierarchy", () => ({
   generateLabel: mocks.generateLabelMock,
-  generateUrl: mocks.generateUrlMock,
+  generateSeoUrl: mocks.generateUrlMock,
 }));
 
 vi.mock("../../../util/util", () => ({

@@ -12,6 +12,7 @@ import { IssueCover } from "./IssueCover";
 import { getIssueUrl } from "../../../util/issuePresentation";
 import { buildRouteHref } from "../../generic/routeHref";
 import type { PreviewIssue } from "../../issue-preview/utils/issuePreviewUtils";
+import { buildIssueVariantKey } from "./utils/issueDetailsUtils";
 
 interface IssueCoverGalleryClientProps {
   us: boolean;
@@ -25,12 +26,12 @@ export function IssueCoverGalleryClient(props: Readonly<IssueCoverGalleryClientP
   const router = useRouter();
   const [coverExpanded, setCoverExpanded] = React.useState(true);
   const maxIndex = Math.max(0, props.issues.length - 1);
-  const activeIssueKey = getIssueVariantKey({
+  const activeIssueKey = buildIssueVariantKey({
     format: props.activeFormat ?? null,
     variant: props.activeVariant ?? null,
   });
   const activeIndex = React.useMemo(() => {
-    const idx = props.issues.findIndex((item) => getIssueVariantKey(item) === activeIssueKey);
+    const idx = props.issues.findIndex((item) => buildIssueVariantKey(item) === activeIssueKey);
     return idx >= 0 ? idx : 0;
   }, [activeIssueKey, props.issues]);
   const activeIssue = props.issues[activeIndex] || props.issues[0];
@@ -167,6 +168,3 @@ function coverGalleryArrowSx(side: "left" | "right") {
   };
 }
 
-function getIssueVariantKey(issue: { format?: string | null; variant?: string | null }): string {
-  return [String(issue.format || "").trim(), String(issue.variant || "").trim()].join("|");
-}

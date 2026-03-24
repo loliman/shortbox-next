@@ -11,7 +11,7 @@ vi.mock("../../util/hierarchy", () => ({
     SERIES: "SERIES",
     ISSUE: "ISSUE",
   },
-  generateUrl: mocks.generateUrlMock,
+  generateSeoUrl: mocks.generateUrlMock,
 }));
 
 import AddFab from "./AddFab";

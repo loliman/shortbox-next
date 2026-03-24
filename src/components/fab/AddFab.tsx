@@ -10,7 +10,7 @@ import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import BookIcon from "@mui/icons-material/Book";
 import ListIcon from "@mui/icons-material/List";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
-import { generateUrl, HierarchyLevel } from "../../util/hierarchy";
+import { generateSeoUrl, HierarchyLevel } from "../../util/hierarchy";
 import type { SelectedRoot } from "../../types/domain";
 
 interface AddFabProps {
@@ -135,7 +135,7 @@ class AddFabBase extends React.Component<AddFabProps, AddFabState> {
                     : undefined,
                 };
 
-                this.props.onNavigate?.("/copy/issue" + generateUrl(selectedCopy, us));
+                this.props.onNavigate?.("/copy/issue" + generateSeoUrl(selectedCopy, us));
                 this.handleClose();
               }}
             />
@@ -221,11 +221,11 @@ function getIssueCreatePath(
   us: boolean
 ): string {
   if (level === HierarchyLevel.PUBLISHER || level === HierarchyLevel.SERIES) {
-    return "/create/issue" + generateUrl(selected, us);
+    return "/create/issue" + generateSeoUrl(selected, us);
   }
 
   if (level === HierarchyLevel.ISSUE && selected.issue) {
-    return "/create/issue" + generateUrl({ series: selected.issue.series }, us);
+    return "/create/issue" + generateSeoUrl({ series: selected.issue.series }, us);
   }
 
   return "/create/issue";

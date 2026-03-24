@@ -4,10 +4,11 @@ import React from "react";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import Collapse from "@mui/material/Collapse";
-import { generateUrl } from "../../util/hierarchy";
+import { generateSeoUrl } from "../../util/hierarchy";
 import { buildRouteHref } from "../generic/routeHref";
 import type { SelectedRoot } from "../../types/domain";
 import {
+  getSeriesKey,
   getSelectedPublisherName,
   getSelectedSeriesKey,
   isElementVisibleInContainer,
@@ -40,6 +41,8 @@ interface ListProps {
   phonePortrait: boolean;
   query?: {
     filter?: string | null;
+    routeFilterKind?: string | null;
+    routeFilterSlug?: string | null;
     navOpen?: string | null;
     navPublisher?: string | null;
     navSeries?: string | null;
@@ -56,9 +59,14 @@ export default function List(props: Readonly<ListProps>) {
   const { drawerOpen, toggleDrawer } = props;
   const temporaryDrawer = props.temporaryDrawer;
   const filterQuery = props.query?.filter ?? null;
+  const routeFilterKind = props.query?.routeFilterKind ?? null;
+  const routeFilterSlug = props.query?.routeFilterSlug ?? null;
   const us = Boolean(props.us);
   const loading = Boolean(props.loading);
-  const navStateKey = React.useMemo(() => `${us}|${filterQuery || ""}`, [us, filterQuery]);
+  const navStateKey = React.useMemo(
+    () => `${us}|${filterQuery || ""}|${routeFilterKind || ""}|${routeFilterSlug || ""}`,
+    [us, filterQuery, routeFilterKind, routeFilterSlug]
+  );
   const phonePortrait = props.phonePortrait;
   const listRef = React.useRef<HTMLUListElement | null>(null);
   const navScrollContainerRef = React.useRef<HTMLDivElement | null>(null);
@@ -84,7 +92,7 @@ export default function List(props: Readonly<ListProps>) {
   const [publisherExpansionReady, setPublisherExpansionReady] = React.useState(false);
   const [pendingPublisherKey, setPendingPublisherKey] = React.useState<string | null>(null);
   const [pendingNavigationKey, setPendingNavigationKey] = React.useState<string | null>(null);
-  const [contentReady, setContentReady] = React.useState(false);
+  const contentReady = true;
   const [seriesNodesByPublisher, setSeriesNodesByPublisher] = React.useState<Record<string, SeriesNode[]>>(
     () => {
       const nextState: Record<string, SeriesNode[]> = { ...(props.initialSeriesNodesByPublisher || {}) };
@@ -102,25 +110,6 @@ export default function List(props: Readonly<ListProps>) {
       }
       return nextState;
     }
-  );
-  const renderSignature = React.useMemo(
-    () =>
-      JSON.stringify({
-        loading,
-        publishers: visiblePublisherNodes.map((publisherNode) => publisherNode.name || ""),
-        expandedPublishers: Object.keys(expandedPublishers).filter((key) => expandedPublishers[key]),
-        selectedPublisherName,
-        selectedSeriesKey,
-        selectedIssueNumber: selectedIssue?.number || "",
-      }),
-    [
-      loading,
-      visiblePublisherNodes,
-      expandedPublishers,
-      selectedPublisherName,
-      selectedSeriesKey,
-      selectedIssue?.number,
-    ]
   );
 
   React.useEffect(() => {
@@ -179,17 +168,6 @@ export default function List(props: Readonly<ListProps>) {
     if (listElement) listElement.scrollTop = targetScrollTop;
   }, [navStateKey, visiblePublisherNodes.length]);
 
-  React.useLayoutEffect(() => {
-    setContentReady(false);
-    const frame = window.requestAnimationFrame(() => {
-      setContentReady(true);
-    });
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-    };
-  }, [renderSignature]);
-
   React.useEffect(() => {
     return () => {
       storeScrollTop();
@@ -237,6 +215,8 @@ export default function List(props: Readonly<ListProps>) {
           us: String(us),
         });
         if (filterQuery) params.set("filter", filterQuery);
+        if (routeFilterKind) params.set("routeFilterKind", routeFilterKind);
+        if (routeFilterSlug) params.set("routeFilterSlug", routeFilterSlug);
         const response = await fetch(`/api/public-navigation?${params.toString()}`, { cache: "no-store" });
         if (!response.ok) return false;
         const payload = (await response.json()) as { items?: SeriesNode[] };
@@ -250,14 +230,14 @@ export default function List(props: Readonly<ListProps>) {
         );
       }
     },
-    [seriesNodesByPublisher, navStateKey, us, filterQuery]
+    [seriesNodesByPublisher, navStateKey, us, filterQuery, routeFilterKind, routeFilterSlug]
   );
 
   const ensureIssueNodesLoaded = React.useCallback(
     async (seriesNode: SeriesNode) => {
       const publisherName = seriesNode.publisher?.name || "";
       const seriesTitle = seriesNode.title || "";
-      const seriesKey = [publisherName, seriesTitle, String(seriesNode.volume ?? "")].join("|");
+      const seriesKey = getSeriesKey(seriesNode);
       if (issueNodesBySeriesKey[seriesKey]) return true;
       const cached = readCachedIssues(navStateKey, seriesKey);
       if (cached) {
@@ -274,7 +254,12 @@ export default function List(props: Readonly<ListProps>) {
           volume: String(seriesNode.volume ?? 0),
           us: String(us),
         });
+        if (Number(seriesNode.startyear || 0) > 0) {
+          params.set("startyear", String(seriesNode.startyear));
+        }
         if (filterQuery) params.set("filter", filterQuery);
+        if (routeFilterKind) params.set("routeFilterKind", routeFilterKind);
+        if (routeFilterSlug) params.set("routeFilterSlug", routeFilterSlug);
         const response = await fetch(`/api/public-navigation?${params.toString()}`, { cache: "no-store" });
         if (!response.ok) return false;
         const payload = (await response.json()) as { items?: IssueNode[] };
@@ -288,7 +273,7 @@ export default function List(props: Readonly<ListProps>) {
         );
       }
     },
-    [issueNodesBySeriesKey, navStateKey, us, filterQuery]
+    [issueNodesBySeriesKey, navStateKey, us, filterQuery, routeFilterKind, routeFilterSlug]
   );
 
   React.useEffect(() => {
@@ -305,7 +290,7 @@ export default function List(props: Readonly<ListProps>) {
 
       setPendingNavigationKey(buildPendingNavigationKey(item));
       push(
-        buildRouteHref(generateUrl(item, us), props.query, {
+        buildRouteHref(generateSeoUrl(item, us), props.query, {
           expand: null,
           filter: filterQuery,
         })
@@ -349,7 +334,7 @@ export default function List(props: Readonly<ListProps>) {
   );
 
   const content =
-    loading ? (
+    loading && visiblePublisherNodes.length === 0 ? (
       <>
         {Array.from({ length: 20 }, (_unused, idx) => (
           <TypeListEntryPlaceholder key={`nav-loading-placeholder-${idx}`} />
@@ -444,6 +429,7 @@ function buildPendingNavigationKey(item: SelectedRoot) {
       item.issue.series.publisher.name,
       item.issue.series.title,
       item.issue.series.volume,
+      item.issue.series.startyear || "",
       item.issue.number,
       item.issue.format || "",
       item.issue.variant || "",
@@ -455,6 +441,7 @@ function buildPendingNavigationKey(item: SelectedRoot) {
       item.series.publisher.name,
       item.series.title,
       item.series.volume,
+      item.series.startyear || "",
     ].join("|");
   }
 

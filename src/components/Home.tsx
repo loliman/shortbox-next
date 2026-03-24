@@ -5,6 +5,7 @@ import Stack from "@mui/material/Stack";
 import HomeFeedClient from "./HomeFeedClient";
 import SortContainer from "./SortContainer";
 import type { PreviewIssue } from "./issue-preview/utils/issuePreviewUtils";
+import { getIssueLabel, getIssueUrl } from "../util/issuePresentation";
 import type { SessionData } from "../app/session";
 import type { LayoutRouteData, RouteQuery } from "../types/route-ui";
 
@@ -24,9 +25,14 @@ interface HomeProps {
   initialPublisherNodes?: Array<{ id?: string | null; name?: string | null; us?: boolean | null }>;
   initialSeriesNodesByPublisher?: Record<string, unknown[]>;
   initialIssueNodesBySeriesKey?: Record<string, unknown[]>;
+  seoSnapshot?: {
+    heading: string;
+    items: PreviewIssue[];
+  } | null;
 }
 
 export default function Home(props: Readonly<HomeProps>) {
+  const snapshotItems = props.seoSnapshot?.items || [];
   return (
     <Stack spacing={3} sx={{ p: { xs: 1.5, sm: 2 } }}>
       <Box>
@@ -74,6 +80,33 @@ export default function Home(props: Readonly<HomeProps>) {
         initialHasMore={props.initialHasMore}
         initialNextCursor={props.initialNextCursor}
       />
+
+      {props.seoSnapshot && snapshotItems.length > 0 ? (
+        <Box
+          component="section"
+          aria-label={props.seoSnapshot.heading}
+          sx={{
+            position: "absolute",
+            width: 1,
+            height: 1,
+            p: 0,
+            m: -1,
+            overflow: "hidden",
+            clip: "rect(0 0 0 0)",
+            whiteSpace: "nowrap",
+            border: 0,
+          }}
+        >
+          <Typography component="h2">{props.seoSnapshot.heading}</Typography>
+          <ul>
+            {snapshotItems.slice(0, 30).map((item, idx) => (
+              <li key={`seo-snapshot-${idx}-${item?.id || item?.number || "x"}`}>
+                <a href={getIssueUrl(item as any, props.us)}>{getIssueLabel(item as any) || "Issue"}</a>
+              </li>
+            ))}
+          </ul>
+        </Box>
+      ) : null}
     </Stack>
   );
 }

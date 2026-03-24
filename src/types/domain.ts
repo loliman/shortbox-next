@@ -2,7 +2,14 @@ export interface RouteParams {
   publisher?: string;
   series?: string;
   issue?: string;
+  format?: string;
   variant?: string;
+  // SEO-friendly URL parameters (legacy experiment, kept for compatibility)
+  publisherSlug?: string;
+  seriesSlug?: string;
+  issueNumber?: string;
+  formatSlug?: string;
+  variantSlug?: string;
 }
 
 export interface Arc {

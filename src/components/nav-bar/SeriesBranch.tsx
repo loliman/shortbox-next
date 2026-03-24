@@ -176,7 +176,8 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
               expanded={expanded}
               pending={
                 pendingPublisherKey === `series:${publisherName}:${seriesKey}` ||
-                pendingNavigationKey === [publisherName, seriesNode.title, seriesNode.volume].join("|")
+                pendingNavigationKey ===
+                  [publisherName, seriesNode.title, seriesNode.volume, seriesNode.startyear || ""].join("|")
               }
               disabled={navigationPending}
               onToggle={handleToggleSeries}

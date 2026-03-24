@@ -34,7 +34,7 @@ vi.mock("../../generic/useAutocompleteQuery", () => ({
 
 vi.mock("../../../util/hierarchy", () => ({
   generateLabel: mocks.generateLabelMock,
-  generateUrl: mocks.generateUrlMock,
+  generateSeoUrl: mocks.generateUrlMock,
 }));
 
 vi.mock("../../../util/util", () => ({

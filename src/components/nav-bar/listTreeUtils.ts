@@ -1,4 +1,5 @@
 import { getLegacyNumberLabel, getSeriesLabel } from "../../util/issuePresentation";
+import { slugify } from "../../lib/slug-builder";
 import type { Issue, SelectedRoot, Series } from "../../types/domain";
 
 export type PublisherNode = {
@@ -18,6 +19,7 @@ export type SeriesNode = {
 
 export type IssueNode = {
   id?: string | null;
+  comicguideid?: string | null;
   number?: string | null;
   legacy_number?: string | null;
   title?: string | null;
@@ -29,6 +31,8 @@ export type IssueNode = {
   series?: {
     title?: string | null;
     volume?: number | null;
+    startyear?: number | null;
+    endyear?: number | null;
     publisher?: PublisherNode | null;
   } | null;
 };
@@ -87,9 +91,10 @@ export function getSelectedPublisherName(selected: SelectedRoot): string {
 
 export function getSeriesKey(seriesNode: SeriesNode): string {
   return [
-    seriesNode.publisher?.name || "",
-    seriesNode.title || "",
+    normalizeSeriesKeyText(seriesNode.publisher?.name),
+    normalizeSeriesKeyText(seriesNode.title),
     normalizeSeriesVolume(seriesNode.volume),
+    normalizeSeriesStartYear(seriesNode.startyear),
   ].join("|");
 }
 
@@ -97,9 +102,10 @@ export function getSelectedSeriesKey(selected: SelectedRoot): string | null {
   const seriesNode = selected?.series || selected?.issue?.series;
   if (!seriesNode?.title) return null;
   return [
-    seriesNode.publisher?.name || "",
-    seriesNode.title,
+    normalizeSeriesKeyText(seriesNode.publisher?.name),
+    normalizeSeriesKeyText(seriesNode.title),
     normalizeSeriesVolume(seriesNode.volume),
+    normalizeSeriesStartYear(seriesNode.startyear),
   ].join("|");
 }
 
@@ -107,6 +113,8 @@ export function toSeriesSelected(seriesNode: SeriesNode, us: boolean): Series {
   return {
     title: seriesNode.title || "",
     volume: seriesNode.volume ?? 1,
+    startyear: seriesNode.startyear ?? null,
+    endyear: seriesNode.endyear ?? null,
     publisher: {
       name: seriesNode.publisher?.name || "",
       us: seriesNode.publisher?.us ?? us,
@@ -122,6 +130,8 @@ export function toIssueSeriesSelected(
   return {
     title: issueNode.series?.title || fallbackSeries.title || "",
     volume: issueNode.series?.volume ?? fallbackSeries.volume ?? 1,
+    startyear: issueNode.series?.startyear ?? fallbackSeries.startyear ?? null,
+    endyear: issueNode.series?.endyear ?? fallbackSeries.endyear ?? null,
     publisher: {
       name: issueNode.series?.publisher?.name || fallbackSeries.publisher?.name || "",
       us: issueNode.series?.publisher?.us ?? fallbackSeries.publisher?.us ?? us,
@@ -173,23 +183,33 @@ export function normalizeSeriesVolume(value: unknown): string {
   return Number.isFinite(numericValue) ? String(numericValue) : "";
 }
 
+export function normalizeSeriesStartYear(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) && numericValue > 0 ? String(numericValue) : "";
+}
+
 export function doesSeriesNodeMatchIssueSeries(
-  seriesNode: { title?: unknown; volume?: unknown; publisher?: { name?: unknown } | null },
+  seriesNode: { title?: unknown; volume?: unknown; startyear?: unknown; publisher?: { name?: unknown } | null },
   selectedSeries?: Issue["series"]
 ): boolean {
   if (!selectedSeries) return false;
 
-  const nodePublisher = normalizeMatchText(seriesNode.publisher?.name);
-  const selectedPublisher = normalizeMatchText(selectedSeries.publisher?.name);
+  const nodePublisher = normalizeSeriesKeyText(seriesNode.publisher?.name);
+  const selectedPublisher = normalizeSeriesKeyText(selectedSeries.publisher?.name);
   if (!nodePublisher || !selectedPublisher || nodePublisher !== selectedPublisher) return false;
 
-  const nodeTitle = normalizeMatchText(seriesNode.title);
-  const selectedTitle = normalizeMatchText(selectedSeries.title);
+  const nodeTitle = normalizeSeriesKeyText(seriesNode.title);
+  const selectedTitle = normalizeSeriesKeyText(selectedSeries.title);
   if (!nodeTitle || !selectedTitle || nodeTitle !== selectedTitle) return false;
 
   const nodeVolume = normalizeSeriesVolume(seriesNode.volume);
   const selectedVolume = normalizeSeriesVolume(selectedSeries.volume);
   if (nodeVolume && selectedVolume && nodeVolume !== selectedVolume) return false;
+
+  const nodeStartYear = normalizeSeriesStartYear(seriesNode.startyear);
+  const selectedStartYear = normalizeSeriesStartYear(selectedSeries.startyear);
+  if (nodeStartYear && selectedStartYear && nodeStartYear !== selectedStartYear) return false;
 
   return true;
 }
@@ -198,9 +218,13 @@ export function normalizeMatchText(value: unknown): string {
   return normalizeIssuePart(value).replace(/\s+/g, " ").toLowerCase();
 }
 
+export function normalizeSeriesKeyText(value: unknown): string {
+  return slugify(normalizeIssuePart(value));
+}
+
 export function isSameEntityName(left: unknown, right: unknown): boolean {
-  const normalizedLeft = normalizeMatchText(left);
-  const normalizedRight = normalizeMatchText(right);
+  const normalizedLeft = normalizeSeriesKeyText(left);
+  const normalizedRight = normalizeSeriesKeyText(right);
   if (!normalizedLeft || !normalizedRight) return false;
   return normalizedLeft === normalizedRight;
 }

@@ -12,7 +12,7 @@ import Typography from "@mui/material/Typography";
 import { stripItem } from "../../util/util";
 import {
   generateLabel,
-  generateUrl,
+  generateSeoUrl,
   HierarchyLevel,
 } from "../../util/hierarchy";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
@@ -91,7 +91,7 @@ function DeletionDialogView(props: Readonly<DeletionDialogProps>) {
                   item: stripItem(toDeletePayload(level, item)),
                 },
               });
-              router.replace(generateUrl(parent as never, Boolean(props.us)));
+              router.replace(generateSeoUrl(parent as never, Boolean(props.us)));
               router.refresh();
 
               if (result.success) {
