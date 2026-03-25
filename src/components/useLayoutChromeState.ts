@@ -48,14 +48,19 @@ export function useLayoutChromeState(args: Readonly<LayoutChromeStateArgs> | nul
   React.useLayoutEffect(() => {
     if (!args) {
       document.documentElement.style.removeProperty("--shortbox-nav-offset");
+      document.documentElement.style.removeProperty("--shortbox-nav-gutter");
       return;
     }
+
+    const nextGutter = !temporaryDrawer && navWide ? `${getNavDrawerWidth(false)}px` : "0px";
     const nextOffset = !temporaryDrawer && drawerOpen ? `${getNavDrawerWidth(false)}px` : "0px";
+    document.documentElement.style.setProperty("--shortbox-nav-gutter", nextGutter);
     document.documentElement.style.setProperty("--shortbox-nav-offset", nextOffset);
     return () => {
       document.documentElement.style.removeProperty("--shortbox-nav-offset");
+      document.documentElement.style.removeProperty("--shortbox-nav-gutter");
     };
-  }, [args, drawerOpen, temporaryDrawer]);
+  }, [args, drawerOpen, navWide, temporaryDrawer]);
 
   return {
     drawerOpen,

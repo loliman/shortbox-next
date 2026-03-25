@@ -37,22 +37,29 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
   const sessionPromise =
     props.session === undefined ? readServerSession() : Promise.resolve(props.session);
 
-  const [resolvedSession, resolvedChangeRequestsCount, initialNavOffset] = await Promise.all([
+  const [resolvedSession, resolvedChangeRequestsCount, initialNavLayout] = await Promise.all([
     sessionPromise,
     typeof props.changeRequestsCount === "number"
       ? Promise.resolve(props.changeRequestsCount)
       : sessionPromise.then((session) => (session?.canAdmin ? countChangeRequests().catch(() => 0) : 0)),
     (async () => {
-      if (!showNavigation) return "0px";
+      if (!showNavigation) return { offset: "0px", gutter: "0px" };
 
       const headerStore = await headers();
       const initialResponsiveGuess = getInitialResponsiveGuess(headerStore.get("user-agent"));
       const initialTablet = !initialResponsiveGuess.isPhone && !initialResponsiveGuess.isDesktop;
       const initialNavWide =
         initialResponsiveGuess.isDesktop || (initialTablet && initialResponsiveGuess.isLandscape);
-      return initialNavWide ? `${getNavDrawerWidth(false)}px` : "0px";
+      const navWidth = `${getNavDrawerWidth(false)}px`;
+      return {
+        offset: initialNavWide ? navWidth : "0px",
+        gutter: initialResponsiveGuess.isDesktop ? navWidth : "0px",
+      };
     })(),
   ]);
+  const initialNavOffset = initialNavLayout.offset;
+  const initialNavGutter = initialNavLayout.gutter;
+  const staticDesktopSidePadding = `${getNavDrawerWidth(false) / 2 + 8}px`;
 
   return (
     <Box
@@ -110,14 +117,34 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
             minHeight: 0,
             overflow: lockViewportHeight ? { xs: "visible", lg: "hidden" } : "visible",
             backgroundColor: "background.default",
-            px: { xs: 0, sm: 2 },
+            pl: {
+              xs: 0,
+              sm: 2,
+              md: showNavigation ? 2 : staticDesktopSidePadding,
+              lg: showNavigation
+                ? `calc((var(--shortbox-nav-gutter, ${initialNavGutter}) / 2) + 8px)`
+                : staticDesktopSidePadding,
+            },
+            pr: {
+              xs: 0,
+              sm: 2,
+              md: showNavigation ? 2 : staticDesktopSidePadding,
+              lg: showNavigation
+                ? `max(16px, calc((var(--shortbox-nav-gutter, ${initialNavGutter}) / 2) + 8px - (var(--shortbox-nav-offset, ${initialNavOffset}) / 2)))`
+                : staticDesktopSidePadding,
+            },
             pt: { xs: 0, sm: 2 },
             pb: showNavigation
               ? { xs: COMPACT_BOTTOM_BAR_CLEARANCE, sm: COMPACT_BOTTOM_BAR_CLEARANCE, lg: 2 }
               : { xs: 0, sm: 2 },
-            ml: showNavigation ? `var(--shortbox-nav-offset, ${initialNavOffset})` : 0,
+            ml: {
+              xs: showNavigation ? `var(--shortbox-nav-offset, ${initialNavOffset})` : 0,
+              lg: showNavigation
+                ? `calc(var(--shortbox-nav-offset, ${initialNavOffset}) / 2)`
+                : 0,
+            },
             transition: showNavigation
-              ? "margin-left 225ms cubic-bezier(0.4, 0, 0.6, 1)"
+              ? "margin-left 225ms cubic-bezier(0.4, 0, 0.6, 1), padding 225ms cubic-bezier(0.4, 0, 0.6, 1)"
               : undefined,
           }}
         >

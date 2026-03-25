@@ -114,6 +114,7 @@ export default function PersistentCatalogShellClient(
   const initialNavWide =
     Boolean(initialGuess?.isDesktop) || Boolean(initialTablet && initialGuess?.isLandscape);
   const initialNavOffset = initialNavWide ? `${getNavDrawerWidth(false)}px` : "0px";
+  const initialNavGutter = initialGuess?.isDesktop ? `${getNavDrawerWidth(false)}px` : "0px";
 
   return (
     <Box
@@ -164,11 +165,24 @@ export default function PersistentCatalogShellClient(
             minHeight: 0,
             overflow: lockViewportHeight ? { xs: "visible", lg: "hidden" } : "visible",
             backgroundColor: "background.default",
-            px: { xs: 0, sm: 2 },
+            pl: {
+              xs: 0,
+              sm: 2,
+              lg: `calc((var(--shortbox-nav-gutter, ${initialNavGutter}) / 2) + 8px)`,
+            },
+            pr: {
+              xs: 0,
+              sm: 2,
+              lg: `max(16px, calc((var(--shortbox-nav-gutter, ${initialNavGutter}) / 2) + 8px - (var(--shortbox-nav-offset, ${initialNavOffset}) / 2)))`,
+            },
             pt: { xs: 0, sm: 2 },
             pb: { xs: COMPACT_BOTTOM_BAR_CLEARANCE, sm: COMPACT_BOTTOM_BAR_CLEARANCE, lg: 2 },
-            ml: `var(--shortbox-nav-offset, ${initialNavOffset})`,
-            transition: "margin-left 225ms cubic-bezier(0.4, 0, 0.6, 1)",
+            ml: {
+              xs: `var(--shortbox-nav-offset, ${initialNavOffset})`,
+              lg: `calc(var(--shortbox-nav-offset, ${initialNavOffset}) / 2)`,
+            },
+            transition:
+              "margin-left 225ms cubic-bezier(0.4, 0, 0.6, 1), padding 225ms cubic-bezier(0.4, 0, 0.6, 1)",
           }}
         >
           <Card
