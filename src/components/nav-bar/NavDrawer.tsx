@@ -5,8 +5,7 @@ import Box from "@mui/material/Box";
 import Drawer from "@mui/material/Drawer";
 import SwipeableDrawer from "@mui/material/SwipeableDrawer";
 import MuiList from "@mui/material/List";
-import ToggleButton from "@mui/material/ToggleButton";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
 import CompressIcon from "@mui/icons-material/Compress";
@@ -88,59 +87,31 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
           pointerEvents: "none",
         }}
       >
-        <ToggleButtonGroup
-          size="small"
-          aria-label="Navigation-Aktionen"
+        <Box
           sx={{
             pointerEvents: "auto",
             backgroundColor: "background.paper",
-            "& .MuiToggleButtonGroup-grouped": {
-              borderColor: "divider",
-            },
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 1,
+            display: "flex",
+            alignItems: "center",
+            overflow: "hidden",
           }}
         >
-          <Tooltip title={expandToggleLabel}>
-            <span>
-              <ToggleButton
-                value="expandToggle"
-                aria-label={expandToggleLabel}
-                onClick={handleExpandToggle}
-                disabled={expandToggleDisabled}
-                sx={{
-                  width: 34,
-                  height: 34,
-                  color: "text.primary",
-                  backgroundColor: "background.paper",
-                  borderTopRightRadius: 0,
-                  borderBottomRightRadius: 0,
-                  "&:hover": {
-                    backgroundColor: "action.hover",
-                  },
-                  "&.Mui-disabled": {
-                    backgroundColor: "background.paper",
-                    opacity: 0.72,
-                  },
-                }}
-              >
-                <ExpandToggleIcon sx={{ fontSize: 18 }} />
-              </ToggleButton>
-            </span>
-          </Tooltip>
           <Tooltip title="Zur Auswahl">
             <span>
-              <ToggleButton
-                value="scrollToSelected"
+              <IconButton
                 aria-label="Zur Auswahl"
                 onClick={onScrollToSelected}
                 disabled={disableScrollToSelected}
+                size="small"
                 sx={{
                   width: 34,
                   height: 34,
                   color: "text.primary",
+                  borderRadius: 0,
                   backgroundColor: "background.paper",
-                  borderTopLeftRadius: 0,
-                  borderBottomLeftRadius: 0,
-                  ml: "-1px",
                   "&:hover": {
                     backgroundColor: "action.hover",
                   },
@@ -151,10 +122,38 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
                 }}
               >
                 <MyLocationIcon sx={{ fontSize: 18 }} />
-              </ToggleButton>
+              </IconButton>
             </span>
           </Tooltip>
-        </ToggleButtonGroup>
+          <Tooltip title={expandToggleLabel}>
+            <span>
+              <IconButton
+                aria-label={expandToggleLabel}
+                onClick={handleExpandToggle}
+                disabled={expandToggleDisabled}
+                size="small"
+                sx={{
+                  width: 34,
+                  height: 34,
+                  color: "text.primary",
+                  borderRadius: 0,
+                  backgroundColor: "background.paper",
+                  borderLeft: "1px solid",
+                  borderColor: "divider",
+                  "&:hover": {
+                    backgroundColor: "action.hover",
+                  },
+                  "&.Mui-disabled": {
+                    backgroundColor: "background.paper",
+                    opacity: 0.72,
+                  },
+                }}
+              >
+                <ExpandToggleIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </span>
+          </Tooltip>
+        </Box>
       </Box>
       <Box
         ref={navScrollContainerRef}
