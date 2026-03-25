@@ -28,6 +28,16 @@ describe("expanded helper", () => {
     expect(expanded(baseStoryItem, { expand: "10" })).toBe(true);
   });
 
+  it("expands directly via query.expand parent number match", () => {
+    const itemWithParentNumber = {
+      ...baseStoryItem,
+      number: "",
+      parent: { number: "10" },
+    };
+
+    expect(expanded(itemWithParentNumber, { expand: "10" })).toBe(true);
+  });
+
   it("returns false without valid filter JSON", () => {
     expect(expanded(baseStoryItem, null)).toBe(false);
     expect(expanded(baseStoryItem, { filter: "{invalid" })).toBe(false);

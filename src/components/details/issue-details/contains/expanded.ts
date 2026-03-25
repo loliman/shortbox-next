@@ -80,7 +80,7 @@ function readNames(value: unknown): string[] {
 }
 
 export function expanded(item: ItemLike, query?: QueryParams): boolean {
-  if (query?.expand && String(query.expand) === String(item?.number ?? "")) {
+  if (hasExpandNumberMatch(item, query)) {
     return true;
   }
 
@@ -190,6 +190,19 @@ export function expanded(item: ItemLike, query?: QueryParams): boolean {
   }
 
   return isExpanded;
+}
+
+export function hasExpandNumberMatch(item: ItemLike, query?: QueryParams): boolean {
+  const expandValue = String(query?.expand ?? "").trim();
+  if (!expandValue) return false;
+
+  const itemNumber = String(item?.number ?? "").trim();
+  if (itemNumber) {
+    return itemNumber === expandValue;
+  }
+
+  const parentNumber = String(item?.parent?.number ?? "").trim();
+  return parentNumber !== "" && parentNumber === expandValue;
 }
 
 function resolveIssue(item: ItemLike | null | undefined): IssueLike | null {

@@ -522,6 +522,9 @@ function toIssueReferenceShape(issue: any) {
     comicguideid: serializeNullableIssueNumber(issue.comicGuideId),
     cover: issue.covers?.[0] ? toIssueCoverShape(issue.covers[0]) : null,
     series: toIssueSeriesShape(issue.series),
+    individuals: Array.isArray(issue.individuals)
+      ? issue.individuals.map(toIssueIndividualEntryShape)
+      : [],
   };
 }
 

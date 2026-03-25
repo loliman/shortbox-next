@@ -5,7 +5,7 @@ import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AccordionDetails from "@mui/material/AccordionDetails";
-import { expanded } from "./expanded";
+import { expanded, hasExpandNumberMatch } from "./expanded";
 import type { ItemLike, QueryParams } from "./expanded";
 import type {
   ContainsDetailsSlotComponent,
@@ -27,6 +27,13 @@ export function ContainsItem(props: Readonly<ContainsItemProps>) {
   const ItemTitle = props.itemTitle;
   const ItemDetails = props.itemDetails;
   const isHighlighted = expanded(props.item, props.query);
+  const shouldExpandFromQuery = hasExpandNumberMatch(props.item, props.query);
+  const [isExpanded, setIsExpanded] = React.useState<boolean>(shouldExpandFromQuery);
+
+  React.useEffect(() => {
+    setIsExpanded(shouldExpandFromQuery);
+  }, [shouldExpandFromQuery]);
+
   let borderRadius: string;
   if (props.idx === 0) {
     if (props.isLast) {
@@ -42,6 +49,10 @@ export function ContainsItem(props: Readonly<ContainsItemProps>) {
 
   return (
     <Accordion
+      expanded={isExpanded}
+      onChange={(_, nextExpanded) => {
+        setIsExpanded(nextExpanded);
+      }}
       sx={(theme) => ({
         borderRadius,
         width: "auto",
