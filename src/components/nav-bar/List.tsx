@@ -9,6 +9,7 @@ import { buildRouteHref } from "../generic/routeHref";
 import type { SelectedRoot } from "../../types/domain";
 import {
   getSeriesKey,
+  type NavListAction,
   getSelectedPublisherName,
   getSelectedSeriesKey,
   isElementVisibleInContainer,
@@ -85,13 +86,19 @@ export default function List(props: Readonly<ListProps>) {
   }, [navStateKey]);
   const selectedPublisherName = getSelectedPublisherName(props.selected);
   const selectedSeriesKey = getSelectedSeriesKey(props.selected);
+  const selectedRowKey = React.useMemo(() => buildPendingNavigationKey(props.selected) || null, [props.selected]);
   const selectedIssue = props.selected?.issue;
-  const publisherNodes = props.initialPublisherNodes || [];
-  const visiblePublisherNodes = publisherNodes;
+  const isIssueLevelSelected = Boolean(props.selected?.issue);
+  const visiblePublisherNodes = React.useMemo(
+    () => props.initialPublisherNodes || [],
+    [props.initialPublisherNodes]
+  );
   const [expandedPublishers, setExpandedPublishers] = React.useState<Record<string, boolean>>({});
   const [publisherExpansionReady, setPublisherExpansionReady] = React.useState(false);
   const [pendingPublisherKey, setPendingPublisherKey] = React.useState<string | null>(null);
   const [pendingNavigationKey, setPendingNavigationKey] = React.useState<string | null>(null);
+  const [navAction, setNavAction] = React.useState<NavListAction | null>(null);
+  const navActionTokenRef = React.useRef(0);
   const contentReady = true;
   const [seriesNodesByPublisher, setSeriesNodesByPublisher] = React.useState<Record<string, SeriesNode[]>>(
     () => {
@@ -111,20 +118,44 @@ export default function List(props: Readonly<ListProps>) {
       return nextState;
     }
   );
+  const hasExpandedPublishers = React.useMemo(
+    () => Object.values(expandedPublishers).some(Boolean),
+    [expandedPublishers]
+  );
 
   React.useEffect(() => {
     const storedExpansion = readNavExpansionState(navStateKey);
     const hasStoredExpansion = hasNavExpansionState(navStateKey);
+
+    // Resolve canonical publisher name from actual nodes to fix URL-slug casing mismatches
+    // (e.g. parsePublisherSlug("dc-comics") → "Dc Comics", but DB stores "DC Comics")
+    const canonicalPublisherName = selectedPublisherName
+      ? (visiblePublisherNodes.find((n) => isSameEntityName(n.name, selectedPublisherName))?.name
+          ?? selectedPublisherName)
+      : "";
+
     const requiredExpansion = buildExpandedPublishers(
-      selectedPublisherName ? [selectedPublisherName] : []
+      canonicalPublisherName ? [canonicalPublisherName] : []
     );
+
+    // Normalize any stale stored keys against actual publisher nodes
+    const normalizedStored =
+      hasStoredExpansion && visiblePublisherNodes.length > 0
+        ? Object.fromEntries(
+            Object.entries(storedExpansion).map(([key, value]) => {
+              const canonical = visiblePublisherNodes.find((n) => isSameEntityName(n.name, key));
+              return [canonical?.name ?? key, value] as const;
+            })
+          )
+        : storedExpansion;
+
     setExpandedPublishers(
       hasStoredExpansion
-        ? { ...storedExpansion, ...requiredExpansion }
+        ? { ...normalizedStored, ...requiredExpansion }
         : requiredExpansion
     );
     setPublisherExpansionReady(true);
-  }, [navStateKey, selectedPublisherName]);
+  }, [navStateKey, selectedPublisherName, visiblePublisherNodes]);
 
   React.useEffect(() => {
     if (!publisherExpansionReady) return;
@@ -182,6 +213,9 @@ export default function List(props: Readonly<ListProps>) {
   React.useEffect(() => {
     if (!selectedPublisherName) return;
 
+    // Keep deeper explicit targets (series/issue row keys) in control.
+    if (selectedRowKey && !isSameEntityName(selectedRowKey, selectedPublisherName)) return;
+
     const container = navScrollContainerRef.current;
     const listElement = listRef.current;
     if (!container || !listElement) return;
@@ -196,7 +230,25 @@ export default function List(props: Readonly<ListProps>) {
       block: "center",
       inline: "nearest",
     });
-  }, [selectedPublisherName, expandedPublishers, visiblePublisherNodes.length]);
+  }, [selectedPublisherName, selectedRowKey, expandedPublishers, visiblePublisherNodes.length]);
+
+  const scrollRowIntoView = React.useCallback(
+    (rowKey: string, force = false) => {
+      const container = navScrollContainerRef.current;
+      if (!container) return false;
+
+      const row = container.querySelector<HTMLElement>(`[data-nav-row-key="${CSS.escape(rowKey)}"]`);
+      if (!row) return false;
+      if (!force && isElementVisibleInContainer(row, container)) return true;
+
+      row.scrollIntoView({
+        block: "center",
+        inline: "nearest",
+      });
+      return true;
+    },
+    []
+  );
 
   const updateNavOpenState = React.useCallback(
     async (publisherName: string) => {
@@ -333,6 +385,115 @@ export default function List(props: Readonly<ListProps>) {
     [pushSelection, us, updateNavOpenState]
   );
 
+  const selectedContext = React.useMemo(() => {
+    if (props.selected.issue && selectedPublisherName && selectedSeriesKey) {
+      return {
+        scope: "series" as const,
+        publisherName: selectedPublisherName,
+        seriesKey: selectedSeriesKey,
+      };
+    }
+
+    if (props.selected.series && selectedPublisherName) {
+      return {
+        scope: "publisher" as const,
+        publisherName: selectedPublisherName,
+        seriesKey: selectedSeriesKey,
+      };
+    }
+
+    if (props.selected.publisher) {
+      return {
+        scope: "publisher" as const,
+        publisherName: selectedPublisherName,
+        seriesKey: null,
+      };
+    }
+
+    return {
+      scope: "root" as const,
+      publisherName: null,
+      seriesKey: null,
+    };
+  }, [props.selected.issue, props.selected.publisher, props.selected.series, selectedPublisherName, selectedSeriesKey]);
+
+  const canonicalSelectedPublisherName = React.useMemo(() => {
+    if (!selectedContext.publisherName) return null;
+    return (
+      visiblePublisherNodes.find((node) => isSameEntityName(node.name, selectedContext.publisherName))
+        ?.name || selectedContext.publisherName
+    );
+  }, [selectedContext.publisherName, visiblePublisherNodes]);
+
+  const getNextNavActionToken = React.useCallback(() => {
+    navActionTokenRef.current += 1;
+    return navActionTokenRef.current;
+  }, []);
+
+  const handleCloseAll = React.useCallback(() => {
+    setExpandedPublishers({});
+    writeNavExpansionState(navStateKey, {});
+    for (const publisherName of Object.keys(seriesNodesByPublisher)) {
+      writeNavExpansionState(`${navStateKey}|${publisherName}`, {});
+    }
+    setNavAction({ type: "closeAll", token: getNextNavActionToken() });
+  }, [getNextNavActionToken, navStateKey, seriesNodesByPublisher]);
+
+  const handleShowAll = React.useCallback(() => {
+    if (selectedContext.scope === "root") {
+      setExpandedPublishers(buildExpandedPublishers(visiblePublisherNodes.map((node) => node.name || "").filter(Boolean)));
+      setNavAction({ type: "showAll", token: getNextNavActionToken(), scope: "root" });
+      return;
+    }
+
+    if (!canonicalSelectedPublisherName) return;
+
+    setExpandedPublishers((prev) => ({ ...prev, [canonicalSelectedPublisherName]: true }));
+    setNavAction({
+      type: "showAll",
+      token: getNextNavActionToken(),
+      scope: selectedContext.scope,
+      publisherName: canonicalSelectedPublisherName,
+      seriesKey: selectedContext.seriesKey,
+    });
+  }, [canonicalSelectedPublisherName, getNextNavActionToken, selectedContext, visiblePublisherNodes]);
+
+  const handleScrollToSelected = React.useCallback(async () => {
+    if (!selectedRowKey) return;
+
+    if (!canonicalSelectedPublisherName) {
+      scrollRowIntoView(selectedRowKey, true);
+      return;
+    }
+
+    const publisherLoaded = await updateNavOpenState(canonicalSelectedPublisherName);
+    if (!publisherLoaded) return;
+
+    setExpandedPublishers((prev) => ({ ...prev, [canonicalSelectedPublisherName]: true }));
+
+    if (!selectedContext.seriesKey) {
+      requestAnimationFrame(() => {
+        scrollRowIntoView(selectedRowKey, true);
+      });
+      return;
+    }
+
+    setNavAction({
+      type: "scrollToSelected",
+      token: getNextNavActionToken(),
+      publisherName: canonicalSelectedPublisherName,
+      seriesKey: selectedContext.seriesKey,
+      rowKey: selectedRowKey,
+    });
+  }, [
+    canonicalSelectedPublisherName,
+    getNextNavActionToken,
+    scrollRowIntoView,
+    selectedContext,
+    selectedRowKey,
+    updateNavOpenState,
+  ]);
+
   const content =
     loading && visiblePublisherNodes.length === 0 ? (
       <>
@@ -393,6 +554,8 @@ export default function List(props: Readonly<ListProps>) {
                 navigationPending={isPending}
                 pendingNavigationKey={pendingNavigationKey}
                 pendingPublisherKey={pendingPublisherKey}
+                navAction={navAction}
+                selectedRowKey={selectedRowKey}
               />
             </Collapse>
           </Box>
@@ -409,6 +572,13 @@ export default function List(props: Readonly<ListProps>) {
       contentReady={contentReady}
       navScrollContainerRef={navScrollContainerRef}
       listRef={listRef}
+      onScrollToSelected={handleScrollToSelected}
+      onCloseAll={handleCloseAll}
+      onShowAll={handleShowAll}
+      showCollapseToggle={hasExpandedPublishers}
+      disableScrollToSelected={!selectedRowKey}
+      disableCloseAll={visiblePublisherNodes.length === 0}
+      disableShowAll={visiblePublisherNodes.length === 0 || isIssueLevelSelected}
     >
       {content}
     </NavDrawer>

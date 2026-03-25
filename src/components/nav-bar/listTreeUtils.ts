@@ -37,6 +37,26 @@ export type IssueNode = {
   } | null;
 };
 
+export type NavListAction =
+  | {
+      type: "closeAll";
+      token: number;
+    }
+  | {
+      type: "showAll";
+      token: number;
+      scope: "root" | "publisher" | "series";
+      publisherName?: string | null;
+      seriesKey?: string | null;
+    }
+  | {
+      type: "scrollToSelected";
+      token: number;
+      publisherName?: string | null;
+      seriesKey?: string | null;
+      rowKey?: string | null;
+    };
+
 export function getDepthPadding(depth: number) {
   return 2 + depth * 2;
 }

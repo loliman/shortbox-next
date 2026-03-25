@@ -9,7 +9,6 @@ import Typography from "@mui/material/Typography";
 import { generateIssueSubHeader } from "../../util/issues";
 import { generateLabel } from "../../util/hierarchy";
 import { isMockMode } from "../../app/mockMode";
-import EditButton from "../restricted/EditButton";
 import TitleLine from "../generic/TitleLine";
 import { IssueReferenceInline } from "../generic/IssueNumberInline";
 import type { Issue, SelectedRoot } from "../../types/domain";
@@ -26,6 +25,7 @@ import { IssueCoverGalleryClient } from "./issue-details/IssueCoverGalleryClient
 import type { SessionData } from "../../app/session";
 import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
 import type { IssueDetailsSlotComponent } from "./issue-details/slotTypes";
+import DetailsHeaderActionBar from "./DetailsHeaderActionBar";
 import { buildIssueBreadcrumbStructuredData, buildIssueComicStructuredData } from "@/src/lib/routes/structured-data";
 
 interface IssueDetailsProps {
@@ -176,6 +176,12 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
         />
       ) : null}
       <CardHeader
+        sx={{
+          "& .MuiCardHeader-action": {
+            m: 0,
+            alignSelf: "center",
+          },
+        }}
         title={
           <TitleLine
             title={
@@ -185,15 +191,21 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
                 legacy_number={loadedIssue.legacy_number}
               />
             }
-            id={loadedIssue.id ?? undefined}
             session={props.session}
           />
         }
         subheader={props.subheader ? generateIssueSubHeader(loadedIssue) : ""}
         action={
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <EditButton session={props.session} item={loadedIssue} level={props.level} us={props.us} />
-          </Box>
+          <DetailsHeaderActionBar
+            id={loadedIssue.id ?? undefined}
+            item={loadedIssue}
+            query={props.query}
+            selected={props.selected}
+            session={props.session}
+            level={props.level}
+            us={props.us}
+            showSort={false}
+          />
         }
       />
 

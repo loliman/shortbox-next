@@ -12,6 +12,7 @@ import {
   doesSeriesNodeMatchIssueSeries,
   getSeriesKey,
   isElementVisibleInContainer,
+  type NavListAction,
   isSeriesNodeSelected,
   type IssueNode,
   type PublisherNode,
@@ -40,6 +41,8 @@ type SeriesBranchProps = {
   navigationPending?: boolean;
   pendingNavigationKey?: string | null;
   pendingPublisherKey?: string | null;
+  navAction?: NavListAction | null;
+  selectedRowKey?: string | null;
 };
 
 const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBranchProps>) {
@@ -53,7 +56,9 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
     pendingNavigationKey,
     pendingPublisherKey,
     publisher,
+    navAction,
     pushSelection,
+    selectedRowKey,
     selectedIssue,
     session,
     suppressAutoScrollRef,
@@ -102,6 +107,9 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
   React.useEffect(() => {
     if (!activeSeriesKey) return;
 
+    // On issue-level selections, keep the explicit issue-row scroll target in control.
+    if (selectedIssue?.number && selectedRowKey && selectedRowKey !== activeSeriesKey) return;
+
     const scrollContainer = navScrollContainerRef.current;
     if (!scrollContainer) return;
 
@@ -115,7 +123,14 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
       block: "center",
       inline: "nearest",
     });
-  }, [activeSeriesKey, expandedSeries, navScrollContainerRef, seriesNodes.length]);
+  }, [
+    activeSeriesKey,
+    expandedSeries,
+    navScrollContainerRef,
+    selectedIssue?.number,
+    selectedRowKey,
+    seriesNodes.length,
+  ]);
 
   const handleToggleSeries = React.useCallback(
     (seriesKey: string) => {
@@ -151,6 +166,80 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
     },
     [pushSelection, seriesSelectionByKey, seriesNodes, ensureIssueNodesLoaded]
   );
+
+  const scrollSeriesRowIntoView = React.useCallback(
+    (seriesKey: string, force = false) => {
+      const scrollContainer = navScrollContainerRef.current;
+      if (!scrollContainer) return;
+
+      const selectedRow = scrollContainer.querySelector<HTMLElement>(
+        `[data-nav-row-key="${CSS.escape(seriesKey)}"]`
+      );
+      if (!selectedRow) return;
+      if (!force && isElementVisibleInContainer(selectedRow, scrollContainer)) return;
+
+      selectedRow.scrollIntoView({
+        block: "center",
+        inline: "nearest",
+      });
+    },
+    [navScrollContainerRef]
+  );
+
+  React.useEffect(() => {
+    if (!navAction) return;
+
+    if (navAction.type === "closeAll") {
+      setExpandedSeries({});
+      return;
+    }
+
+    if (navAction.publisherName !== publisherName) return;
+
+    if (navAction.type === "showAll") {
+      if (navAction.scope === "publisher") {
+        setExpandedSeries(
+          Object.fromEntries(seriesNodes.map((seriesNode) => [getSeriesKey(seriesNode), true]))
+        );
+        void Promise.all(seriesNodes.map((seriesNode) => ensureIssueNodesLoaded(seriesNode)));
+        return;
+      }
+
+      if (navAction.scope === "series" && navAction.seriesKey) {
+        const seriesNode = seriesNodes.find((entry) => getSeriesKey(entry) === navAction.seriesKey);
+        if (!seriesNode) return;
+        setExpandedSeries((prev) => ({ ...prev, [navAction.seriesKey!]: true }));
+        void ensureIssueNodesLoaded(seriesNode);
+      }
+      return;
+    }
+
+    if (navAction.type === "scrollToSelected") {
+      if (navAction.seriesKey) {
+        const seriesNode = seriesNodes.find((entry) => getSeriesKey(entry) === navAction.seriesKey);
+        if (!seriesNode) return;
+        setExpandedSeries((prev) => ({ ...prev, [navAction.seriesKey!]: true }));
+        void ensureIssueNodesLoaded(seriesNode);
+        requestAnimationFrame(() => {
+          if (selectedRowKey === navAction.seriesKey) {
+            scrollSeriesRowIntoView(navAction.seriesKey!, true);
+          }
+        });
+        return;
+      }
+
+      if (navAction.rowKey) {
+        scrollSeriesRowIntoView(navAction.rowKey, true);
+      }
+    }
+  }, [
+    ensureIssueNodesLoaded,
+    navAction,
+    publisherName,
+    scrollSeriesRowIntoView,
+    selectedRowKey,
+    seriesNodes,
+  ]);
 
   if (pendingPublisherKey === `publisher:${publisherName}`) {
     return <NestedLoadingRow depth={1} message="Serien werden geladen..." />;
@@ -197,6 +286,8 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
                 navigationPending={navigationPending}
                 pendingNavigationKey={pendingNavigationKey}
                 loading={pendingPublisherKey === `series:${publisherName}:${seriesKey}`}
+                scrollRequestId={navAction?.type === "scrollToSelected" ? navAction.token : 0}
+                selectedRowKey={selectedRowKey}
               />
             </Collapse>
           </Box>

@@ -38,10 +38,16 @@ type SortContainerProps = {
   selected?: SelectedRoot;
   us?: boolean;
   compactLayout?: boolean;
+  showPendingIndicator?: boolean;
+  pendingNavigation?: {
+    isPending: boolean;
+    push: (href: string) => void;
+  };
 };
 
 export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
-  const { isPending, push } = usePendingNavigation();
+  const localPendingNavigation = usePendingNavigation();
+  const { isPending, push } = ownProps.pendingNavigation ?? localPendingNavigation;
   const theme = useTheme();
   const initialGuess = useInitialResponsiveGuess();
   const isLandscape = useMediaQuery("(orientation: landscape)", {
@@ -57,6 +63,7 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
   const query = ownProps.query;
   const us = Boolean(ownProps.us);
   const selected = ownProps.selected;
+  const showPendingIndicator = ownProps.showPendingIndicator ?? true;
   const compactLayout =
     ownProps.compactLayout ??
     Boolean(isPhone || (isTablet && !isLandscape));
@@ -71,25 +78,31 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
       sx={{
         display: "grid",
         gridTemplateColumns: compactLayout
-          ? "auto 1fr auto auto"
-          : "auto minmax(220px, 1fr) auto auto",
+          ? showPendingIndicator
+            ? "auto 1fr auto auto"
+            : "1fr auto auto"
+          : showPendingIndicator
+            ? "auto minmax(220px, 1fr) auto auto"
+            : "minmax(220px, 1fr) auto auto",
         alignItems: "center",
         gap: 1,
         width: compactLayout ? "100%" : "auto",
       }}
     >
-      <Box
-        aria-live="polite"
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          minWidth: 24,
-          visibility: isPending ? "visible" : "hidden",
-        }}
-      >
-        <CircularProgress size={18} />
-      </Box>
+      {showPendingIndicator ? (
+        <Box
+          aria-live="polite"
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minWidth: 24,
+            visibility: isPending ? "visible" : "hidden",
+          }}
+        >
+          <CircularProgress size={18} />
+        </Box>
+      ) : null}
 
       <FormControl
         size="small"

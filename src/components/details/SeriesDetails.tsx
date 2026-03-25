@@ -11,6 +11,7 @@ import EditButton from "../restricted/EditButton";
 import TitleLine from "../generic/TitleLine";
 import { IssueHistoryList } from "./DetailsListingSections";
 import { DetailsAddInfo } from "./DetailsAddInfo";
+import DetailsHeaderActionBar from "./DetailsHeaderActionBar";
 import type { SelectedRoot } from "../../types/domain";
 import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
 import type { SessionData } from "../../app/session";
@@ -104,31 +105,15 @@ function SeriesHeaderAction(
   }>
 ) {
   return (
-    <Stack direction="row" spacing={1.25} alignItems="center" justifyContent="flex-end">
-      {props.session ? (
-        <Box
-          component="span"
-          sx={{
-            flexShrink: 0,
-            color: "text.secondary",
-            fontSize: "0.75rem",
-            fontWeight: 500,
-            opacity: 0.8,
-            whiteSpace: "nowrap",
-            lineHeight: 1,
-          }}
-        >
-          #{props.details.id ?? ""}
-        </Box>
-      ) : null}
-      <SortContainer query={props.query as any} selected={props.selected} us={props.us} />
-      <EditButton
-        session={props.session}
-        item={props.details}
-        level={props.level}
-        us={props.us}
-      />
-    </Stack>
+    <DetailsHeaderActionBar
+      id={props.details.id}
+      item={props.details}
+      query={props.query}
+      selected={props.selected}
+      session={props.session}
+      level={props.level}
+      us={props.us}
+    />
   );
 }
 

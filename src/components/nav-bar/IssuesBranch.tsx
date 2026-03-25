@@ -38,6 +38,8 @@ type IssuesBranchProps = {
   navigationPending?: boolean;
   pendingNavigationKey?: string | null;
   loading?: boolean;
+  scrollRequestId?: number;
+  selectedRowKey?: string | null;
 };
 
 const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBranchProps>) {
@@ -48,7 +50,9 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
     selectedIssue,
     session,
     pushSelection,
+    selectedRowKey,
     navScrollContainerRef,
+    scrollRequestId,
     suppressAutoScrollRef,
   } = props;
   const selectedSeries = doesSeriesNodeMatchIssueSeries(series, selectedIssue?.series);
@@ -115,6 +119,30 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
     scrollSelectedIssueIntoView,
   ]);
 
+  React.useEffect(() => {
+    if (!scrollRequestId) return;
+
+    const listElement = issueListRef.current;
+    const scrollContainer = navScrollContainerRef.current;
+    if (!listElement || !scrollContainer) return;
+
+    let selectedItem = selectedRowKey
+      ? listElement.querySelector<HTMLElement>(`[data-nav-row-key="${CSS.escape(selectedRowKey)}"]`)
+      : null;
+
+    selectedItem ??=
+      Array.from(listElement.querySelectorAll<HTMLElement>("[data-nav-issue-number]")).find(
+        (element) => isIssueNumberMatch(element.dataset.navIssueNumber, selectedIssueNumber)
+      ) ?? null;
+
+    if (!selectedItem) return;
+
+    selectedItem.scrollIntoView({
+      block: "center",
+      inline: "nearest",
+    });
+  }, [navScrollContainerRef, scrollRequestId, selectedIssueNumber, selectedRowKey]);
+
   if (props.loading) {
     return <NestedLoadingRow depth={2} message="Ausgaben werden geladen..." />;
   }
@@ -156,6 +184,7 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
               divider={false}
               selected={selected}
               disabled={props.navigationPending}
+              data-nav-row-key={issueNavigationKey}
               data-nav-issue-number={issueNumber}
               sx={{
                 pl: getDepthPadding(2) + 1.3,

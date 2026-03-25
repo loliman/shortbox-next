@@ -3,8 +3,10 @@
 import React from "react";
 import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
-import IconButton from "@mui/material/IconButton";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
+import type { SxProps, Theme } from "@mui/material/styles";
 import { generateLabel, generateSeoUrl, HierarchyLevel } from "../../util/hierarchy";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
@@ -16,16 +18,36 @@ import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import { mutationRequest } from "../../lib/client/mutation-request";
 import type { SelectedRoot } from "../../types/domain";
 
-const actionButtonSx = {
-  border: "1px solid",
+function getActionButtonBackground(theme: Theme) {
+  return theme.vars?.palette.background.paper ?? theme.palette.background.paper;
+}
+
+function getActionButtonHoverBackground(theme: Theme) {
+  return theme.vars?.palette.action.hover ?? theme.palette.action.hover;
+}
+
+function getActionButtonDisabledBackground(theme: Theme) {
+  return theme.vars?.palette.background.paper ?? theme.palette.background.paper;
+}
+
+const actionButtonSx: SxProps<Theme> = {
+  minWidth: 40,
+  width: 40,
+  height: 40,
+  p: 0,
+  color: "text.primary",
+  backgroundColor: (theme) => getActionButtonBackground(theme),
   borderColor: "divider",
-  borderRadius: 1.5,
-  bgcolor: "action.hover",
-  width: 34,
-  height: 34,
   "&:hover": {
-    bgcolor: "action.selected",
-    borderColor: "text.disabled",
+    backgroundColor: (theme) => getActionButtonHoverBackground(theme),
+  },
+  "&.Mui-disabled": {
+    color: "text.disabled",
+    backgroundColor: (theme) => getActionButtonDisabledBackground(theme),
+    opacity: 0.72,
+  },
+  "& .MuiSvgIcon-root": {
+    fontSize: 22,
   },
 };
 
@@ -118,44 +140,57 @@ class DropdownBase extends React.Component<DropdownProps, DropdownState> {
 
     return (
       <>
-        <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.6 }}>
-          {isIssueLevel && !isUsIssue ? (
-            <CollectionActionButton
-              item={selectedItem}
-              collected={isCollected}
-              onClose={this.props.handleClose}
-              enqueueSnackbar={this.props.enqueueSnackbar}
-            />
-          ) : null}
+        <Box sx={{ display: "inline-flex", alignItems: "center" }}>
+          <ToggleButtonGroup
+            size="small"
+            aria-label="Detail Aktionen"
+            sx={{
+              backgroundColor: (theme) => getActionButtonBackground(theme),
+              "& .MuiToggleButtonGroup-grouped": {
+                borderColor: "divider",
+              },
+            }}
+          >
+            {isIssueLevel && !isUsIssue ? (
+              <CollectionActionButton
+                item={selectedItem}
+                collected={isCollected}
+                onClose={this.props.handleClose}
+                enqueueSnackbar={this.props.enqueueSnackbar}
+              />
+            ) : null}
 
-          <Tooltip title={canDelete ? "Löschen" : "Löschen nicht möglich"}>
-            <span>
-              <IconButton
-                aria-label="Löschen"
-                disabled={!canDelete}
-                onClick={() => this.handleDelete()}
+            <Tooltip title={canDelete ? "Löschen" : "Löschen nicht möglich"}>
+              <span>
+                <ToggleButton
+                  value="delete"
+                  aria-label="Löschen"
+                  disabled={!canDelete}
+                  onClick={() => this.handleDelete()}
+                  sx={actionButtonSx}
+                >
+                  <DeleteIcon />
+                </ToggleButton>
+              </span>
+            </Tooltip>
+
+            <Tooltip title="Bearbeiten">
+              <ToggleButton
+                value="edit"
+                aria-label="Bearbeiten"
+                onClick={() => {
+                  const us = resolveItemUs(selectedItem, this.props.level, Boolean(this.props.us));
+                  this.props.onNavigate?.(
+                    "/edit" + generateSeoUrl(toSelectedRoot(selectedItem, this.props.level), us)
+                  );
+                  this.props.handleClose?.();
+                }}
                 sx={actionButtonSx}
               >
-                <DeleteIcon />
-              </IconButton>
-            </span>
-          </Tooltip>
-
-          <Tooltip title="Bearbeiten">
-            <IconButton
-              aria-label="Bearbeiten"
-              onClick={() => {
-                const us = resolveItemUs(selectedItem, this.props.level, Boolean(this.props.us));
-                this.props.onNavigate?.(
-                  "/edit" + generateSeoUrl(toSelectedRoot(selectedItem, this.props.level), us)
-                );
-                this.props.handleClose?.();
-              }}
-              sx={actionButtonSx}
-            >
-              <EditIcon />
-            </IconButton>
-          </Tooltip>
+                <EditIcon />
+              </ToggleButton>
+            </Tooltip>
+          </ToggleButtonGroup>
         </Box>
 
         <DeletionDialog
@@ -240,7 +275,8 @@ function CollectionActionButton(props: Readonly<ActionMenuItemProps>) {
 
   return (
     <Tooltip title={label}>
-      <IconButton
+      <ToggleButton
+        value="collection"
         aria-label={label}
         onClick={async () => {
           const oldInput = buildIssueLookupInput(props.item);
@@ -277,7 +313,7 @@ function CollectionActionButton(props: Readonly<ActionMenuItemProps>) {
         sx={actionButtonSx}
       >
         {props.collected ? <CheckBoxIcon /> : <CheckBoxOutlineBlankIcon />}
-      </IconButton>
+      </ToggleButton>
     </Tooltip>
   );
 }
