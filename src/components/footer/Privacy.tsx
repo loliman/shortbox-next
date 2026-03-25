@@ -230,7 +230,7 @@ function Privacy() {
               berechtigten Interessen geschieht. Vorbehaltlich ausdrücklicher Einwilligung oder
               vertraglich erforderlicher Übermittlung, verarbeiten oder lassen wir die Daten nur in
               Drittländern mit einem anerkannten Datenschutzniveau, zu denen die unter dem
-              "Privacy-Shield" zertifizierten US-Verarbeiter gehören oder auf Grundlage besonderer
+              &quot;Privacy-Shield&quot; zertifizierten US-Verarbeiter gehören oder auf Grundlage besonderer
               Garantien, wie z.B. vertraglicher Verpflichtung durch sogenannte
               Standardschutzklauseln der EU-Kommission, dem Vorliegen von Zertifizierungen oder
               verbindlichen internen Datenschutzvorschriften verarbeiten (Art. 44 bis 49 DSGVO,

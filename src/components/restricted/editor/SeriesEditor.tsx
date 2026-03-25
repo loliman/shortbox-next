@@ -21,6 +21,7 @@ import type { SxProps, Theme } from "@mui/material/styles";
 import { mutationRequest } from "../../../lib/client/mutation-request";
 import FormPageShell from "../../form-shell/FormPageShell";
 import FormSection from "../../form-shell/FormSection";
+import type { SelectedRoot } from "../../../types/domain";
 
 const MIN_QUERY_LENGTH = 2;
 const editorFieldSx = { width: "100%", maxWidth: { xs: "100%", md: 420 } } as const;
@@ -81,7 +82,10 @@ function SeriesEditorView(props: Readonly<SeriesEditorProps>) {
     createInitialSeriesValues(props.defaultValues)
   );
 
-  const seriesLabel = generateLabel({ series: defaultValues, us: defaultValues.publisher.us } as any);
+  const seriesLabel = generateLabel({
+    series: defaultValues as unknown as SelectedRoot["series"],
+    us: defaultValues.publisher.us,
+  });
   const header = edit ? seriesLabel + " bearbeiten" : "Serie erstellen";
   const submitLabel = edit ? "Speichern" : "Erstellen";
   const successMessage = edit ? " erfolgreich gespeichert" : " erfolgreich erstellt";
@@ -121,17 +125,18 @@ function SeriesEditorView(props: Readonly<SeriesEditorProps>) {
           const nextItem = result.item;
           if (!nextItem) throw new Error("Serie konnte nicht gespeichert werden");
 
-          enqueueSnackbar(
-            generateLabel({ series: nextItem, us: Boolean(nextItem.publisher?.us) } as any) +
-              successMessage,
-            {
-              variant: "success",
-            }
-          );
+          const nextUs = Boolean(nextItem.publisher?.us);
+          const nextSelection: SelectedRoot = {
+            series: nextItem as unknown as SelectedRoot["series"],
+            us: nextUs,
+          };
+          enqueueSnackbar(generateLabel(nextSelection) + successMessage, {
+            variant: "success",
+          });
           router.push(
             generateSeoUrl(
-              { series: nextItem, us: Boolean(nextItem.publisher?.us) } as any,
-              Boolean(nextItem.publisher?.us)
+              nextSelection,
+              nextUs
             )
           );
         } catch (error) {

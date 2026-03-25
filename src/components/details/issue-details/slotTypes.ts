@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type React from "react";
 import type { SessionData } from "../../../app/session";
 import type { RouteQuery } from "../../../types/route-ui";

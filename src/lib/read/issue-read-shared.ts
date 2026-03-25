@@ -269,7 +269,7 @@ export function serializePreviewIssue(issue: {
           : null,
       })),
       collectedmultipletimes: story.collectedMultipleTimes,
-    })) as any,
+    })),
     series: issue.series
       ? {
           title: issue.series.title || null,

@@ -4,7 +4,10 @@ import PublisherDetails from "@/src/components/details/PublisherDetails";
 import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
 import { readPublisherDetails } from "@/src/lib/read/publisher-read";
 import { buildHierarchyLevel, buildSelectedRoot, normalizePageQuery } from "@/src/lib/routes/page-state";
-import { buildPublisherBreadcrumbStructuredData, buildPublisherCollectionPageStructuredData } from "@/src/lib/routes/structured-data";
+import {
+  buildPublisherBreadcrumbStructuredData,
+  buildPublisherCollectionPageStructuredData,
+} from "@/src/lib/routes/structured-data";
 import { createPageMetadata, createRouteMetadata } from "@/src/lib/routes/metadata";
 import { readServerSession } from "@/src/lib/server/session";
 import { generateSeoUrl } from "@/src/util/hierarchy";
@@ -89,7 +92,7 @@ export default async function DePublisherPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageJsonLd) }}
       />
       <PublisherDetails
-        selected={selected as any}
+        selected={selected}
         level={level}
         us={false}
         query={query}

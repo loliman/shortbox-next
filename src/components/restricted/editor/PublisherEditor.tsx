@@ -17,6 +17,7 @@ import Stack from "@mui/material/Stack";
 import { mutationRequest } from "../../../lib/client/mutation-request";
 import FormPageShell from "../../form-shell/FormPageShell";
 import FormSection from "../../form-shell/FormSection";
+import type { SelectedRoot } from "../../../types/domain";
 
 const editorFieldSx = { width: "100%", maxWidth: { xs: "100%", md: 420 } } as const;
 const editorTextAreaSx = { width: "100%", maxWidth: { xs: "100%", md: 640 } } as const;
@@ -65,7 +66,10 @@ function PublisherEditorView(props: Readonly<PublisherEditorProps>) {
     createInitialPublisherValues(props.defaultValues)
   );
 
-  const publisherLabel = generateLabel({ publisher: defaultValues, us: defaultValues.us } as any);
+  const publisherLabel = generateLabel({
+    publisher: defaultValues as unknown as SelectedRoot["publisher"],
+    us: defaultValues.us,
+  });
   const header = edit ? publisherLabel + " bearbeiten" : "Verlag erstellen";
   const submitLabel = edit ? "Speichern" : "Erstellen";
   const successMessage = edit ? " erfolgreich gespeichert" : " erfolgreich erstellt";
@@ -102,11 +106,16 @@ function PublisherEditorView(props: Readonly<PublisherEditorProps>) {
           const nextItem = result.item;
           if (!nextItem) throw new Error("Publisher konnte nicht gespeichert werden");
 
-          enqueueSnackbar(generateLabel({ publisher: nextItem, us: Boolean(nextItem.us) } as any) + successMessage, {
+          const nextUs = Boolean(nextItem.us);
+          const nextSelection: SelectedRoot = {
+            publisher: nextItem as unknown as SelectedRoot["publisher"],
+            us: nextUs,
+          };
+          enqueueSnackbar(generateLabel(nextSelection) + successMessage, {
             variant: "success",
           });
           router.push(
-            generateSeoUrl({ publisher: nextItem, us: Boolean(nextItem.us) } as any, Boolean(nextItem.us))
+            generateSeoUrl(nextSelection, nextUs)
           );
         } catch (error) {
           const message = error instanceof Error && error.message ? ` [${error.message}]` : "";

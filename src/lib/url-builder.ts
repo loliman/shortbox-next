@@ -99,7 +99,6 @@ function buildSeoFilterLandingUrl(locale: Locale, type: "person" | "arc" | "appe
 export function buildPersonFilterUrl(
   locale: Locale,
   name: string,
-  _type?: string
 ): string {
   return buildSeoFilterLandingUrl(locale, "person", generatePersonSlug(name));
 }
@@ -121,7 +120,6 @@ export function buildPersonFilterUrl(
 export function buildArcFilterUrl(
   locale: Locale,
   title: string,
-  _type?: string
 ): string {
   return buildSeoFilterLandingUrl(locale, "arc", generateArcSlug(title));
 }
@@ -143,7 +141,6 @@ export function buildArcFilterUrl(
 export function buildAppearanceFilterUrl(
   locale: Locale,
   name: string,
-  _type?: string
 ): string {
   return buildSeoFilterLandingUrl(locale, "appearance", generateAppearanceSlug(name));
 }

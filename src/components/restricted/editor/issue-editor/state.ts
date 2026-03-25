@@ -1,11 +1,15 @@
 import { generateLabel } from "../../../../util/hierarchy";
+import type { SelectedRoot } from "../../../../types/domain";
 import type { IssueEditorProps, IssueEditorState, IssueEditorFormValues } from "./types";
 
 export function buildIssueEditorState(
   props: Pick<IssueEditorProps, "edit" | "copy">,
   defaultValues: IssueEditorFormValues
 ): IssueEditorState {
-  const issueLabel = generateLabel({ issue: defaultValues, us: defaultValues.series.publisher.us } as any);
+  const issueLabel = generateLabel({
+    issue: defaultValues as unknown as SelectedRoot["issue"],
+    us: defaultValues.series.publisher.us,
+  });
 
   return {
     defaultValues,

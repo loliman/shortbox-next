@@ -131,13 +131,13 @@ export default async function DeSeriesPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageJsonLd) }}
       />
       <SeriesDetails
-        selected={selected as any}
+        selected={selected}
         level={level}
         us={false}
         query={query}
         session={session}
         initialFilterCount={navigationData.initialFilterCount}
-        initialData={initialData as any}
+        initialData={initialData}
       />
     </>
   );

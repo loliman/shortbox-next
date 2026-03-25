@@ -7,6 +7,7 @@ import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import ButtonBase from "@mui/material/ButtonBase";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
+import type { Theme } from "@mui/material/styles";
 import { getIssueUrl } from "../../../../util/issuePresentation";
 import type { VariantIssue } from "./types";
 import { getPreferredCoverUrl } from "../../../generic/coverUrl";
@@ -168,7 +169,7 @@ const outlinedStatusIconSx = {
   },
 } as const;
 
-const statusChipSx = (theme: any) => ({
+const statusChipSx = (theme: Theme) => ({
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",

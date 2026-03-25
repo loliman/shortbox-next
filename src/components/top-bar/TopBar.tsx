@@ -222,7 +222,7 @@ export default function TopBar(ownProps: TopBarProps) {
             navigationPending={navigationPending}
             onLogout={onLogout}
             resetNavigationState={ownProps.resetNavigationState}
-            SwitchComponent={Android12Switch as any}
+            SwitchComponent={Android12Switch}
           />
         )}
       </Toolbar>
@@ -251,11 +251,11 @@ export default function TopBar(ownProps: TopBarProps) {
           navigationPending={navigationPending}
           onLogout={onLogout}
           resetNavigationState={ownProps.resetNavigationState}
-          SwitchComponent={Android12Switch as any}
+          SwitchComponent={Android12Switch}
           HamburgerIconComponent={HamburgerIcon}
           drawerOpen={drawerOpen}
           showNavigation={showNavigation}
-          FilterButton={TopBarFilterMenu as any}
+          FilterButton={TopBarFilterMenu}
         />
       ) : null}
 

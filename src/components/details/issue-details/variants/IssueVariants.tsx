@@ -45,7 +45,7 @@ const outlinedStatusIconSx = {
     paintOrder: "stroke fill",
   },
 } as const;
-const statusChipSx = (theme: any) => ({
+const statusChipSx = (theme: Theme) => ({
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",

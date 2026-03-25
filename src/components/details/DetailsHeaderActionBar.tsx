@@ -10,6 +10,7 @@ import { usePendingNavigation } from "../generic/usePendingNavigation";
 import type { SelectedRoot } from "../../types/domain";
 import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
 import type { SessionData } from "../../app/session";
+import type { ListingQuery } from "../../util/listingQuery";
 
 type DetailsHeaderActionBarProps = {
   id?: string | number | null;
@@ -60,7 +61,7 @@ export default function DetailsHeaderActionBar(props: Readonly<DetailsHeaderActi
 
       {showSort ? (
         <SortContainer
-          query={props.query as any}
+          query={props.query as ListingQuery}
           selected={props.selected}
           us={props.us}
           showPendingIndicator={false}

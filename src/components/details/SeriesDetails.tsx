@@ -3,11 +3,9 @@ import { notFound } from "next/navigation";
 import NextLink from "next/link";
 import CardHeader from "@mui/material/CardHeader";
 import CardContent from "@mui/material/CardContent";
-import Stack from "@mui/material/Stack";
 import Link from "@mui/material/Link";
 import Typography from "@mui/material/Typography";
 import { generateLabel } from "../../util/hierarchy";
-import EditButton from "../restricted/EditButton";
 import TitleLine from "../generic/TitleLine";
 import { IssueHistoryList } from "./DetailsListingSections";
 import { DetailsAddInfo } from "./DetailsAddInfo";
@@ -15,8 +13,6 @@ import DetailsHeaderActionBar from "./DetailsHeaderActionBar";
 import type { SelectedRoot } from "../../types/domain";
 import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
 import type { SessionData } from "../../app/session";
-import SortContainer from "../SortContainer";
-import Box from "@mui/material/Box";
 import { buildGenreFilterUrl } from "../../lib/url-builder";
 import type { PreviewIssue } from "../issue-preview/utils/issuePreviewUtils";
 
@@ -35,19 +31,11 @@ interface SeriesDetailsData {
 }
 
 interface SeriesDetailsProps {
-  initialData?: { details?: SeriesDetailsData | null; issues?: PreviewIssue[] } | null;
+  initialData?: { details?: SeriesDetailsData | null; issues?: unknown[] } | null;
   initialPublisherNodes?: Array<{ id?: string | null; name?: string | null; us?: boolean | null }>;
   initialSeriesNodesByPublisher?: Record<string, unknown[]>;
   initialIssueNodesBySeriesKey?: Record<string, unknown[]>;
-  selected: SelectedRoot & {
-    series: {
-      title: string;
-      volume: number;
-      publisher: {
-        name: string;
-      };
-    };
-  };
+  selected: SelectedRoot;
   level: LayoutRouteData["level"];
   us: boolean;
   query?: RouteQuery | null;
@@ -142,7 +130,7 @@ function GenreLinksBlock(props: Readonly<{ genreLinks: string[]; us: boolean }>)
 export default function SeriesDetails(props: Readonly<SeriesDetailsProps>) {
   const us = Boolean(props.us);
   const details = props.initialData?.details || null;
-  const issues = props.initialData?.issues || [];
+  const issues = (props.initialData?.issues || []) as PreviewIssue[];
   if (!details) notFound();
   const endYearLabel = readEndYearLabel(details);
   const genreLabel = readTextValue(details.genre);
@@ -167,7 +155,7 @@ export default function SeriesDetails(props: Readonly<SeriesDetailsProps>) {
         }}
         title={
           <TitleLine
-            title={generateLabel({ series: details as any, us })}
+            title={generateLabel({ series: details, us })}
           />
         }
         subheader={subheaderLabel}

@@ -12,7 +12,7 @@ interface IssueDetailsDEBottomProps {
     series?: Record<string, unknown>;
     number?: string | number;
   };
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export function IssueDetailsDEBottom(props: Readonly<IssueDetailsDEBottomProps>) {

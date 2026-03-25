@@ -290,7 +290,7 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
             <IssueReferenceInline
               seriesLabel={
                 hasIssueReference
-                  ? generateLabel({ series: issue?.series as any } as any)
+                  ? generateLabel({ series: issue?.series as SelectedRoot["series"] })
                   : undefined
               }
               number={hasIssueReference ? issue?.number : undefined}

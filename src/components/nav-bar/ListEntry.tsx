@@ -25,6 +25,7 @@ type ListEntryItem = {
     publisher?: { name?: string };
   };
   publisher?: { name?: string };
+  cover?: { url?: string | null } | null;
 };
 
 interface TypeListEntryProps {
@@ -68,7 +69,7 @@ export default function TypeListEntry(props: Readonly<TypeListEntryProps>) {
         }
 
         router.push(
-          buildRouteHref(generateSeoUrl(item as any, Boolean(us)), props.query, {
+          buildRouteHref(generateSeoUrl(item as unknown as SelectedRoot, Boolean(us)), props.query, {
             expand: null,
             filter: props.query ? props.query.filter : null,
           })
@@ -92,7 +93,7 @@ export default function TypeListEntry(props: Readonly<TypeListEntryProps>) {
 
   if (supportsCoverPreview) {
     return (
-      <CoverTooltip issue={item as any}>
+      <CoverTooltip issue={item}>
         <Box data-item-index={props.idx}>{row}</Box>
       </CoverTooltip>
     );
@@ -109,7 +110,7 @@ function createItemLabel(item: ListEntryItem, level: string | undefined, us?: bo
     return "#" + item.number + " " + seriesTitle;
   }
 
-  return generateLabel(item as any);
+  return generateLabel(item as unknown as SelectedRoot);
 }
 
 function ListEntryPrimary(props: {

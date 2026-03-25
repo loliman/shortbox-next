@@ -28,7 +28,7 @@ function Contact() {
           </Typography>
 
           <Typography>
-            Inhaltliche Fehler könnt ihr bequem über das "Bug-Icon" (nur auf DE-Ausgaben Ebene sichtbar) unten rechts
+            Inhaltliche Fehler könnt ihr bequem über das &quot;Bug-Icon&quot; (nur auf DE-Ausgaben Ebene sichtbar) unten rechts
             melden. Diese schlagen dann automatisiert bei mir auf, ich prüfe diese und ändere sie dann entsprechend.
           </Typography>
 

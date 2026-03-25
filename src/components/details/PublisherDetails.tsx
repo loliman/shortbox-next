@@ -8,19 +8,23 @@ import { IssueHistoryList } from "./DetailsListingSections";
 import { DetailsPagePlaceholder } from "../placeholders/DetailsPagePlaceholder";
 import { DetailsAddInfo } from "./DetailsAddInfo";
 import DetailsHeaderActionBar from "./DetailsHeaderActionBar";
-import type { SelectedRoot } from "../../types/domain";
+import type { PreviewIssue } from "../issue-preview/utils/issuePreviewUtils";
+import type { Publisher, SelectedRoot } from "../../types/domain";
 import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
 import type { SessionData } from "../../app/session";
 
+interface PublisherDetailsData extends Publisher {
+  active?: boolean | null;
+  endyear?: number | null;
+  startyear?: number | null;
+  addinfo?: string | null;
+}
+
 interface PublisherDetailsProps {
-  initialData?: { details?: Record<string, unknown> | null; issues?: unknown[] } | null;
+  initialData?: { details?: PublisherDetailsData | null; issues?: unknown[] } | null;
   initialPublisherNodes?: Array<{ id?: string | null; name?: string | null; us?: boolean | null }>;
   initialSeriesNodesByPublisher?: Record<string, unknown[]>;
-  selected: SelectedRoot & {
-    publisher: {
-      name: string;
-    };
-  };
+  selected: SelectedRoot;
   level: LayoutRouteData["level"];
   us: boolean;
   query?: RouteQuery | null;
@@ -32,11 +36,14 @@ export default function PublisherDetails(props: Readonly<PublisherDetailsProps>)
   const selected = props.selected;
   const us = Boolean(props.us);
   const details = props.initialData?.details || null;
-  const issues = props.initialData?.issues || [];
+  const issues = (props.initialData?.issues || []) as PreviewIssue[];
   const detailsError = null;
   if (!details) notFound();
-  const endYearLabel =
-    details && (details.active || details.endyear === 0) ? "heute" : details?.endyear;
+  const startYearLabel =
+    typeof details.startyear === "number" || typeof details.startyear === "string"
+      ? String(details.startyear)
+      : "";
+  const endYearLabel = details.active || details.endyear === 0 ? "heute" : String(details.endyear ?? "");
   const previewProps = {
     us,
     session: props.session,
@@ -72,10 +79,10 @@ export default function PublisherDetails(props: Readonly<PublisherDetailsProps>)
           }}
           title={
             <TitleLine
-              title={generateLabel({ publisher: details as any, us })}
+              title={generateLabel({ publisher: details, us })}
             />
           }
-          subheader={String(details.startyear || "") + " - " + String(endYearLabel || "")}
+          subheader={`${startYearLabel} - ${endYearLabel}`}
           action={
             <DetailsHeaderActionBar
               id={(details.id as string | number | undefined) ?? undefined}
@@ -90,12 +97,12 @@ export default function PublisherDetails(props: Readonly<PublisherDetailsProps>)
         />
 
         <CardContent sx={{ pt: 1 }}>
-          <DetailsAddInfo addinfo={(details.addinfo as string | null | undefined) ?? undefined} />
+          <DetailsAddInfo addinfo={details.addinfo ?? undefined} />
 
           <IssueHistoryList
             query={props.query}
             compactLayout={false}
-            issues={issues as any}
+            issues={issues}
             loadingMore={false}
             previewProps={previewProps}
             showSort={false}

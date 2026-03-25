@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 type GlobalErrorProps = Readonly<{
   error: Error & { digest?: string };
   reset: () => void;
@@ -73,7 +75,7 @@ export default function GlobalError(props: GlobalErrorProps) {
           >
             Erneut versuchen
           </button>
-          <a
+          <Link
             href="/de"
             style={{
               borderRadius: "999px",
@@ -85,7 +87,7 @@ export default function GlobalError(props: GlobalErrorProps) {
             }}
           >
             Zu Shortbox DE
-          </a>
+          </Link>
         </div>
       </section>
     </main>

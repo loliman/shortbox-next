@@ -85,8 +85,8 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
   }
 
   const arcs = collectIssueArcs(issueForVariants, us);
-  const breadcrumbJsonLd = buildIssueBreadcrumbStructuredData(issueForVariants as any, us ? "us" : "de");
-  const comicIssueJsonLd = buildIssueComicStructuredData(issueForVariants as any, us ? "us" : "de");
+  const breadcrumbJsonLd = buildIssueBreadcrumbStructuredData(issueForVariants, us ? "us" : "de");
+  const comicIssueJsonLd = buildIssueComicStructuredData(issueForVariants, us ? "us" : "de");
   const coverGalleryIssues = buildCoverGalleryIssues(issueForVariants);
   const hasComicGuideAttribution =
     !us &&
@@ -98,12 +98,12 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
     <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.82, textAlign: "left" }}>
       Das Cover für&nbsp;
       <a
-        href={generateComicGuideUrl(issueForVariants as any)}
+        href={generateComicGuideUrl(issueForVariants)}
         rel="noopener noreferrer nofollow"
         target="_blank"
       >
         <IssueReferenceInline
-          seriesLabel={generateLabel({ series: issueForVariants.series } as any)}
+          seriesLabel={generateLabel({ series: issueForVariants.series })}
           number={issueForVariants.number}
           legacy_number={issueForVariants.legacy_number}
         />
@@ -118,12 +118,12 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
     <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.82, textAlign: "left" }}>
       Informationen über&nbsp;
       <a
-        href={generateMarvelDbUrl(issueForVariants as any)}
+        href={generateMarvelDbUrl(issueForVariants)}
         rel="noopener noreferrer nofollow"
         target="_blank"
       >
         <IssueReferenceInline
-          seriesLabel={generateLabel({ series: issueForVariants.series } as any)}
+          seriesLabel={generateLabel({ series: issueForVariants.series })}
           number={issueForVariants.number}
           legacy_number={issueForVariants.legacy_number}
         />
@@ -186,7 +186,7 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
           <TitleLine
             title={
               <IssueReferenceInline
-                seriesLabel={generateLabel({ series: loadedIssue.series } as any)}
+                seriesLabel={generateLabel({ series: loadedIssue.series })}
                 number={loadedIssue.number}
                 legacy_number={loadedIssue.legacy_number}
               />

@@ -28,7 +28,7 @@ function IssueCreate(props: Readonly<IssueCreateProps>) {
   });
   const snackbarBridge = useSnackbarBridge();
   const defaultValues = buildIssueCreateDefaultValues(
-    props.selected as any,
+    props.selected as unknown as Record<string, unknown>,
     props.level
   );
 

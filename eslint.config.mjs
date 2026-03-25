@@ -14,13 +14,6 @@ const eslintConfig = [
       "src/services/MarvelCrawlerService.ts",
     ],
   },
-  {
-    rules: {
-      "@typescript-eslint/no-explicit-any": "off",
-      "prefer-const": "off",
-      "react/no-unescaped-entities": "off",
-    },
-  },
 ];
 
 export default eslintConfig;

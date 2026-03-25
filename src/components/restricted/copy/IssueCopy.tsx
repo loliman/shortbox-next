@@ -52,7 +52,7 @@ function IssueCopy(props: Readonly<IssueCopyProps>) {
           />
         );
 
-      const defaultValues = mapIssueToEditorDefaultValues(issueDetails as any, true);
+      const defaultValues = mapIssueToEditorDefaultValues(issueDetails, true);
 
       return (
         <IssueEditor

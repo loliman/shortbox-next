@@ -433,7 +433,7 @@ export async function readIssueNavigationNodes(
         collected: variant.collected ?? null,
         format: toOptionalText(variant.format),
         variant: toOptionalText(variant.variant),
-      })) as any;
+      }));
     return serialized;
   });
 

@@ -15,7 +15,7 @@ interface IssueDetailsUSDetailsProps {
     } | null;
     individuals?: Array<{ type?: string } & Record<string, unknown>>;
   };
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export function IssueDetailsUSDetails(props: Readonly<IssueDetailsUSDetailsProps>) {
@@ -34,9 +34,9 @@ export function IssueDetailsUSDetails(props: Readonly<IssueDetailsUSDetailsProps
       <DetailsRow
         key="coverartists"
         label="Cover Artists"
-        value={toChipList(coverArtists, props as any, "ARTIST")}
+        value={toChipList(coverArtists, { us: props.us }, "ARTIST")}
       />
-      <DetailsRow key="editor" label="Editor" value={toChipList(editors, props as any, "EDITOR")} />
+      <DetailsRow key="editor" label="Editor" value={toChipList(editors, { us: props.us }, "EDITOR")} />
     </React.Fragment>
   );
 }

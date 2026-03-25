@@ -13,15 +13,15 @@ interface QueryResultProps {
   loadingVariant?: "page" | "inline" | "none";
   loadingLabel?: string;
   error?: unknown;
-  data?: Record<string, any> | null;
+  data?: (Record<string, unknown> & { errors?: unknown }) | null;
   selected?: SelectedRoot | null;
-  placeholder?: React.ReactElement;
+  placeholder?: React.ReactElement<{ key?: React.Key }>;
   placeholderCount?: number;
 }
 
 export default function QueryResult(props: Readonly<QueryResultProps>) {
-  let { appIsLoading, loading, error, data, selected } = props;
-  appIsLoading = appIsLoading ?? false;
+  const { appIsLoading: initialAppIsLoading, loading, error, data, selected } = props;
+  const appIsLoading = initialAppIsLoading ?? false;
 
   const renderPlaceholder = () => {
     if (!props.placeholder) return null;
@@ -31,7 +31,7 @@ export default function QueryResult(props: Readonly<QueryResultProps>) {
 
     for (let i = 0; i < placeholderCount; i++)
       placeholder.push(
-        React.cloneElement(props.placeholder as React.ReactElement<any>, {
+        React.cloneElement(props.placeholder, {
           key: i,
         })
       );

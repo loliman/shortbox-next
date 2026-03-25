@@ -4,10 +4,20 @@ import Stack from "@mui/material/Stack";
 import SortContainer from "../SortContainer";
 import FilterSummaryBar from "../filter/FilterSummaryBar";
 import type { ListingQuery } from "../../util/listingQuery";
+import type { SessionData } from "../../app/session";
+import type { SelectedRoot } from "../../types/domain";
+import type { RouteQuery } from "../../types/route-ui";
+
+type ListingPreviewProps = {
+  us?: boolean;
+  session?: SessionData | null;
+  selected?: SelectedRoot;
+  query?: RouteQuery | null;
+};
 
 interface ListingToolbarProps {
   query?: ListingQuery;
-  previewProps?: Record<string, unknown>;
+  previewProps?: ListingPreviewProps;
   compactLayout?: boolean;
   showSort?: boolean;
 }
@@ -15,7 +25,7 @@ interface ListingToolbarProps {
 export default function ListingToolbar(props: Readonly<ListingToolbarProps>) {
   const showSort = props.showSort ?? true;
   const compactLayout = Boolean(props.compactLayout);
-  const previewProps = (props.previewProps || {}) as Record<string, unknown>;
+  const previewProps = props.previewProps || {};
 
   return (
     <Stack spacing={1.5} sx={{ width: "100%" }}>
@@ -34,8 +44,8 @@ export default function ListingToolbar(props: Readonly<ListingToolbarProps>) {
       {props.query?.filter ? (
         <FilterSummaryBar
           query={props.query}
-          us={previewProps.us as boolean | undefined}
-          selected={previewProps.selected as any}
+          us={previewProps.us}
+          selected={previewProps.selected}
           compactLayout={compactLayout}
         />
       ) : null}

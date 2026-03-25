@@ -12,7 +12,7 @@ interface IssueDetailsUSBottomProps {
     number?: string | number;
   };
   session?: unknown;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export function IssueDetailsUSBottom(props: Readonly<IssueDetailsUSBottomProps>) {

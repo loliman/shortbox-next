@@ -100,16 +100,6 @@ export function ChipList(props: Readonly<ChipListProps>) {
   );
 }
 
-const APPEARANCE_TYPES = new Set([
-  "CHARACTER",
-  "GROUP",
-  "RACE",
-  "ANIMAL",
-  "ITEM",
-  "VEHICLE",
-  "LOCATION",
-]);
-
 
 function normalizeToken(value: unknown): string {
   if (!value) return "";

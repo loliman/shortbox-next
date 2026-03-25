@@ -19,6 +19,7 @@ import {generateLabel} from "../../util/hierarchy";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import { mutationRequest } from "../../lib/client/mutation-request";
 import type { SessionData } from "../../app/session";
+import type { SelectedRoot } from "../../types/domain";
 import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
 import FormPageShell from "../form-shell/FormPageShell";
 import FormSection from "../form-shell/FormSection";
@@ -247,7 +248,7 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
                             opacity: 0.9,
                           }}
                       >
-                        {generateLabel({ series: rawIssue?.series as any } as any)} #{(rawIssue as any).number}
+                        {generateLabel({ series: rawIssue?.series as SelectedRoot["series"] })} #{toDisplay(rawIssue.number, "")}
                       </Typography>
 
                       <Typography
@@ -261,7 +262,7 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
                             opacity: 0.9,
                           }}
                       >
-                        {buildAddInfo(rawIssue as any)}
+                        {buildAddInfo(rawIssue)}
                       </Typography>
                       </Stack>
                     </AccordionSummary>
@@ -358,7 +359,8 @@ function JsonDiffReactView(props: Readonly<{ before: JsonValue; after: JsonValue
         }}
         jsonDiffOptions={{
           maxElisions: 2,
-          renderElision: (n: any, max: any) => (n < max) ? [...Array(n)].map(() => '…') : `… (${n} Einträge)`
+          renderElision: (n: number, max: number) =>
+            n < max ? [...Array(n)].map(() => "…") : `… (${n} Einträge)`,
         }}
       />
     </Box>

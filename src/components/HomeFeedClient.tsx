@@ -21,6 +21,13 @@ import type { SessionData } from "../app/session";
 import { useInitialResponsiveGuess } from "../app/responsiveGuessContext";
 import type { LayoutRouteData, RouteQuery } from "../types/route-ui";
 
+type HomePreviewProps = {
+  us: boolean;
+  session?: SessionData | null;
+  selected: LayoutRouteData["selected"];
+  query?: RouteQuery | null;
+};
+
 const GALLERY_GRID_SX = {
   display: "grid",
   columnGap: 3,
@@ -72,7 +79,7 @@ export default function HomeFeedClient(props: Readonly<HomeFeedClientProps>) {
     ...GALLERY_GRID_SX,
     gridTemplateColumns: galleryGridColumns,
   } as const;
-  const previewProps = React.useMemo(
+  const previewProps = React.useMemo<HomePreviewProps>(
     () => ({
       us: routeUs,
       session: props.session,
@@ -169,7 +176,7 @@ export default function HomeFeedClient(props: Readonly<HomeFeedClientProps>) {
       {!compactLayout && query?.filter ? (
         <ListingToolbar
           query={query}
-          previewProps={previewProps as any}
+          previewProps={previewProps}
           compactLayout={compactLayout}
           showSort={false}
         />
@@ -178,7 +185,7 @@ export default function HomeFeedClient(props: Readonly<HomeFeedClientProps>) {
       {compactLayout ? (
         <ListingToolbar
           query={query}
-          previewProps={previewProps as any}
+          previewProps={previewProps}
           compactLayout={compactLayout}
           showSort
         />

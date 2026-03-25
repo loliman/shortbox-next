@@ -13,6 +13,13 @@ import { IssueReferenceInline } from "../../../generic/IssueNumberInline";
 import { editorSurfaceSx } from "../editorLayout";
 import { getSeriesLabel } from "../../../../util/issuePresentation";
 
+type StorySeriesLike = { title?: string };
+
+type StoryItemLike = {
+  part?: string | null;
+  addinfo?: string | null;
+};
+
 interface ContainsItemProps extends ContainsProps {
   item: FieldItem;
   index: number;
@@ -170,7 +177,7 @@ class ContainsItem extends React.Component<ContainsItemProps> {
                         }}
                     >
                         <IssueReferenceInline
-                            seriesLabel={getSeriesLabel(parent.issue?.series as any)}
+                            seriesLabel={getSeriesLabel(parent.issue?.series as StorySeriesLike | undefined)}
                             number={ parent.issue?.number}
                             legacy_number={parent.issue?.legacy_number}
                         />
@@ -201,7 +208,7 @@ class ContainsItem extends React.Component<ContainsItemProps> {
 
         <AccordionDetails sx={{ pr: 2, pb: 2, pt: 1.25, pl: 6 }}>
           <Box>
-            {React.cloneElement(this.props.fields as React.ReactElement<any>, {
+            {React.cloneElement(this.props.fields as React.ReactElement<Record<string, unknown>>, {
               ...this.props,
               disabled: isDisabled,
             })}
@@ -217,7 +224,7 @@ function normalizeDisplayStoryTitle(value: string | null | undefined): string {
     return normalized === "Untitled" ? "" : normalized;
 }
 
-function buildAddinfoText(item: any): string {
+function buildAddinfoText(item: StoryItemLike): string {
     let addinfoText = "";
     if (item.part && item.part.indexOf("/x") === -1) {
         addinfoText += "Teil " + item.part.replace("/", " von ");

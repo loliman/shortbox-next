@@ -92,6 +92,16 @@ function makeResolved(input: {
   };
 }
 
+function readEntryName(entry: unknown): string {
+  if (!entry || typeof entry !== "object") return "";
+  return String((entry as { name?: unknown }).name || "");
+}
+
+function readEntryTitle(entry: unknown): string {
+  if (!entry || typeof entry !== "object") return "";
+  return String((entry as { title?: unknown }).title || "");
+}
+
 export async function resolveSeoFilterLanding(
   input: ResolveInput
 ): Promise<ResolvedSeoFilterLanding | null> {
@@ -109,7 +119,7 @@ export async function resolveSeoFilterLanding(
       limit: 250,
     });
 
-    const match = list.items.find((entry) => generatePersonSlug(String((entry as any)?.name || "")) === safeSlug) as
+    const match = list.items.find((entry) => generatePersonSlug(readEntryName(entry)) === safeSlug) as
       | { name?: string }
       | undefined;
 
@@ -135,7 +145,7 @@ export async function resolveSeoFilterLanding(
       limit: 250,
     });
 
-    const match = list.items.find((entry) => generateArcSlug(String((entry as any)?.title || "")) === safeSlug) as
+    const match = list.items.find((entry) => generateArcSlug(readEntryTitle(entry)) === safeSlug) as
       | { title?: string }
       | undefined;
 
@@ -162,7 +172,7 @@ export async function resolveSeoFilterLanding(
     });
 
     const match = list.items.find(
-      (entry) => generateAppearanceSlug(String((entry as any)?.name || "")) === safeSlug
+      (entry) => generateAppearanceSlug(readEntryName(entry)) === safeSlug
     ) as { name?: string } | undefined;
 
     if (!match?.name) return null;
@@ -186,7 +196,7 @@ export async function resolveSeoFilterLanding(
     limit: 250,
   });
 
-  const match = list.items.find((entry) => generateGenreSlug(String((entry as any)?.name || "")) === safeSlug) as
+  const match = list.items.find((entry) => generateGenreSlug(readEntryName(entry)) === safeSlug) as
     | { name?: string }
     | undefined;
 

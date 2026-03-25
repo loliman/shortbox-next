@@ -6,6 +6,7 @@ import Chip from "@mui/material/Chip";
 import Box from "@mui/material/Box";
 import { generateLabel } from "../../../../util/hierarchy";
 import { IssueReferenceInline } from "../../../generic/IssueNumberInline";
+import type { SelectedRoot } from "../../../../types/domain";
 
 type ContainsTitleSimpleItem = {
   addinfo?: string | null;
@@ -109,7 +110,11 @@ export function ContainsTitleSimple(props: Readonly<ContainsTitleSimpleProps>) {
           >
             {hasIssueReference ? (
               <IssueReferenceInline
-                seriesLabel={item.series ? generateLabel({ series: item.series } as any) : undefined}
+                seriesLabel={
+                  item.series
+                    ? generateLabel({ series: item.series as SelectedRoot["series"] })
+                    : undefined
+                }
                 number={item.number}
                 legacy_number={item.legacy_number}
               />

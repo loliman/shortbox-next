@@ -10,6 +10,7 @@ import InputAdornment from "@mui/material/InputAdornment";
 import Typography from "@mui/material/Typography";
 import SearchIcon from "@mui/icons-material/Search";
 import { alpha } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { usePendingNavigation } from "../generic/usePendingNavigation";
 
 type SearchNode = {
@@ -117,7 +118,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
     RESULT_PANEL_MAX_HEIGHT,
     resultRows * RESULT_ROW_HEIGHT + RESULT_PANEL_BOTTOM_BUFFER
   );
-  const getResultsSurfaceColor = (theme: any) =>
+  const getResultsSurfaceColor = (theme: Theme) =>
     theme.vars?.palette.background.paper ?? theme.palette.background.paper;
 
   const handleFocus = (
@@ -406,32 +407,32 @@ function getNodeTypeBadgeSx(type?: string | null) {
   switch (type) {
     case "publisher":
       return {
-        bgcolor: (theme: any) =>
+        bgcolor: (theme: Theme) =>
           alpha(theme.palette.warning.main, theme.palette.mode === "dark" ? 0.24 : 0.16),
-        color: (theme: any) =>
+        color: (theme: Theme) =>
           theme.palette.mode === "dark" ? theme.palette.warning.light : theme.palette.warning.dark,
         border: "1px solid",
-        borderColor: (theme: any) =>
+        borderColor: (theme: Theme) =>
           alpha(theme.palette.warning.main, theme.palette.mode === "dark" ? 0.46 : 0.35),
       };
     case "series":
       return {
-        bgcolor: (theme: any) =>
+        bgcolor: (theme: Theme) =>
           alpha(theme.palette.info.main, theme.palette.mode === "dark" ? 0.22 : 0.14),
-        color: (theme: any) =>
+        color: (theme: Theme) =>
           theme.palette.mode === "dark" ? theme.palette.info.light : theme.palette.info.dark,
         border: "1px solid",
-        borderColor: (theme: any) =>
+        borderColor: (theme: Theme) =>
           alpha(theme.palette.info.main, theme.palette.mode === "dark" ? 0.42 : 0.3),
       };
     default:
       return {
-        bgcolor: (theme: any) =>
+        bgcolor: (theme: Theme) =>
           alpha(theme.palette.primary.main, theme.palette.mode === "dark" ? 0.24 : 0.12),
-        color: (theme: any) =>
+        color: (theme: Theme) =>
           theme.palette.mode === "dark" ? theme.palette.primary.light : theme.palette.primary.dark,
         border: "1px solid",
-        borderColor: (theme: any) =>
+        borderColor: (theme: Theme) =>
           alpha(theme.palette.primary.main, theme.palette.mode === "dark" ? 0.4 : 0.28),
       };
   }

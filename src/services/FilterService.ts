@@ -38,6 +38,38 @@ type FilterIssueRecord = Prisma.IssueGetPayload<{
   include: Prisma.IssueInclude;
 }>;
 
+// Narrow shapes for the runtime-populated Prisma relations used in filter functions.
+type AppearanceLinkShape = { appearance: { name: string } };
+type IndividualLinkShape = { individual: { name: string }; type?: string | null };
+type ArcLinkShape = { arc: { title: string } };
+type IssueArcLinkShape = { arc: { title: string } };
+
+type ChildStoryShape = {
+  appearances?: AppearanceLinkShape[] | null;
+};
+
+type ParentIssueShape = {
+  arcs?: ArcLinkShape[] | null;
+};
+
+type ParentStoryShape = {
+  appearances?: AppearanceLinkShape[] | null;
+  individuals?: IndividualLinkShape[] | null;
+  issue?: ParentIssueShape | null;
+};
+
+type FilterStoryShape = {
+  firstApp?: boolean | null;
+  onlyApp?: boolean | null;
+  onlyTb?: boolean | null;
+  otherOnlyTb?: boolean | null;
+  onlyOnePrint?: boolean | null;
+  parent?: ParentStoryShape | null;
+  appearances?: AppearanceLinkShape[] | null;
+  individuals?: IndividualLinkShape[] | null;
+  children?: ChildStoryShape[] | null;
+};
+
 function dedupeTerms(values: string[]): string[] {
   return values
     .map((value) => value.trim())
@@ -154,13 +186,13 @@ function formatRank(format: string | null | undefined): number {
 
 function getStoryAppearanceNames(issue: FilterIssueRecord, us: boolean): string[] {
   const values = new Set<string>();
-  for (const story of (issue.stories || []) as any[]) {
-    for (const link of (story.appearances || []) as any[]) values.add(link.appearance.name);
-    for (const child of (story.children || []) as any[]) {
-      for (const link of (child.appearances || []) as any[]) values.add(link.appearance.name);
+  for (const story of (issue.stories || []) as FilterStoryShape[]) {
+    for (const link of story.appearances || []) values.add(link.appearance.name);
+    for (const child of story.children || []) {
+      for (const link of child.appearances || []) values.add(link.appearance.name);
     }
     if (!us && story.parent) {
-      for (const link of (story.parent.appearances || []) as any[]) values.add(link.appearance.name);
+      for (const link of story.parent.appearances || []) values.add(link.appearance.name);
     }
   }
   return [...values];
@@ -169,13 +201,13 @@ function getStoryAppearanceNames(issue: FilterIssueRecord, us: boolean): string[
 function getArcTitles(issue: FilterIssueRecord, us: boolean): string[] {
   const values = new Set<string>();
   if (us) {
-    for (const link of (issue.arcs || []) as any[]) values.add(link.arc.title);
+    for (const link of (issue.arcs || []) as IssueArcLinkShape[]) values.add(link.arc.title);
     return [...values];
   }
 
-  for (const story of (issue.stories || []) as any[]) {
+  for (const story of (issue.stories || []) as FilterStoryShape[]) {
     if (!story.parent?.issue) continue;
-    for (const link of (story.parent.issue.arcs || []) as any[]) values.add(link.arc.title);
+    for (const link of story.parent.issue.arcs || []) values.add(link.arc.title);
   }
   return [...values];
 }
@@ -376,9 +408,9 @@ function matchesIndividuals(issue: FilterIssueRecord, individuals: RuntimeFilter
     const nonTranslatorTypes = normalizedTypes.filter((type) => type !== TRANSLATOR_STORY_INDIVIDUAL_TYPE);
     const includesTranslator = normalizedTypes.includes(TRANSLATOR_STORY_INDIVIDUAL_TYPE);
 
-    return ((issue.stories || []) as any[]).some((story) => {
-      const storyIndividuals = (story.individuals || []) as any[];
-      const parentIndividuals = (story.parent?.individuals || []) as any[];
+    return ((issue.stories || []) as FilterStoryShape[]).some((story) => {
+      const storyIndividuals = story.individuals || [];
+      const parentIndividuals = story.parent?.individuals || [];
 
       const matchesStory = (types: string[]) =>
         storyIndividuals.some(
@@ -406,7 +438,7 @@ function matchesIndividuals(issue: FilterIssueRecord, individuals: RuntimeFilter
 }
 
 function matchesStorySwitches(issue: FilterIssueRecord, filter: RuntimeFilter): boolean {
-  const stories = (issue.stories || []) as any[];
+  const stories = (issue.stories || []) as FilterStoryShape[];
 
   if (!stories.length) {
     if (filter.reprint) return false;

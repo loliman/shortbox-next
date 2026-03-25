@@ -8,6 +8,7 @@ import type { PreviewIssue } from "./issue-preview/utils/issuePreviewUtils";
 import { getIssueLabel, getIssueUrl } from "../util/issuePresentation";
 import type { SessionData } from "../app/session";
 import type { LayoutRouteData, RouteQuery } from "../types/route-ui";
+import type { ListingQuery } from "../util/listingQuery";
 
 const HOME_SEO_SUMMARY =
   "Shortbox listet alle deutschen Marvel Veröffentlichungen detailliert auf und ordnet diese den entsprechenden US Geschichten zu. Angefangen ueber Geschichten der bekanntesten Superhelden Spider-Man, Deadpool, den X-Men oder den Avengers oder unbekannteren Helden wie Moon Knight und den New Mutants, ueber Comics zum Marvel Cinematic Universe mit Captain America, Captain Marvel und Iron Man bis hin zu Western-Comics, Horror-Comics und Kinder-Comics wie den Gluecksbaerchis oder der Police Acadamy findet ihr hier alle Veroeffentlichungen in offiziellen Ausgaben, Raubkopien oder Fan-Comics.";
@@ -51,7 +52,7 @@ export default function Home(props: Readonly<HomeProps>) {
           }}
           title="All-New, All-Different Shortbox"
           subheader="Das deutsche Archiv für Marvel Comics"
-          action={<SortContainer query={props.query as any} selected={props.selected} us={props.us} />}
+          action={<SortContainer query={props.query as ListingQuery} selected={props.selected} us={props.us} />}
         />
         <Typography
           component="p"
@@ -101,7 +102,7 @@ export default function Home(props: Readonly<HomeProps>) {
           <ul>
             {snapshotItems.slice(0, 30).map((item, idx) => (
               <li key={`seo-snapshot-${idx}-${item?.id || item?.number || "x"}`}>
-                <a href={getIssueUrl(item as any, props.us)}>{getIssueLabel(item as any) || "Issue"}</a>
+                <a href={getIssueUrl(item, props.us)}>{getIssueLabel(item) || "Issue"}</a>
               </li>
             ))}
           </ul>

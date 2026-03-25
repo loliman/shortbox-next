@@ -15,7 +15,7 @@ interface IssueDetailsDEStoryDetailsProps {
     };
   };
   us?: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export function IssueDetailsDEStoryDetails(props: Readonly<IssueDetailsDEStoryDetailsProps>) {

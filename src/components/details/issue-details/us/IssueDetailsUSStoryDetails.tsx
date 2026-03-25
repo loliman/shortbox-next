@@ -15,7 +15,7 @@ import type { StoryIssue, StoryIssueRelation } from "../utils/storyIssueUtils";
 import { isSameIssue, toChildAddinfo, toIssueRowKey } from "../utils/storyIssueUtils";
 
 interface IssueReference extends Omit<StoryIssueRelation, "issue" | "parent"> {
-  [key: string]: any;
+  [key: string]: unknown;
   issue?: StoryIssue | null;
   number?: string | number;
   addinfo?: string;
@@ -41,7 +41,28 @@ interface IssueDetailsUSStoryDetailsProps {
   issue?: StoryIssue;
   us?: boolean;
   session?: unknown;
-  [key: string]: any;
+  [key: string]: unknown;
+}
+
+type StoryArc = { title?: string | null; type?: string | null };
+
+type StoryItemWithArcs = StoryLike & {
+  issue?: (StoryIssue & { arcs?: StoryArc[] | null }) | null;
+  parent?: (StoryLike & { issue?: (StoryIssue & { arcs?: StoryArc[] | null }) | null }) | null;
+};
+
+function readStoryArcs(item: StoryItemWithArcs): StoryArc[] {
+  const parentArcs = item.parent?.issue?.arcs;
+  if (Array.isArray(parentArcs)) {
+    return parentArcs.filter((arc): arc is StoryArc => Boolean(arc && typeof arc === "object"));
+  }
+
+  const issueArcs = item.issue?.arcs;
+  if (Array.isArray(issueArcs)) {
+    return issueArcs.filter((arc): arc is StoryArc => Boolean(arc && typeof arc === "object"));
+  }
+
+  return [];
 }
 
 function toStoryIssueRelation(value: IssueReference): StoryIssueRelation {
@@ -62,17 +83,7 @@ export function IssueDetailsUSStoryDetails(props: Readonly<IssueDetailsUSStoryDe
   const story = currentItem.parent ? currentItem.parent : currentItem;
   const currentIssue = props.issue || currentItem.issue || story.issue;
   const us = Boolean(props.us);
-  const storyArcs = Array.isArray((currentItem as any)?.parent?.issue?.arcs)
-    ? (currentItem as any).parent.issue.arcs.filter(
-        (arc: unknown): arc is { title?: string | null; type?: string | null } =>
-          Boolean(arc && typeof arc === "object")
-      )
-    : Array.isArray((currentItem as any)?.issue?.arcs)
-      ? (currentItem as any).issue.arcs.filter(
-          (arc: unknown): arc is { title?: string | null; type?: string | null } =>
-            Boolean(arc && typeof arc === "object")
-        )
-      : [];
+  const storyArcs = readStoryArcs(currentItem as StoryItemWithArcs);
   const reprints = Array.isArray(story?.reprints) ? story.reprints : [];
   const children = Array.isArray(currentItem.children) ? currentItem.children : [];
   const reprintOf = currentItem.reprintOf;

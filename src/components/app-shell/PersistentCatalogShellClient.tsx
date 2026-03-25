@@ -43,7 +43,7 @@ export default function PersistentCatalogShellClient(
     const entries = Array.from(searchParams.entries());
     const nextQuery = entries.length > 0 ? Object.fromEntries(entries) : {};
 
-    if (navigationState?.resolvedFilterQuery) {
+    if (navigationState && navigationState.resolvedFilterQuery) {
       nextQuery.filter = navigationState.resolvedFilterQuery;
     }
 
@@ -53,7 +53,7 @@ export default function PersistentCatalogShellClient(
     }
 
     return Object.keys(nextQuery).length > 0 ? nextQuery : null;
-  }, [navigationState?.resolvedFilterQuery, routeFilter, searchParams]);
+  }, [navigationState, routeFilter, searchParams]);
   const selected = React.useMemo(() => {
     if (routeFilter) return { us: props.us };
 

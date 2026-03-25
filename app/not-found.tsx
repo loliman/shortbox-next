@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function NotFound() {
   return (
     <main
@@ -44,7 +46,7 @@ export default function NotFound() {
         </p>
 
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-          <a
+          <Link
             href="/de"
             style={{
               borderRadius: "999px",
@@ -56,8 +58,8 @@ export default function NotFound() {
             }}
           >
             Zu Shortbox DE
-          </a>
-          <a
+          </Link>
+          <Link
             href="/us"
             style={{
               borderRadius: "999px",
@@ -69,7 +71,7 @@ export default function NotFound() {
             }}
           >
             Zu Shortbox US
-          </a>
+          </Link>
         </div>
       </section>
     </main>

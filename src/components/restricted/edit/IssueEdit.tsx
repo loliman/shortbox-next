@@ -56,7 +56,7 @@ function IssueEdit(props: Readonly<IssueEditProps>) {
           />
         );
 
-      const defaultValues = mapIssueToEditorDefaultValues(issueDetails as any, false);
+      const defaultValues = mapIssueToEditorDefaultValues(issueDetails, false);
       const lockedFields = issueDetails.inheritsStories
         ? {
             title: true,

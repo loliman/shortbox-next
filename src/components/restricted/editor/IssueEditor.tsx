@@ -11,8 +11,18 @@ import { buildIssueEditorState } from "./issue-editor/state";
 import IssueEditorFormContent from "./issue-editor/IssueEditorFormContent";
 import type { IssueEditorFormValues, IssueEditorProps } from "./issue-editor/types";
 import { mutationRequest } from "../../../lib/client/mutation-request";
+import type { SelectedRoot } from "../../../types/domain";
 
 type IssueMutationResult = Record<string, unknown>;
+
+function readIssueUs(item: IssueMutationResult): boolean {
+  const series = item.series as { publisher?: { us?: unknown } } | undefined;
+  return Boolean(series?.publisher?.us);
+}
+
+function toIssueSelection(item: IssueMutationResult, us: boolean): SelectedRoot {
+  return { issue: item as unknown as SelectedRoot["issue"], us };
+}
 
 function normalizeIssueEditorValues(
   value: IssueEditorFormValues | undefined
@@ -123,15 +133,16 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
           const nextItem = result.item;
           if (!nextItem) throw new Error("Ausgabe konnte nicht gespeichert werden");
 
-          enqueueSnackbar(generateLabel({ issue: nextItem, us: Boolean((nextItem.series as any)?.publisher?.us) } as any) + successMessage, {
+          const nextUs = readIssueUs(nextItem);
+          enqueueSnackbar(generateLabel(toIssueSelection(nextItem, nextUs)) + successMessage, {
             variant: "success",
           });
 
           if (!copyModeRef.current) {
             router.push(
               generateSeoUrl(
-                { issue: nextItem, us: Boolean((nextItem.series as any)?.publisher?.us) } as any,
-                Boolean((nextItem.series as any)?.publisher?.us)
+                toIssueSelection(nextItem, nextUs),
+                nextUs
               )
             );
             return;
@@ -143,11 +154,8 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
           router.push(
             "/copy/issue" +
               generateSeoUrl(
-                {
-                  issue: copiedSelection,
-                  us: Boolean((copiedSelection.series as any)?.publisher?.us),
-                } as any,
-                Boolean((copiedSelection.series as any)?.publisher?.us)
+                toIssueSelection(copiedSelection, readIssueUs(copiedSelection)),
+                readIssueUs(copiedSelection)
               )
           );
         } catch (error) {

@@ -89,7 +89,7 @@ export default async function UsPublisherPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageJsonLd) }}
       />
       <PublisherDetails
-        selected={selected as any}
+        selected={selected}
         level={level}
         us={true}
         query={query}

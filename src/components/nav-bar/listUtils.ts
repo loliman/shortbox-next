@@ -67,7 +67,7 @@ export function normalizeListLevelAndSelected(level: HierarchyLevelType, selecte
 }
 
 export function scrollToSelectedIssue(
-  data: any,
+  data: unknown,
   level: HierarchyLevelType,
   selected: SelectedRoot,
   listElement: HTMLUListElement | null
@@ -91,10 +91,11 @@ export function scrollToSelectedIssue(
   });
 }
 
-export function toNodeList(data: any, queryName: string): ListNode[] | null {
-  if (!data?.[queryName]) return null;
+export function toNodeList(data: unknown, queryName: string): ListNode[] | null {
+  const source = data as Record<string, unknown> | null | undefined;
+  if (!source?.[queryName]) return null;
 
-  const value = data[queryName];
+  const value = source[queryName];
   if (Array.isArray(value)) return value as ListNode[];
   if (isConnection(value)) {
     const connection = value as Connection<ListNode>;
