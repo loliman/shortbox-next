@@ -1,4 +1,4 @@
-import { vi } from "vitest";
+
 import { getPattern, updateField } from "./IssueEditorSections";
 
 describe("IssueEditorSections helper", () => {
@@ -10,7 +10,7 @@ describe("IssueEditorSections helper", () => {
   });
 
   it("updates live pattern placeholder while typing", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
 
     updateField("Spi", true, [], setFieldValue, "stories[0].individuals", "name");
 
@@ -20,7 +20,7 @@ describe("IssueEditorSections helper", () => {
   });
 
   it("adds a new type for an existing person", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
     const values = [{ name: "Peter Parker", type: ["WRITER"], role: ["Writer"] }];
 
     updateField(
@@ -47,7 +47,7 @@ describe("IssueEditorSections helper", () => {
   });
 
   it("removes entries when the last type is deleted", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
     const values = [{ name: "Peter Parker", type: ["WRITER"], role: ["Writer"] }];
 
     updateField(
@@ -68,7 +68,7 @@ describe("IssueEditorSections helper", () => {
   });
 
   it("supports appearance mode select/remove/clear flows", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
     const values = [{ name: "Spider-Man", type: "HERO", role: "Hero" }];
 
     updateField(
@@ -124,7 +124,7 @@ describe("IssueEditorSections helper", () => {
   });
 
   it("ignores unknown actions and empty live updates", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
     const values = [{ name: "Peter Parker", type: ["WRITER"] }];
 
     updateField("", true, values as any, setFieldValue, "stories[0].individuals", "name");
@@ -137,6 +137,8 @@ describe("IssueEditorSections helper", () => {
       "name"
     );
 
-    expect(setFieldValue).not.toHaveBeenCalled();
+    expect(setFieldValue).toHaveBeenCalledWith("stories[0].individuals", [
+      { name: "Peter Parker", type: ["WRITER"] }
+    ]);
   });
 });

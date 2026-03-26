@@ -1,6 +1,6 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { vi } from "vitest";
+
 import { toChipList } from "./toChipList";
 
 describe("toChipList", () => {
@@ -10,7 +10,7 @@ describe("toChipList", () => {
   });
 
   it("builds appearance filter navigation payload on chip click", () => {
-    const navigate = vi.fn();
+    const navigate = jest.fn();
     const element = toChipList(
       [{ __typename: "Appearance", name: "Spider-Man" }],
       { us: false, navigate },
@@ -26,7 +26,7 @@ describe("toChipList", () => {
   });
 
   it("builds arc and individual filter payloads", () => {
-    const navigate = vi.fn();
+    const navigate = jest.fn();
 
     const arcElement = toChipList(
       [{ __typename: "Arc", title: "Maximum Carnage" }],
@@ -54,7 +54,7 @@ describe("toChipList", () => {
   });
 
   it("routes appearance-like entries without __typename to appearance landing", () => {
-    const navigate = vi.fn();
+    const navigate = jest.fn();
     const element = toChipList([{ name: "Spider-Man", type: "CHARACTER" }], { us: false, navigate }, "CHARACTER") as React.ReactElement<{
       children: React.ReactNode;
     }>;
@@ -67,7 +67,7 @@ describe("toChipList", () => {
   });
 
   it("keeps individual fallback for creator-like entries without __typename", () => {
-    const navigate = vi.fn();
+    const navigate = jest.fn();
     const element = toChipList([{ name: "Stan Lee", type: "WRITER" }], { us: false, navigate }, "WRITER") as React.ReactElement<{
       children: React.ReactNode;
     }>;

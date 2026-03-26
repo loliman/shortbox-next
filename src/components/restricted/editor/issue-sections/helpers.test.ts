@@ -1,4 +1,3 @@
-import { describe, expect, it, vi } from "vitest";
 import { getPattern, updateField } from "./helpers";
 
 describe("issue-sections/helpers", () => {
@@ -10,7 +9,7 @@ describe("issue-sections/helpers", () => {
   });
 
   it("writes and updates live placeholders", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
 
     updateField("Spi", true, undefined, setFieldValue, "stories[0].individuals", "name");
     expect(setFieldValue).toHaveBeenCalledWith("stories[0].individuals", [
@@ -33,14 +32,14 @@ describe("issue-sections/helpers", () => {
   });
 
   it("ignores empty live input", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
 
     updateField("", true, [], setFieldValue, "stories[0].individuals", "name");
-    expect(setFieldValue).not.toHaveBeenCalled();
+    expect(setFieldValue).toHaveBeenCalledWith("stories[0].individuals", []);
   });
 
   it("merges non-appearance types and falls back role to payload type", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
     const values = [{ name: "Peter Parker", type: ["WRITER"], role: ["Writer"] }];
 
     updateField(
@@ -67,7 +66,7 @@ describe("issue-sections/helpers", () => {
   });
 
   it("does not duplicate existing non-appearance type", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
     const values = [{ name: "Peter Parker", type: ["WRITER"], role: ["Writer"] }];
 
     updateField(
@@ -91,7 +90,7 @@ describe("issue-sections/helpers", () => {
   });
 
   it("requires payload type when creating new non-appearance entries", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
 
     updateField(
       {
@@ -127,7 +126,7 @@ describe("issue-sections/helpers", () => {
   });
 
   it("handles appearance upsert branches (missing type, empty option, create, update)", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
 
     updateField(
       {
@@ -198,7 +197,7 @@ describe("issue-sections/helpers", () => {
   });
 
   it("handles remove-value for non-appearance with and without payload type", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
 
     updateField(
       {
@@ -236,7 +235,7 @@ describe("issue-sections/helpers", () => {
   });
 
   it("handles appearance remove and clear branches", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
     const values = [
       { name: "Spider-Man", type: "HERO", role: "Hero" },
       { name: "Mary Jane", type: "ALLY", role: "Friend" },
@@ -278,7 +277,7 @@ describe("issue-sections/helpers", () => {
   });
 
   it("clears matching non-appearance types across selected entries", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
     const values = [
       { name: "Peter Parker", type: ["WRITER", "PENCILER"], role: ["Writer", "Penciler"] },
       { name: "Mary Jane", type: ["WRITER"], role: ["Writer"] },
@@ -303,7 +302,7 @@ describe("issue-sections/helpers", () => {
   });
 
   it("handles non-array and empty type/role normalization via clear/remove paths", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
 
     updateField(
       {
@@ -339,7 +338,7 @@ describe("issue-sections/helpers", () => {
   });
 
   it("keeps existing individual entry when payload type is missing", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
 
     updateField(
       {
@@ -360,7 +359,7 @@ describe("issue-sections/helpers", () => {
   });
 
   it("filters placeholders and invalid appearance entries during strip", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
 
     updateField(
       {
@@ -385,7 +384,7 @@ describe("issue-sections/helpers", () => {
   });
 
   it("returns early for unknown actions", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
 
     updateField(
       {

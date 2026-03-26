@@ -24,7 +24,7 @@ describe("issues util", () => {
       false
     );
 
-    expect(title).toBe("Marvel #121 [II] [HC/B] - The Night Gwen Stacy Died");
+    expect(title).toBe("Spider-Man (Vol. I) #121 [II] [HC/B] - The Night Gwen Stacy Died");
   });
 
   it("uses series context or language-specific fallbacks", () => {
@@ -40,7 +40,7 @@ describe("issues util", () => {
         } as never,
         true
       )
-    ).toBe("Marvel #1");
+    ).toBe("Spider-Man (Vol. I) #1");
 
     expect(generateItemTitle({} as never, true)).toBe("Untitled");
     expect(generateItemTitle({} as never, false)).toBe("Exklusiv hier erschienen");

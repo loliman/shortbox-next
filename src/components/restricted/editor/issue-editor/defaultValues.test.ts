@@ -1,4 +1,3 @@
-import { describe, expect, it } from "vitest";
 import { HierarchyLevel } from "../../../../util/hierarchy";
 import { buildIssueCreateDefaultValues, mapIssueToEditorDefaultValues } from "./defaultValues";
 
@@ -102,6 +101,37 @@ describe("issue-editor default values", () => {
     expect(copied.cover).toBeUndefined();
   });
 
+  it("marks US stories as exclusive and removes parent references during mapping", () => {
+    const mapped = mapIssueToEditorDefaultValues(
+      {
+        title: "Issue 1",
+        number: "1",
+        series: {
+          title: "Spider-Man",
+          volume: 1,
+          publisher: { name: "Marvel", us: true },
+        },
+        stories: [
+          {
+            title: "US Story",
+            parent: {
+              number: 2,
+              title: "Other",
+              issue: {
+                number: "2",
+                series: { title: "Spider-Man", volume: 1 },
+              },
+            },
+          },
+        ],
+      },
+      false
+    );
+
+    expect(mapped.stories[0].exclusive).toBe(true);
+    expect(mapped.stories[0].parent).toBeUndefined();
+  });
+
   it("keeps parent links for non-exclusive stories on non-US issues", () => {
     const mapped = mapIssueToEditorDefaultValues(
       {
@@ -137,8 +167,9 @@ describe("issue-editor default values", () => {
       number: 7,
       title: "Collection",
       issue: {
-        series: { title: "Batman", volume: 2 },
+        series: { title: "Batman", volume: 2, startyear: undefined },
         number: "8",
+        legacy_number: "",
       },
     });
   });

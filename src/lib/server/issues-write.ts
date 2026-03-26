@@ -4,6 +4,7 @@ import "server-only";
 import { prisma } from "../prisma/client";
 import { updateStoryFilterFlagsForIssue } from "../../util/filter-updater";
 import { MarvelCrawlerService } from "../../services/marvel-crawler-service";
+import { Result, success, failure } from "@/src/types/result";
 
 type PrismaExecutor = Prisma.TransactionClient | PrismaClient;
 
@@ -152,8 +153,9 @@ type IssueInput = {
   } | null;
 };
 
-export async function createIssue(item: IssueInput) {
-  return prisma.$transaction(async (tx) => {
+export async function createIssue(item: IssueInput): Promise<Result<ReturnType<typeof toIssuePayload>>> {
+  try {
+    const res = await prisma.$transaction(async (tx) => {
     const publisher = await findPublisher(item.series?.publisher, tx);
     if (!publisher) throw new Error("Publisher not found");
 
@@ -217,11 +219,16 @@ export async function createIssue(item: IssueInput) {
     await updateStoryFilterFlagsForIssue(Number(created.id));
 
     return toIssuePayload(created);
-  }, ISSUE_TRANSACTION_OPTIONS);
+    }, ISSUE_TRANSACTION_OPTIONS);
+    return success(res);
+  } catch (error) {
+    return failure(error as Error);
+  }
 }
 
-export async function editIssue(oldItem: IssueInput, item: IssueInput) {
-  return prisma.$transaction(async (tx) => {
+export async function editIssue(oldItem: IssueInput, item: IssueInput): Promise<Result<ReturnType<typeof toIssuePayload>>> {
+  try {
+    const res = await prisma.$transaction(async (tx) => {
     const oldIssueId = normalizeBigInt(oldItem.id);
     const existing =
       oldIssueId !== null
@@ -367,11 +374,16 @@ export async function editIssue(oldItem: IssueInput, item: IssueInput) {
     }
 
     return toIssuePayload(updated);
-  }, ISSUE_TRANSACTION_OPTIONS);
+    }, ISSUE_TRANSACTION_OPTIONS);
+    return success(res);
+  } catch (error) {
+    return failure(error as Error);
+  }
 }
 
-export async function deleteIssueByLookup(item: IssueInput, executor: PrismaExecutor = prisma) {
-  const runDelete = async (tx: PrismaExecutor) => {
+export async function deleteIssueByLookup(item: IssueInput, executor: PrismaExecutor = prisma): Promise<Result<boolean>> {
+  try {
+    const runDelete = async (tx: PrismaExecutor) => {
     const publisher = await tx.publisher.findFirst({
       where: {
         name: normalizeText(item.series?.publisher?.name),
@@ -533,14 +545,17 @@ export async function deleteIssueByLookup(item: IssueInput, executor: PrismaExec
   };
 
   if (executor === prisma) {
-    await prisma.$transaction(async (tx) => {
-      await runDelete(tx);
-    });
-  } else {
-    await runDelete(executor);
-  }
+      await prisma.$transaction(async (tx) => {
+        await runDelete(tx);
+      });
+    } else {
+      await runDelete(executor);
+    }
 
-  return true;
+    return success(true);
+  } catch (error) {
+    return failure(error as Error);
+  }
 }
 
 async function syncStoriesFromParentRefs(

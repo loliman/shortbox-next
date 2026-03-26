@@ -2,6 +2,7 @@ import "server-only";
 
 import { prisma } from "../prisma/client";
 import { deleteSeriesByLookup } from "./series-write";
+import { Result, success, failure } from "@/src/types/result";
 
 type PublisherInput = {
   id?: string | number;
@@ -12,95 +13,108 @@ type PublisherInput = {
   endyear?: number | null;
 };
 
-export async function createPublisher(item: PublisherInput) {
-  const now = new Date();
-  const created = await prisma.publisher.create({
-    data: {
-      name: normalizeText(item.name),
-      original: Boolean(item.us),
-      addInfo: String(item.addinfo || ""),
-      startYear: BigInt(Number(item.startyear ?? 0)),
-      endYear: normalizeYear(item.endyear),
-      createdAt: now,
-      updatedAt: now,
-    },
-  });
-
-  return toPublisherPayload(created);
-}
-
-export async function editPublisher(oldItem: PublisherInput, item: PublisherInput) {
-  const existing = await prisma.publisher.findFirst({
-    where: {
-      name: normalizeText(oldItem.name),
-      ...(typeof oldItem.us === "boolean" ? { original: oldItem.us } : {}),
-    },
-  });
-
-  if (!existing) {
-    throw new Error("Publisher not found");
-  }
-
-  const updated = await prisma.publisher.update({
-    where: {
-      id: existing.id,
-    },
-    data: {
-      name: normalizeText(item.name),
-      original: Boolean(item.us ?? existing.original),
-      addInfo: String(item.addinfo || ""),
-      startYear: BigInt(Number(item.startyear ?? 0)),
-      endYear: normalizeYear(item.endyear),
-      updatedAt: new Date(),
-    },
-  });
-
-  return toPublisherPayload(updated);
-}
-
-export async function deletePublisherByLookup(item: PublisherInput) {
-  const existing = await prisma.publisher.findFirst({
-    where: {
-      name: normalizeText(item.name),
-      ...(typeof item.us === "boolean" ? { original: item.us } : {}),
-    },
-    include: {
-      series: {
-        orderBy: [{ id: "asc" }],
-        include: {
-          publisher: true,
-        },
+export async function createPublisher(item: PublisherInput): Promise<Result<ReturnType<typeof toPublisherPayload>>> {
+  try {
+    const now = new Date();
+    const created = await prisma.publisher.create({
+      data: {
+        name: normalizeText(item.name),
+        original: Boolean(item.us),
+        addInfo: String(item.addinfo || ""),
+        startYear: BigInt(Number(item.startyear ?? 0)),
+        endYear: normalizeYear(item.endyear),
+        createdAt: now,
+        updatedAt: now,
       },
-    },
-  });
+    });
 
-  if (!existing) {
-    throw new Error("Publisher not found");
+    return success(toPublisherPayload(created));
+  } catch (error) {
+    return failure(error as Error);
   }
+}
 
-  await prisma.$transaction(async (tx) => {
-    for (const series of existing.series) {
-      await deleteSeriesByLookup(
-        {
-          title: series.title || "",
-          volume: Number(series.volume),
-          publisher: {
-            name: existing.name,
-            us: existing.original,
-          },
-        },
-        tx
-      );
+export async function editPublisher(oldItem: PublisherInput, item: PublisherInput): Promise<Result<ReturnType<typeof toPublisherPayload>>> {
+  try {
+    const existing = await prisma.publisher.findFirst({
+      where: {
+        name: normalizeText(oldItem.name),
+        ...(typeof oldItem.us === "boolean" ? { original: oldItem.us } : {}),
+      },
+    });
+
+    if (!existing) {
+      return failure("Publisher not found", 404);
     }
 
-    await tx.publisher.delete({
+    const updated = await prisma.publisher.update({
       where: {
         id: existing.id,
       },
+      data: {
+        name: normalizeText(item.name),
+        original: Boolean(item.us ?? existing.original),
+        addInfo: String(item.addinfo || ""),
+        startYear: BigInt(Number(item.startyear ?? 0)),
+        endYear: normalizeYear(item.endyear),
+        updatedAt: new Date(),
+      },
     });
-  });
 
-  return true;
+    return success(toPublisherPayload(updated));
+  } catch (error) {
+    return failure(error as Error);
+  }
+}
+
+export async function deletePublisherByLookup(item: PublisherInput): Promise<Result<boolean>> {
+  try {
+    const existing = await prisma.publisher.findFirst({
+      where: {
+        name: normalizeText(item.name),
+        ...(typeof item.us === "boolean" ? { original: item.us } : {}),
+      },
+      include: {
+        series: {
+          orderBy: [{ id: "asc" }],
+          include: {
+            publisher: true,
+          },
+        },
+      },
+    });
+
+    if (!existing) {
+      return failure("Publisher not found", 404);
+    }
+
+    await prisma.$transaction(async (tx) => {
+      for (const series of existing.series) {
+        const deleted = await deleteSeriesByLookup(
+          {
+            title: series.title || "",
+            volume: Number(series.volume),
+            publisher: {
+              name: existing.name,
+              us: existing.original,
+            },
+          },
+          tx
+        );
+        if (!deleted.success) throw new Error(deleted.error);
+      }
+
+      await tx.publisher.delete({
+        where: {
+          id: existing.id,
+        },
+      });
+    });
+
+    return success(true);
+  } catch (error) {
+    return failure(error as Error);
+  }
 }
 
 function toPublisherPayload(publisher: {
