@@ -106,3 +106,6 @@ Instead:
 - existing code is improved incrementally when touched
 
 This keeps the system stable while steadily improving structure.
+
+## Related Conventions
+- [File and module naming](/Users/christian.riese/Documents/shortbox/shortbox-next/docs/architecture/file-and-module-naming.md)

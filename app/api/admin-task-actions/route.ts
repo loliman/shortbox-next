@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
-import { prisma } from "@/src/lib/prisma/client";
+import { readAdminTaskJobViews, readLockedAdminTaskWorkers } from "@/src/lib/read/admin-task-actions-read";
+import { queueAdminTaskResult } from "@/src/lib/server/admin-task-actions-write";
 import { requireApiAdminSession } from "@/src/lib/server/guards";
 import { getWorkerUtils } from "@/src/lib/worker-utils";
 import {
@@ -16,11 +16,6 @@ type RunAdminTaskInput = {
   dryRun?: boolean;
 };
 
-type JobViewRow = {
-  id: string | number;
-  locked_by: string | null;
-};
-
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireApiAdminSession();
@@ -33,13 +28,7 @@ export async function POST(request: NextRequest) {
 
     if (body.action === "release-locks") {
       const taskNames = ADMIN_TASK_DEFINITIONS.map((task) => task.name);
-      const lockedWorkers = await prisma.$queryRaw<Array<{ locked_by: string | null }>>(Prisma.sql`
-        SELECT DISTINCT locked_by
-        FROM graphile_worker.jobs
-        WHERE locked_at IS NOT NULL
-          AND locked_by IS NOT NULL
-          AND task_identifier IN (${Prisma.join(taskNames)})
-      `);
+      const lockedWorkers = await readLockedAdminTaskWorkers(taskNames);
 
       const workerIds = lockedWorkers
         .map((row) => String(row.locked_by || "").trim())
@@ -50,11 +39,7 @@ export async function POST(request: NextRequest) {
         await workerUtils.forceUnlockWorkers(workerIds);
       }
 
-      const jobRows = await prisma.$queryRaw<JobViewRow[]>(Prisma.sql`
-        SELECT id, locked_by
-        FROM graphile_worker.jobs
-        WHERE task_identifier IN (${Prisma.join(taskNames)})
-      `);
+      const jobRows = await readAdminTaskJobViews(taskNames);
 
       const jobIds = jobRows.map((row) => String(row.id)).filter((jobId) => jobId.length > 0);
       let removedJobs = 0;
@@ -93,25 +78,11 @@ export async function POST(request: NextRequest) {
       lastError: null,
     };
 
-    await prisma.$executeRaw(Prisma.sql`
-      INSERT INTO shortbox.admin_task_result (job_id, task_identifier, result_json, created_at)
-      VALUES (
-        ${String(job.id)},
-        ${taskKey},
-        ${JSON.stringify({
-          status: "SUCCESS",
-          dryRun: Boolean(payload.dryRun),
-          summary: "Job queued",
-          details: queuedDetails,
-        })},
-        NOW()
-      )
-      ON CONFLICT (job_id)
-      DO UPDATE SET
-        task_identifier = EXCLUDED.task_identifier,
-        result_json = EXCLUDED.result_json,
-        created_at = EXCLUDED.created_at
-    `);
+    await queueAdminTaskResult({
+      jobId: String(job.id),
+      taskKey,
+      dryRun: Boolean(payload.dryRun),
+    });
 
     return NextResponse.json(
       {

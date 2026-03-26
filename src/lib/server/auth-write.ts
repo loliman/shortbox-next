@@ -1,5 +1,6 @@
 import { UserService } from "../../services/UserService";
 import { readSessionBySessionId } from "./session";
+import "server-only";
 
 type LoginInput = {
   name?: string;
@@ -33,4 +34,8 @@ export async function logoutUser(userId?: string | number | bigint | null) {
   if (userId == null) return true;
   return new UserService().logout(userId);
 }
-import "server-only";
+
+export async function logoutUserBySessionId(sessionId?: string | null) {
+  const session = await readSessionBySessionId(sessionId);
+  return logoutUser(session?.userId ?? null);
+}
