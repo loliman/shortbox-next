@@ -7,25 +7,25 @@ Use AI coding agents in a controlled, repeatable way for feature delivery.
 
 Non-trivial feature work should create and pair two documents before product code changes:
 
-- a spec in `specs/`
-- a plan in `plans/`
+- a spec in `docs/specs/`
+- a plan in `docs/plans/`
 
 Use the repository templates:
 
-- `specs/feature-spec-template.md`
-- `plans/implementation-plan-template.md`
+- `docs/specs/feature-spec-template.md`
+- `docs/plans/implementation-plan-template.md`
 
 ## Naming Convention
 
 Specs and plans should use the same feature stem so humans and agents can pair them quickly.
 
 Pattern:
-- `specs/<feature-stem>-spec.md`
-- `plans/<feature-stem>-plan.md`
+- `docs/specs/<feature-stem>-spec.md`
+- `docs/plans/<feature-stem>-plan.md`
 
 Example:
-- `specs/creator-bibliography-spec.md`
-- `plans/creator-bibliography-plan.md`
+- `docs/specs/creator-bibliography-spec.md`
+- `docs/plans/creator-bibliography-plan.md`
 
 Rules:
 - use lowercase kebab-case
@@ -36,10 +36,10 @@ Rules:
 ## Workflow
 
 ### 1. Specification
-Create a feature spec in `specs/` using `specs/feature-spec-template.md`.
+Create a feature spec in `docs/specs/` using `docs/specs/feature-spec-template.md`.
 
 Example:
-- `specs/creator-bibliography-spec.md`
+- `docs/specs/creator-bibliography-spec.md`
 
 The spec should describe:
 - goal
@@ -59,10 +59,10 @@ The spec is the source of truth for:
 - which architectural boundaries the implementation must respect
 
 ### 2. Implementation Plan
-Create a plan in `plans/` using `plans/implementation-plan-template.md`.
+Create a plan in `docs/plans/` using `docs/plans/implementation-plan-template.md`.
 
 Example:
-- `plans/creator-bibliography-plan.md`
+- `docs/plans/creator-bibliography-plan.md`
 
 The plan should contain:
 - proposed file changes

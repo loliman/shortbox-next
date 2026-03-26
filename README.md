@@ -23,13 +23,13 @@ Start here:
 
 - [AGENTS.md](/Users/christian.riese/Documents/shortbox/shortbox-next/AGENTS.md) for repository-wide architecture, layering rules, and agent working style
 - [AI feature workflow](/Users/christian.riese/Documents/shortbox/shortbox-next/docs/workflows/ai-feature-development.md) for the expected delivery sequence for non-trivial changes
-- [Feature spec template](/Users/christian.riese/Documents/shortbox/shortbox-next/specs/feature-spec-template.md) to define scope, business rules, risks, and acceptance criteria
-- [Implementation plan template](/Users/christian.riese/Documents/shortbox/shortbox-next/plans/implementation-plan-template.md) to map the spec into file changes, layer placement, and verification
+- [Feature spec template](/Users/christian.riese/Documents/shortbox/shortbox-next/docs/specs/feature-spec-template.md) to define scope, business rules, risks, and acceptance criteria
+- [Implementation plan template](/Users/christian.riese/Documents/shortbox/shortbox-next/docs/plans/implementation-plan-template.md) to map the spec into file changes, layer placement, and verification
 
 For non-trivial work:
 
-1. Create or update a spec in `specs/`.
-2. Create or update the paired plan in `plans/`.
+1. Create or update a spec in `docs/specs/`.
+2. Create or update the paired plan in `docs/plans/`.
 3. Implement in small steps that respect the documented layers.
 4. Run the planned validation locally.
 5. Review against the spec, plan, and architecture rules.
