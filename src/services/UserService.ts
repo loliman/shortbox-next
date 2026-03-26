@@ -1,6 +1,7 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { RateLimiterMemory, type RateLimiterRes } from "rate-limiter-flexible";
-import { prisma } from "../lib/prisma/client";
+import { readUserByName } from "../lib/read/user-read";
+import { clearUserSession, updateUserLoginSession } from "../lib/server/user-write";
 
 type LoginInput = {
   name?: string | null;
@@ -140,11 +141,7 @@ export class UserService {
 
     await this.ensureLoginRateLimitNotExceeded(loginRateLimitKey);
 
-    const userRecord = await prisma.user.findFirst({
-      where: {
-        name,
-      },
-    });
+    const userRecord = await readUserByName(name);
 
     if (!userRecord || !userRecord.password) {
       await this.registerLoginFailure(loginRateLimitKey);
@@ -176,26 +173,18 @@ export class UserService {
       data.password = this.hashPassword(passwordVerification.upgradePassword);
     }
 
-    const updatedUser = await prisma.user.update({
-      where: {
-        id: userRecord.id,
-      },
-      data,
+    const updatedUser = await updateUserLoginSession({
+      userId: userRecord.id,
+      sessionId: data.sessionId,
+      updatedAt: data.updatedAt,
+      password: data.password,
     });
 
     return updatedUser;
   }
 
   async logout(userId: number | bigint | string) {
-    await prisma.user.update({
-      where: {
-        id: BigInt(userId),
-      },
-      data: {
-        sessionId: null,
-        updatedAt: new Date(),
-      },
-    });
+    await clearUserSession(userId);
 
     return true;
   }

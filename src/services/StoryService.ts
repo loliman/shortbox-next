@@ -1,6 +1,10 @@
-import { prisma } from "../lib/prisma/client";
+import {
+  readStoriesByIds,
+  readStoriesByParentIds,
+  readStoriesByReprintIds,
+} from "../lib/read/story-read";
 
-type StoryRow = Awaited<ReturnType<typeof prisma.story.findFirst>>;
+type StoryRow = Awaited<ReturnType<typeof readStoriesByIds>>[number];
 
 export class StoryService {
   constructor(private requestId?: string) {
@@ -10,14 +14,7 @@ export class StoryService {
   async getStoriesByIds(ids: readonly number[]) {
     if (ids.length === 0) return [];
 
-    const rows = await prisma.story.findMany({
-      where: {
-        id: {
-          in: ids.map((id) => BigInt(id)),
-        },
-      },
-      orderBy: [{ id: "asc" }],
-    });
+    const rows = await readStoriesByIds(ids);
 
     const byId = new Map(rows.map((story) => [Number(story.id), story]));
     return ids.map((id) => byId.get(id) ?? null);
@@ -26,14 +23,7 @@ export class StoryService {
   async getChildrenByParentIds(parentIds: readonly number[]) {
     if (parentIds.length === 0) return [];
 
-    const rows = await prisma.story.findMany({
-      where: {
-        fkParent: {
-          in: parentIds.map((id) => BigInt(id)),
-        },
-      },
-      orderBy: [{ id: "asc" }],
-    });
+    const rows = await readStoriesByParentIds(parentIds);
 
     const grouped = new Map<number, StoryRow[]>();
     for (const story of rows) {
@@ -49,14 +39,7 @@ export class StoryService {
   async getReprintsByStoryIds(storyIds: readonly number[]) {
     if (storyIds.length === 0) return [];
 
-    const rows = await prisma.story.findMany({
-      where: {
-        fkReprint: {
-          in: storyIds.map((id) => BigInt(id)),
-        },
-      },
-      orderBy: [{ id: "asc" }],
-    });
+    const rows = await readStoriesByReprintIds(storyIds);
 
     const grouped = new Map<number, StoryRow[]>();
     for (const story of rows) {

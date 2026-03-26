@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client";
-import { prisma } from "../lib/prisma/client";
+import { readFilterIssues } from "../lib/read/filter-service-read";
 import type { Filter, NumberFilter } from "../types/query-data";
 
 const MULTI_FILTER_SEPARATOR_REGEX = /\s*\|\|\s*/g;
@@ -518,10 +518,7 @@ export class FilterService {
     const where = this.buildBaseWhere(runtimeFilter);
     const include = buildIssueIncludeForFilter(runtimeFilter);
 
-    const issues = await prisma.issue.findMany({
-      where,
-      include,
-    }) as FilterIssueRecord[];
+    const issues = await readFilterIssues(where, include);
 
     const filtered = issues.filter((issue) => this.matchesIssue(issue, runtimeFilter));
     if (runtimeFilter.onlyNotCollectedNoOwnedVariants) {
