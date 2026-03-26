@@ -1,4 +1,3 @@
-import { vi } from "vitest";
 import { capitalize, decapitalize, romanize, stripItem, today, unwrapItem, wrapItem } from "./util";
 
 describe("util helpers", () => {
@@ -103,11 +102,11 @@ describe("util helpers", () => {
   });
 
   it("formats today as dd.mm.yyyy", () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-02-14T12:00:00.000Z"));
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-02-14T12:00:00.000Z"));
 
     expect(today()).toBe("14.02.2026");
 
-    vi.useRealTimers();
+    jest.useRealTimers();
   });
 });
