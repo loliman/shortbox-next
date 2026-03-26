@@ -1,4 +1,3 @@
-import { vi } from "vitest";
 import { sanitizeHtml } from "./sanitizeHtml";
 
 describe("sanitizeHtml", () => {
@@ -24,11 +23,12 @@ describe("sanitizeHtml", () => {
     expect(html).toContain('href="https://example.com"');
   });
 
-  it("escapes HTML in non-browser context", () => {
-    vi.stubGlobal("window", undefined);
-    const escaped = sanitizeHtml("<b>\"x\"&'y'</b>");
-    vi.unstubAllGlobals();
+  it("unwraps disallowed server-side tags and strips non-blank link attrs", () => {
+    const html = sanitizeHtml('<span><a href="/issues/1" target="_self" rel="noopener">Link</a></span>');
 
-    expect(escaped).toBe("&lt;b&gt;&quot;x&quot;&amp;&#39;y&#39;&lt;/b&gt;");
+    expect(html).not.toContain("<span");
+    expect(html).toContain('<a href="/issues/1">Link</a>');
+    expect(html).not.toContain("target=");
+    expect(html).not.toContain('rel="noopener"');
   });
 });
