@@ -10,6 +10,15 @@ import {
   type AdminTaskName,
   type AdminTaskPayloads,
 } from "@/src/worker/task-registry";
+import * as Yup from "yup";
+
+const AdminTaskBodySchema = Yup.object({
+  action: Yup.string().oneOf(["run", "release-locks"]).optional(),
+  input: Yup.object({
+    taskKey: Yup.string().optional(),
+    dryRun: Yup.boolean().optional(),
+  }).optional(),
+});
 
 type RunAdminTaskInput = {
   taskKey: string;
@@ -21,10 +30,8 @@ export async function POST(request: NextRequest) {
     const auth = await requireApiAdminSession();
     if (auth.response) return auth.response;
 
-    const body = (await request.json()) as {
-      action?: "run" | "release-locks";
-      input?: Record<string, unknown>;
-    };
+    const rawBody = await request.json();
+    const body = await AdminTaskBodySchema.validate(rawBody, { stripUnknown: true });
 
     if (body.action === "release-locks") {
       const taskNames = ADMIN_TASK_DEFINITIONS.map((task) => task.name);
@@ -78,11 +85,15 @@ export async function POST(request: NextRequest) {
       lastError: null,
     };
 
-    await queueAdminTaskResult({
+    const queueRes = await queueAdminTaskResult({
       jobId: String(job.id),
       taskKey,
       dryRun: Boolean(payload.dryRun),
     });
+
+    if (!queueRes.success) {
+      console.error("Failed to queue tracking result:", queueRes.error);
+    }
 
     return NextResponse.json(
       {
@@ -104,8 +115,9 @@ export async function POST(request: NextRequest) {
         },
       }
     );
-  } catch {
-    return NextResponse.json({ error: "Admin-Task-Aktion fehlgeschlagen" }, { status: 400 });
+  } catch (error) {
+    const message = error instanceof Yup.ValidationError ? error.errors.join(", ") : "Admin-Task-Aktion fehlgeschlagen";
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }
 

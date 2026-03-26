@@ -3,95 +3,116 @@ import "server-only";
 
 import { prisma } from "../prisma/client";
 import { editIssue } from "./issues-write";
+import { Result, success, failure } from "@/src/types/result";
 
 type ChangeRequestInput = {
   issue?: Record<string, unknown>;
   item?: Record<string, unknown>;
 };
 
-export async function createIssueChangeRequest(input: ChangeRequestInput) {
-  const issueId = toIssueId(input.issue);
-  if (!issueId) {
-    throw new Error("Issue-ID fehlt");
+export async function createIssueChangeRequest(
+  input: ChangeRequestInput
+): Promise<Result<{ id: string; issueId: string; createdAt: string; type: string; changeRequest: Prisma.JsonValue; }>> {
+  try {
+    const issueId = toIssueId(input.issue);
+    if (!issueId) {
+      throw new Error("Issue-ID fehlt");
+    }
+
+    const payload = {
+      issue: (input.issue || {}) as Prisma.InputJsonValue,
+      item: (input.item || {}) as Prisma.InputJsonValue,
+    } as Prisma.InputJsonValue;
+
+    const rows = await prisma.$queryRaw<
+      Array<{
+        id: number;
+        fk_issue: number;
+        createdat: Date;
+        type: string;
+        changerequest: Prisma.JsonValue;
+      }>
+    >(Prisma.sql`
+      INSERT INTO shortbox.changerequests (fk_issue, createdat, type, changerequest)
+      VALUES (${issueId}, ${new Date()}, ${"ISSUE"}, ${JSON.stringify(payload)}::jsonb)
+      RETURNING id, fk_issue, createdat, type, changerequest
+    `);
+
+    const created = rows[0];
+    if (!created) {
+      throw new Error("Change Request konnte nicht erstellt werden");
+    }
+
+    return success({
+      id: String(created.id),
+      issueId: String(created.fk_issue),
+      createdAt: created.createdat.toISOString(),
+      type: created.type,
+      changeRequest: created.changerequest,
+    });
+  } catch (error) {
+    return failure(error as Error);
   }
-
-  const payload = {
-    issue: (input.issue || {}) as Prisma.InputJsonValue,
-    item: (input.item || {}) as Prisma.InputJsonValue,
-  } as Prisma.InputJsonValue;
-
-  const rows = await prisma.$queryRaw<
-    Array<{
-      id: number;
-      fk_issue: number;
-      createdat: Date;
-      type: string;
-      changerequest: Prisma.JsonValue;
-    }>
-  >(Prisma.sql`
-    INSERT INTO shortbox.changerequests (fk_issue, createdat, type, changerequest)
-    VALUES (${issueId}, ${new Date()}, ${"ISSUE"}, ${JSON.stringify(payload)}::jsonb)
-    RETURNING id, fk_issue, createdat, type, changerequest
-  `);
-
-  const created = rows[0];
-  if (!created) {
-    throw new Error("Change Request konnte nicht erstellt werden");
-  }
-
-  return {
-    id: String(created.id),
-    issueId: String(created.fk_issue),
-    createdAt: created.createdat.toISOString(),
-    type: created.type,
-    changeRequest: created.changerequest,
-  };
 }
 
-export async function discardChangeRequestById(id: unknown) {
-  const numericId = Number(id);
-  if (!Number.isFinite(numericId) || Math.trunc(numericId) <= 0) {
-    throw new Error("Ungültige Change-Request-ID");
+export async function discardChangeRequestById(id: unknown): Promise<Result<boolean>> {
+  try {
+    const numericId = Number(id);
+    if (!Number.isFinite(numericId) || Math.trunc(numericId) <= 0) {
+      throw new Error("Ungültige Change-Request-ID");
+    }
+
+    await prisma.changeRequest.delete({
+      where: {
+        id: Math.trunc(numericId),
+      },
+    });
+
+    return success(true);
+  } catch (error) {
+    return failure(error as Error);
   }
-
-  await prisma.changeRequest.delete({
-    where: {
-      id: Math.trunc(numericId),
-    },
-  });
-
-  return true;
 }
 
 export async function acceptChangeRequestById(id: unknown) {
-  const numericId = Number(id);
-  if (!Number.isFinite(numericId) || Math.trunc(numericId) <= 0) {
-    throw new Error("Ungültige Change-Request-ID");
+  try {
+    const numericId = Number(id);
+    if (!Number.isFinite(numericId) || Math.trunc(numericId) <= 0) {
+      throw new Error("Ungültige Change-Request-ID");
+    }
+
+    const entry = await prisma.changeRequest.findUnique({
+      where: {
+        id: Math.trunc(numericId),
+      },
+    });
+    if (!entry) {
+      throw new Error("Change Request nicht gefunden");
+    }
+
+    const parsed = parseChangeRequestPayload(entry.changeRequest);
+    if (!parsed.issue || !parsed.item) {
+      throw new Error("Change Request enthält keine gültigen Issue-Daten");
+    }
+
+    const updatedIssueResult = await editIssue(
+      parsed.issue as Parameters<typeof editIssue>[0],
+      parsed.item as Parameters<typeof editIssue>[1]
+    );
+    if (!updatedIssueResult.success) {
+      return updatedIssueResult;
+    }
+
+    await prisma.changeRequest.delete({
+      where: {
+        id: entry.id,
+      },
+    });
+
+    return updatedIssueResult;
+  } catch (error) {
+    return failure(error as Error);
   }
-
-  const entry = await prisma.changeRequest.findUnique({
-    where: {
-      id: Math.trunc(numericId),
-    },
-  });
-  if (!entry) {
-    throw new Error("Change Request nicht gefunden");
-  }
-
-  const parsed = parseChangeRequestPayload(entry.changeRequest);
-  if (!parsed.issue || !parsed.item) {
-    throw new Error("Change Request enthält keine gültigen Issue-Daten");
-  }
-
-  const updatedIssue = await editIssue(parsed.issue, parsed.item);
-
-  await prisma.changeRequest.delete({
-    where: {
-      id: entry.id,
-    },
-  });
-
-  return updatedIssue;
 }
 
 function toIssueId(issue: Record<string, unknown> | undefined) {

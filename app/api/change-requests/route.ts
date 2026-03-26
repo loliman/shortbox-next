@@ -9,27 +9,36 @@ import {
   createIssueChangeRequest,
   discardChangeRequestById,
 } from "@/src/lib/server/change-requests-write";
+import * as Yup from "yup";
+
+const ChangeRequestBodySchema = Yup.object({
+  issue: Yup.object().optional(),
+  item: Yup.object().optional(),
+});
+
+const ChangeRequestIdSchema = Yup.object({
+  id: Yup.mixed().optional(),
+});
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as {
-      issue?: Record<string, unknown>;
-      item?: Record<string, unknown>;
-    };
-    const item = await createIssueChangeRequest({
-      issue: body.issue,
-      item: body.item,
+    const rawBody = await request.json();
+    const body = await ChangeRequestBodySchema.validate(rawBody, { stripUnknown: true });
+
+    const result = await createIssueChangeRequest({
+      issue: (body.issue || undefined) as Record<string, unknown> | undefined,
+      item: (body.item || undefined) as Record<string, unknown> | undefined,
     });
+
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+
     invalidateChangeRequestsCache();
-    return NextResponse.json({ item }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ item: result.data }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : "Change Request konnte nicht erstellt werden",
-      },
-      { status: 400 }
-    );
+    const message = error instanceof Yup.ValidationError ? error.errors.join(", ") : "Change Request konnte nicht erstellt werden";
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }
 
@@ -38,18 +47,19 @@ export async function DELETE(request: NextRequest) {
     const auth = await requireApiAdminSession();
     if (auth.response) return auth.response;
 
-    const body = (await request.json()) as { id?: string | number };
-    const success = await discardChangeRequestById(body.id);
+    const rawBody = await request.json();
+    const body = await ChangeRequestIdSchema.validate(rawBody, { stripUnknown: true });
+
+    const result = await discardChangeRequestById(body.id);
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+
     invalidateChangeRequestsCache();
-    return NextResponse.json({ success }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ success: result.data }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : "Change Request konnte nicht verworfen werden",
-      },
-      { status: 400 }
-    );
+    const message = error instanceof Yup.ValidationError ? error.errors.join(", ") : "Change Request konnte nicht verworfen werden";
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }
 
@@ -58,18 +68,19 @@ export async function PATCH(request: NextRequest) {
     const auth = await requireApiAdminSession();
     if (auth.response) return auth.response;
 
-    const body = (await request.json()) as { id?: string | number };
-    const item = await acceptChangeRequestById(body.id);
+    const rawBody = await request.json();
+    const body = await ChangeRequestIdSchema.validate(rawBody, { stripUnknown: true });
+
+    const result = await acceptChangeRequestById(body.id);
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
+
     invalidateChangeRequestsCache();
     invalidateNavigationCache();
-    return NextResponse.json({ item }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ item: result.data }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : "Change Request konnte nicht akzeptiert werden",
-      },
-      { status: 400 }
-    );
+    const message = error instanceof Yup.ValidationError ? error.errors.join(", ") : "Change Request konnte nicht akzeptiert werden";
+    return NextResponse.json({ error: message }, { status: 400 });
   }
 }
