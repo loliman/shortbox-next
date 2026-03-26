@@ -1,4 +1,3 @@
-import { vi } from "vitest";
 import { getPattern, updateField } from "./filterFieldHelpers";
 
 describe("filterFieldHelpers", () => {
@@ -9,7 +8,7 @@ describe("filterFieldHelpers", () => {
   });
 
   it("writes live placeholder values", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
 
     updateField("Spi", true, [], setFieldValue, "stories[0].individuals", "name");
 
@@ -19,7 +18,7 @@ describe("filterFieldHelpers", () => {
   });
 
   it("updates trailing live placeholder when one already exists", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
     const values = [{ name: "Peter Parker" }, { pattern: true, name: "Old" }];
 
     updateField("New", true, values as any, setFieldValue, "stories[0].individuals", "name");
@@ -31,7 +30,7 @@ describe("filterFieldHelpers", () => {
   });
 
   it("writes live placeholder when values are undefined", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
 
     updateField("Ghost", true, undefined, setFieldValue, "stories[0].individuals", "name");
 
@@ -41,7 +40,7 @@ describe("filterFieldHelpers", () => {
   });
 
   it("selects and extends individual type entries", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
     const values = [{ name: "Peter Parker", type: ["WRITER"], role: ["Writer"] }];
 
     updateField(
@@ -64,7 +63,7 @@ describe("filterFieldHelpers", () => {
   });
 
   it("updates existing appearance entries with scalar type and role", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
     const values = [{ name: "Spider-Man", type: "HERO", role: "Hero" }];
 
     updateField(
@@ -85,7 +84,7 @@ describe("filterFieldHelpers", () => {
   });
 
   it("adds new non-appearance entry when selecting unknown option", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
 
     updateField(
       {
@@ -107,7 +106,7 @@ describe("filterFieldHelpers", () => {
   });
 
   it("handles frozen select options without mutating source objects", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
     const option = Object.freeze({ name: "Sue Storm" });
 
     updateField(
@@ -130,7 +129,7 @@ describe("filterFieldHelpers", () => {
   });
 
   it("handles deselect-option with missing payload type and role", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
     const values = [{ name: "Peter Parker", type: ["WRITER"], role: ["Writer"] }];
 
     updateField(
@@ -151,7 +150,7 @@ describe("filterFieldHelpers", () => {
   });
 
   it("adds unknown appearance entries via select-option", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
 
     updateField(
       {
@@ -171,7 +170,7 @@ describe("filterFieldHelpers", () => {
   });
 
   it("removes types and drops empty individual entries", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
     const values = [{ name: "Peter Parker", type: ["WRITER"], role: ["Writer"] }];
 
     updateField(
@@ -192,7 +191,7 @@ describe("filterFieldHelpers", () => {
   });
 
   it("removes exact appearance entry when removing a value", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
 
     updateField(
       {
@@ -215,7 +214,7 @@ describe("filterFieldHelpers", () => {
   });
 
   it("supports create-option and clear for appearance mode", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
     const values = [{ name: "Spider-Man", type: ["HERO"], role: ["Hero"] }];
 
     updateField(
@@ -253,7 +252,7 @@ describe("filterFieldHelpers", () => {
   });
 
   it("clears matching types from non-appearance entries", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
     const values = [
       { name: "Peter Parker", type: ["WRITER", "PENCILER"], role: ["Writer", "Penciler"] },
       { name: "Mary Jane", type: ["WRITER"], role: ["Writer"] },
@@ -278,7 +277,7 @@ describe("filterFieldHelpers", () => {
   });
 
   it("handles create-option without previous values", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
 
     updateField(
       {
@@ -295,7 +294,7 @@ describe("filterFieldHelpers", () => {
   });
 
   it("ignores empty string and unsupported actions", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
     const values = [{ name: "Peter Parker", type: ["WRITER"] }];
 
     updateField("", true, values as any, setFieldValue, "stories[0].individuals", "name");
@@ -312,7 +311,7 @@ describe("filterFieldHelpers", () => {
   });
 
   it("stores selected arrays for non-typed multi-select fields", () => {
-    const setFieldValue = vi.fn();
+    const setFieldValue = jest.fn();
 
     updateField(
       [

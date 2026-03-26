@@ -14,6 +14,31 @@ describe("listingQuery util", () => {
     expect(parseListingFilter({ filter: '"hello"' }, true)).toEqual({ us: true });
   });
 
+  it("keeps legacy migration and conflict normalization", () => {
+    const result = parseListingFilter(
+      {
+        filter: JSON.stringify({
+          noCover: true,
+          onlyCollected: true,
+          onlyNotCollected: true,
+          sellable: true,
+          and: true,
+        }),
+      },
+      false
+    );
+
+    expect(result).toEqual({
+      arcs: [],
+      appearances: [],
+      realities: [],
+      noComicguideId: true,
+      onlyCollected: true,
+      onlyNotCollected: false,
+      us: false,
+    });
+  });
+
   it("parses JSON filter and always enforces current us flag", () => {
     const result = parseListingFilter(
       {
@@ -50,12 +75,14 @@ describe("listingQuery util", () => {
       filter: '{"foo":"bar"}',
       order: "number",
       direction: "DESC",
+      view: "strip",
     });
 
     expect(buildSortNavigationQuery(query, { direction: "ASC" })).toEqual({
       filter: '{"foo":"bar"}',
       order: "updatedat",
       direction: "ASC",
+      view: "strip",
     });
   });
 });

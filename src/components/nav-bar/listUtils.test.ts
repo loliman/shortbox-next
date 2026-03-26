@@ -33,6 +33,15 @@ describe("listUtils", () => {
     expect(parseFilter(undefined)).toBeUndefined();
   });
 
+  it("keeps parseFilter legacy normalization behavior", () => {
+    expect(parseFilter('{"formats":["HC"]}')).toEqual({ formats: ["HC"] });
+    expect(parseFilter('{"arcs":"A || B","appearances":"X || X","realities":"R || S"}')).toEqual({
+      arcs: [{ title: "A" }, { title: "B" }],
+      appearances: [{ name: "X" }],
+      realities: "R || S",
+    });
+  });
+
   it("normalizes issue level to series list selection", () => {
     const normalized = normalizeListLevelAndSelected(HierarchyLevel.ISSUE, {
       issue: {

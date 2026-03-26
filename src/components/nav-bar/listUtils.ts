@@ -1,6 +1,7 @@
 import { HierarchyLevel, type HierarchyLevelType } from "../../util/hierarchy";
 import type { Connection, QueryCollection } from "../../types/query-data";
 import type { SelectedRoot } from "../../types/domain";
+import { parseAndNormalizeLegacyFilter } from "../../services/filter/filter-normalization";
 
 type ListNode = Record<string, unknown> & {
   number?: string;
@@ -18,41 +19,10 @@ type ListNode = Record<string, unknown> & {
 };
 
 export function parseFilter(filterValue?: string | null) {
-  if (!filterValue) return undefined;
-
-  try {
-    const parsed = JSON.parse(filterValue) as Record<string, unknown>;
-    if (!parsed || typeof parsed !== "object") return undefined;
-
-    const next = { ...parsed };
-    if (!Array.isArray(next.arcs) && typeof next.arcs === "string") {
-      next.arcs = next.arcs
-        .split("||")
-        .map((entry) => entry.trim())
-        .filter((entry, index, arr) => entry.length > 0 && arr.indexOf(entry) === index)
-        .map((title) => ({ title }));
-    }
-    if (!Array.isArray(next.appearances) && typeof next.appearances === "string") {
-      next.appearances = next.appearances
-        .split("||")
-        .map((entry) => entry.trim())
-        .filter((entry, index, arr) => entry.length > 0 && arr.indexOf(entry) === index)
-        .map((name) => ({ name }));
-    }
-    if (next.noComicguideId === undefined && next.noCover !== undefined) {
-      next.noComicguideId = Boolean(next.noCover);
-    }
-    if (Boolean(next.onlyCollected) && Boolean(next.onlyNotCollected)) {
-      next.onlyNotCollected = false;
-    }
-
-    delete next.noCover;
-    delete next.sellable;
-    delete next.and;
-    return next;
-  } catch {
-    return undefined;
-  }
+  return parseAndNormalizeLegacyFilter(filterValue, {
+    mode: "string-only",
+    includeRealities: false,
+  });
 }
 
 export function normalizeListLevelAndSelected(level: HierarchyLevelType, selected: SelectedRoot) {

@@ -9,10 +9,16 @@ const eslintConfig = [
       ".next/**",
       "node_modules/**",
       "next-env.d.ts",
-      "**/*.test.ts",
-      "**/*.test.tsx",
       "src/services/MarvelCrawlerService.ts",
     ],
+  },
+  {
+    files: ["**/*.test.ts", "**/*.test.tsx"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "off",
+      "react-hooks/globals": "off",
+    },
   },
 ];
 
