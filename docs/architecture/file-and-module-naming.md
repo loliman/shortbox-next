@@ -12,7 +12,7 @@ The repository currently mixes several naming styles:
 
 - Next.js entry files in `app/` already use framework-required lowercase names such as `page.tsx`, `layout.tsx`, `loading.tsx`, and `route.ts`
 - React component files are mostly PascalCase such as `IssueDetails.tsx` and `TopBar.tsx`
-- non-component modules are mixed between kebab-case, camelCase, and PascalCase such as `filter-read.ts`, `listUtils.ts`, and `FilterService.ts`
+- non-component modules are mixed between kebab-case, camelCase, and PascalCase such as `filter-read.ts`, `listUtils.ts`, and the legacy `FilterService.ts` pattern
 
 ## Standard Convention
 
@@ -74,7 +74,7 @@ Examples:
 - `issue-details-read.ts`
 - `filter-conflict-resolution.ts`
 
-This includes service modules. Prefer `story-service.ts` over `StoryService.ts` for new files.
+This includes service modules. Prefer `story-service.ts` over `StoryService.ts`.
 
 ### 5. Test files
 Name tests after the file they verify:

@@ -22,9 +22,9 @@ Why it matters:
   access.
 
 Likely files or modules involved:
-- [src/services/UserService.ts](/Users/christian.riese/Documents/shortbox/shortbox-next/src/services/UserService.ts)
-- [src/services/StoryService.ts](/Users/christian.riese/Documents/shortbox/shortbox-next/src/services/StoryService.ts)
-- [src/services/FilterService.ts](/Users/christian.riese/Documents/shortbox/shortbox-next/src/services/FilterService.ts)
+- [src/services/user-service.ts](/Users/christian.riese/Documents/shortbox/shortbox-next/src/services/user-service.ts)
+- [src/services/story-service.ts](/Users/christian.riese/Documents/shortbox/shortbox-next/src/services/story-service.ts)
+- [src/services/filter-service.ts](/Users/christian.riese/Documents/shortbox/shortbox-next/src/services/filter-service.ts)
 - new or extracted helpers in `src/lib/read/` and `src/lib/server/`
 
 Expected boundary improvement:

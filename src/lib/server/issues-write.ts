@@ -3,7 +3,7 @@ import "server-only";
 
 import { prisma } from "../prisma/client";
 import { updateStoryFilterFlagsForIssue } from "../../util/filter-updater";
-import { MarvelCrawlerService } from "../../services/MarvelCrawlerService";
+import { MarvelCrawlerService } from "../../services/marvel-crawler-service";
 
 type PrismaExecutor = Prisma.TransactionClient | PrismaClient;
 

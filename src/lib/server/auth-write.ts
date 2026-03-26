@@ -1,4 +1,4 @@
-import { UserService } from "../../services/UserService";
+import { UserService } from "../../services/user-service";
 import { readSessionBySessionId } from "./session";
 import "server-only";
 

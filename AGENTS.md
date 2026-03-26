@@ -121,10 +121,10 @@ Services:
 - must NOT contain HTTP or Next.js logic
 
 **Examples:**
-- src/services/FilterService.ts
-- src/services/StoryService.ts
-- src/services/UserService.ts
-- src/services/MarvelCrawlerService.ts
+- src/services/filter-service.ts
+- src/services/story-service.ts
+- src/services/user-service.ts
+- src/services/marvel-crawler-service.ts
 - src/services/filter/*
 
 ---
@@ -216,7 +216,7 @@ The filter system is the reference example for layered architecture.
 - Query execution
 
 ## Layer 4 – Business Matching
-`src/services/FilterService.ts`
+`src/services/filter-service.ts`
 - Domain filter semantics
 - Matching logic
 
