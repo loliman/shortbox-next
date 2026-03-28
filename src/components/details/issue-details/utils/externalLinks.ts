@@ -1,7 +1,7 @@
 type IssueLike = {
-  comicguideid?: string | number;
-  series: { title: string; volume: number };
-  number: string;
+  comicguideid?: string | number | null;
+  series?: { title?: string | null; volume?: number | null } | null;
+  number?: string | null;
 };
 
 export function generateComicGuideUrl(issue: IssueLike): string {
@@ -10,6 +10,10 @@ export function generateComicGuideUrl(issue: IssueLike): string {
 
 export function generateMarvelDbUrl(issue: IssueLike): string {
   const path =
-    encodeURIComponent(issue.series.title) + "_Vol_" + issue.series.volume + "_" + issue.number;
+    encodeURIComponent(issue.series?.title || "") +
+    "_Vol_" +
+    String(issue.series?.volume ?? "") +
+    "_" +
+    String(issue.number ?? "");
   return "https://marvel.fandom.com/wiki/" + path.split("%20").join("_");
 }

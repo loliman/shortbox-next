@@ -201,7 +201,7 @@ function getStoryAppearanceNames(issue: FilterIssueRecord, us: boolean): string[
 function getArcTitles(issue: FilterIssueRecord, us: boolean): string[] {
   const values = new Set<string>();
   if (us) {
-    for (const link of (issue.arcs || []) as IssueArcLinkShape[]) values.add(link.arc.title);
+    for (const link of (issue.arcs || []) as unknown as IssueArcLinkShape[]) values.add(link.arc.title);
     return [...values];
   }
 

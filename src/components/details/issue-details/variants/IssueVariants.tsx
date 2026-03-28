@@ -15,6 +15,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import FirstPageIcon from "@mui/icons-material/FirstPage";
 import LastPageIcon from "@mui/icons-material/LastPage";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
+import type { Theme } from "@mui/material/styles";
 import { buildIssueVariantKey, getVariantKey } from "../utils/issueDetailsUtils";
 import { IssueVariantTile } from "./IssueVariantTile";
 import { useResolvedImageUrl } from "../../../generic/useResolvedImageUrl";

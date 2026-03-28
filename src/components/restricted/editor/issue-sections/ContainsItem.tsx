@@ -16,8 +16,8 @@ import { getSeriesLabel } from "../../../../util/issuePresentation";
 type StorySeriesLike = { title?: string };
 
 type StoryItemLike = {
-  part?: string | null;
-  addinfo?: string | null;
+  part?: string | null | unknown;
+  addinfo?: string | null | unknown;
 };
 
 interface ContainsItemProps extends ContainsProps {
@@ -224,16 +224,21 @@ function normalizeDisplayStoryTitle(value: string | null | undefined): string {
     return normalized === "Untitled" ? "" : normalized;
 }
 
-function buildAddinfoText(item: StoryItemLike): string {
+function buildAddinfoText(item: unknown): string {
     let addinfoText = "";
-    if (item.part && item.part.indexOf("/x") === -1) {
-        addinfoText += "Teil " + item.part.replace("/", " von ");
+    const part = typeof (item as { part?: unknown } | null)?.part === "string" ? (item as { part: string }).part : "";
+    const addinfo =
+      typeof (item as { addinfo?: unknown } | null)?.addinfo === "string"
+        ? (item as { addinfo: string }).addinfo
+        : "";
+    if (part && part.indexOf("/x") === -1) {
+        addinfoText += "Teil " + part.replace("/", " von ");
     }
-    if (addinfoText !== "" && item.addinfo) {
+    if (addinfoText !== "" && addinfo) {
         addinfoText += ", ";
     }
-    if (item.addinfo) {
-        addinfoText += item.addinfo;
+    if (addinfo) {
+        addinfoText += addinfo;
     }
     return addinfoText;
 }

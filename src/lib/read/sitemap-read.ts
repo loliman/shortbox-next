@@ -315,32 +315,43 @@ export async function readGenreLandingSitemapEntries(): Promise<SitemapEntry[]> 
   const entries = new Map<string, SitemapEntry>();
   let cursor: bigint | undefined;
 
-  while (true) {
-    const rows = await prisma.series.findMany({
-      orderBy: { id: "asc" },
-      take: BATCH_SIZE,
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-      select: { id: true, genre: true, updatedAt: true },
-    });
+  try {
+    while (true) {
+      const rows = await prisma.series.findMany({
+        orderBy: { id: "asc" },
+        take: BATCH_SIZE,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        select: { id: true, genre: true, updatedAt: true },
+      });
 
-    if (rows.length === 0) break;
-    cursor = rows[rows.length - 1].id;
+      if (rows.length === 0) break;
+      cursor = rows[rows.length - 1].id;
 
-    for (const row of rows) {
-      const parts = toSafeString(row.genre)
-        .split(",")
-        .map((entry) => entry.trim())
-        .filter(Boolean);
+      for (const row of rows) {
+        const parts = toSafeString(row.genre)
+          .split(",")
+          .map((entry) => entry.trim())
+          .filter(Boolean);
 
-      for (const genre of parts) {
-        if (!generateGenreSlug(genre)) continue;
+        for (const genre of parts) {
+          if (!generateGenreSlug(genre)) continue;
 
-        mergeEntry(entries, buildGenreFilterUrl("de", genre), row.updatedAt);
-        mergeEntry(entries, buildGenreFilterUrl("us", genre), row.updatedAt);
+          mergeEntry(entries, buildGenreFilterUrl("de", genre), row.updatedAt);
+          mergeEntry(entries, buildGenreFilterUrl("us", genre), row.updatedAt);
+        }
       }
     }
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "P2022"
+    ) {
+      return [];
+    }
+    throw error;
   }
 
   return [...entries.values()];
 }
-

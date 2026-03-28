@@ -104,6 +104,12 @@ export function getItemKey(item: ListNode, fallbackIndex: number): string {
   return "entry|" + fallbackIndex;
 }
 
-function isConnection(value: QueryCollection<unknown>): value is Connection<unknown> {
-  return !!value && !Array.isArray(value) && "edges" in value && "pageInfo" in value;
+function isConnection(value: unknown): value is Connection<unknown> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    "edges" in value &&
+    "pageInfo" in value
+  );
 }

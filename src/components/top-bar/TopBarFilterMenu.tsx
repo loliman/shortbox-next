@@ -14,7 +14,7 @@ import { usePendingNavigation } from "../generic/usePendingNavigation";
 
 type TopBarFilterMenuProps = {
   us: boolean;
-  selected: SelectedRoot | { us: boolean };
+  selected: unknown;
   isFilterActive?: boolean | string | null;
   initialFilterCount?: number | null;
   query?: { filter?: string | null } | null;
@@ -23,7 +23,8 @@ type TopBarFilterMenuProps = {
 
 export default function TopBarFilterMenu(props: Readonly<TopBarFilterMenuProps>) {
   const { isPending, push } = usePendingNavigation();
-  const { us, selected, isFilterActive } = props;
+  const { us, isFilterActive } = props;
+  const selected = (props.selected || { us }) as SelectedRoot | { us: boolean };
   const tooltipTitle = React.useMemo(
     () => buildFilterTooltipTitle(Boolean(isFilterActive), props.query?.filter),
     [isFilterActive, props.query?.filter]

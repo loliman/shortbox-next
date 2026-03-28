@@ -430,9 +430,11 @@ export async function readIssueNavigationNodes(
       .sort(compareIssueVariants)
       .map((variant) => ({
         id: String(variant.id),
+        number: primary.number,
         collected: variant.collected ?? null,
         format: toOptionalText(variant.format),
         variant: toOptionalText(variant.variant),
+        series: serialized.series,
       }));
     return serialized;
   });

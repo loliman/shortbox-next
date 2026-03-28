@@ -60,7 +60,7 @@ export function toChipList(
               ? buildArcFilterUrl(locale, item.title || item.name || "")
               : typename === "Genre"
                 ? buildGenreFilterUrl(locale, item.name || item.title || "")
-                : buildPersonFilterUrl(locale, item.name || "", type);
+                : buildPersonFilterUrl(locale, item.name || "");
 
         return (
           <Chip
@@ -87,4 +87,3 @@ function normalizeToken(value: unknown): string {
   if (!value) return "";
   return String(value).trim().toUpperCase();
 }
-

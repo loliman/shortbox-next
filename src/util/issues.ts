@@ -40,7 +40,7 @@ export function generateItemTitle(item: ItemTitleLike, us: boolean) {
       item.__typename !== "Cover" &&
       (item.parent.number || 0) > 0 &&
       (item.parent.issue.stories?.length || 0) > 1
-        ? " [" + romanize(item.parent.number) + "]"
+        ? " [" + romanize(item.parent.number ?? 0) + "]"
         : "";
     title += item.parent.variant ? " [" + item.parent.format + "/" + item.parent.variant + "]" : "";
     return title + titleFromStory;
@@ -54,7 +54,11 @@ export function generateItemTitle(item: ItemTitleLike, us: boolean) {
   }
 }
 
-export function generateIssueSubHeader(item: { title?: string; format?: string; variant?: string }) {
+export function generateIssueSubHeader(item: {
+  title?: string | null;
+  format?: string | null;
+  variant?: string | null;
+}) {
   let header = "";
 
   if (item.title) header += item.title;

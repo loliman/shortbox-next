@@ -8,7 +8,7 @@ import { getPreferredCoverUrl } from "../generic/coverUrl";
 type CoverTooltipIssue = {
   cover?: { url?: string | null } | null;
   comicguideid?: string | number | null;
-  series?: { publisher?: { us?: boolean | null } | null } | null;
+  series?: { publisher?: { us?: boolean | null; name?: string | null } | null } | null;
 };
 
 type CoverTooltipProps = {

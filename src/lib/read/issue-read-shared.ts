@@ -264,7 +264,11 @@ export function serializePreviewIssue(issue: {
         id: String(entry.id),
         issue: entry.issue
           ? {
+              number: "",
               collected: entry.issue.collected ?? null,
+              series: {
+                publisher: {},
+              },
             }
           : null,
       })),

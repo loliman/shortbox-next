@@ -20,6 +20,7 @@ interface IssueDetailsUSDetailsProps {
 
 export function IssueDetailsUSDetails(props: Readonly<IssueDetailsUSDetailsProps>) {
   const issue = props.issue || {};
+  const us = Boolean(props.us);
   const releaseDate = issue.releasedate
     ? toShortboxDate(dateFormat(new Date(issue.releasedate), "dd.mm.yyyy"))
     : "";
@@ -34,9 +35,9 @@ export function IssueDetailsUSDetails(props: Readonly<IssueDetailsUSDetailsProps
       <DetailsRow
         key="coverartists"
         label="Cover Artists"
-        value={toChipList(coverArtists, { us: props.us }, "ARTIST")}
+        value={toChipList(coverArtists, { us }, "ARTIST")}
       />
-      <DetailsRow key="editor" label="Editor" value={toChipList(editors, { us: props.us }, "EDITOR")} />
+      <DetailsRow key="editor" label="Editor" value={toChipList(editors, { us }, "EDITOR")} />
     </React.Fragment>
   );
 }

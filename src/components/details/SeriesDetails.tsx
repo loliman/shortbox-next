@@ -132,6 +132,18 @@ export default function SeriesDetails(props: Readonly<SeriesDetailsProps>) {
   const details = props.initialData?.details || null;
   const issues = (props.initialData?.issues || []) as PreviewIssue[];
   if (!details) notFound();
+  const seriesSelection: SelectedRoot = {
+    series: {
+      title: details.title || "",
+      volume: details.volume ?? 0,
+      startyear: details.startyear ?? null,
+      endyear: details.endyear ?? null,
+      publisher: {
+        name: details.publisher?.name || "",
+        us,
+      },
+    },
+  };
   const endYearLabel = readEndYearLabel(details);
   const genreLabel = readTextValue(details.genre);
   const genreLinks = buildGenreLinks(genreLabel);
@@ -155,7 +167,7 @@ export default function SeriesDetails(props: Readonly<SeriesDetailsProps>) {
         }}
         title={
           <TitleLine
-            title={generateLabel({ series: details, us })}
+            title={generateLabel(seriesSelection)}
           />
         }
         subheader={subheaderLabel}
