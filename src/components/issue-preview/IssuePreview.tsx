@@ -9,6 +9,7 @@ import Typography from "@mui/material/Typography";
 import Skeleton from "@mui/material/Skeleton";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
+import CircularProgress from "@mui/material/CircularProgress";
 import { useResolvedImageUrl } from "../generic/useResolvedImageUrl";
 import { buildRouteHref } from "../generic/routeHref";
 import { getIssueLabel, getIssueUrl, getSeriesLabel } from "../../util/issuePresentation";
@@ -20,6 +21,7 @@ import {
   type PreviewIssue,
 } from "./utils/issuePreviewUtils";
 import { IssuePreviewChips } from "./IssuePreviewChips";
+import { usePreviewNavigation } from "./previewNavigation";
 
 interface IssuePreviewProps {
   issue: PreviewIssue;
@@ -45,6 +47,7 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
   );
   const flags = getIssuePreviewFlags(props.issue, us, hasSession);
   const url = buildRouteHref(getIssueUrl(props.issue, us), props.query);
+  const { isNavigating, handleClick } = usePreviewNavigation(url);
   const accentKey = flags.collected
     ? "success"
     : !us && flags.hasFirstApp
@@ -76,6 +79,9 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
           "100%": { backgroundPosition: "0 0, -20% 0" },
         },
         overflow: "hidden",
+        position: "relative",
+        transition: "transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease",
+        opacity: isNavigating ? 0.76 : 1,
         ...theme.applyStyles("dark", {
           backgroundImage: isCoverLoading
             ? "linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), linear-gradient(110deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.04) 75%)"
@@ -87,6 +93,12 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
         component={Link}
         href={url}
         aria-label={`Zu ${getIssueLabel(props.issue)}`}
+        aria-busy={isNavigating}
+        onClick={handleClick}
+        sx={{
+          transition: "transform 180ms ease",
+          transform: isNavigating ? "scale(0.992)" : "scale(1)",
+        }}
       >
         <CardContent sx={{ py: 2 }}>
           <Stack spacing={1.25}>
@@ -116,6 +128,22 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
           </Stack>
         </CardContent>
       </CardActionArea>
+      {isNavigating ? (
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(255,255,255,0.28)",
+            backdropFilter: "blur(2px)",
+            pointerEvents: "none",
+          }}
+        >
+          <CircularProgress size={26} />
+        </Box>
+      ) : null}
     </Card>
   );
 }

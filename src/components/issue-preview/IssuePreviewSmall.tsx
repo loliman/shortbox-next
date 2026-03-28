@@ -9,6 +9,7 @@ import Typography from "@mui/material/Typography";
 import Skeleton from "@mui/material/Skeleton";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
+import CircularProgress from "@mui/material/CircularProgress";
 import { useResolvedImageUrl } from "../generic/useResolvedImageUrl";
 import { buildRouteHref } from "../generic/routeHref";
 import { getIssueLabel, getIssueUrl } from "../../util/issuePresentation";
@@ -19,6 +20,7 @@ import {
   type PreviewIssue,
 } from "./utils/issuePreviewUtils";
 import { IssuePreviewChips } from "./IssuePreviewChips";
+import { usePreviewNavigation } from "./previewNavigation";
 
 interface IssuePreviewSmallProps {
   issue: PreviewIssue;
@@ -44,15 +46,18 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
   const flags = getIssuePreviewFlags(props.issue, us, hasSession);
   const url = buildRouteHref(getIssueUrl(props.issue, us), props.query);
   const issueLabel = getIssueLabel(props.issue);
+  const { isNavigating, handleClick } = usePreviewNavigation(url);
 
   return (
     <Card
       sx={(theme) => ({
         backgroundColor: "background.paper",
         overflow: "hidden",
+        position: "relative",
         border: "1px solid",
         borderColor: "rgba(0,0,0,0.08)",
-        transition: "transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease",
+        transition: "transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, opacity 180ms ease",
+        opacity: isNavigating ? 0.76 : 1,
         "&:hover": {
           transform: "translateY(-2px)",
           boxShadow: theme.shadows[6],
@@ -71,7 +76,15 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
         component={Link}
         href={url}
         aria-label={`Zu ${issueLabel}`}
-        sx={{ height: "100%", display: "flex", alignItems: "stretch" }}
+        aria-busy={isNavigating}
+        onClick={handleClick}
+        sx={{
+          height: "100%",
+          display: "flex",
+          alignItems: "stretch",
+          transform: isNavigating ? "scale(0.992)" : "scale(1)",
+          transition: "transform 180ms ease",
+        }}
       >
         <CardContent sx={{ display: "flex", flexDirection: "column", flex: 1, p: 0, minWidth: 0 }}>
           <Box
@@ -196,6 +209,22 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
           </Box>
         </CardContent>
       </CardActionArea>
+      {isNavigating ? (
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(255,255,255,0.18)",
+            backdropFilter: "blur(2px)",
+            pointerEvents: "none",
+          }}
+        >
+          <CircularProgress size={26} sx={{ color: "#ffffff" }} />
+        </Box>
+      ) : null}
     </Card>
   );
 }
