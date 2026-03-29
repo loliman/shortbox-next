@@ -16,6 +16,12 @@ const eslintConfig = [
   {
     plugins: { boundaries },
     settings: {
+      "import/resolver": {
+        typescript: {
+          project: "./tsconfig.json",
+          alwaysTryTypes: true,
+        },
+      },
       "boundaries/elements": [
         { type: "app", pattern: "app/**" },
         { type: "components", pattern: "src/components/**" },
@@ -23,9 +29,9 @@ const eslintConfig = [
         { type: "lib", pattern: "src/lib/**" },
         { type: "util", pattern: "src/util/**" },
         { type: "types", pattern: "src/types/**" },
-        { type: "core", pattern: "src/core/**" }
-      ]
-    }
+        { type: "core", pattern: "src/core/**" },
+      ],
+    },
   },
   {
     ignores: [
@@ -42,18 +48,21 @@ const eslintConfig = [
       "src/util/filter-updater.ts",
       "src/util/hierarchy.ts",
       "src/util/issuePresentation.ts",
-      "src/util/listingQuery.ts"
+      "src/util/listingQuery.ts",
     ],
     rules: {
-      "boundaries/dependencies": [2, {
-        default: "allow", 
-        rules: [
-          { from: "services", disallow: ["app", "components"] },
-          { from: "lib", disallow: ["app", "components", "services"] },
-          { from: "util", disallow: ["app", "components", "services", "lib"] },
-        ]
-      }]
-    }
+      "boundaries/dependencies": [
+        2,
+        {
+          default: "allow",
+          rules: [
+            { from: ["services"], disallow: ["app", "components"] },
+            { from: ["lib"], disallow: ["app", "components", "services"] },
+            { from: ["util"], disallow: ["app", "components", "services", "lib"] },
+          ],
+        },
+      ],
+    },
   },
   {
     files: ["**/*.test.ts", "**/*.test.tsx"],
