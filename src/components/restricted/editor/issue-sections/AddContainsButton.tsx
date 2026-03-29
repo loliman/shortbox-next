@@ -1,7 +1,7 @@
 import React from "react";
 import Button from "@mui/material/Button";
 import AddIcon from "@mui/icons-material/Add";
-import { cloneFieldItem } from "./defaults";
+import { cloneFieldItem, ensureFieldItemClientId } from "./defaults";
 import type { ContainsProps, FieldItem } from "./types";
 
 interface AddContainsButtonProps extends ContainsProps {
@@ -55,7 +55,7 @@ function AddContainsButton(props: AddContainsButtonProps) {
 
         const items = Array.isArray(props.items) ? props.items : [];
         const newIndex = items.length;
-        const nextItem = cloneFieldItem(props.defaultItem);
+        const nextItem = ensureFieldItemClientId(cloneFieldItem(props.defaultItem));
         nextItem.number = newIndex + 1;
 
         props.setFieldValue(props.type, [...items, nextItem], true);

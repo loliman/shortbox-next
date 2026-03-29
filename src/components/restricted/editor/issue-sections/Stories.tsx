@@ -5,6 +5,7 @@ import Stack from "@mui/material/Stack";
 import Box from "@mui/material/Box";
 import AddContainsButton from "./AddContainsButton";
 import Contains from "./Contains";
+import StoryBulkImport from "./StoryBulkImport";
 import StoryFields from "./StoryFields";
 import { storyDefault } from "./defaults";
 import type { ContainsProps } from "./types";
@@ -30,6 +31,8 @@ function Stories(props: ContainsProps) {
 
   return (
     <Stack spacing={2}>
+      <StoryBulkImport {...props} />
+
       <Contains
         {...props}
         type="stories"

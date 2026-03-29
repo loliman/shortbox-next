@@ -173,4 +173,33 @@ describe("issue-editor default values", () => {
       },
     });
   });
+
+  it("assigns stable client ids to mapped stories without ids and preserves existing ids", () => {
+    const mapped = mapIssueToEditorDefaultValues(
+      {
+        title: "Issue 3",
+        number: "3",
+        series: {
+          title: "Batman",
+          volume: 1,
+          publisher: { name: "DC", us: false },
+        },
+        stories: [
+          {
+            title: "First story",
+          },
+          {
+            id: 42,
+            title: "Second story",
+          },
+        ],
+      },
+      false
+    );
+
+    expect(typeof mapped.stories[0].uuid).toBe("string");
+    expect(mapped.stories[0].uuid).not.toBe("");
+    expect(mapped.stories[1].id).toBe(42);
+    expect(mapped.stories[1].uuid).toBeUndefined();
+  });
 });

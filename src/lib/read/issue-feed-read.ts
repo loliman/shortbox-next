@@ -424,7 +424,6 @@ export async function readIssueNavigationNodes(
   const nodes: Issue[] = Array.from(grouped.values()).map((group) => {
     const primary = pickPreferredIssueVariant(group);
     const serialized = serializeNavbarIssue(primary);
-    serialized.variant = "";
     serialized.variants = group
       .slice()
       .sort(compareIssueVariants)

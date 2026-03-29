@@ -2,6 +2,7 @@ import { HierarchyLevel } from "../../../../util/hierarchy";
 import { stripItem } from "../../../../util/util";
 import { createEmptyIssueValues } from "./constants";
 import type { IssueEditorFormValues } from "./types";
+import { ensureFieldItemClientId } from "../issue-sections/defaults";
 
 function asArray<T>(value: T[] | undefined | null): T[] {
   return Array.isArray(value) ? value : [];
@@ -39,7 +40,10 @@ function normalizeStory(story: Record<string, unknown>, usIssue: boolean) {
   const parentSeries = parentIssue.series || {};
   const exclusive = Boolean(story.exclusive || usIssue);
 
-  return {
+  return ensureFieldItemClientId({
+    id: story.id,
+    _id: story._id,
+    uuid: story.uuid,
     title: String(story.title || ""),
     number: story.number,
     addinfo: String(story.addinfo || ""),
@@ -73,7 +77,7 @@ function normalizeStory(story: Record<string, unknown>, usIssue: boolean) {
           },
         },
     children: story.children,
-  };
+  });
 }
 
 export function buildIssueCreateDefaultValues(
