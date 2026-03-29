@@ -108,6 +108,7 @@ function IssueEditorFormContent(props: IssueEditorFormContentProps) {
         <IssueEditorRelations
           values={values}
           isDesktop={isDesktop}
+          session={session}
           setFieldValue={setFieldValue}
           showHints={showHints}
           lockedFields={lockedFields}

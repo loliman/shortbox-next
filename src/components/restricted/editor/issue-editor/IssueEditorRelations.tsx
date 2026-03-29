@@ -3,10 +3,12 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { Stories } from "../IssueEditorSections";
 import type { IssueEditorFormValues } from "./types";
+import type { SessionData } from "../../../../app/session";
 
 interface IssueEditorRelationsProps {
   values: IssueEditorFormValues;
   isDesktop?: boolean;
+  session?: SessionData | null;
   setFieldValue: (field: string, value: unknown, shouldValidate?: boolean) => void;
   showHints?: boolean;
   lockedFields?: {
@@ -19,11 +21,13 @@ const STORIES_HINT = "Hinweis: Geschichten werden vererbt. Für Variants leer la
 function IssueEditorRelations({
   values,
   isDesktop,
+  session,
   setFieldValue,
   showHints = true,
   lockedFields,
 }: IssueEditorRelationsProps) {
   const storiesLocked = Boolean(lockedFields?.stories);
+  const canUseStoryImport = Boolean(session?.loggedIn && session?.canAdmin);
 
   return (
     <Stack spacing={2}>
@@ -42,6 +46,7 @@ function IssueEditorRelations({
         values={values}
         us={values.series.publisher.us}
         disabled={storiesLocked}
+        canUseStoryImport={canUseStoryImport}
       />
     </Stack>
   );

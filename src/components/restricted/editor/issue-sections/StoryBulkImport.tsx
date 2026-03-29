@@ -14,7 +14,7 @@ function StoryBulkImport(props: ContainsProps) {
   const [message, setMessage] = React.useState<string | null>(null);
   const [messageTone, setMessageTone] = React.useState<"error" | "success">("success");
 
-  if (props.us) return null;
+  if (props.us || !props.canUseStoryImport) return null;
 
   const handleImport = () => {
     if (!props.setFieldValue) return;
@@ -43,43 +43,66 @@ function StoryBulkImport(props: ContainsProps) {
 
     props.setFieldValue("stories", nextItems, true);
     setValue("");
-    setMessage(`${parsed.references.length} Story-Referenz${parsed.references.length === 1 ? "" : "en"} hinzugefugt.`);
+    setMessage(
+      `${parsed.references.length} Story-Referenz${parsed.references.length === 1 ? "" : "en"} hinzugefugt.`
+    );
     setMessageTone("success");
   };
 
-  return (
-    <Stack spacing={1.5}>
-      <TextField
-        value={value}
-        onChange={(event) => {
-          setValue(event.target.value);
-          if (message) setMessage(null);
-        }}
-        label="Stories aus Heftliste erzeugen"
-        placeholder="Strange Tales 110-111, 114-146, Amazing Spider-Man Annual 2"
-        multiline
-        minRows={2}
-        fullWidth
-        disabled={props.disabled}
-        helperText="Komma, Semikolon oder Zeilenumbruch trennen Eintrage. Ohne Volume wird automatisch Vol. 1 angenommen."
-      />
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Enter" || event.shiftKey) return;
+    event.preventDefault();
+    if (props.disabled || value.trim().length === 0) return;
+    handleImport();
+  };
 
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={1} justifyContent="space-between" alignItems={{ xs: "stretch", sm: "center" }}>
-        <Typography
-          variant="body2"
-          color={messageTone === "error" ? "error.main" : "text.secondary"}
-        >
-          {message || "Es werden Parent-Issue-Referenzen fur nicht-exklusive Stories angelegt."}
-        </Typography>
+  return (
+    <Stack spacing={1}>
+      <Stack direction={{ xs: "column", md: "row" }} spacing={1.25} alignItems="center">
+        <TextField
+          value={value}
+          onChange={(event) => {
+            setValue(event.target.value);
+            if (message) setMessage(null);
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder="US-Hefte einfugen, z. B. Strange Tales 110-111, 114-146, Amazing Spider-Man Annual 2"
+          fullWidth
+          size="small"
+          disabled={props.disabled}
+          helperText="Enter ubernimmt direkt. Trennung per Komma, Semikolon oder Zeilenumbruch. Ohne Volume gilt Vol. 1."
+          slotProps={{
+            formHelperText: {
+              sx: {
+                mb: 0.5,
+              },
+            },
+          }}
+        />
 
         <Button
-          variant="outlined"
+          variant="text"
+          size="small"
           onClick={handleImport}
           disabled={props.disabled || value.trim().length === 0}
+          sx={{
+            minWidth: "auto",
+            px: 1,
+            py: 0.5,
+            minHeight: 30,
+            alignSelf: "center",
+            whiteSpace: "nowrap",
+          }}
         >
-          Heftliste ubernehmen
+          Anlegen
         </Button>
       </Stack>
+
+      {message ? (
+        <Typography variant="body2" color={messageTone === "error" ? "error.main" : "text.secondary"}>
+          {message}
+        </Typography>
+      ) : null}
     </Stack>
   );
 }

@@ -1,5 +1,6 @@
 import type { SelectedRoot } from "../../../../types/domain";
 import type { MouseEvent, ReactNode } from "react";
+import type { SessionData } from "../../../../app/session";
 
 export interface IssueEditorFormValues {
   title: string;
@@ -33,7 +34,7 @@ export interface IssueEditorProps {
   edit?: boolean;
   copy?: boolean;
   id?: string | number;
-  session?: unknown;
+  session?: SessionData | null;
   isDesktop?: boolean;
   enqueueSnackbar: (
     message: string,
@@ -67,7 +68,7 @@ export interface IssueEditorFormContentProps {
   edit?: boolean;
   isDesktop?: boolean;
   id?: string | number;
-  session?: unknown;
+  session?: SessionData | null;
   header: string;
   submitLabel: string;
   submitAndCopyLabel: string;

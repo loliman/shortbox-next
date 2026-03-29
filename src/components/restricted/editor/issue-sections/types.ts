@@ -37,6 +37,7 @@ export interface ContainsProps {
   isDesktop?: boolean;
   us?: boolean;
   disabled?: boolean;
+  canUseStoryImport?: boolean;
   type?: ContainsType;
   index?: number;
   item?: FieldItem;
