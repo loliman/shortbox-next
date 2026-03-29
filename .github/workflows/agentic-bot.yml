@@ -11,7 +11,6 @@ on:
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    # Ignore bot-authored comment/review events, but keep issue-open flows active.
     if: github.event_name == 'issues' || github.event.sender.type != 'Bot'
 
     permissions:
@@ -23,19 +22,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci --registry https://registry.npmjs.org
-
-      # Self-referencing: this repo IS the action.
-      # External repos replace ./ with loliman/agentic-shortbox@v6.5.0
       - name: Run AI Bot
-        uses: ./
+        uses: loliman/agentic-shortbox@v6.5.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CODEX_SANDBOX_MODE: danger-full-access
