@@ -16,6 +16,11 @@ const ChangeRequestBodySchema = Yup.object({
   item: Yup.object().optional(),
 });
 
+type ChangeRequestBody = {
+  issue?: Record<string, unknown>;
+  item?: Record<string, unknown>;
+};
+
 const ChangeRequestIdSchema = Yup.object({
   id: Yup.mixed().optional(),
 });
@@ -23,11 +28,11 @@ const ChangeRequestIdSchema = Yup.object({
 export async function POST(request: NextRequest) {
   try {
     const rawBody = await request.json();
-    const body = await ChangeRequestBodySchema.validate(rawBody, { stripUnknown: true });
+    const body = await ChangeRequestBodySchema.validate(rawBody, { stripUnknown: true }) as ChangeRequestBody;
 
     const result = await createIssueChangeRequest({
-      issue: (body.issue || undefined) as Record<string, unknown> | undefined,
-      item: (body.item || undefined) as Record<string, unknown> | undefined,
+      issue: body.issue,
+      item: body.item,
     });
 
     if (!result.success) {
