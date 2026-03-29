@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readAutocompleteItems } from "@/src/lib/read/autocomplete-read";
 import * as Yup from "yup";
+import { InferType } from "yup";
 
 const AutocompleteBodySchema = Yup.object({
   source: Yup.string()
@@ -11,14 +12,18 @@ const AutocompleteBodySchema = Yup.object({
   limit: Yup.number().optional(),
 });
 
+type AutocompleteBody = InferType<typeof AutocompleteBodySchema>;
+
 export async function POST(request: NextRequest) {
   try {
     const rawBody = await request.json();
-    const body = await AutocompleteBodySchema.validate(rawBody, { stripUnknown: true });
+    const body: AutocompleteBody = await AutocompleteBodySchema.validate(rawBody, {
+      stripUnknown: true,
+    });
 
     const data = await readAutocompleteItems({
-      source: body.source as "publishers" | "series" | "genres" | "arcs" | "individuals" | "apps" | "realities",
-      variables: body.variables as Record<string, unknown> | undefined,
+      source: body.source,
+      variables: body.variables,
       offset: body.offset,
       limit: body.limit,
     });
@@ -28,7 +33,19 @@ export async function POST(request: NextRequest) {
         "Cache-Control": "no-store",
       },
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof Yup.ValidationError) {
+      return NextResponse.json(
+        { error: error.errors.join(", ") },
+        {
+          status: 400,
+          headers: {
+            "Cache-Control": "no-store",
+          },
+        }
+      );
+    }
+
     return NextResponse.json(
       { items: [], hasMore: false },
       {

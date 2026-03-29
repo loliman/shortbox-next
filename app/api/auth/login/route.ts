@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { loginUser } from "@/src/lib/server/auth-write";
 import { getSessionCookieOptions, SESSION_COOKIE_NAME } from "@/src/lib/server/session";
+import { LoginSchema } from "@/src/util/yupSchema";
+import * as Yup from "yup";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as {
-      credentials?: { name?: string; password?: string };
-    };
+    const rawBody = await request.json();
+    const credentials = await LoginSchema.validate(rawBody?.credentials, {
+      stripUnknown: true,
+    });
 
-    const user = await loginUser(body.credentials || {});
+    const user = await loginUser(credentials);
     const response = NextResponse.json(
       {
         user: {
@@ -27,6 +30,10 @@ export async function POST(request: NextRequest) {
     }
     return response;
   } catch (error) {
+    if (error instanceof Yup.ValidationError) {
+      return NextResponse.json({ error: error.errors.join(", ") }, { status: 400 });
+    }
+
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Login fehlgeschlagen" },
       { status: 400 }
