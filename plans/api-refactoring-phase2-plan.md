@@ -4,69 +4,76 @@
 
 - Feature name: API Refactoring Phase 2
 - Plan identifier: api-refactoring-phase2-plan
-- Status: Proposed / Needs Approval
+- Status: Draft
 - Related spec: api-refactoring-phase2-spec.md
 - Authors: Antigravity AI
 - Last updated: 2026-03-26
 
 ## 1. Summary
 
-This plan outlines the exact changes necessary to refactor the final remaining Next.js route handlers (`change-requests`, `admin-task-actions`, and `public-autocomplete`). The routes currently rely on `as Type` inline casting and naive error throwing. We will introduce `Yup` object schema validations and the established `Result` pattern to ensure structural robustness and align with the existing refactored endpoints (e.g., `issues`).
+Refactor the remaining legacy API route handlers that still rely on inline casting and ad hoc error handling. The implementation will introduce Yup request validation and align route-to-lib/service interactions with the established `Result` pattern while keeping route handlers thin.
 
-## User Review Required
+## 2. Scope Check
 
-> [!IMPORTANT]  
-> Please review this plan, specifically the proposed schemas and validation rules mapped out for the API paths, to ensure they match frontend expectations. Once you approve, I will begin the implementation.
+- In scope: `change-requests`, `admin-task-actions`, and `public-autocomplete` route validation and result handling.
+- Out of scope: UI changes, `src/core/` refactors, and deep worker rewrites.
+- Assumptions carried from the spec: Existing successful request shapes must remain accepted unless there is an explicit reason to tighten them.
 
-## 2. Proposed Changes
+## 3. Proposed File Changes
 
-### `app/api/change-requests/route.ts`
+| Path | Change type | Reason |
+|---|---|---|
+| `app/api/change-requests/route.ts` | update | Replace inline casts with Yup validation and structured `Result` handling |
+| `app/api/admin-task-actions/route.ts` | update | Validate action payloads and align error handling with existing patterns |
+| `app/api/public-autocomplete/route.ts` | update | Validate public request inputs explicitly |
+| `src/lib/server/change-requests-write.ts` | update | Align write wrappers with `Result` if needed |
+| `src/lib/server/admin-task-actions-write.ts` | update | Align task action wrappers with `Result` if needed |
 
-- **[MODIFY]** `app/api/change-requests/route.ts`
-  - **Change**: Introduce `Yup.object` schemas to replace `as { issue?: Record<string, unknown>; item?: Record<string, unknown>; }`.
-  - **Change**: Evaluate the methods (`createIssueChangeRequest`, `discardChangeRequestById`, `acceptChangeRequestById`) to use `Result` returns (if they don't already do so) and map `result.success` appropriately.
-  - **Reason**: Thin controllers should confidently pass strictly validated structures downwards.
+## 4. Layer Placement
 
-### `app/api/admin-task-actions/route.ts`
+- `app/` responsibilities: Parse request data, validate with Yup, evaluate session/auth context, call lib/service helpers, and return `NextResponse`.
+- `src/components/` responsibilities: None expected.
+- `src/services/` responsibilities: Only if route behavior requires service-level orchestration changes.
+- `src/lib/` responsibilities: Route-facing write helpers, autocomplete helpers, and result/error plumbing.
+- `src/util/` or `src/types/` responsibilities: Shared validation or `Result` support types if needed.
+- Areas intentionally left unchanged: Frontend consumers, worker internals unless wrapper changes are required, and product UI behavior.
 
-- **[MODIFY]** `app/api/admin-task-actions/route.ts`
-  - **Change**: Implement `Yup` to replace `as { action?: "run" | "release-locks"; input?: Record<string, unknown>; }`.
-  - **Change**: Implement `Result` evaluations for the `queueAdminTaskResult` wrapper.
-  - **Reason**: High-risk task invocation demands strict payload boundaries.
+## 5. Implementation Steps
 
-### `app/api/public-autocomplete/route.ts`
+1. Inspect the underlying write/task helpers to confirm whether they already return `Result` objects.
+2. Refactor `app/api/change-requests/route.ts` with Yup schemas and `Result`-aware response handling.
+3. Refactor `app/api/admin-task-actions/route.ts` with explicit action schemas and safe result mapping.
+4. Refactor `app/api/public-autocomplete/route.ts` with explicit request validation and consistent failure responses.
+5. Run lint and tests to verify boundary compliance and behavior parity.
 
-- **[MODIFY]** `app/api/public-autocomplete/route.ts`
-  - **Change**: Introduce a literal schema for `source` mapping (`"publishers" | "series" | ...`) and validate offset/limits strongly as numbers.
-  - **Reason**: Security and crash prevention on loose public endpoints.
+## 6. Test Plan
 
-### `src/lib/server/change-requests-write.ts` / `src/lib/server/admin-task-actions-write.ts` (If necessary)
+- Unit tests: Add or update route-focused validation tests for each refactored endpoint.
+- Regression tests: Confirm valid payloads that worked before still pass after refactoring.
+- Integration or route coverage, if any: Exercise representative success and invalid-payload failure cases for all three routes.
+- Lint command: `npm run lint`
+- Jest command: `npm test -- --runInBand`
 
-- **[MODIFY]** (Conditional)
-  - **Change**: If those underlying writes strictly throw right now instead of returning `{ success: boolean, data?: T, error?: string }`, rewrite their wrappers to match the `Result` signature implemented elsewhere during Phase 1. 
+## 7. Validation and Rollout Order
 
-## 3. Layer Placement
+1. Validate the helper/wrapper layer shape before changing route handlers.
+2. Refactor and verify each route individually.
+3. Run lint and Jest after the full set is complete.
 
-- *UI/App (Next.js)*: Receives input, runs Yup validation, calls library functions. Handles the `result.error` mapping directly via `NextResponse`.
-- *Library/Services (src/lib)*: Emits standardized `Result` objects containing either successful data or explicit error strings, avoiding bubbling native Unhandled Promise Rejections.
+## 8. Risks and Mitigations
 
-## 4. Implementation Steps
+- Risk: Tightening payload validation could reject valid existing frontend requests.
+- Why it matters: Product flows may break without any intended user-facing change.
+- Mitigation: Mirror the current accepted payload structure in Yup and add regression coverage for valid legacy payloads.
 
-1. Analyze `src/lib/server/change-requests-write.ts` to ensure the write mechanisms emit `Result` types. Refactor if needed.
-2. Inject Yup rules and `Result` handling in `app/api/change-requests/route.ts`.
-3. Create strict Yup rules and sanitize `app/api/admin-task-actions/route.ts`.
-4. Validate inputs on `app/api/public-autocomplete/route.ts`.
-5. Run validations via the `npm run lint` boundary check to ensure no regression and verify all existing tests (`npm test`).
+- Risk: `admin-task-actions` interacts with worker/task orchestration.
+- Why it matters: Small response-shape changes could break task dispatch or admin tooling.
+- Mitigation: Keep worker-facing changes minimal and adapt only the lowest necessary wrapper layer.
 
-## 5. Verification Plan
+## 9. Review Checklist
 
-### Automated Tests
-- command: `npm run lint` - Expect 0 boundary regressions or ESLint errors.
-- command: `npm test` - Expect matching node-only Jest test passing baseline.
-
-### Manual Verification
-- Manual code review of the returned structures. Wait for the user to request a live frontend run if required.
-
-## 6. Open Questions
-
-- Should we strictly enforce the shapes inside `Record<string, unknown>` for variables, or leave it as `mixed` in Yup? The current structure accepts them blindly, we will leave them essentially untyped inside the generic Record unless strictly required.
+- [ ] File placement follows `AGENTS.md` and documented module boundaries.
+- [ ] Pages and route handlers remain thin.
+- [ ] No Prisma access is introduced outside `src/lib/`.
+- [ ] No unrelated refactor is included.
+- [ ] Tests and verification steps are identified before implementation starts.
