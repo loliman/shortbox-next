@@ -16,6 +16,8 @@ const EnvSchema = Yup.object({
   STORY_FILTER_BATCH_SIZE: Yup.number().optional().default(100),
   CLEANUP_DRY_RUN: Yup.boolean().optional().default(false),
   NODE_ENV: Yup.string().optional().default("development"),
+  NEXT_PUBLIC_SITE_URL: Yup.string().optional().default("https://shortbox.de"),
+  NEXT_PUBLIC_MOCK_MODE: Yup.string().optional().default(""),
 });
 
 let parsedEnv: Yup.InferType<typeof EnvSchema>;
@@ -35,6 +37,8 @@ try {
     STORY_FILTER_BATCH_SIZE: process.env.STORY_FILTER_BATCH_SIZE,
     CLEANUP_DRY_RUN: process.env.CLEANUP_DRY_RUN,
     NODE_ENV: process.env.NODE_ENV,
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+    NEXT_PUBLIC_MOCK_MODE: process.env.NEXT_PUBLIC_MOCK_MODE,
   }, { stripUnknown: true });
 } catch (error) {
   if (error instanceof Yup.ValidationError) {
