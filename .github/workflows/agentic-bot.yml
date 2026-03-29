@@ -1,4 +1,4 @@
-name: Agentic Bot
+name: AI Developer Bot
 
 on:
   issues:
@@ -9,7 +9,7 @@ on:
     types: [submitted]
 
 jobs:
-  run-bot:
+  ai-bot:
     runs-on: ubuntu-latest
     if: github.event_name == 'issues' || github.event.sender.type != 'Bot'
 
@@ -19,11 +19,16 @@ jobs:
       pull-requests: write
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Run AI Bot
-        uses: loliman/agentic-shortbox@v6.5.5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - uses: christian-riese/agentic-shortbox@v6.5.7
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CODEX_SANDBOX_MODE: danger-full-access
