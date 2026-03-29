@@ -28,7 +28,7 @@ jobs:
 
       - run: npm ci
 
-      - uses: christian-riese/agentic-shortbox@v6.5.7
+      - uses: loliman/agentic-shortbox@v6.5.8
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CODEX_SANDBOX_MODE: danger-full-access
