@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run AI Bot
-        uses: loliman/agentic-shortbox@v6.5.2
+        uses: loliman/agentic-shortbox@v6.5.3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CODEX_SANDBOX_MODE: danger-full-access
