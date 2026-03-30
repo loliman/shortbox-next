@@ -87,7 +87,30 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
                 method: "POST",
                 body: formData,
               });
-              const payload = (await response.json()) as { error?: string };
+
+              const contentType = response.headers.get("content-type") || "";
+              let payload: { error?: string } = {};
+
+              if (contentType.includes("application/json")) {
+                payload = (await response.json()) as { error?: string };
+              } else {
+                const text = await response.text().catch(() => "");
+
+                if (!response.ok) {
+                  if (response.status === 413) {
+                    throw new Error(
+                      "Die PDF ist für den Server-Upload zu groß. Wahrscheinlich blockiert ein Proxy- oder Webserver-Limit vor der App."
+                    );
+                  }
+
+                  if (/<html/i.test(text)) {
+                    throw new Error(
+                      `Der Server hat statt JSON eine HTML-Fehlerseite zurückgegeben (${response.status}). Das ist meist ein vorgeschalteter Proxy- oder Webserver-Fehler.`
+                    );
+                  }
+                }
+              }
+
               if (!response.ok) {
                 throw new Error(payload.error || "PDF konnte nicht importiert werden");
               }
