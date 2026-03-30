@@ -12,6 +12,7 @@ import type { SxProps, Theme } from "@mui/material/styles";
 type OptionValue = Record<string, unknown>;
 
 interface AutocompleteBaseProps {
+  id?: string;
   options: OptionValue[];
   value: OptionValue | OptionValue[] | string | null;
   inputValue?: string;
@@ -27,6 +28,8 @@ interface AutocompleteBaseProps {
   textFieldSx?: SxProps<Theme>;
   inputAriaLabel?: string;
   popupIcon?: React.ReactNode;
+  error?: boolean;
+  helperText?: React.ReactNode;
   onFocus?: (e: React.FocusEvent<HTMLElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLElement>) => void;
   onListboxScroll?: (e: React.UIEvent<HTMLElement>) => void;
@@ -47,6 +50,7 @@ interface AutocompleteBaseProps {
 }
 
 function AutocompleteBase({
+  id,
   options,
   value,
   inputValue,
@@ -62,6 +66,8 @@ function AutocompleteBase({
   textFieldSx,
   inputAriaLabel,
   popupIcon,
+  error,
+  helperText,
   onFocus,
   onBlur,
   onListboxScroll,
@@ -72,8 +78,8 @@ function AutocompleteBase({
   onChange,
 }: Readonly<AutocompleteBaseProps>) {
   const autocompleteId = React.useMemo(
-    () => buildAutocompleteId({ inputAriaLabel, label, placeholder }),
-    [inputAriaLabel, label, placeholder]
+    () => id || buildAutocompleteId({ inputAriaLabel, label, placeholder }),
+    [id, inputAriaLabel, label, placeholder]
   );
   const mergedTextFieldSx: SxProps<Theme> = React.useMemo(
     () => [
@@ -133,6 +139,8 @@ function AutocompleteBase({
           {...params}
           variant={variant}
           sx={mergedTextFieldSx}
+          error={error}
+          helperText={helperText}
           label={label}
           placeholder={placeholder ? placeholder.trim() : "Suchen..."}
           inputProps={{

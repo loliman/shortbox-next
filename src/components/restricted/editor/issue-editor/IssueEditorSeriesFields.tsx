@@ -1,7 +1,7 @@
 import React from "react";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
-import { FastField } from "formik";
+import { FastField, getIn, useFormikContext } from "formik";
 import { TextField } from "../../../generic/FormikTextField";
 import AutocompleteBase from "../../../generic/AutocompleteBase";
 import { useAutocompleteQuery } from "../../../generic/useAutocompleteQuery";
@@ -49,6 +49,7 @@ function IssueEditorSeriesFields({
   showHints = true,
   lockedFields,
 }: IssueEditorSeriesFieldsProps) {
+  const formik = useFormikContext<IssueEditorFormValues>();
   const publisherPattern = String(values.series.publisher.name || "");
   const seriesPattern = String(values.series.title || "");
   const publisherUs = Boolean(values.series.publisher.us);
@@ -125,6 +126,7 @@ function IssueEditorSeriesFields({
 
       <Grid size={{ xs: 12, md: 8 }}>
         <AutocompleteBase
+          id="series.publisher.name"
           disabled={publisherLocked}
           options={publisherQuery.options}
           value={publisherValue}
@@ -139,6 +141,8 @@ function IssueEditorSeriesFields({
             typeof option === "string" ? option : formatPublisherLabel(option as PublisherOption)
           }
           getOptionKey={(option) => getPublisherOptionKey(option as PublisherOption | string)}
+          error={showFieldError(formik, "series.publisher.name")}
+          helperText={readFieldError(formik, "series.publisher.name")}
           isOptionEqualToValue={(option, value) =>
             normalizeText(option.name) ===
             normalizeText(typeof value === "string" ? value : value?.name)
@@ -160,6 +164,7 @@ function IssueEditorSeriesFields({
 
       <Grid size={{ xs: 12, md: 8 }}>
         <AutocompleteBase
+          id="series.title"
           disabled={publisherLocked || seriesLocked || isSeriesDisabled}
           options={seriesQuery.options}
           value={seriesValue}
@@ -174,6 +179,8 @@ function IssueEditorSeriesFields({
             typeof option === "string" ? option : formatSeriesLabel(option as SeriesOption)
           }
           getOptionKey={(option) => getSeriesOptionKey(option as SeriesOption | string)}
+          error={showFieldError(formik, "series.title")}
+          helperText={readFieldError(formik, "series.title")}
           isOptionEqualToValue={(option, value) =>
             normalizeText(getSeriesKey(option)) ===
             normalizeText(typeof value === "string" ? value : getSeriesKey(value))
@@ -241,6 +248,14 @@ function formatSeriesLabel(option: SeriesOption) {
 function getSeriesKey(value: SeriesOption | Record<string, unknown> | null | undefined) {
   if (!value) return "";
   return `${String((value as SeriesOption).title || "")}::${String((value as SeriesOption).volume || "")}`;
+}
+
+function showFieldError(formik: ReturnType<typeof useFormikContext<IssueEditorFormValues>>, path: string) {
+  return Boolean((getIn(formik.touched, path) || formik.submitCount > 0) && getIn(formik.errors, path));
+}
+
+function readFieldError(formik: ReturnType<typeof useFormikContext<IssueEditorFormValues>>, path: string) {
+  return showFieldError(formik, path) ? String(getIn(formik.errors, path) || "") : undefined;
 }
 
 export default IssueEditorSeriesFields;
