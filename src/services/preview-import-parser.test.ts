@@ -3,15 +3,15 @@ import { parsePreviewImportQueue } from "./preview-import-parser";
 describe("preview import parser", () => {
   const seriesReader = {
     async findDeSeriesByTitle(title: string) {
-      if (title === "EDDIE BROCK: CARNAGE") {
+      if (title === "Eddie Brock: Carnage") {
         return [{ title, volume: 1, publisherName: "Panini" }];
       }
 
-      if (title === "MILES MORALES: SPIDER-MAN") {
+      if (title === "Miles Morales: Spider-Man") {
         return [{ title, volume: 1, publisherName: "Panini" }];
       }
 
-      if (title === "VENOM: SCHWARZ, WEISS & BLUT") {
+      if (title === "Venom: Schwarz, Weiss & Blut") {
         return [{ title, volume: 1, publisherName: "Panini" }];
       }
 
@@ -54,16 +54,16 @@ DMILES007
     });
 
     expect(queue.drafts).toHaveLength(4);
-    expect(queue.drafts[0]?.values.series.title).toBe("VENOM: SCHWARZ, WEISS & BLUT");
+    expect(queue.drafts[0]?.values.series.title).toBe("Venom: Schwarz, Weiss & Blut");
     expect(queue.drafts[0]?.values.number).toBe("1");
     expect(queue.drafts[0]?.values.stories).toHaveLength(4);
     expect(queue.drafts[0]?.issueCode).toBe("DOSMA371");
     expect(queue.drafts[1]?.values.variant).toContain("Variant");
     expect(queue.drafts[1]?.issueCode).toBe("DOSMA371V");
     expect(queue.drafts[1]?.values.releasedate).toBe("2026-03-31");
-    expect(queue.drafts[2]?.values.series.title).toBe("EDDIE BROCK: CARNAGE");
+    expect(queue.drafts[2]?.values.series.title).toBe("Eddie Brock: Carnage");
     expect(queue.drafts[2]?.values.number).toBe("2");
-    expect(queue.drafts[3]?.values.series.title).toBe("MILES MORALES: SPIDER-MAN");
+    expect(queue.drafts[3]?.values.series.title).toBe("Miles Morales: Spider-Man");
     expect(queue.drafts[3]?.values.number).toBe("7");
   });
 });

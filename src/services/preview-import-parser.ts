@@ -30,6 +30,7 @@ const KNOWN_FORMATS = [
   "Album",
   "Album Hardcover",
 ] as const;
+const TITLE_ACRONYMS = new Set(["HC", "SC", "XL"]);
 
 export async function parsePreviewImportQueue(
   options: ParsePreviewImportOptions
@@ -349,7 +350,49 @@ function splitTitleAndNumber(sourceTitle: string) {
 }
 
 function normalizeTitle(value: string) {
-  return value.replace(/\s+/g, " ").trim();
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (!normalized) return "";
+  if (!looksMostlyUppercase(normalized)) return normalized;
+
+  return normalized
+    .split(/\s+/)
+    .map((word) => toTitleCaseWord(word))
+    .join(" ");
+}
+
+function looksMostlyUppercase(value: string) {
+  const letters = value.replace(/[^A-Za-zÄÖÜäöüß]/g, "");
+  if (letters.length < 3) return false;
+
+  const upperLetters = letters.replace(/[^A-ZÄÖÜ]/g, "").length;
+  return upperLetters / letters.length > 0.6;
+}
+
+function toTitleCaseWord(word: string) {
+  const hyphenParts = word.split("-");
+  return hyphenParts.map((part) => toTitleCasePart(part)).join("-");
+}
+
+function toTitleCasePart(part: string) {
+  const trimmed = String(part || "");
+  if (!trimmed) return "";
+  if (TITLE_ACRONYMS.has(trimmed)) return trimmed;
+
+  const prefixMatch = trimmed.match(/^[^A-Za-zÄÖÜäöüß]*/)?.[0] || "";
+  const suffixMatch = trimmed.match(/[^A-Za-zÄÖÜäöüß]*$/)?.[0] || "";
+  const core = trimmed.slice(prefixMatch.length, trimmed.length - suffixMatch.length);
+  if (!core) return trimmed;
+
+  const apostropheSegments = core.split("'");
+  const titleCasedCore = apostropheSegments
+    .map((segment) => {
+      if (!segment) return "";
+      const lower = segment.toLocaleLowerCase("de-DE");
+      return `${lower.charAt(0).toLocaleUpperCase("de-DE")}${lower.slice(1)}`;
+    })
+    .join("'");
+
+  return `${prefixMatch}${titleCasedCore}${suffixMatch}`;
 }
 
 function deriveCodeAnchoredTitle(lines: string[], localCodeIndex: number) {
