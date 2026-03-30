@@ -4,6 +4,7 @@ import React from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useRouter } from "next/navigation";
@@ -126,9 +127,22 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
             }
           }}
         >
-          PDF importieren
+          {uploading ? (
+            <Stack direction="row" spacing={1} alignItems="center">
+              <CircularProgress size={16} color="inherit" />
+              <span>Import läuft...</span>
+            </Stack>
+          ) : (
+            "PDF importieren"
+          )}
         </Button>
       </Stack>
+
+      {uploading ? (
+        <Alert severity="info" icon={<CircularProgress size={18} />}>
+          Die PDF wird gerade hochgeladen und verarbeitet. Das kann je nach Dateigröße einen Moment dauern.
+        </Alert>
+      ) : null}
     </Stack>
   );
 }
