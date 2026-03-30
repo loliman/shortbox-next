@@ -25,6 +25,7 @@ interface LayoutChromeClientProps {
   session?: SessionData | null;
   initialFilterCount?: number | null;
   changeRequestsCount?: number;
+  previewImportActive?: boolean;
   navigationLoading?: boolean;
 }
 
@@ -77,6 +78,7 @@ export default function LayoutChromeClient(props: Readonly<LayoutChromeClientPro
         enqueueSnackbar={snackbarBridge.enqueueSnackbar}
         initialFilterCount={props.initialFilterCount}
         changeRequestsCount={props.changeRequestsCount ?? 0}
+        previewImportActive={props.previewImportActive ?? false}
       />
 
       {showNavigation ? (

@@ -69,14 +69,38 @@ export default function FormPageShell({
 
       {notice ? <Paper elevation={0} sx={editorSectionSx}>{notice}</Paper> : null}
 
-      <Stack spacing={2.25} sx={{ flexGrow: 1, ...contentSx }}>
+      <Stack
+        spacing={2.25}
+        sx={{
+          flexGrow: 1,
+          pb: actions ? { xs: 18, sm: 19 } : 0,
+          ...contentSx,
+        }}
+      >
         {children}
       </Stack>
 
       {actions ? (
-        <Box sx={{ mt: "auto" }}>
-          <StickyActionBar>{actions}</StickyActionBar>
-          <Box sx={{ height: { xs: 16, sm: 20 } }} />
+        <Box
+          sx={{
+            position: "fixed",
+            left: "50%",
+            transform: "translateX(-50%)",
+            bottom: { xs: 72, sm: 88 },
+            width: {
+              xs: "calc(100% - 16px)",
+              sm: "calc(100% - 32px)",
+              md: "calc(100% - 48px)",
+              lg: "min(1120px, calc(100% - 64px))",
+            },
+            zIndex: 1200,
+          }}
+        >
+          <StickyActionBar
+            sx={{ mx: "auto" }}
+          >
+            {actions}
+          </StickyActionBar>
         </Box>
       ) : null}
     </Stack>

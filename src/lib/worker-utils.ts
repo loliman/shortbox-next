@@ -5,7 +5,7 @@ function resolveConnectionString() {
 
   const host = process.env.DB_HOST || "localhost";
   const port = process.env.DB_PORT || "5432";
-  const database = process.env.DB_NAME || "shortbox";
+  const database = process.env.DB_NAME || "shortbox_migration";
   const user = encodeURIComponent(process.env.DB_USER || "shortbox");
   const password = encodeURIComponent(process.env.DB_PASSWORD || "shortbox");
 
@@ -30,4 +30,3 @@ export async function releaseWorkerUtils(): Promise<void> {
   await workerUtils.release();
   workerUtilsPromise = null;
 }
-

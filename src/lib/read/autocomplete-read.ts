@@ -2,6 +2,7 @@ import "server-only";
 
 import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma/client";
+import { dedupePublisherItems, dedupeSeriesItems } from "./autocomplete-read-shared";
 
 const AUTOCOMPLETE_PAGE_SIZE = 50;
 const REALITY_EXTRACT_PATTERN = /\((earth-[^)]+)\)/gi;
@@ -77,11 +78,15 @@ async function getPublisherItems(
           `
     );
 
-    return {
-      items: rows.slice(0, limit).map((entry) => ({
+    const items = dedupePublisherItems(
+      rows.slice(0, limit).map((entry) => ({
         name: entry.name,
         us: entry.original,
-      })),
+      }))
+    );
+
+    return {
+      items,
       hasMore: rows.length > limit,
     };
   } catch {
@@ -135,8 +140,8 @@ async function getSeriesItems(
       `
     );
 
-    return {
-      items: rows.slice(0, limit).map((entry) => ({
+    const items = dedupeSeriesItems(
+      rows.slice(0, limit).map((entry) => ({
         title: entry.title || "",
         volume: Number(entry.volume),
         startyear: Number(entry.startyear),
@@ -147,7 +152,11 @@ async function getSeriesItems(
               us: Boolean(entry.publisher_original),
             }
           : undefined,
-      })),
+      }))
+    );
+
+    return {
+      items,
       hasMore: rows.length > limit,
     };
   } catch {

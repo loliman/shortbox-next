@@ -42,6 +42,7 @@ interface TopBarProps {
   ) => void;
   initialFilterCount?: number | null;
   changeRequestsCount?: number;
+  previewImportActive?: boolean;
 }
 
 const SEARCH_MAX_WIDTH = 520;
@@ -128,6 +129,7 @@ export default function TopBar(ownProps: TopBarProps) {
     typeof query?.filter === "string" ? query.filter : query?.filter ? String(query.filter) : null;
   const localeSwitchAriaLabel = us ? "Zu Deutsch wechseln" : "Zu US wechseln";
   const changeRequestsCount = ownProps.changeRequestsCount ?? 0;
+  const previewImportActive = Boolean(ownProps.previewImportActive);
 
   const onLogout = async () => {
     if (isMockMode) {
@@ -217,6 +219,7 @@ export default function TopBar(ownProps: TopBarProps) {
             query={query}
             localeSwitchAriaLabel={localeSwitchAriaLabel}
             changeRequestsCount={changeRequestsCount}
+            previewImportActive={previewImportActive}
             toggleTheme={ownProps.toggleTheme}
             onNavigate={navigate}
             navigationPending={navigationPending}
@@ -245,6 +248,7 @@ export default function TopBar(ownProps: TopBarProps) {
           initialFilterCount={ownProps.initialFilterCount}
           localeSwitchAriaLabel={localeSwitchAriaLabel}
           changeRequestsCount={changeRequestsCount}
+          previewImportActive={previewImportActive}
           onOpenSearch={() => setMobileSearchOpen(true)}
           onToggleDrawer={showNavigation ? () => toggleDrawer?.() : undefined}
           onNavigate={navigate}

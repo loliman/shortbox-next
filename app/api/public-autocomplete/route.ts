@@ -1,24 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readAutocompleteItems } from "@/src/lib/read/autocomplete-read";
-import * as Yup from "yup";
-
-const AutocompleteBodySchema = Yup.object({
-  source: Yup.string()
-    .oneOf(["publishers", "series", "genres", "arcs", "individuals", "apps", "realities"])
-    .required(),
-  variables: Yup.object().optional(),
-  offset: Yup.number().optional(),
-  limit: Yup.number().optional(),
-});
+import { validatePublicAutocompleteBody } from "@/src/lib/api/public-autocomplete-body";
 
 export async function POST(request: NextRequest) {
   try {
     const rawBody = await request.json();
-    const body = await AutocompleteBodySchema.validate(rawBody, { stripUnknown: true });
+    const body = await validatePublicAutocompleteBody(rawBody);
 
     const data = await readAutocompleteItems({
-      source: body.source as "publishers" | "series" | "genres" | "arcs" | "individuals" | "apps" | "realities",
-      variables: body.variables as Record<string, unknown> | undefined,
+      source: body.source,
+      variables: body.variables,
       offset: body.offset,
       limit: body.limit,
     });

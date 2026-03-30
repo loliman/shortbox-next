@@ -10,15 +10,18 @@ import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import BookIcon from "@mui/icons-material/Book";
 import ListIcon from "@mui/icons-material/List";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
 import { generateSeoUrl, HierarchyLevel } from "../../util/hierarchy";
 import type { SelectedRoot } from "../../types/domain";
+import type { SessionData } from "../../app/session";
 
 interface AddFabProps {
-  session?: unknown;
+  session?: SessionData | null;
   onNavigate?: (href: string) => void;
   level?: string;
   selected?: SelectedRoot;
   us?: boolean;
+  previewImportActive?: boolean;
 }
 
 interface AddFabState {
@@ -117,6 +120,21 @@ class AddFabBase extends React.Component<AddFabProps, AddFabState> {
               this.handleClose();
             }}
           />
+          {this.props.session?.canAdmin ? (
+            <SpeedDialAction
+              key="preview-import"
+              icon={<UploadFileIcon color={this.props.previewImportActive ? "secondary" : "inherit"} />}
+              tooltipTitle={
+                this.props.previewImportActive
+                  ? "Vorschau-Import fortsetzen"
+                  : "Vorschau-Import"
+              }
+              onClick={() => {
+                this.props.onNavigate?.("/admin/preview-import");
+                this.handleClose();
+              }}
+            />
+          ) : null}
 
           {this.props.level === HierarchyLevel.ISSUE && selected.issue ? (
             <SpeedDialAction
@@ -240,6 +258,7 @@ export default function AddFab(props: Readonly<AddFabProps>) {
       level={props.level}
       selected={props.selected}
       us={props.us}
+      previewImportActive={props.previewImportActive}
       onNavigate={(href) => router.push(href)}
     />
   );

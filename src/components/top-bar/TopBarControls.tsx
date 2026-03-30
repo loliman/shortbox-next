@@ -109,6 +109,7 @@ type AuthActionGroupProps = {
   loggedIn: boolean;
   canAdmin: boolean;
   changeRequestsCount: number;
+  previewImportActive: boolean;
   onNavigate: (href: string) => void;
   onLogout: () => void;
 };
@@ -188,6 +189,7 @@ type MobileBottomBarProps = {
   initialFilterCount?: number | null;
   localeSwitchAriaLabel: string;
   changeRequestsCount: number;
+  previewImportActive: boolean;
   onOpenSearch: () => void;
   onToggleDrawer?: () => void;
   onNavigate: (href: string) => void;
@@ -255,6 +257,7 @@ export function MobileBottomBar(props: Readonly<MobileBottomBarProps>) {
         loggedIn={Boolean(props.session?.loggedIn)}
         canAdmin={Boolean(props.session?.canAdmin)}
         changeRequestsCount={props.changeRequestsCount}
+        previewImportActive={props.previewImportActive}
         onNavigate={props.onNavigate}
         onLogout={props.onLogout}
       />
@@ -302,6 +305,7 @@ type DesktopActionsProps = {
   query?: { filter?: string | null; order?: string | null; direction?: string | null } | null;
   localeSwitchAriaLabel: string;
   changeRequestsCount: number;
+  previewImportActive: boolean;
   toggleTheme?: () => void;
   onNavigate: (href: string) => void;
   onLogout: () => void;
@@ -325,6 +329,7 @@ export function DesktopActions(props: Readonly<DesktopActionsProps>) {
         loggedIn={Boolean(props.session?.loggedIn)}
         canAdmin={Boolean(props.session?.canAdmin)}
         changeRequestsCount={props.changeRequestsCount}
+        previewImportActive={props.previewImportActive}
         onNavigate={props.onNavigate}
         onLogout={props.onLogout}
       />

@@ -57,15 +57,12 @@ export function useAutocompleteQuery<TOption>({
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<unknown>(null);
   const offset = options.length;
+  const activeRequestKeyRef = React.useRef("");
 
   const loadPage = React.useCallback(
-    async (nextOffset: number, append: boolean) => {
+    async (nextOffset: number) => {
       if (skip) {
-        setOptions([]);
-        setHasMore(false);
-        setLoading(false);
-        setFetching(false);
-        return;
+        return { items: [] as TOption[], hasMore: false };
       }
 
       const response = await fetch("/api/public-autocomplete", {
@@ -87,16 +84,18 @@ export function useAutocompleteQuery<TOption>({
       }
 
       const payload = (await response.json()) as { items?: TOption[]; hasMore?: boolean };
-      const items = Array.isArray(payload.items) ? payload.items : [];
-
-      setOptions((prev) => (append ? [...prev, ...items] : items));
-      setHasMore(Boolean(payload.hasMore));
+      return {
+        items: Array.isArray(payload.items) ? payload.items : [],
+        hasMore: Boolean(payload.hasMore),
+      };
     },
     [parsedInputVariables, skip, source]
   );
 
   React.useEffect(() => {
     let cancelled = false;
+    const requestKey = `${source}:${debouncedInputKey}`;
+    activeRequestKeyRef.current = requestKey;
     setOptions([]);
     setHasMore(true);
     setError(null);
@@ -108,7 +107,12 @@ export function useAutocompleteQuery<TOption>({
 
     setLoading(true);
 
-    void loadPage(0, false)
+    void loadPage(0)
+      .then((result) => {
+        if (cancelled || activeRequestKeyRef.current !== requestKey) return;
+        setOptions(result.items);
+        setHasMore(result.hasMore);
+      })
       .catch((nextError) => {
         if (cancelled) return;
         setOptions([]);
@@ -138,8 +142,14 @@ export function useAutocompleteQuery<TOption>({
     fetchMoreInFlightRef.current = true;
     setFetching(true);
     setError(null);
+    const requestKey = activeRequestKeyRef.current;
 
-    void loadPage(offset, true)
+    void loadPage(offset)
+      .then((result) => {
+        if (activeRequestKeyRef.current !== requestKey) return;
+        setOptions((prev) => [...prev, ...result.items]);
+        setHasMore(result.hasMore);
+      })
       .catch((nextError) => {
         setError(nextError);
       })

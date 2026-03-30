@@ -7,6 +7,11 @@ import AutocompleteBase from "../../../generic/AutocompleteBase";
 import { useAutocompleteQuery } from "../../../generic/useAutocompleteQuery";
 import type { IssueEditorFormValues } from "./types";
 import { getSeriesLabel } from "../../../../util/issuePresentation";
+import { getNextPublisherSelection, getNextSeriesSelection } from "./seriesSelection";
+import {
+  getPublisherOptionKey,
+  getSeriesOptionKey,
+} from "../../../generic/autocompleteOptionKeys";
 
 interface IssueEditorSeriesFieldsProps {
   values: IssueEditorFormValues;
@@ -68,7 +73,7 @@ function IssueEditorSeriesFields({
     source: "series",
     variables: {
       pattern: seriesPattern,
-      publisher: { name: publisherPattern },
+      publisher: { name: publisherPattern, us: publisherUs },
     },
     enabled: !isSeriesDisabled,
     searchText: seriesPattern,
@@ -133,6 +138,7 @@ function IssueEditorSeriesFields({
           getOptionLabel={(option) =>
             typeof option === "string" ? option : formatPublisherLabel(option as PublisherOption)
           }
+          getOptionKey={(option) => getPublisherOptionKey(option as PublisherOption | string)}
           isOptionEqualToValue={(option, value) =>
             normalizeText(option.name) ===
             normalizeText(typeof value === "string" ? value : value?.name)
@@ -144,15 +150,10 @@ function IssueEditorSeriesFields({
           onChange={(_, option) => {
             const selectedOption = Array.isArray(option) ? option[0] || null : option;
 
-            setFieldValue("series", {
-              title: "",
-              volume: "",
-              publisher: { name: "", us: values.series.publisher.us },
-            });
-
-            if (selectedOption && typeof selectedOption !== "string") {
-              setFieldValue("series.publisher", selectedOption);
-            }
+            setFieldValue(
+              "series",
+              getNextPublisherSelection(selectedOption as PublisherOption | string | null, values.series.publisher.us)
+            );
           }}
         />
       </Grid>
@@ -172,6 +173,7 @@ function IssueEditorSeriesFields({
           getOptionLabel={(option) =>
             typeof option === "string" ? option : formatSeriesLabel(option as SeriesOption)
           }
+          getOptionKey={(option) => getSeriesOptionKey(option as SeriesOption | string)}
           isOptionEqualToValue={(option, value) =>
             normalizeText(getSeriesKey(option)) ===
             normalizeText(typeof value === "string" ? value : getSeriesKey(value))
@@ -185,23 +187,14 @@ function IssueEditorSeriesFields({
 
             setFieldValue(
               "series",
-              selectedOption && typeof selectedOption !== "string"
-                ? {
-                    title: selectedOption.title,
-                    volume: selectedOption.volume,
-                    publisher: {
-                      name: values.series.publisher.name,
-                      us: values.series.publisher.us,
-                    },
-                  }
-                : {
-                    title: "",
-                    volume: "",
-                    publisher: {
-                      name: values.series.publisher.name,
-                      us: values.series.publisher.us,
-                    },
-                  }
+              getNextSeriesSelection(
+                selectedOption as SeriesOption | string | null,
+                {
+                  name: values.series.publisher.name,
+                  us: values.series.publisher.us,
+                },
+                values.series.volume
+              )
             );
           }}
         />

@@ -8,6 +8,7 @@ import ErrorFab from "../fab/ErrorFab";
 import { COMPACT_BOTTOM_BAR_CLEARANCE, getNavDrawerWidth } from "../layoutMetrics";
 import { getInitialResponsiveGuess } from "../../app/responsiveGuess";
 import { countChangeRequests } from "../../lib/read/issue-read";
+import { readHasActivePreviewImportQueue } from "../../lib/read/preview-import-read";
 import { readServerSession } from "../../lib/server/session";
 import type { IssueNode, PublisherNode, SeriesNode } from "../nav-bar/listTreeUtils";
 import type { SessionData } from "../../app/session";
@@ -27,6 +28,7 @@ export interface CatalogPageShellProps {
   session?: SessionData | null;
   initialFilterCount?: number | null;
   changeRequestsCount?: number;
+  previewImportActive?: boolean;
   navigationLoading?: boolean;
   children?: React.ReactNode;
 }
@@ -37,11 +39,14 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
   const sessionPromise =
     props.session === undefined ? readServerSession() : Promise.resolve(props.session);
 
-  const [resolvedSession, resolvedChangeRequestsCount, initialNavLayout] = await Promise.all([
+  const [resolvedSession, resolvedChangeRequestsCount, resolvedPreviewImportActive, initialNavLayout] = await Promise.all([
     sessionPromise,
     typeof props.changeRequestsCount === "number"
       ? Promise.resolve(props.changeRequestsCount)
       : sessionPromise.then((session) => (session?.canAdmin ? countChangeRequests().catch(() => 0) : 0)),
+    typeof props.previewImportActive === "boolean"
+      ? Promise.resolve(props.previewImportActive)
+      : sessionPromise.then((session) => (session?.canAdmin ? readHasActivePreviewImportQueue().catch(() => false) : false)),
     (async () => {
       if (!showNavigation) return { offset: "0px", gutter: "0px" };
 
@@ -84,6 +89,7 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
         session={resolvedSession}
         initialFilterCount={props.initialFilterCount}
         changeRequestsCount={resolvedChangeRequestsCount}
+        previewImportActive={resolvedPreviewImportActive}
         navigationLoading={props.navigationLoading}
       />
       {showNavigation
@@ -93,6 +99,7 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
               level={props.level}
               selected={props.selected}
               us={props.us}
+              previewImportActive={resolvedPreviewImportActive}
             />
           ) : props.us ? null : (
             <ErrorFab level={props.level} selected={props.selected} us={props.us} />

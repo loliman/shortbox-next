@@ -159,17 +159,7 @@ export async function createIssue(item: IssueInput): Promise<Result<ReturnType<t
     const publisher = await findPublisher(item.series?.publisher, tx);
     if (!publisher) throw new Error("Publisher not found");
 
-    const series = await tx.series.findFirst({
-      where: {
-        title: normalizeText(item.series?.title),
-        volume: BigInt(Number(item.series?.volume ?? 0)),
-        fkPublisher: publisher.id,
-      },
-      include: {
-        publisher: true,
-      },
-    });
-    if (!series) throw new Error("Series not found");
+    const series = await findOrCreateIssueSeries(item.series, publisher.id, tx);
 
     const duplicateIssue = await findIssueBySeriesIdentity(
       {
@@ -280,17 +270,7 @@ export async function editIssue(oldItem: IssueInput, item: IssueInput): Promise<
     const newPublisher = await findPublisher(item.series?.publisher, tx);
     if (!newPublisher) throw new Error("Publisher not found");
 
-    const newSeries = await tx.series.findFirst({
-      where: {
-        title: normalizeText(item.series?.title),
-        volume: BigInt(Number(item.series?.volume ?? 0)),
-        fkPublisher: newPublisher.id,
-      },
-      include: {
-        publisher: true,
-      },
-    });
-    if (!newSeries) throw new Error("Series not found");
+    const newSeries = await findOrCreateIssueSeries(item.series, newPublisher.id, tx);
 
     const duplicateIssue = await findIssueBySeriesIdentity(
       {
@@ -1268,6 +1248,48 @@ async function findPublisher(publisher: PublisherRef | null | undefined, executo
       ...(typeof publisher?.us === "boolean" ? { original: publisher.us } : {}),
     },
   });
+}
+
+async function findOrCreateIssueSeries(
+  seriesInput: IssueInput["series"],
+  publisherId: bigint,
+  executor: PrismaExecutor
+) {
+  const title = normalizeText(seriesInput?.title);
+  const volume = BigInt(Number(seriesInput?.volume ?? 0));
+
+  let series = await executor.series.findFirst({
+    where: {
+      title,
+      volume,
+      fkPublisher: publisherId,
+    },
+    include: {
+      publisher: true,
+    },
+  });
+
+  if (series) return series;
+
+  const currentYear = new Date().getFullYear();
+  series = await executor.series.create({
+    data: {
+      title,
+      volume,
+      startYear: BigInt(currentYear),
+      endYear: BigInt(0),
+      genre: "",
+      addInfo: "",
+      fkPublisher: publisherId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    include: {
+      publisher: true,
+    },
+  });
+
+  return series;
 }
 
 function toIssuePayload(issue: {

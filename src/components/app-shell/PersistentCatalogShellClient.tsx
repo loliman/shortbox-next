@@ -28,6 +28,7 @@ type PersistentCatalogShellClientProps = {
   us: boolean;
   session?: SessionData | null;
   changeRequestsCount?: number;
+  previewImportActive?: boolean;
 };
 
 export default function PersistentCatalogShellClient(
@@ -142,7 +143,13 @@ export default function PersistentCatalogShellClient(
       />
 
       {props.session?.canWrite ? (
-        <AddFab session={props.session} level={level} selected={selected} us={props.us} />
+        <AddFab
+          session={props.session}
+          level={level}
+          selected={selected}
+          us={props.us}
+          previewImportActive={props.previewImportActive}
+        />
       ) : props.us ? null : (
         <ErrorFab level={level} selected={selected} us={props.us} />
       )}

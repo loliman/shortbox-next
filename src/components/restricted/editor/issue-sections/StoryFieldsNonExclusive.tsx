@@ -7,6 +7,8 @@ import { TextField } from "../../../generic/FormikTextField";
 import type { ContainsProps, FieldItem } from "./types";
 import TypedRoleAutocomplete from "./TypedRoleAutocomplete";
 import { getSeriesLabel } from "../../../../util/issuePresentation";
+import { getNextStoryParentSeriesSelection } from "./storySeriesSelection";
+import { getSeriesOptionKey } from "../../../generic/autocompleteOptionKeys";
 
 const MIN_QUERY_LENGTH = 2;
 
@@ -74,6 +76,7 @@ function StoryFieldsNonExclusive(props: StoryFieldsNonExclusiveProps) {
           }
           onListboxScroll={seriesQuery.onListboxScroll}
           getOptionLabel={(option) => formatSeriesLabel(option)}
+          getOptionKey={(option) => getSeriesOptionKey(option)}
           isOptionEqualToValue={(option, value) =>
             normalizeText(getSeriesKey(option)) ===
             normalizeText(typeof value === "string" ? value : getSeriesKey(value))
@@ -84,10 +87,12 @@ function StoryFieldsNonExclusive(props: StoryFieldsNonExclusiveProps) {
           }}
           onChange={(_, option) => {
             const selectedOption = Array.isArray(option) ? option[0] || null : option;
-
             const selected = isOptionLike(selectedOption)
               ? { ...selectedOption, volume: selectedOption.volume || 0 }
-              : { title: "", volume: 0 };
+              : getNextStoryParentSeriesSelection(
+                  typeof selectedOption === "string" ? selectedOption : null,
+                  Number(parentSeries.volume || 1)
+                );
 
             setFieldValue(`stories[${index}].parent.issue.series`, selected);
           }}

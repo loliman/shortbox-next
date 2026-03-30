@@ -6,7 +6,7 @@ const EnvSchema = Yup.object({
     .url("DATABASE_URL must be a valid URL"),
   DB_HOST: Yup.string().optional().default("localhost"),
   DB_PORT: Yup.string().optional().default("5432"),
-  DB_NAME: Yup.string().optional().default("shortbox"),
+  DB_NAME: Yup.string().optional().default("shortbox_migration"),
   DB_USER: Yup.string().optional().default("shortbox"),
   DB_PASSWORD: Yup.string().optional().default("shortbox"),
   WORKER_CONCURRENCY: Yup.number().optional().default(5),

@@ -31,6 +31,7 @@ interface AutocompleteBaseProps {
   onBlur?: (e: React.FocusEvent<HTMLElement>) => void;
   onListboxScroll?: (e: React.UIEvent<HTMLElement>) => void;
   getOptionLabel: (option: OptionValue | string) => string;
+  getOptionKey?: (option: OptionValue | string) => string | number;
   isOptionEqualToValue: (option: OptionValue, value: OptionValue | string) => boolean;
   onInputChange?: (
     event: React.SyntheticEvent,
@@ -65,10 +66,15 @@ function AutocompleteBase({
   onBlur,
   onListboxScroll,
   getOptionLabel,
+  getOptionKey,
   isOptionEqualToValue,
   onInputChange,
   onChange,
 }: Readonly<AutocompleteBaseProps>) {
+  const autocompleteId = React.useMemo(
+    () => buildAutocompleteId({ inputAriaLabel, label, placeholder }),
+    [inputAriaLabel, label, placeholder]
+  );
   const mergedTextFieldSx: SxProps<Theme> = React.useMemo(
     () => [
       {
@@ -83,6 +89,7 @@ function AutocompleteBase({
 
   return (
     <Autocomplete<OptionValue, boolean, false, boolean>
+      id={autocompleteId}
       multiple={Boolean(multiple)}
       freeSolo={Boolean(freeSolo)}
       clearOnBlur={false}
@@ -105,6 +112,9 @@ function AutocompleteBase({
         isOptionEqualToValue(option as OptionValue, selected as OptionValue | string)
       }
       getOptionLabel={(option) => getOptionLabel(option as OptionValue | string)}
+      getOptionKey={(option) =>
+        (getOptionKey ? getOptionKey(option as OptionValue | string) : getOptionLabel(option as OptionValue | string))
+      }
       noOptionsText={noOptionsText}
       loadingText={loadingText}
       onInputChange={onInputChange}
@@ -143,6 +153,24 @@ function AutocompleteBase({
       )}
     />
   );
+}
+
+function buildAutocompleteId(input: {
+  inputAriaLabel?: string;
+  label?: React.ReactNode;
+  placeholder?: string;
+}) {
+  const preferredText =
+    input.inputAriaLabel ||
+    (typeof input.label === "string" ? input.label : "") ||
+    input.placeholder ||
+    "autocomplete";
+
+  return `autocomplete-${preferredText
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")}`;
 }
 
 export default AutocompleteBase;

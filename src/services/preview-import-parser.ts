@@ -1,0 +1,648 @@
+import type { PreviewImportDraft, PreviewImportQueue } from "../types/preview-import";
+
+type SeriesMatch = {
+  title: string;
+  volume: number;
+  publisherName: string;
+};
+
+export interface PreviewImportSeriesMatchReader {
+  findDeSeriesByTitle(title: string): Promise<SeriesMatch[]>;
+}
+
+export interface ParsePreviewImportOptions {
+  fileName: string;
+  text: string;
+  seriesReader: PreviewImportSeriesMatchReader;
+}
+
+const PRODUCT_CODE_PATTERN = /\b([A-Z]{4,}\d{3,}[A-Z]?)\b/;
+const DATE_PATTERN = /\b(\d{2}\.\d{2}\.\d{4})\b/;
+const PRICE_PATTERN = /€\s*([0-9]+(?:,[0-9]{1,2})?|-?[0-9]+),?-/;
+const KNOWN_FORMATS = [
+  "Heft",
+  "Mini Heft",
+  "Magazin",
+  "Prestige",
+  "Softcover",
+  "Hardcover",
+  "Taschenbuch",
+  "Album",
+  "Album Hardcover",
+] as const;
+
+export async function parsePreviewImportQueue(
+  options: ParsePreviewImportOptions
+): Promise<PreviewImportQueue> {
+  const lines = normalizeLines(options.text);
+  const blocks = splitPreviewBlocks(lines);
+  const blockDrafts = (
+    await Promise.all(blocks.map((block, index) => parseBlockToDrafts(block, index, options.seriesReader)))
+  ).flat();
+  const codeDrafts = await parseCodeAnchoredDrafts(lines, options.seriesReader, blockDrafts);
+  const drafts = dedupeDraftsByIssueCode([...blockDrafts, ...codeDrafts]);
+
+  if (drafts.length === 0) {
+    throw new Error("Aus der PDF konnten keine verwertbaren Ausgaben erkannt werden");
+  }
+
+  return {
+    id: createId("queue"),
+    fileName: options.fileName,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    drafts,
+  };
+}
+
+function dedupeDraftsByIssueCode(drafts: PreviewImportDraft[]) {
+  const seen = new Set<string>();
+  const result: PreviewImportDraft[] = [];
+
+  for (const draft of drafts) {
+    const key = String(draft.issueCode || "").trim();
+    if (key) {
+      if (seen.has(key)) continue;
+      seen.add(key);
+    }
+    result.push(draft);
+  }
+
+  return result;
+}
+
+function normalizeLines(text: string) {
+  return String(text || "")
+    .split(/\r?\n/)
+    .map((line) => normalizeLine(line))
+    .filter(Boolean)
+    .filter((line) => !isNoiseLine(line));
+}
+
+function normalizeLine(line: string) {
+  return line
+    .replace(/\s+/g, " ")
+    .replace(/[‐‑–—]/g, "-")
+    .trim();
+}
+
+function isNoiseLine(line: string) {
+  return (
+    line === "" ||
+    /^MARVEL ©/i.test(line) ||
+    /^N E U H E I T E N$/i.test(line) ||
+    /^\d+$/.test(line) ||
+    /^COVER FOLGT$/i.test(line)
+  );
+}
+
+function splitPreviewBlocks(lines: string[]) {
+  const blocks: string[][] = [];
+  let current: string[] = [];
+
+  for (const line of lines) {
+    if (looksLikeBlockTitle(line) && current.some((entry) => /^Story:/i.test(entry)) && hasMetadataLine(current)) {
+      blocks.push(current);
+      current = [line];
+      continue;
+    }
+
+    current.push(line);
+  }
+
+  if (current.length > 0) blocks.push(current);
+  return blocks.filter((block) => block.some((line) => /^Story:/i.test(line)) && hasMetadataLine(block));
+}
+
+function looksLikeBlockTitle(line: string) {
+  if (line.length < 4) return false;
+  if (/^Story:/i.test(line) || /^Zeichnungen:/i.test(line) || /^Inhalt:/i.test(line)) return false;
+  if (PRODUCT_CODE_PATTERN.test(line)) return false;
+
+  const letters = line.replace(/[^A-Za-zÄÖÜäöüß]/g, "");
+  if (letters.length === 0) return false;
+  const upperRatio = letters.replace(/[^A-ZÄÖÜ]/g, "").length / letters.length;
+  return upperRatio > 0.6;
+}
+
+function hasMetadataLine(block: string[]) {
+  const storyIndex = block.findIndex((line) => /^Story:/i.test(line));
+  if (storyIndex < 0) return false;
+
+  return block.some((line, index) => index > storyIndex && PRODUCT_CODE_PATTERN.test(line));
+}
+
+async function parseBlockToDrafts(
+  block: string[],
+  blockIndex: number,
+  seriesReader: PreviewImportSeriesMatchReader
+): Promise<PreviewImportDraft[]> {
+  const storyIndex = block.findIndex((line) => /^Story:/i.test(line));
+  const metadataIndexes = block
+    .map((line, index) => ({ line, index }))
+    .filter(({ line, index }) => index > storyIndex && PRODUCT_CODE_PATTERN.test(line))
+    .map(({ index }) => index);
+
+  if (storyIndex < 0 || metadataIndexes.length === 0) return [];
+
+  const titleLines = extractTitleLines(block, storyIndex);
+  const sourceTitle = normalizeTitle(titleLines.join(" "));
+  if (!sourceTitle) return [];
+
+  const metadataGroups = metadataIndexes.map((metadataIndex, index) =>
+    collectMetadataGroup(
+      block,
+      metadataIndex,
+      index > 0 ? metadataIndexes[index - 1] : storyIndex
+    )
+  );
+  const contentLine = block.find((line) => /^Inhalt:/i.test(line)) || "";
+  const mainDraft = await buildDraft({
+    draftId: createId(`draft-${blockIndex + 1}`),
+    sourceTitle,
+    metadataLines: metadataGroups[0] || [],
+    contentLine,
+    seriesReader,
+    isVariant: false,
+  });
+
+  const variantDrafts = await Promise.all(
+    metadataGroups.slice(1).map((metadataLines, variantIndex) =>
+      buildDraft({
+        draftId: createId(`draft-${blockIndex + 1}-variant-${variantIndex + 1}`),
+        sourceTitle,
+        metadataLines,
+        contentLine,
+        seriesReader,
+        isVariant: true,
+        variantOfDraftId: mainDraft.id,
+        baseValues: mainDraft.values,
+        fallbackReleaseDate: mainDraft.values.releasedate,
+      })
+    )
+  );
+
+  return [mainDraft, ...variantDrafts];
+}
+
+async function parseCodeAnchoredDrafts(
+  lines: string[],
+  seriesReader: PreviewImportSeriesMatchReader,
+  existingDrafts: PreviewImportDraft[]
+) {
+  const existingCodes = new Set(
+    existingDrafts
+      .map((draft) => String(draft.issueCode || "").trim())
+      .filter(Boolean)
+  );
+  const codeIndexes = lines
+    .flatMap((line, index) =>
+      Array.from(line.matchAll(new RegExp(PRODUCT_CODE_PATTERN.source, "g"))).map((match) => ({
+        index,
+        code: match[1] || "",
+      }))
+    )
+    .filter((entry) => entry.code);
+
+  const drafts: PreviewImportDraft[] = [];
+
+  for (const { index, code } of codeIndexes) {
+    if (existingCodes.has(code)) continue;
+
+    const previousCodeIndex = [...codeIndexes].reverse().find((entry) => entry.index < index)?.index ?? -1;
+    const windowStart = Math.max(previousCodeIndex + 1, index - 12);
+    const windowEnd = Math.min(lines.length, index + 18);
+    const windowLines = lines.slice(windowStart, windowEnd);
+    const localCodeIndex = index - windowStart;
+    const sourceTitle = deriveCodeAnchoredTitle(windowLines, localCodeIndex) || deriveLooseFallbackTitle(windowLines, localCodeIndex) || code;
+
+    const metadataLines = collectCodeMetadataWindow(windowLines, localCodeIndex);
+    const contentLine = windowLines.find((line) => /^Inhalt:/i.test(line)) || "";
+    const draft = await buildDraft({
+      draftId: createId(`code-draft-${code}`),
+      sourceTitle,
+      metadataLines,
+      contentLine,
+      seriesReader,
+      isVariant: deriveStandaloneVariant(windowLines, localCodeIndex, code),
+    });
+
+    draft.issueCode = code;
+
+    const explicitNumber = deriveExplicitIssueNumber(windowLines, localCodeIndex);
+    if (explicitNumber) {
+      draft.values.number = explicitNumber;
+      draft.values.series.title = stripTrailingIssueList(draft.values.series.title);
+    }
+
+    const bandTitle = deriveBandTitle(windowLines, localCodeIndex);
+    if (bandTitle) {
+      draft.values.series.title = bandTitle.seriesTitle;
+      draft.values.number = bandTitle.number;
+    }
+
+    drafts.push(draft);
+  }
+
+  return drafts;
+}
+
+async function buildDraft(input: {
+  draftId: string;
+  sourceTitle: string;
+  metadataLines: string[];
+  contentLine: string;
+  seriesReader: PreviewImportSeriesMatchReader;
+  isVariant: boolean;
+  variantOfDraftId?: string;
+  baseValues?: PreviewImportDraft["values"];
+  fallbackReleaseDate?: string;
+}): Promise<PreviewImportDraft> {
+  const values = input.baseValues ? structuredClone(input.baseValues) : createEmptyIssueValues();
+  const warnings: string[] = [];
+  const parsedTitle = splitTitleAndNumber(input.sourceTitle);
+  const contentReference = parseContentReference(input.contentLine);
+  const metadata = parseMetadataLines(input.metadataLines, input.fallbackReleaseDate);
+
+  values.series.publisher.name = "Panini";
+  values.series.publisher.us = false;
+  values.series.title = parsedTitle.seriesTitle;
+  values.series.volume = 1;
+  values.number = parsedTitle.number;
+  values.title = input.isVariant ? "" : "";
+  values.variant = input.isVariant ? deriveVariantLabel(input.metadataLines.join(" | ")) : "";
+  values.pages = metadata.pages ?? values.pages;
+  values.format = metadata.format ?? values.format;
+  values.price = metadata.price ?? values.price;
+  values.currency = "EUR";
+  values.releasedate = metadata.releaseDate ?? values.releasedate;
+  values.limitation = metadata.limitation ?? values.limitation;
+
+  const matches = await input.seriesReader.findDeSeriesByTitle(parsedTitle.seriesTitle);
+  if (matches.length === 1) {
+    values.series.title = matches[0].title;
+    values.series.volume = matches[0].volume;
+    values.series.publisher.name = matches[0].publisherName;
+  } else if (matches.length > 1) {
+    warnings.push(`Mehrdeutiger Serienmatch für "${parsedTitle.seriesTitle}"`);
+  } else {
+    warnings.push(`Kein Serienmatch für "${parsedTitle.seriesTitle}" gefunden`);
+  }
+
+  if (contentReference) {
+    values.stories = contentReference.references.map((reference, index) =>
+      ensureFieldItemClientId({
+        number: index + 1,
+        title: "",
+        addinfo: "",
+        part: "",
+        exclusive: false,
+        parent: {
+          issue: {
+            series: {
+              title: reference.seriesTitle,
+              volume: reference.volume,
+              publisher: {
+                name: "",
+              },
+            },
+            number: reference.issueNumber,
+          },
+          number: 0,
+        },
+      })
+    );
+  } else if (input.contentLine) {
+    warnings.push("Inhalt konnte nicht in Story-Referenzen umgewandelt werden");
+  }
+
+  return {
+    id: input.draftId,
+    sourceTitle: input.sourceTitle,
+    issueCode: metadata.issueCode,
+    variantOfDraftId: input.variantOfDraftId ?? null,
+    status: "pending",
+    warnings,
+    values,
+  };
+}
+
+function splitTitleAndNumber(sourceTitle: string) {
+  const cleaned = normalizeTitle(sourceTitle);
+  const annualMatch = cleaned.match(/^(.*\S)\s+(Annual\s+\d+)$/i);
+  if (annualMatch) {
+    return { seriesTitle: annualMatch[1], number: annualMatch[2] };
+  }
+
+  const issueMatch = cleaned.match(/^(.*\S)\s+(\d+[A-Za-z]?)$/);
+  if (issueMatch) {
+    return {
+      seriesTitle: issueMatch[1],
+      number: issueMatch[2],
+    };
+  }
+
+  return {
+    seriesTitle: cleaned,
+    number: "1",
+  };
+}
+
+function normalizeTitle(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function deriveCodeAnchoredTitle(lines: string[], localCodeIndex: number) {
+  const storyIndex = lines.findIndex((line) => /^Story:/i.test(line));
+  if (storyIndex > localCodeIndex) {
+    const titleLines = extractTitleLines(lines, storyIndex);
+    const title = normalizeTitle(titleLines.join(" "));
+    if (title) return title;
+  }
+
+  const beforeCode = lines.slice(0, localCodeIndex).reverse();
+  const titleLines: string[] = [];
+  for (const line of beforeCode) {
+    if (!looksLikeStandaloneTitleLine(line)) {
+      if (titleLines.length > 0) break;
+      continue;
+    }
+    titleLines.unshift(line);
+    if (titleLines.length >= 4) break;
+  }
+
+  return normalizeTitle(titleLines.join(" "));
+}
+
+function deriveLooseFallbackTitle(lines: string[], localCodeIndex: number) {
+  const candidates = lines
+    .slice(Math.max(0, localCodeIndex - 6), localCodeIndex)
+    .filter((line) => !isNoiseLine(line))
+    .filter((line) => !PRODUCT_CODE_PATTERN.test(line))
+    .filter((line) => !DATE_PATTERN.test(line))
+    .filter((line) => !PRICE_PATTERN.test(line))
+    .filter((line) => !/^(\d+\s*S\.|Nr\.|BAND\s+\d+:)/i.test(line))
+    .filter((line) => !/^(Story|Zeichnungen|Inhalt):/i.test(line));
+
+  const best = candidates
+    .map((line) => ({
+      line,
+      score: scoreFallbackTitle(line),
+    }))
+    .sort((left, right) => right.score - left.score)[0];
+
+  return normalizeTitle(best?.line || "");
+}
+
+function scoreFallbackTitle(line: string) {
+  const tokens = line.split(/\s+/).filter(Boolean);
+  const letters = line.replace(/[^A-Za-zÄÖÜäöüß]/g, "").length;
+  const shortTokenPenalty = tokens.filter((token) => token.replace(/[^A-Za-zÄÖÜäöüß]/g, "").length <= 2).length;
+  return letters - shortTokenPenalty * 6;
+}
+
+function looksLikeStandaloneTitleLine(line: string) {
+  if (!line || isNoiseLine(line)) return false;
+  if (PRODUCT_CODE_PATTERN.test(line) || DATE_PATTERN.test(line) || PRICE_PATTERN.test(line)) return false;
+  if (/^\d+\s*S\./i.test(line) || /^Nr\./i.test(line) || /^BAND\s+\d+:/i.test(line)) return false;
+  if (/^(Story|Zeichnungen|Inhalt):/i.test(line)) return false;
+  if (/^©|^TM\b|ALL RIGHTS RESERVED/i.test(line)) return false;
+
+  const tokens = line.split(/\s+/).filter(Boolean);
+  const shortTokenRatio = tokens.length > 0
+    ? tokens.filter((token) => token.replace(/[^A-Za-zÄÖÜäöüß]/g, "").length <= 2).length / tokens.length
+    : 1;
+  if (shortTokenRatio > 0.45) return false;
+
+  const letters = line.replace(/[^A-Za-zÄÖÜäöüß]/g, "");
+  if (letters.length < 4) return false;
+  const upperRatio = letters.replace(/[^A-ZÄÖÜ]/g, "").length / letters.length;
+  return upperRatio > 0.55;
+}
+
+function collectCodeMetadataWindow(lines: string[], localCodeIndex: number) {
+  const collected = new Set<string>();
+  for (let index = Math.max(0, localCodeIndex - 3); index <= Math.min(lines.length - 1, localCodeIndex + 3); index += 1) {
+    const line = lines[index] || "";
+    if (!line) continue;
+    if (looksLikeMetadataContextLine(line) || index === localCodeIndex) {
+      collected.add(line);
+    }
+  }
+  return Array.from(collected);
+}
+
+function deriveExplicitIssueNumber(lines: string[], localCodeIndex: number) {
+  for (let index = localCodeIndex - 1; index >= Math.max(0, localCodeIndex - 4); index -= 1) {
+    const match = (lines[index] || "").match(/^Nr\.\s*([0-9]+[A-Za-z]?)$/i);
+    if (match) return match[1];
+  }
+  return "";
+}
+
+function stripTrailingIssueList(value: string) {
+  return normalizeTitle(value.replace(/\s+\d+(?:\s*\+\s*\d+)+\s*$/, ""));
+}
+
+function deriveBandTitle(lines: string[], localCodeIndex: number) {
+  for (let index = localCodeIndex - 1; index >= Math.max(0, localCodeIndex - 5); index -= 1) {
+    const bandMatch = (lines[index] || "").match(/^BAND\s+\d+:\s*(.*)$/i);
+    if (!bandMatch) continue;
+
+    const sameLineTitle = normalizeTitle(String(bandMatch[1] || "").replace(/\(\d{4}\)/g, ""));
+    if (sameLineTitle) {
+      const split = splitTitleAndNumber(sameLineTitle);
+      return {
+        seriesTitle: split.seriesTitle,
+        number: split.number,
+      };
+    }
+  }
+
+  return null;
+}
+
+function deriveStandaloneVariant(lines: string[], localCodeIndex: number, code: string) {
+  const context = lines.slice(Math.max(0, localCodeIndex - 3), Math.min(lines.length, localCodeIndex + 3)).join(" | ");
+  return /\bvariant\b/i.test(context) || /\blim\./i.test(context) || /[A-Z]V\d*$/.test(code) || /(?:C|OEX)$/.test(code);
+}
+
+function extractTitleLines(block: string[], storyIndex: number) {
+  let start = storyIndex;
+  while (start - 1 >= 0 && looksLikeBlockTitle(block[start - 1] || "")) {
+    start -= 1;
+  }
+
+  const directTitleLines = block.slice(start, storyIndex).filter(looksLikeBlockTitle);
+  if (directTitleLines.length > 0) return directTitleLines;
+
+  return block.slice(0, storyIndex).filter(looksLikeBlockTitle).slice(-3);
+}
+
+function parseContentReference(contentLine: string) {
+  if (!contentLine) return null;
+  const normalized = contentLine.replace(/^Inhalt:\s*/i, "").trim();
+  if (!normalized) return null;
+
+  const references = normalized
+    .split(/\s*;\s*/)
+    .flatMap((segment) => segment.split(/\s*,\s*(?=[A-ZÄÖÜ])/))
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .flatMap((segment) => parseStoryReferenceSegment(segment));
+
+  return references.length > 0 ? { references } : null;
+}
+
+function parseStoryReferenceSegment(segment: string) {
+  const match = segment.match(/^(.*\S)\s+(\d+[A-Za-z]?|Annual\s+\d+)(?:-(\d+[A-Za-z]?|\d+))?$/i);
+  if (!match) return [];
+
+  const seriesTitle = match[1].trim();
+  const start = match[2].trim();
+  const end = match[3]?.trim();
+
+  if (!end) {
+    return [{ seriesTitle, volume: 1, issueNumber: start }];
+  }
+
+  const startNumber = Number.parseInt(start.replace(/[^0-9]/g, ""), 10);
+  const endNumber = Number.parseInt(end.replace(/[^0-9]/g, ""), 10);
+  if (!Number.isFinite(startNumber) || !Number.isFinite(endNumber) || endNumber < startNumber) {
+    return [{ seriesTitle, volume: 1, issueNumber: start }];
+  }
+
+  return Array.from({ length: endNumber - startNumber + 1 }, (_, offset) => ({
+    seriesTitle,
+    volume: 1,
+    issueNumber: String(startNumber + offset),
+  }));
+}
+
+function collectMetadataGroup(block: string[], metadataIndex: number, lowerBound: number) {
+  let start = metadataIndex;
+  while (start - 1 > lowerBound && looksLikeMetadataContextLine(block[start - 1] || "")) {
+    start -= 1;
+  }
+
+  let end = metadataIndex;
+  while (end + 1 < block.length && looksLikeMetadataContextLine(block[end + 1] || "")) {
+    end += 1;
+  }
+
+  return block.slice(start, end + 1);
+}
+
+function looksLikeMetadataContextLine(line: string) {
+  return (
+    PRODUCT_CODE_PATTERN.test(line) ||
+    DATE_PATTERN.test(line) ||
+    /(\d+)\s*S\./i.test(line) ||
+    PRICE_PATTERN.test(line) ||
+    /\b(?:HC|SC)\b/i.test(line) ||
+    /\b(?:Softcover|Hardcover|Heft|Mini Heft|Magazin|Prestige|Taschenbuch|Album)\b/i.test(line) ||
+    /\bvariant\b/i.test(line) ||
+    /\blim\./i.test(line) ||
+    /comic-salon/i.test(line) ||
+    /online shop/i.test(line) ||
+    /exklusiv/i.test(line)
+  );
+}
+
+function parseMetadataLines(lines: string[], fallbackReleaseDate?: string) {
+  const joined = lines.join(" | ");
+  const issueCode = joined.match(PRODUCT_CODE_PATTERN)?.[1];
+  const pages = joined.match(/(\d+)\s*S\./i)?.[1];
+  const releaseDate = joined.match(DATE_PATTERN)?.[1];
+  const limitation = joined.match(/auf\s+(\d+)\s+Ex\./i)?.[1];
+
+  return {
+    issueCode,
+    pages: pages ? Number.parseInt(pages, 10) : undefined,
+    format: parseFormat(joined),
+    price: parsePrice(joined),
+    releaseDate: releaseDate
+      ? toIsoDate(releaseDate)
+      : fallbackReleaseDate && fallbackReleaseDate !== "1900-01-01"
+        ? fallbackReleaseDate
+        : undefined,
+    limitation: limitation || "",
+  };
+}
+
+function parseFormat(line: string) {
+  if (/\bHC\b/i.test(line)) return "Hardcover";
+  if (/\bSC\b/i.test(line)) return "Softcover";
+  const known = KNOWN_FORMATS.find((format) =>
+    new RegExp(`\\b${escapeRegExp(format)}\\b`, "i").test(line)
+  );
+  return known;
+}
+
+function parsePrice(line: string) {
+  const match = line.match(PRICE_PATTERN)?.[1];
+  if (!match) return "0";
+  return match.replace(",", ".");
+}
+
+function toIsoDate(value: string) {
+  const match = value.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+  if (!match) return "1900-01-01";
+  return `${match[3]}-${match[2]}-${match[1]}`;
+}
+
+function deriveVariantLabel(line: string) {
+  if (/variant/i.test(line)) return "Variant-Cover";
+  if (/lim\./i.test(line)) return "Limitiertes Variant-Cover";
+  return "Variant-Cover";
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function createId(prefix: string) {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
+
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function createEmptyIssueValues(): PreviewImportDraft["values"] {
+  return {
+    title: "",
+    series: {
+      title: "",
+      volume: 0,
+      publisher: {
+        name: "",
+        us: false,
+      },
+    },
+    number: "",
+    variant: "",
+    cover: "",
+    format: KNOWN_FORMATS[0],
+    limitation: "",
+    pages: 0,
+    releasedate: "1900-01-01",
+    price: "0",
+    currency: "EUR",
+    individuals: [],
+    addinfo: "",
+    comicguideid: 0,
+    isbn: "",
+    arcs: [],
+    stories: [],
+  };
+}
+
+function ensureFieldItemClientId<T extends Record<string, unknown>>(item: T): T & { uuid?: string } {
+  if (item.id || item._id || item.uuid) return item;
+
+  return {
+    ...item,
+    uuid: createId("story"),
+  };
+}
