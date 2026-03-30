@@ -64,7 +64,7 @@ describe("issue-selection", () => {
     expect(matchesIssueSelectionBySlug(candidate, selection)).toBe(false);
   });
 
-  it("requires the exact startyear when the SEO route provides one", () => {
+  it("ignores startyear when matching a route to a series", () => {
     const selection: IssueSelectionInput = {
       us: false,
       publisher: "Panini Marvel Icon",
@@ -90,7 +90,7 @@ describe("issue-selection", () => {
       },
     };
 
-    expect(matchesIssueSelectionBySlug(candidate, selection)).toBe(false);
+    expect(matchesIssueSelectionBySlug(candidate, selection)).toBe(true);
   });
 
   it("matches variant values by slug equivalence (case/umlaut tolerant)", () => {
@@ -157,4 +157,3 @@ describe("issue-selection", () => {
     ).toBe(false);
   });
 });
-

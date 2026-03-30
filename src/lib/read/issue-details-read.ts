@@ -14,8 +14,8 @@ import {
   serializeNullableIssueNumber,
 } from "./issue-read-shared";
 import {
-  hasExplicitIssueVariantSelection,
   matchesIssueSelectionBySlug,
+  type IssueSelectionCandidate,
   type IssueSelectionInput,
 } from "./issue-selection";
 
@@ -267,113 +267,31 @@ function createIssueDetailsInclude() {
 export async function readIssueDetails(selection: IssueSelectionInput) {
   const normalizedFormat = normalizeIssueOptionalString(selection.format) ?? undefined;
   const normalizedVariant = normalizeIssueOptionalString(selection.variant) ?? undefined;
-  const normalizedStartYear =
-    Number.isFinite(Number(selection.startyear)) && Number(selection.startyear) > 0
-      ? BigInt(Number(selection.startyear))
-      : undefined;
-  const exactSeriesWhere = {
-    title: selection.series,
-    volume: BigInt(selection.volume),
-    ...(normalizedStartYear ? { startYear: normalizedStartYear } : {}),
-    publisher: {
-      name: selection.publisher,
-      original: selection.us,
-    },
-  };
-  const slugSeriesWhere = {
-    volume: BigInt(selection.volume),
-    ...(normalizedStartYear ? { startYear: normalizedStartYear } : {}),
-    publisher: {
-      original: selection.us,
-    },
-  };
-
-  const current = await prisma.issue.findFirst({
+  const candidates = await prisma.issue.findMany({
     where: {
       number: selection.number,
       format: normalizedFormat,
       variant: normalizedVariant,
-      series: exactSeriesWhere,
+      series: {
+        volume: BigInt(selection.volume),
+        publisher: {
+          original: selection.us,
+        },
+      },
     },
     include: createIssueDetailsInclude(),
     orderBy: [{ id: "asc" }],
   });
-
-  const matchedCurrentCandidates = current
-    ? []
-    : await prisma.issue.findMany({
-        where: {
-          number: selection.number,
-          series: slugSeriesWhere,
-        },
-        include: createIssueDetailsInclude(),
-        orderBy: [{ id: "asc" }],
-      });
-
-  const matchedCurrent =
-    current || matchedCurrentCandidates.find((candidate) => matchesIssueSelectionBySlug(candidate, selection));
-
-  let preferredSeriesIssue: any | null = null;
-  if (hasExplicitIssueVariantSelection(selection)) {
-    const baseSelection = {
-      ...selection,
-      format: undefined,
-      variant: undefined,
-    };
-    const baseCandidates = await prisma.issue.findMany({
-      where: {
-        number: selection.number,
-        series: slugSeriesWhere,
-      },
-      include: createIssueDetailsInclude(),
-      orderBy: [{ id: "asc" }],
-    });
-    const matchingBaseCandidates = baseCandidates.filter((candidate) =>
-      matchesIssueSelectionBySlug(candidate, baseSelection)
-    );
-    matchingBaseCandidates.sort((left, right) => {
-      const leftStories = Array.isArray(left.stories) ? left.stories.length : 0;
-      const rightStories = Array.isArray(right.stories) ? right.stories.length : 0;
-      if (leftStories !== rightStories) return rightStories - leftStories;
-      return Number(left.id) - Number(right.id);
-    });
-    preferredSeriesIssue = matchingBaseCandidates[0] || null;
-  }
-
-  const preferredSeriesCurrent =
-    preferredSeriesIssue
-      ? matchedCurrentCandidates.find(
-          (candidate) =>
-            matchesIssueSelectionBySlug(candidate, selection) &&
-            candidate.fkSeries != null &&
-            candidate.fkSeries === preferredSeriesIssue?.fkSeries
-        )
-      : null;
-
-  const fallbackCandidates = matchedCurrent || hasExplicitIssueVariantSelection(selection)
-    ? []
-    : await prisma.issue.findMany({
-      where: {
-        number: selection.number,
-        series: slugSeriesWhere,
-      },
-      include: createIssueDetailsInclude(),
-      orderBy: [{ format: "asc" }, { variant: "asc" }, { id: "asc" }],
-    });
-
-  const fallback =
-    preferredSeriesCurrent ||
-    matchedCurrent ||
-    fallbackCandidates.find((candidate) => matchesIssueSelectionBySlug(candidate, selection)) ||
-    fallbackCandidates[0] ||
-    null;
-
-  if (!fallback) return null;
+  const current =
+    candidates.find((candidate) =>
+      matchesIssueSelectionBySlug(candidate as IssueSelectionCandidate, selection)
+    ) || null;
+  if (!current) return null;
 
   const variants = await prisma.issue.findMany({
     where: {
-      number: fallback.number,
-      fkSeries: fallback.fkSeries ?? undefined,
+      number: current.number,
+      fkSeries: current.fkSeries ?? undefined,
     },
     include: {
       series: {
@@ -400,7 +318,7 @@ export async function readIssueDetails(selection: IssueSelectionInput) {
     orderBy: [{ format: "asc" }, { variant: "asc" }, { id: "asc" }],
   });
 
-  return toIssueDetailsShape(fallback, variants);
+  return toIssueDetailsShape(current, variants);
 }
 
 function toIssueDetailsShape(issue: any, variants: any[]) {

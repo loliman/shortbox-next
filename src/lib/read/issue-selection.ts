@@ -1,4 +1,4 @@
-import { generatePublisherSlug, generateSeriesSlug, slugify } from "../slug-builder";
+import { generatePublisherSlug, slugify } from "../slug-builder";
 import { normalizeIssueOptionalString, normalizeText } from "./issue-read-shared";
 
 export type IssueSelectionInput = {
@@ -12,7 +12,7 @@ export type IssueSelectionInput = {
   variant?: string | null;
 };
 
-type IssueSelectionCandidate = {
+export type IssueSelectionCandidate = {
   number?: unknown;
   format?: unknown;
   variant?: unknown;
@@ -67,23 +67,5 @@ export function matchesIssueSelectionBySlug(
   const expectedPublisherSlug = generatePublisherSlug(selection.publisher);
   if (candidatePublisherSlug !== expectedPublisherSlug) return false;
 
-  const selectionStartYear = toPositiveInteger(selection.startyear);
-  const candidateStartYear = toPositiveInteger(candidate.series?.startYear);
-
-  if (selectionStartYear !== null) {
-    const candidateSeriesSlug = generateSeriesSlug(
-      String(candidate.series?.title || ""),
-      candidateStartYear,
-      candidateVolume
-    );
-    const expectedSeriesSlug = generateSeriesSlug(
-      selection.series,
-      selectionStartYear,
-      selection.volume
-    );
-    return candidateSeriesSlug === expectedSeriesSlug;
-  }
-
   return slugify(String(candidate.series?.title || "")) === slugify(selection.series);
 }
-
