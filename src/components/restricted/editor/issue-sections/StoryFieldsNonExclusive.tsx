@@ -1,6 +1,6 @@
 import React from "react";
 import Grid from "@mui/material/Grid";
-import { FastField } from "formik";
+import { FastField, getIn, useFormikContext } from "formik";
 import AutocompleteBase from "../../../generic/AutocompleteBase";
 import { useAutocompleteQuery } from "../../../generic/useAutocompleteQuery";
 import { TextField } from "../../../generic/FormikTextField";
@@ -18,6 +18,7 @@ interface StoryFieldsNonExclusiveProps extends ContainsProps {
 }
 
 function StoryFieldsNonExclusive(props: StoryFieldsNonExclusiveProps) {
+  const formik = useFormikContext<Record<string, unknown>>();
   const index = Number.isInteger(props.index) ? (props.index as number) : 0;
   const values = props.values || {};
   const setFieldValue = props.setFieldValue || (() => undefined);
@@ -60,6 +61,7 @@ function StoryFieldsNonExclusive(props: StoryFieldsNonExclusiveProps) {
     <Grid container spacing={2}>
       <Grid size={{ xs: 12, md: 6 }}>
         <AutocompleteBase
+          id={`stories.${index}.parent.issue.series.title`}
           options={seriesQuery.options}
           value={currentSeriesValue}
           inputValue={seriesPattern}
@@ -77,6 +79,8 @@ function StoryFieldsNonExclusive(props: StoryFieldsNonExclusiveProps) {
           onListboxScroll={seriesQuery.onListboxScroll}
           getOptionLabel={(option) => formatSeriesLabel(option)}
           getOptionKey={(option) => getSeriesOptionKey(option)}
+          error={showFieldError(formik, `stories[${index}].parent.issue.series.title`)}
+          helperText={readFieldError(formik, `stories[${index}].parent.issue.series.title`)}
           isOptionEqualToValue={(option, value) =>
             normalizeText(getSeriesKey(option)) ===
             normalizeText(typeof value === "string" ? value : getSeriesKey(value))
@@ -165,6 +169,20 @@ function normalizeText(value: unknown) {
   return String(value || "")
     .trim()
     .toLowerCase();
+}
+
+function showFieldError(
+  formik: ReturnType<typeof useFormikContext<Record<string, unknown>>>,
+  path: string
+) {
+  return Boolean((getIn(formik.touched, path) || formik.submitCount > 0) && getIn(formik.errors, path));
+}
+
+function readFieldError(
+  formik: ReturnType<typeof useFormikContext<Record<string, unknown>>>,
+  path: string
+) {
+  return showFieldError(formik, path) ? String(getIn(formik.errors, path) || "") : undefined;
 }
 
 export default StoryFieldsNonExclusive;

@@ -29,4 +29,21 @@ describe("validationFeedback", () => {
       })
     ).toBe("series.publisher.name");
   });
+
+  it("finds the first story error path", () => {
+    expect(
+      findFirstErrorPath({
+        stories: [
+          undefined,
+          {
+            parent: {
+              issue: {
+                series: { title: "Pflichtfeld" },
+              },
+            },
+          },
+        ],
+      })
+    ).toBe("stories.1.parent.issue.series.title");
+  });
 });

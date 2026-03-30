@@ -9,6 +9,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useRouter } from "next/navigation";
 import { Form, Formik } from "formik";
+import { IssueSchema } from "../../util/yupSchema";
 import { mutationRequest } from "../../lib/client/mutation-request";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import type { ActivePreviewImportQueue } from "../../types/preview-import";
@@ -16,6 +17,7 @@ import type { SessionData } from "../../app/session";
 import IssueEditorFormContent from "../restricted/editor/issue-editor/IssueEditorFormContent";
 import { buildIssueMutationVariables } from "../restricted/editor/issue-editor/payload";
 import type { IssueEditorFormValues } from "../restricted/editor/issue-editor/types";
+import { buildTouchedFromErrors, findFirstErrorPath, focusEditorErrorField } from "../restricted/editor/issue-editor/validationFeedback";
 
 interface PreviewImportProps {
   initialQueue: ActivePreviewImportQueue | null;
@@ -161,6 +163,7 @@ function PreviewImportQueueEditor(props: Readonly<{
     <Formik
       initialValues={values}
       enableReinitialize
+      validationSchema={IssueSchema}
       onSubmit={async (formValues, actions) => {
         actions.setSubmitting(true);
         try {
@@ -168,7 +171,7 @@ function PreviewImportQueueEditor(props: Readonly<{
           const result = await mutationRequest<{ item?: { id?: string | number } }>({
             url: "/api/issues",
             method: "POST",
-            body: variables.item as Record<string, unknown>,
+            body: variables as unknown as Record<string, unknown>,
           });
 
           await mutationRequest({
@@ -193,7 +196,7 @@ function PreviewImportQueueEditor(props: Readonly<{
         }
       }}
     >
-      {({ resetForm, submitForm, isSubmitting, setFieldValue, values: formValues }) => (
+      {({ resetForm, submitForm, isSubmitting, setFieldValue, values: formValues, validateForm, setTouched }) => (
         <Form style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
           <IssueEditorFormContent
             values={formValues as IssueEditorFormValues}
@@ -209,7 +212,21 @@ function PreviewImportQueueEditor(props: Readonly<{
             onCancel={() => {
               void props.onDiscard().then(() => router.refresh());
             }}
-            onSubmitMode={() => submitForm()}
+            onSubmitMode={() => {
+              void validateForm().then((errors) => {
+                const firstErrorPath = findFirstErrorPath(errors);
+                if (firstErrorPath) {
+                  setTouched(buildTouchedFromErrors(errors), true);
+                  snackbar.enqueueSnackbar("Bitte die markierten Pflichtfelder prüfen.", {
+                    variant: "error",
+                  });
+                  focusEditorErrorField(firstErrorPath);
+                  return;
+                }
+
+                submitForm();
+              });
+            }}
             notice={
               <Stack spacing={1}>
                 <Alert severity="info">
@@ -292,7 +309,25 @@ function PreviewImportQueueEditor(props: Readonly<{
                 </Box>
 
                 <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
-                  <Button disabled={isSubmitting} variant="contained" onClick={() => submitForm()}>
+                  <Button
+                    disabled={isSubmitting}
+                    variant="contained"
+                    onClick={() => {
+                      void validateForm().then((errors) => {
+                        const firstErrorPath = findFirstErrorPath(errors);
+                        if (firstErrorPath) {
+                          setTouched(buildTouchedFromErrors(errors), true);
+                          snackbar.enqueueSnackbar("Bitte die markierten Pflichtfelder prüfen.", {
+                            variant: "error",
+                          });
+                          focusEditorErrorField(firstErrorPath);
+                          return;
+                        }
+
+                        submitForm();
+                      });
+                    }}
+                  >
                     Erstellen und weiter
                   </Button>
                 </Box>

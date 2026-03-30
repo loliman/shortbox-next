@@ -2,13 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireApiWriteSession } from "@/src/lib/server/guards";
 import { createIssue, deleteIssueByLookup, editIssue } from "@/src/lib/server/issues-write";
 import { invalidateNavigationCache } from "@/src/lib/server/revalidate";
-import { IssueSchema } from "@/src/util/yupSchema";
 import * as Yup from "yup";
-
-const IssueBodySchema = Yup.object({
-  item: IssueSchema.optional(),
-  old: IssueSchema.optional(),
-});
+import { validateCreateIssueBody, validateDeleteIssueBody, validateEditIssueBody } from "@/src/lib/api/issue-body";
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +11,7 @@ export async function POST(request: NextRequest) {
     if (auth.response) return auth.response;
 
     const rawBody = await request.json();
-    const body = await IssueBodySchema.validate(rawBody, { stripUnknown: true });
+    const body = await validateCreateIssueBody(rawBody);
 
     const result = await createIssue((body.item as never) || ({} as never));
     if (!result.success) {
@@ -37,7 +32,7 @@ export async function PATCH(request: NextRequest) {
     if (auth.response) return auth.response;
 
     const rawBody = await request.json();
-    const body = await IssueBodySchema.validate(rawBody, { stripUnknown: true });
+    const body = await validateEditIssueBody(rawBody);
 
     const result = await editIssue((body.old as never) || ({} as never), (body.item as never) || ({} as never));
     if (!result.success) {
@@ -58,7 +53,7 @@ export async function DELETE(request: NextRequest) {
     if (auth.response) return auth.response;
 
     const rawBody = await request.json();
-    const body = await IssueBodySchema.validate(rawBody, { stripUnknown: true });
+    const body = await validateDeleteIssueBody(rawBody);
 
     const result = await deleteIssueByLookup((body.item as never) || ({} as never));
     if (!result.success) {

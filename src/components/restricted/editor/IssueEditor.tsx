@@ -12,7 +12,7 @@ import IssueEditorFormContent from "./issue-editor/IssueEditorFormContent";
 import type { IssueEditorFormValues, IssueEditorProps } from "./issue-editor/types";
 import { mutationRequest } from "../../../lib/client/mutation-request";
 import type { SelectedRoot } from "../../../types/domain";
-import { buildTouchedFromErrors, findFirstErrorPath } from "./issue-editor/validationFeedback";
+import { buildTouchedFromErrors, findFirstErrorPath, focusEditorErrorField } from "./issue-editor/validationFeedback";
 
 type IssueMutationResult = Record<string, unknown>;
 
@@ -117,27 +117,6 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
     [router, selected]
   );
 
-  const focusFirstErrorField = React.useCallback((errorPath: string) => {
-    if (!errorPath) return;
-
-    if (typeof window === "undefined") return;
-
-    window.requestAnimationFrame(() => {
-      const escapedId = typeof CSS !== "undefined" && typeof CSS.escape === "function"
-        ? CSS.escape(errorPath)
-        : errorPath.replace(/[ !"#$%&'()*+,./:;<=>?@[\\\]^`{|}~]/g, "\\$&");
-
-      const target = document.getElementById(errorPath)
-        || document.querySelector<HTMLElement>(`#${escapedId}`)
-        || document.querySelector<HTMLElement>(`[name="${errorPath}"]`);
-
-      if (!target) return;
-
-      target.scrollIntoView({ behavior: "smooth", block: "center" });
-      target.focus?.();
-    });
-  }, []);
-
   return (
     <Formik
       initialValues={defaultValues}
@@ -213,7 +192,7 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
                   enqueueSnackbar("Bitte die markierten Pflichtfelder prüfen.", {
                     variant: "error",
                   });
-                  focusFirstErrorField(firstErrorPath);
+                  focusEditorErrorField(firstErrorPath);
                   return;
                 }
 

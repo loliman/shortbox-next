@@ -45,6 +45,46 @@ export function findFirstErrorPath(errors: unknown, prefix = ""): string {
   return "";
 }
 
+export function focusEditorErrorField(errorPath: string) {
+  if (!errorPath || typeof window === "undefined") return;
+
+  window.requestAnimationFrame(() => {
+    revealStoryErrorPanel(errorPath);
+
+    window.requestAnimationFrame(() => {
+      const escapedId = typeof CSS !== "undefined" && typeof CSS.escape === "function"
+        ? CSS.escape(errorPath)
+        : errorPath.replace(/[ !"#$%&'()*+,./:;<=>?@[\\\]^`{|}~]/g, "\\$&");
+
+      const target = document.getElementById(errorPath)
+        || document.querySelector<HTMLElement>(`#${escapedId}`)
+        || document.querySelector<HTMLElement>(`[name="${errorPath}"]`);
+
+      if (!target) return;
+
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      target.focus?.();
+    });
+  });
+}
+
 function isNestedError(value: unknown) {
   return Boolean(value) && (Array.isArray(value) || typeof value === "object");
+}
+
+function revealStoryErrorPanel(errorPath: string) {
+  const match = errorPath.match(/^stories(?:\.|\[)(\d+)/);
+  if (!match) return;
+
+  const storyIndex = match[1];
+  if (!storyIndex) return;
+
+  const card = document.querySelector<HTMLElement>(`[data-story-card="true"][data-story-index="${storyIndex}"]`);
+  if (!card) return;
+
+  const summary = card.querySelector<HTMLElement>(".MuiAccordionSummary-root");
+  const expanded = summary?.getAttribute("aria-expanded") === "true";
+  if (!expanded) {
+    summary?.click();
+  }
 }
