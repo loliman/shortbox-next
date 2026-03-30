@@ -4,6 +4,7 @@ import { prisma } from "../prisma/client";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE_NAME } from "./session";
 import type { ActivePreviewImportQueue, PreviewImportDraft, PreviewImportQueue } from "../../types/preview-import";
+import { findCurrentDraft, findPreviousSkippedDraftIndex } from "./preview-import-session-shared";
 
 type SessionPayload = {
   previewImportQueue?: PreviewImportQueue | null;
@@ -63,13 +64,6 @@ async function writeSessionPayload(sid: string, payload: SessionPayload) {
   });
 }
 
-function findCurrentDraft(queue: PreviewImportQueue): { draft: PreviewImportDraft; index: number } | null {
-  const index = queue.drafts.findIndex((draft) => draft.status === "pending");
-  if (index < 0) return null;
-  const draft = queue.drafts[index];
-  return draft ? { draft, index } : null;
-}
-
 export async function readActivePreviewImportQueue(): Promise<ActivePreviewImportQueue | null> {
   const { payload } = await readSessionPayload();
   const queue = payload.previewImportQueue;
@@ -83,6 +77,7 @@ export async function readActivePreviewImportQueue(): Promise<ActivePreviewImpor
     currentDraft: current.draft,
     currentDraftIndex: current.index,
     totalDraftCount: queue.drafts.length,
+    canGoBack: findPreviousSkippedDraftIndex(queue) >= 0,
   };
 }
 
@@ -140,6 +135,39 @@ export async function advanceActivePreviewImportQueue(
     await clearActivePreviewImportQueue();
     return null;
   }
+
+  await replaceActivePreviewImportQueue(nextQueue);
+  return readActivePreviewImportQueue();
+}
+
+export async function rewindActivePreviewImportQueue() {
+  const activeQueue = await readActivePreviewImportQueue();
+  if (!activeQueue) throw new Error("Keine aktive Import-Queue gefunden");
+
+  const previousSkippedDraftIndex = findPreviousSkippedDraftIndex(activeQueue.queue);
+  if (previousSkippedDraftIndex < 0) {
+    throw new Error("Es gibt keinen vorherigen übersprungenen Draft");
+  }
+
+  const previousDraft = activeQueue.queue.drafts[previousSkippedDraftIndex];
+  if (!previousDraft) {
+    throw new Error("Der vorherige Draft konnte nicht gefunden werden");
+  }
+
+  const nextDrafts = activeQueue.queue.drafts.map((draft, index) =>
+    index === previousSkippedDraftIndex
+      ? {
+          ...draft,
+          status: "pending" as const,
+        }
+      : draft
+  );
+
+  const nextQueue: PreviewImportQueue = {
+    ...activeQueue.queue,
+    drafts: nextDrafts,
+    updatedAt: nowIso(),
+  };
 
   await replaceActivePreviewImportQueue(nextQueue);
   return readActivePreviewImportQueue();

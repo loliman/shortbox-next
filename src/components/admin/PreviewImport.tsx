@@ -210,6 +210,33 @@ function PreviewImportQueueEditor(props: Readonly<{
             actions={
               <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} justifyContent="space-between">
                 <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                  <Button
+                    disabled={isSubmitting || !props.queue.canGoBack}
+                    variant="text"
+                    color="inherit"
+                    onClick={async () => {
+                      try {
+                        await mutationRequest({
+                          url: "/api/admin-preview-import",
+                          method: "PATCH",
+                          body: {
+                            action: "back",
+                          },
+                        });
+                        snackbar.enqueueSnackbar("Zum letzten übersprungenen Draft zurückgekehrt.", {
+                          variant: "success",
+                        });
+                        router.refresh();
+                      } catch (error) {
+                        snackbar.enqueueSnackbar(
+                          error instanceof Error ? error.message : "Der vorherige Draft konnte nicht geöffnet werden",
+                          { variant: "error" }
+                        );
+                      }
+                    }}
+                  >
+                    Zurück
+                  </Button>
                   <Button disabled={isSubmitting} variant="text" color="inherit" onClick={() => resetForm()}>
                     Zurücksetzen
                   </Button>

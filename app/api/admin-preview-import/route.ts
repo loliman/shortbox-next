@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiAdminSession } from "@/src/lib/server/guards";
-import { readActivePreviewImportQueue, replaceActivePreviewImportQueue, clearActivePreviewImportQueue, advanceActivePreviewImportQueue } from "@/src/lib/server/preview-import-session";
+import { readActivePreviewImportQueue, replaceActivePreviewImportQueue, clearActivePreviewImportQueue, advanceActivePreviewImportQueue, rewindActivePreviewImportQueue } from "@/src/lib/server/preview-import-session";
 import { extractTextFromPdfBuffer } from "@/src/lib/server/pdf-text-extract";
 import { readDeSeriesByTitle } from "@/src/lib/read/preview-import-read";
 import { parsePreviewImportQueue } from "@/src/services/preview-import-parser";
@@ -61,10 +61,26 @@ export async function PATCH(request: NextRequest) {
   if (auth.response) return auth.response;
 
   const body = (await request.json()) as {
-    action?: "skip" | "complete";
+    action?: "skip" | "complete" | "back";
     draftId?: string;
     createdIssueId?: string;
   };
+
+  if (body.action === "back") {
+    try {
+      const nextQueue = await rewindActivePreviewImportQueue();
+
+      return NextResponse.json(
+        { queue: nextQueue?.queue || null },
+        { headers: { "Cache-Control": "no-store" } }
+      );
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Queue konnte nicht aktualisiert werden" },
+        { status: 400, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+  }
 
   const draftId = String(body.draftId || "").trim();
   if (!draftId) {

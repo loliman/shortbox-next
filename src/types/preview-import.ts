@@ -26,4 +26,5 @@ export interface ActivePreviewImportQueue {
   currentDraft: PreviewImportDraft;
   currentDraftIndex: number;
   totalDraftCount: number;
+  canGoBack: boolean;
 }
