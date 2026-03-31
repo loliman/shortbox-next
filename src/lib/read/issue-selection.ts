@@ -52,11 +52,13 @@ export function matchesIssueSelectionBySlug(
 ): boolean {
   if (normalizeText(candidate.number) !== normalizeText(selection.number)) return false;
 
-  const expectedFormat = normalizeIssueOptionalString(selection.format);
-  if (!areEquivalentBySlug(candidate.format, expectedFormat)) return false;
+  if (hasExplicitIssueVariantSelection(selection)) {
+    const expectedFormat = normalizeIssueOptionalString(selection.format);
+    if (!areEquivalentBySlug(candidate.format, expectedFormat)) return false;
 
-  const expectedVariant = normalizeIssueOptionalString(selection.variant);
-  if (!areEquivalentBySlug(candidate.variant, expectedVariant)) return false;
+    const expectedVariant = normalizeIssueOptionalString(selection.variant);
+    if (!areEquivalentBySlug(candidate.variant, expectedVariant)) return false;
+  }
 
   const candidateVolume = toPositiveInteger(candidate.series?.volume);
   if (candidateVolume !== toPositiveInteger(selection.volume)) return false;

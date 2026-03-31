@@ -16,6 +16,7 @@ function IssueEditorFormContent(props: IssueEditorFormContentProps) {
   const {
     values,
     edit,
+    copy,
     isDesktop,
     id,
     session,
@@ -94,6 +95,8 @@ function IssueEditorFormContent(props: IssueEditorFormContentProps) {
       <IssueEditorSection title="Metadaten">
         <IssueEditorMetadataFields
           values={values}
+          copy={copy}
+          batchEnabled={Boolean(values.copyBatch.enabled)}
           isDesktop={isDesktop}
           setFieldValue={setFieldValue}
           lockedFields={lockedFields}

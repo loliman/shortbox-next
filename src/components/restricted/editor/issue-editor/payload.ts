@@ -1,5 +1,6 @@
 import { stripItem } from "../../../../util/util";
 import type { IssueEditorFormValues } from "./types";
+import { normalizeIssueCopyBatch, shouldGenerateVariantBatch } from "@/src/services/issue-copy-service";
 
 interface NamedTypeEntry {
   name?: string;
@@ -15,6 +16,10 @@ interface AppearanceEntry {
 interface MutationVariables {
   item: Record<string, unknown>;
   old?: Record<string, unknown>;
+  batch?: {
+    count: number;
+    prefix?: string;
+  };
 }
 
 function toOptionalFloat(value: unknown): number | undefined {
@@ -247,6 +252,14 @@ export function buildIssueMutationVariables(
   const variables: MutationVariables = {
     item: itemPayload,
   };
+
+  if (!edit && shouldGenerateVariantBatch(values.copyBatch)) {
+    const batch = normalizeIssueCopyBatch(values.copyBatch);
+    variables.batch = {
+      count: batch.count,
+      ...(batch.prefix ? { prefix: batch.prefix } : {}),
+    };
+  }
 
   if (edit) {
     variables.old = {

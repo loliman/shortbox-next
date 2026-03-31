@@ -168,5 +168,10 @@ export function mapIssueToEditorDefaultValues(
     individuals: [],
     arcs: [],
     cover: undefined,
+    copyBatch: {
+      enabled: false,
+      count: 1,
+      prefix: "",
+    },
   };
 }

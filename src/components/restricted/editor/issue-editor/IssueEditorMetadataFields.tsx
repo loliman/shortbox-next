@@ -1,6 +1,11 @@
 import React from "react";
+import Accordion from "@mui/material/Accordion";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import AccordionSummary from "@mui/material/AccordionSummary";
 import Grid from "@mui/material/Grid";
 import MenuItem from "@mui/material/MenuItem";
+import Typography from "@mui/material/Typography";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import type {
   AutocompleteChangeReason,
   AutocompleteInputChangeReason,
@@ -12,6 +17,7 @@ import { useAutocompleteQuery } from "../../../generic/useAutocompleteQuery";
 import { currencies, formats } from "./constants";
 import type { IssueEditorFormValues } from "./types";
 import type { AutocompleteSource } from "../../../../lib/read/autocomplete-read";
+import { buildVariantBatchLabels } from "@/src/services/issue-copy-service";
 
 const MIN_QUERY_LENGTH = 2;
 const DEBOUNCE_MS = 250;
@@ -30,6 +36,8 @@ interface MetadataEntry {
 
 interface IssueEditorMetadataFieldsProps {
   values: IssueEditorFormValues;
+  copy?: boolean;
+  batchEnabled?: boolean;
   isDesktop?: boolean;
   setFieldValue: (field: string, value: unknown, shouldValidate?: boolean) => void;
   lockedFields?: {
@@ -51,15 +59,93 @@ interface TypedMetadataAutocompleteProps {
 
 function IssueEditorMetadataFields({
   values,
+  copy,
+  batchEnabled,
   setFieldValue,
   lockedFields,
 }: IssueEditorMetadataFieldsProps) {
   const us = values.series.publisher.us;
   const formatLocked = Boolean(lockedFields?.format);
   const variantLocked = Boolean(lockedFields?.variant);
+  const previewLabels = copy && batchEnabled ? buildVariantBatchLabels(values.copyBatch) : [];
 
   return (
     <Grid container spacing={2}>
+      {copy ? (
+        <Grid size={{ xs: 12 }}>
+          <Accordion
+            disableGutters
+            elevation={0}
+            expanded={Boolean(batchEnabled)}
+            onChange={(_event, expanded) => {
+              setFieldValue("copyBatch.enabled", expanded);
+              if (!expanded) {
+                setFieldValue("copyBatch.count", 1, false);
+                setFieldValue("copyBatch.prefix", "", false);
+              }
+            }}
+            sx={{
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 1.5,
+              backgroundColor: "transparent",
+              boxShadow: "none",
+              "&::before": { display: "none" },
+              "& .MuiAccordionSummary-root": {
+                minHeight: 44,
+                px: 1.5,
+              },
+              "& .MuiAccordionSummary-content": {
+                my: 0,
+              },
+              "& .MuiAccordionSummary-content.Mui-expanded": {
+                my: 0,
+              },
+              "& .MuiAccordionDetails-root": {
+                px: 1.5,
+                pt: 0.5,
+                pb: 1.5,
+              },
+            }}
+          >
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography variant="body2">Varianten automatisch erzeugen</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 8, md: 6 }}>
+                  <FastField
+                    name="copyBatch.prefix"
+                    label="Praefix"
+                    component={TextField}
+                    helperText='Z. B. "Panini Exclusive"'
+                    fullWidth
+                  />
+                </Grid>
+
+                <Grid size={{ xs: 12, sm: 4, md: 3 }}>
+                  <FastField
+                    name="copyBatch.count"
+                    label="Anzahl"
+                    type="number"
+                    component={TextField}
+                    inputProps={{ min: 1, max: 26 }}
+                    helperText="1-26, immer A-Z"
+                    fullWidth
+                  />
+                </Grid>
+
+                <Grid size={{ xs: 12 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Vorschau: {previewLabels.join(", ")}
+                  </Typography>
+                </Grid>
+              </Grid>
+            </AccordionDetails>
+          </Accordion>
+        </Grid>
+      ) : null}
+
       {!us ? (
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <FastField
@@ -81,15 +167,18 @@ function IssueEditorMetadataFields({
         </Grid>
       ) : null}
 
-      <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-        <FastField
-          disabled={variantLocked}
-          name="variant"
-          label="Variante"
-          component={TextField}
-          fullWidth
-        />
-      </Grid>
+      {!(copy && batchEnabled) ? (
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <FastField
+            disabled={variantLocked}
+            name="variant"
+            label="Variante"
+            component={TextField}
+            helperText={copy ? "Nur fuer einzelne Kopie." : undefined}
+            fullWidth
+          />
+        </Grid>
+      ) : null}
 
       {!us ? (
         <React.Fragment>

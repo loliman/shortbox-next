@@ -27,6 +27,11 @@ export interface IssueEditorFormValues {
   isbn?: string;
   arcs?: Array<Record<string, unknown>>;
   stories: Array<Record<string, unknown>>;
+  copyBatch: {
+    enabled: boolean;
+    count: number | string;
+    prefix: string;
+  };
 }
 
 export interface IssueEditorProps {
@@ -66,6 +71,7 @@ export interface IssueEditorState {
 export interface IssueEditorFormContentProps {
   values: IssueEditorFormValues;
   edit?: boolean;
+  copy?: boolean;
   isDesktop?: boolean;
   id?: string | number;
   session?: SessionData | null;

@@ -1,8 +1,19 @@
 import * as Yup from "yup";
 import { IssueSchema } from "../../util/yupSchema";
 
+const IssueBatchSchema = Yup.object({
+  count: Yup.number()
+    .typeError("Bitte geben Sie eine Zahl ein")
+    .required("Anzahl wird benoetigt")
+    .min(1, "Die Anzahl muss mindestens 1 sein")
+    .max(26, "Die Anzahl darf nicht groesser als 26 sein")
+    .integer("Bitte geben Sie eine Zahl ein"),
+  prefix: Yup.string().max(255, "Maximal 255 Zeichen"),
+}).default(undefined);
+
 const CreateIssueBodySchema = Yup.object({
   item: IssueSchema.required("Ausgabe wird benötigt"),
+  batch: IssueBatchSchema.optional(),
 });
 
 const EditIssueBodySchema = Yup.object({

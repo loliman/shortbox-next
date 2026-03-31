@@ -678,6 +678,11 @@ function createEmptyIssueValues(): PreviewImportDraft["values"] {
     isbn: "",
     arcs: [],
     stories: [],
+    copyBatch: {
+      enabled: false,
+      count: 1,
+      prefix: "",
+    },
   };
 }
 

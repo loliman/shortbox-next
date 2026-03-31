@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiWriteSession } from "@/src/lib/server/guards";
-import { createIssue, deleteIssueByLookup, editIssue } from "@/src/lib/server/issues-write";
+import { createIssue, createIssueBatch, deleteIssueByLookup, editIssue } from "@/src/lib/server/issues-write";
 import { invalidateNavigationCache } from "@/src/lib/server/revalidate";
 import * as Yup from "yup";
 import { validateCreateIssueBody, validateDeleteIssueBody, validateEditIssueBody } from "@/src/lib/api/issue-body";
@@ -13,13 +13,19 @@ export async function POST(request: NextRequest) {
     const rawBody = await request.json();
     const body = await validateCreateIssueBody(rawBody);
 
-    const result = await createIssue((body.item as never) || ({} as never));
+    const result = body.batch
+      ? await createIssueBatch((body.item as never) || ({} as never), body.batch)
+      : await createIssue((body.item as never) || ({} as never));
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: result.statusCode || 400 });
     }
 
     invalidateNavigationCache();
-    return NextResponse.json({ item: result.data }, { headers: { "Cache-Control": "no-store" } });
+    const items = Array.isArray(result.data) ? result.data : [result.data];
+    return NextResponse.json(
+      { item: items[items.length - 1], items },
+      { headers: { "Cache-Control": "no-store" } }
+    );
   } catch (error) {
     const message = error instanceof Yup.ValidationError ? error.errors.join(", ") : "Ausgabe konnte nicht erstellt werden";
     return NextResponse.json({ error: message }, { status: 400 });

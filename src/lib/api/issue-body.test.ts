@@ -54,4 +54,32 @@ describe("issue-body validation", () => {
       }),
     });
   });
+
+  it("accepts optional batch create configuration", async () => {
+    await expect(
+      validateCreateIssueBody({
+        item: validIssue,
+        batch: {
+          count: 3,
+          prefix: "Panini Exclusive",
+        },
+      })
+    ).resolves.toMatchObject({
+      batch: {
+        count: 3,
+        prefix: "Panini Exclusive",
+      },
+    });
+  });
+
+  it("rejects batch counts beyond Z", async () => {
+    await expect(
+      validateCreateIssueBody({
+        item: validIssue,
+        batch: {
+          count: 27,
+        },
+      })
+    ).rejects.toBeInstanceOf(Yup.ValidationError);
+  });
 });

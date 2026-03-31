@@ -5,6 +5,7 @@ import { prisma } from "../prisma/client";
 import { updateStoryFilterFlagsForIssue } from "../../util/filter-updater";
 import { MarvelCrawlerService } from "../../services/marvel-crawler-service";
 import { Result, success, failure } from "@/src/types/result";
+import { buildVariantBatchLabels, type IssueCopyBatchInput } from "@/src/services/issue-copy-service";
 
 type PrismaExecutor = Prisma.TransactionClient | PrismaClient;
 
@@ -156,59 +157,36 @@ type IssueInput = {
 export async function createIssue(item: IssueInput): Promise<Result<ReturnType<typeof toIssuePayload>>> {
   try {
     const res = await prisma.$transaction(async (tx) => {
-    const publisher = await findPublisher(item.series?.publisher, tx);
-    if (!publisher) throw new Error("Publisher not found");
+      return createIssueRecord(item, tx);
+    }, ISSUE_TRANSACTION_OPTIONS);
+    return success(res);
+  } catch (error) {
+    return failure(error as Error);
+  }
+}
 
-    const series = await findOrCreateIssueSeries(item.series, publisher.id, tx);
+export async function createIssueBatch(
+  item: IssueInput,
+  batch: IssueCopyBatchInput
+): Promise<Result<Array<ReturnType<typeof toIssuePayload>>>> {
+  try {
+    const res = await prisma.$transaction(async (tx) => {
+      const variants = buildVariantBatchLabels(batch);
+      const createdItems: Array<ReturnType<typeof toIssuePayload>> = [];
 
-    const duplicateIssue = await findIssueBySeriesIdentity(
-      {
-        fkSeries: series.id,
-        number: item.number,
-        format: item.format,
-        variant: item.variant,
-      },
-      tx
-    );
-    if (duplicateIssue) {
-      throw new Error("Issue already exists");
-    }
+      for (const variant of variants) {
+        createdItems.push(
+          await createIssueRecord(
+            {
+              ...item,
+              variant,
+            },
+            tx
+          )
+        );
+      }
 
-    const now = new Date();
-    const created = await tx.issue.create({
-      data: {
-        title: normalizeText(item.title),
-        number: normalizeText(item.number),
-        format: normalizeText(item.format),
-        variant: normalizeOptionalText(item.variant),
-        releaseDate: coerceReleaseDateForDb(item.releasedate),
-        legacyNumber: normalizeText(item.legacy_number),
-        pages: normalizeBigInt(item.pages),
-        price: normalizeFloat(item.price),
-        currency: normalizeOptionalText(item.currency),
-        comicGuideId: normalizeBigInt(item.comicguideid),
-        fkSeries: series.id,
-        isbn: normalizeOptionalText(item.isbn),
-        limitation: normalizeBigInt(item.limitation),
-        addInfo: normalizeOptionalText(item.addinfo),
-        verified: Boolean(item.verified),
-        collected: typeof item.collected === "boolean" ? item.collected : null,
-        createdAt: now,
-        updatedAt: now,
-      },
-      include: {
-        series: {
-          include: {
-            publisher: true,
-          },
-        },
-      },
-    });
-
-    await syncStoriesFromParentRefs(Number(created.id), item, tx);
-    await updateStoryFilterFlagsForIssue(Number(created.id));
-
-    return toIssuePayload(created);
+      return createdItems;
     }, ISSUE_TRANSACTION_OPTIONS);
     return success(res);
   } catch (error) {
@@ -536,6 +514,62 @@ export async function deleteIssueByLookup(item: IssueInput, executor: PrismaExec
   } catch (error) {
     return failure(error as Error);
   }
+}
+
+async function createIssueRecord(item: IssueInput, tx: PrismaExecutor) {
+  const publisher = await findPublisher(item.series?.publisher, tx);
+  if (!publisher) throw new Error("Publisher not found");
+
+  const series = await findOrCreateIssueSeries(item.series, publisher.id, tx);
+
+  const duplicateIssue = await findIssueBySeriesIdentity(
+    {
+      fkSeries: series.id,
+      number: item.number,
+      format: item.format,
+      variant: item.variant,
+    },
+    tx
+  );
+  if (duplicateIssue) {
+    throw new Error("Issue already exists");
+  }
+
+  const now = new Date();
+  const created = await tx.issue.create({
+    data: {
+      title: normalizeText(item.title),
+      number: normalizeText(item.number),
+      format: normalizeText(item.format),
+      variant: normalizeOptionalText(item.variant),
+      releaseDate: coerceReleaseDateForDb(item.releasedate),
+      legacyNumber: normalizeText(item.legacy_number),
+      pages: normalizeBigInt(item.pages),
+      price: normalizeFloat(item.price),
+      currency: normalizeOptionalText(item.currency),
+      comicGuideId: normalizeBigInt(item.comicguideid),
+      fkSeries: series.id,
+      isbn: normalizeOptionalText(item.isbn),
+      limitation: normalizeBigInt(item.limitation),
+      addInfo: normalizeOptionalText(item.addinfo),
+      verified: Boolean(item.verified),
+      collected: typeof item.collected === "boolean" ? item.collected : null,
+      createdAt: now,
+      updatedAt: now,
+    },
+    include: {
+      series: {
+        include: {
+          publisher: true,
+        },
+      },
+    },
+  });
+
+  await syncStoriesFromParentRefs(Number(created.id), item, tx);
+  await updateStoryFilterFlagsForIssue(Number(created.id));
+
+  return toIssuePayload(created);
 }
 
 async function syncStoriesFromParentRefs(

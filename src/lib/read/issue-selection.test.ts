@@ -35,6 +35,34 @@ describe("issue-selection", () => {
     expect(matchesIssueSelectionBySlug(candidate, selection)).toBe(true);
   });
 
+  it("matches a format-bearing issue when the route does not explicitly select a format", () => {
+    const selection: IssueSelectionInput = {
+      us: false,
+      publisher: "Panini DC Vertigo Wildstorm",
+      series: "DC Marvel Klassiker 1979 Superman Gegen Spider Man",
+      startyear: 2026,
+      volume: 1,
+      number: "1",
+    };
+
+    const candidate = {
+      number: "1",
+      format: "Heft",
+      variant: null,
+      series: {
+        title: "DC/Marvel-Klassiker 1979: Superman gegen Spider-Man",
+        startYear: 2026,
+        volume: 1,
+        publisher: {
+          name: "Panini DC Vertigo Wildstorm",
+          original: false,
+        },
+      },
+    };
+
+    expect(matchesIssueSelectionBySlug(candidate, selection)).toBe(true);
+  });
+
   it("does not match a base issue when a format-specific route is requested", () => {
     const selection: IssueSelectionInput = {
       us: false,

@@ -14,6 +14,7 @@ const mocks = ({
     individuals: [],
     addinfo: "",
     stories: [],
+    copyBatch: { count: 1, prefix: "" },
   })),
   buildIssueEditorStateMock: jest.fn((props: any, defaultValues: any) => ({
     defaultValues,

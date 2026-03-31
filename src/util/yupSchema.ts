@@ -141,4 +141,13 @@ export const IssueSchema = Yup.object().shape({
       exclusive: Yup.boolean(),
     })
   ),
+  copyBatch: Yup.object().shape({
+    enabled: Yup.boolean(),
+    count: Yup.number()
+      .typeError("Bitte geben Sie eine Zahl ein")
+      .min(1, "Die Anzahl muss mindestens 1 sein")
+      .max(26, "Die Anzahl darf nicht groesser als 26 sein")
+      .integer("Bitte geben Sie eine Zahl ein"),
+    prefix: Yup.string().max(255, "Maximal 255 Zeichen"),
+  }),
 });

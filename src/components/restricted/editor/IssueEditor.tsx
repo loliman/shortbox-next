@@ -44,6 +44,11 @@ function normalizeIssueEditorValues(
     currency: String(source.currency || ""),
     addinfo: String(source.addinfo || ""),
     isbn: String(source.isbn || ""),
+    copyBatch: {
+      enabled: Boolean(source.copyBatch?.enabled),
+      count: source.copyBatch?.count ?? defaults.copyBatch.count,
+      prefix: String(source.copyBatch?.prefix || ""),
+    },
     series: {
       ...defaults.series,
       ...source.series,
@@ -126,18 +131,29 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
         actions.setSubmitting(true);
         try {
           const variables = buildIssueMutationVariables(values, defaultValues, edit);
-          const result = await mutationRequest<{ item?: IssueMutationResult }>({
+          const result = await mutationRequest<{ item?: IssueMutationResult; items?: IssueMutationResult[] }>({
             url: "/api/issues",
             method: edit ? "PATCH" : "POST",
             body: variables as unknown as Record<string, unknown>,
           });
-          const nextItem = result.item;
+          const createdItems = Array.isArray(result.items)
+            ? result.items.filter(
+                (entry): entry is IssueMutationResult => Boolean(entry) && typeof entry === "object"
+              )
+            : [];
+          const nextItem = createdItems[createdItems.length - 1] || result.item;
           if (!nextItem) throw new Error("Ausgabe konnte nicht gespeichert werden");
 
           const nextUs = readIssueUs(nextItem);
-          enqueueSnackbar(generateLabel(toIssueSelection(nextItem, nextUs)) + successMessage, {
-            variant: "success",
-          });
+          if (createdItems.length > 1) {
+            enqueueSnackbar(`${createdItems.length} Varianten erfolgreich gespeichert`, {
+              variant: "success",
+            });
+          } else {
+            enqueueSnackbar(generateLabel(toIssueSelection(nextItem, nextUs)) + successMessage, {
+              variant: "success",
+            });
+          }
 
           if (!copyModeRef.current) {
             router.push(
@@ -172,6 +188,7 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
           <IssueEditorFormContent
             values={values}
             edit={edit}
+            copy={props.copy}
             isDesktop={props.isDesktop}
             id={props.id}
             session={props.session}

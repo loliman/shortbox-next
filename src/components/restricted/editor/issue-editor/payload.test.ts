@@ -26,6 +26,11 @@ function baseValues(us = false): IssueEditorFormValues {
     comicguideid: 42,
     isbn: "isbn",
     arcs: [{ title: "Civil War", type: "EVENT", __typename: "Arc" }],
+    copyBatch: {
+      enabled: false,
+      count: 1,
+      prefix: "",
+    },
     stories: [
       {
         title: "Story A",
@@ -191,5 +196,29 @@ describe("buildIssueMutationVariables", () => {
       volume: 1,
       publisher: { name: "Marvel", us: false },
     });
+  });
+
+  it("includes batch metadata when copy mode should auto-generate variants", () => {
+    const values = baseValues(false);
+    values.copyBatch = {
+      enabled: true,
+      count: 3,
+      prefix: "Panini Exclusive",
+    };
+
+    const result = buildIssueMutationVariables(values, values, false);
+
+    expect(result.batch).toEqual({
+      count: 3,
+      prefix: "Panini Exclusive",
+    });
+  });
+
+  it("omits batch metadata when a single manual variant is created", () => {
+    const values = baseValues(false);
+
+    const result = buildIssueMutationVariables(values, values, false);
+
+    expect(result.batch).toBeUndefined();
   });
 });

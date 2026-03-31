@@ -15,6 +15,7 @@ import {
 } from "./issue-read-shared";
 import {
   matchesIssueSelectionBySlug,
+  hasExplicitIssueVariantSelection,
   type IssueSelectionCandidate,
   type IssueSelectionInput,
 } from "./issue-selection";
@@ -267,11 +268,12 @@ function createIssueDetailsInclude() {
 export async function readIssueDetails(selection: IssueSelectionInput) {
   const normalizedFormat = normalizeIssueOptionalString(selection.format) ?? undefined;
   const normalizedVariant = normalizeIssueOptionalString(selection.variant) ?? undefined;
+  const hasExplicitVariantSelection = hasExplicitIssueVariantSelection(selection);
   const candidates = await prisma.issue.findMany({
     where: {
       number: selection.number,
-      format: normalizedFormat,
-      variant: normalizedVariant,
+      ...(hasExplicitVariantSelection ? { format: normalizedFormat } : {}),
+      ...(hasExplicitVariantSelection ? { variant: normalizedVariant } : {}),
       series: {
         volume: BigInt(selection.volume),
         publisher: {
@@ -282,11 +284,33 @@ export async function readIssueDetails(selection: IssueSelectionInput) {
     include: createIssueDetailsInclude(),
     orderBy: [{ id: "asc" }],
   });
+  const matchingCandidates = candidates.filter((candidate) =>
+    matchesIssueSelectionBySlug(candidate as IssueSelectionCandidate, selection)
+  );
   const current =
-    candidates.find((candidate) =>
-      matchesIssueSelectionBySlug(candidate as IssueSelectionCandidate, selection)
-    ) || null;
-  if (!current) return null;
+    (hasExplicitVariantSelection
+      ? matchingCandidates
+      : [...matchingCandidates].sort(compareIssueVariants))[0] || null;
+  if (!current) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("readIssueDetails miss", {
+        selection,
+        hasExplicitVariantSelection,
+        candidateCount: candidates.length,
+        matchingCandidateCount: matchingCandidates.length,
+        candidates: candidates.slice(0, 10).map((candidate) => ({
+          number: candidate.number,
+          format: candidate.format,
+          variant: candidate.variant,
+          series: candidate.series?.title,
+          volume: Number(candidate.series?.volume || 0),
+          publisher: candidate.series?.publisher?.name,
+          original: candidate.series?.publisher?.original,
+        })),
+      });
+    }
+    return null;
+  }
 
   const variants = await prisma.issue.findMany({
     where: {
