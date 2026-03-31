@@ -3,6 +3,7 @@ node_modules
 out
 coverage
 dist
+.unlighthouse
 *.log
 .DS_Store
 .idea

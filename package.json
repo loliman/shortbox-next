@@ -14,6 +14,9 @@
     "test:watch": "jest --watch",
     "test:seo:smoke": "node scripts/seo-smoke-test.mjs",
     "test:seo:sitemap": "node scripts/sitemap-monitor.mjs",
+    "test:a11y:pa11y": "node scripts/run-pa11y-audit.mjs",
+    "test:seo:unlighthouse": "node scripts/run-unlighthouse-audit.mjs",
+    "test:seo:unlighthouse:mobile": "AUDIT_DEVICE=mobile node scripts/run-unlighthouse-audit.mjs",
     "lint": "eslint .",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate"
@@ -61,8 +64,10 @@
     "graphql": "^16.13.2",
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.3.0",
+    "pa11y": "^9.1.1",
     "ts-jest": "^29.4.6",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "unlighthouse": "^0.17.7"
   }
 }
