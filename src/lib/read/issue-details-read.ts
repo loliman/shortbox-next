@@ -231,7 +231,82 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
   },
 });
 
+const issueArcStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
+  parent: {
+    include: {
+      issue: {
+        include: {
+          arcs: {
+            include: {
+              arc: true,
+            },
+          },
+        },
+      },
+    },
+  },
+});
+
+const issueSelectionCandidateSelect = Prisma.validator<Prisma.IssueSelect>()({
+  id: true,
+  number: true,
+  format: true,
+  variant: true,
+  series: {
+    select: {
+      title: true,
+      volume: true,
+      startYear: true,
+      publisher: {
+        select: {
+          name: true,
+          original: true,
+        },
+      },
+    },
+  },
+});
+
 function createIssueDetailsInclude() {
+  return Prisma.validator<Prisma.IssueInclude>()({
+    series: {
+      include: {
+        publisher: true,
+      },
+    },
+    stories: {
+      orderBy: [{ number: "asc" }, { id: "asc" }],
+      include: issueArcStoryInclude,
+    },
+    arcs: {
+      include: {
+        arc: true,
+      },
+    },
+    individuals: {
+      include: {
+        individual: true,
+      },
+    },
+    covers: {
+      orderBy: [{ number: "asc" }, { id: "asc" }],
+      include: {
+        individuals: {
+          include: {
+            individual: true,
+          },
+        },
+      },
+    },
+    _count: {
+      select: {
+        stories: true,
+      },
+    },
+  });
+}
+
+function createIssueStoryOwnerInclude() {
   return Prisma.validator<Prisma.IssueInclude>()({
     series: {
       include: {
@@ -265,40 +340,120 @@ function createIssueDetailsInclude() {
   });
 }
 
+function createIssueStorySelectedIssueInclude() {
+  return Prisma.validator<Prisma.IssueInclude>()({
+    series: {
+      include: {
+        publisher: true,
+      },
+    },
+    individuals: {
+      include: {
+        individual: true,
+      },
+    },
+    covers: {
+      orderBy: [{ number: "asc" }, { id: "asc" }],
+      include: {
+        individuals: {
+          include: {
+            individual: true,
+          },
+        },
+      },
+    },
+  });
+}
+
+function pickCurrentIssueCandidate(
+  matchingCandidates: Array<IssueSelectionCandidate & { id: bigint }>,
+  hasExplicitVariantSelection: boolean
+) {
+  const sortableCandidates = matchingCandidates as Array<{
+    format?: string | null;
+    variant?: string | null;
+    id: bigint;
+  }>;
+
+  return (
+    (hasExplicitVariantSelection
+      ? matchingCandidates
+      : [...sortableCandidates].sort(compareIssueVariants))[0] || null
+  );
+}
+
+function getMatchingIssueCandidates(
+  candidates: Array<IssueSelectionCandidate & { id: bigint }>,
+  selection: IssueSelectionInput
+) {
+  return candidates.filter((candidate) =>
+    matchesIssueSelectionBySlug(candidate as IssueSelectionCandidate, selection)
+  );
+}
+
 export async function readIssueDetails(selection: IssueSelectionInput) {
-  const normalizedFormat = normalizeIssueOptionalString(selection.format) ?? undefined;
-  const normalizedVariant = normalizeIssueOptionalString(selection.variant) ?? undefined;
   const hasExplicitVariantSelection = hasExplicitIssueVariantSelection(selection);
-  const candidates = await prisma.issue.findMany({
+  const normalizedStartYear =
+    Number.isFinite(Number(selection.startyear)) && Number(selection.startyear) > 0
+      ? BigInt(Number(selection.startyear))
+      : undefined;
+
+  const exactCandidates = await prisma.issue.findMany({
     where: {
       number: selection.number,
-      ...(hasExplicitVariantSelection ? { format: normalizedFormat } : {}),
-      ...(hasExplicitVariantSelection ? { variant: normalizedVariant } : {}),
       series: {
+        title: selection.series,
         volume: BigInt(selection.volume),
+        ...(normalizedStartYear ? { startYear: normalizedStartYear } : {}),
         publisher: {
+          name: selection.publisher,
           original: selection.us,
         },
       },
     },
-    include: createIssueDetailsInclude(),
+    select: issueSelectionCandidateSelect,
     orderBy: [{ id: "asc" }],
   });
-  const matchingCandidates = candidates.filter((candidate) =>
-    matchesIssueSelectionBySlug(candidate as IssueSelectionCandidate, selection)
-  );
-  const current =
-    (hasExplicitVariantSelection
-      ? matchingCandidates
-      : [...matchingCandidates].sort(compareIssueVariants))[0] || null;
+
+  const fallbackCandidates =
+    exactCandidates.length > 0
+      ? []
+      : await prisma.issue.findMany({
+          where: {
+            number: selection.number,
+            series: {
+              volume: BigInt(selection.volume),
+              ...(normalizedStartYear ? { startYear: normalizedStartYear } : {}),
+              publisher: {
+                original: selection.us,
+              },
+            },
+          },
+          select: issueSelectionCandidateSelect,
+          orderBy: [{ id: "asc" }],
+        });
+
+  const resolvedCandidates = exactCandidates.length > 0 ? exactCandidates : fallbackCandidates;
+  const matchingCandidates = getMatchingIssueCandidates(resolvedCandidates, selection);
+  const currentCandidate = pickCurrentIssueCandidate(matchingCandidates, hasExplicitVariantSelection);
+
+  const current = currentCandidate
+    ? await prisma.issue.findUnique({
+        where: {
+          id: currentCandidate.id,
+        },
+        include: createIssueDetailsInclude(),
+      })
+    : null;
+
   if (!current) {
     if (process.env.NODE_ENV === "development") {
-      console.warn("readIssueDetails miss", {
+        console.warn("readIssueDetails miss", {
         selection,
         hasExplicitVariantSelection,
-        candidateCount: candidates.length,
+        candidateCount: resolvedCandidates.length,
         matchingCandidateCount: matchingCandidates.length,
-        candidates: candidates.slice(0, 10).map((candidate) => ({
+        candidates: resolvedCandidates.slice(0, 10).map((candidate) => ({
           number: candidate.number,
           format: candidate.format,
           variant: candidate.variant,
@@ -323,10 +478,6 @@ export async function readIssueDetails(selection: IssueSelectionInput) {
           publisher: true,
         },
       },
-      stories: {
-        orderBy: [{ number: "asc" }, { id: "asc" }],
-        include: issueDetailsStoryInclude,
-      },
       covers: {
         orderBy: [{ number: "asc" }, { id: "asc" }],
         take: 1,
@@ -336,6 +487,11 @@ export async function readIssueDetails(selection: IssueSelectionInput) {
               individual: true,
             },
           },
+        },
+      },
+      _count: {
+        select: {
+          stories: true,
         },
       },
     },
@@ -348,12 +504,11 @@ export async function readIssueDetails(selection: IssueSelectionInput) {
 function toIssueDetailsShape(issue: any, variants: any[]) {
   const ownStories = Array.isArray(issue.stories) ? issue.stories : [];
   const sortedVariants = [...variants].sort(compareIssueVariants);
+  const ownStoryCount = Number(issue?._count?.stories || 0);
   const storySourceIssue =
-    ownStories.length > 0
+    ownStoryCount > 0
       ? issue
-      : sortedVariants.find((variant) => Array.isArray(variant.stories) && variant.stories.length > 0) ?? null;
-  const inheritedStories = Array.isArray(storySourceIssue?.stories) ? storySourceIssue.stories : [];
-  const resolvedStories = storySourceIssue ? inheritedStories : ownStories;
+      : sortedVariants.find((variant) => Number(variant?._count?.stories || 0) > 0) ?? null;
   const resolvedTitle =
     pickCanonicalIssueTitle([issue, ...variants], issue.title) ||
     storySourceIssue?.title ||
@@ -388,7 +543,6 @@ function toIssueDetailsShape(issue: any, variants: any[]) {
     comicguideid: serializeNullableIssueId(variant.comicGuideId),
     cover: variant.covers[0] ? toIssueCoverShape(variant.covers[0]) : null,
     series: toIssueSeriesShape(variant.series),
-    stories: Array.isArray(variant.stories) ? variant.stories : [],
   }));
 
   return {
@@ -411,7 +565,21 @@ function toIssueDetailsShape(issue: any, variants: any[]) {
     createdat: serializeIssueDate(issue.createdAt),
     updatedat: serializeIssueDate(issue.updatedAt),
     series: toIssueSeriesShape(issue.series),
-    stories: resolvedStories.map((story: any) => toIssueStoryShape(story, true, issue)),
+    stories: ownStories.map((story: any) => ({
+      parent: story.parent?.issue
+        ? {
+            issue: {
+              arcs: Array.isArray(story.parent.issue.arcs)
+                ? story.parent.issue.arcs.map((entry: any) => ({
+                    id: serializeIssueId(entry.arc.id),
+                    title: entry.arc.title || null,
+                    type: entry.arc.type || null,
+                  }))
+                : [],
+            },
+          }
+        : null,
+    })),
     cover: issue.covers[0] ? toIssueCoverShape(issue.covers[0]) : null,
     individuals: issue.individuals.map(toIssueIndividualEntryShape),
     arcs: issue.arcs.map((entry: any) => ({
@@ -421,6 +589,7 @@ function toIssueDetailsShape(issue: any, variants: any[]) {
     })),
     variants: mappedVariants,
     storyOwner,
+    storyOwnerId: storySourceIssue ? serializeIssueId(storySourceIssue.id) : null,
     inheritsStories,
     tags: [],
   };
@@ -531,6 +700,45 @@ function toIssueStoryShape(story: any, includeParent: boolean, issueOverride?: a
         }))
       : [],
   };
+}
+
+export async function readIssueDetailStories(input: {
+  selectedIssueId: string | number;
+  storyOwnerId?: string | number | null;
+}) {
+  const selectedIssueId = BigInt(String(input.selectedIssueId));
+  const storyOwnerId =
+    input.storyOwnerId === null || input.storyOwnerId === undefined
+      ? null
+      : BigInt(String(input.storyOwnerId));
+
+  if (!storyOwnerId) return [];
+
+  const storyOwnerIssuePromise = prisma.issue.findUnique({
+    where: {
+      id: storyOwnerId,
+    },
+    include: createIssueStoryOwnerInclude(),
+  });
+  const selectedIssuePromise =
+    selectedIssueId === storyOwnerId
+      ? Promise.resolve(null)
+      : prisma.issue.findUnique({
+          where: {
+            id: selectedIssueId,
+          },
+          include: createIssueStorySelectedIssueInclude(),
+        });
+
+  const [selectedIssue, storyOwnerIssue] = await Promise.all([
+    selectedIssuePromise,
+    storyOwnerIssuePromise,
+  ]);
+
+  if (!storyOwnerIssue || !Array.isArray(storyOwnerIssue.stories)) return [];
+
+  const issueOverride = selectedIssue || storyOwnerIssue;
+  return storyOwnerIssue.stories.map((story: any) => toIssueStoryShape(story, true, issueOverride));
 }
 
 function toIssueParentStoryShape(story: any) {

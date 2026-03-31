@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import IssueDetailsUS from "@/src/components/details/IssueDetailsUS";
-import { readIssueDetails } from "@/src/lib/read/issue-read";
+import { readIssueDetails, readIssueMetadata } from "@/src/lib/read/issue-read";
 import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
 import { buildIssueMetadataParts } from "@/src/lib/routes/issue-metadata";
 import { buildHierarchyLevel, buildSelectedRoot, normalizePageQuery } from "@/src/lib/routes/page-state";
@@ -18,9 +18,9 @@ export async function generateMetadata({
   const [resolvedParams, resolvedSearchParams] = await Promise.all([params, searchParams]);
   const selected = buildSelectedRoot(resolvedParams, true);
   const selectedIssue = selected.issue;
-  const initialIssue =
+  const metadataIssue =
     selectedIssue?.series?.publisher?.name && selectedIssue?.series?.title && selectedIssue?.number
-      ? await readIssueDetails({
+      ? await readIssueMetadata({
           us: true,
           publisher: selectedIssue.series.publisher.name,
           series: selectedIssue.series.title,
@@ -31,7 +31,7 @@ export async function generateMetadata({
           variant: selectedIssue.variant || undefined,
         })
       : null;
-  const metadataParts = buildIssueMetadataParts(initialIssue || selectedIssue, "us");
+  const metadataParts = buildIssueMetadataParts(metadataIssue || selectedIssue, "us");
 
   return createRouteMetadata({
     title: metadataParts.title,
@@ -94,4 +94,3 @@ export default async function UsIssueSeoVariantPage({
     />
   );
 }
-

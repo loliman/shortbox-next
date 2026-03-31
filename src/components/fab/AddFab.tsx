@@ -120,22 +120,6 @@ class AddFabBase extends React.Component<AddFabProps, AddFabState> {
               this.handleClose();
             }}
           />
-          {this.props.session?.canAdmin ? (
-            <SpeedDialAction
-              key="preview-import"
-              icon={<UploadFileIcon color={this.props.previewImportActive ? "secondary" : "inherit"} />}
-              tooltipTitle={
-                this.props.previewImportActive
-                  ? "Vorschau-Import fortsetzen"
-                  : "Vorschau-Import"
-              }
-              onClick={() => {
-                this.props.onNavigate?.("/admin/preview-import");
-                this.handleClose();
-              }}
-            />
-          ) : null}
-
           {this.props.level === HierarchyLevel.ISSUE && selected.issue ? (
             <SpeedDialAction
               key="variant"
@@ -154,6 +138,22 @@ class AddFabBase extends React.Component<AddFabProps, AddFabState> {
                 };
 
                 this.props.onNavigate?.("/copy/issue" + generateSeoUrl(selectedCopy, us));
+                this.handleClose();
+              }}
+            />
+          ) : null}
+
+          {this.props.session?.canAdmin ? (
+            <SpeedDialAction
+              key="preview-import"
+              icon={<UploadFileIcon color={this.props.previewImportActive ? "secondary" : "inherit"} />}
+              tooltipTitle={
+                this.props.previewImportActive
+                  ? "Vorschau-Import fortsetzen"
+                  : "Vorschau-Import"
+              }
+              onClick={() => {
+                this.props.onNavigate?.("/admin/preview-import");
                 this.handleClose();
               }}
             />

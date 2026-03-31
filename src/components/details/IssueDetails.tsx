@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { notFound } from "next/navigation";
 import QueryResult from "../generic/QueryResult";
 import Box from "@mui/material/Box";
@@ -17,6 +17,7 @@ import { StoryArcChips } from "./issue-details/StoryArcChips";
 import { IssueVariants } from "./issue-details/variants/IssueVariants";
 import type { VariantIssue } from "./issue-details/variants/types";
 import { IssueDetailsPreview } from "./issue-details/preview/IssueDetailsPreview";
+import { IssueDetailsBottomPreview } from "./issue-details/preview/IssueDetailsBottomPreview";
 import { DetailsTable } from "./issue-details/DetailsTable";
 import type { PreviewIssue } from "../issue-preview/utils/issuePreviewUtils";
 import { collectIssueArcs } from "./issue-details/utils/issueDetailsUtils";
@@ -278,13 +279,15 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
 
           {BottomComponent ? (
             <Box sx={{ minWidth: 0, width: "100%", mt: 0 }}>
-              <BottomComponent
-                query={props.query}
-                selected={issueForVariants}
-                issue={issueForVariants}
-                us={us}
-                session={props.session}
-              />
+              <Suspense fallback={<IssueDetailsBottomPreview />}>
+                <BottomComponent
+                  query={props.query}
+                  selected={issueForVariants}
+                  issue={issueForVariants}
+                  us={us}
+                  session={props.session}
+                />
+              </Suspense>
             </Box>
           ) : null}
 
@@ -327,13 +330,15 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
 
             {BottomComponent ? (
               <Box sx={{ minWidth: 0, width: "100%", mt: 0 }}>
-                <BottomComponent
-                  query={props.query}
-                  selected={issueForVariants}
-                  issue={issueForVariants}
-                  us={us}
-                  session={props.session}
-                />
+                <Suspense fallback={<IssueDetailsBottomPreview />}>
+                  <BottomComponent
+                    query={props.query}
+                    selected={issueForVariants}
+                    issue={issueForVariants}
+                    us={us}
+                    session={props.session}
+                  />
+                </Suspense>
               </Box>
             ) : null}
           </Box>

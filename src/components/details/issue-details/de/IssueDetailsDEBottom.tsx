@@ -4,10 +4,12 @@ import { Contains } from "../contains/Contains";
 import { ContainsTitleDetailed } from "../contains/ContainsTitleDetailed";
 import { IssueDetailsDEStoryDetails } from "./IssueDetailsDEStoryDetails";
 import type { ItemLike } from "../contains/expanded";
+import { readIssueDetailStories } from "@/src/lib/read/issue-details-read";
 
 interface IssueDetailsDEBottomProps {
   issue?: {
-    stories?: unknown[];
+    id?: string | number | null;
+    storyOwnerId?: string | number | null;
     comicguideid?: string | number | null;
     series?: Record<string, unknown>;
     number?: string | number;
@@ -15,11 +17,16 @@ interface IssueDetailsDEBottomProps {
   [key: string]: unknown;
 }
 
-export function IssueDetailsDEBottom(props: Readonly<IssueDetailsDEBottomProps>) {
+export async function IssueDetailsDEBottom(props: Readonly<IssueDetailsDEBottomProps>) {
   const issue = props.issue || {};
-  const stories = Array.isArray(issue.stories)
-    ? issue.stories.filter((item): item is ItemLike => Boolean(item && typeof item === "object"))
-    : [];
+  const rawStories =
+    issue.id && issue.storyOwnerId
+      ? await readIssueDetailStories({
+          selectedIssueId: issue.id,
+          storyOwnerId: issue.storyOwnerId,
+        })
+      : [];
+  const stories = rawStories.filter((item) => Boolean(item && typeof item === "object")) as ItemLike[];
 
   return (
     <Box sx={{ mt: 0 }}>

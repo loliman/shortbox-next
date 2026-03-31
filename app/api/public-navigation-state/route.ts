@@ -36,6 +36,10 @@ export async function GET(request: NextRequest) {
       selected,
       query: resolvedFilterQuery ? { filter: resolvedFilterQuery } : null,
       loggedIn: Boolean(session?.loggedIn),
+      preload: {
+        seriesNodes: false,
+        issueNodes: false,
+      },
     });
 
     return NextResponse.json(

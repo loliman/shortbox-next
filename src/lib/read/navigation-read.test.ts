@@ -103,5 +103,3 @@ describe("navigation-read", () => {
     expect(previewSource?.covers?.[0]?.url).toBe("https://example.com/cover.jpg");
   });
 });
-
-

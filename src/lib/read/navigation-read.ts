@@ -20,6 +20,10 @@ import {
   pickNavigationIssuePreviewSource,
   serializeNavigationComicGuideId,
 } from "./navigation-issue-preview";
+import {
+  resolveNavigationPreloadOptions,
+  type NavigationPreloadOptions,
+} from "./navigation-preload";
 
 type NavigationScope = {
   us: boolean;
@@ -343,8 +347,14 @@ export async function readNavigationFilterState(rawFilter: string | null | undef
 }
 
 export async function readInitialNavigationData(
-  input: Pick<LayoutRouteData, "query" | "selected" | "us"> & { loggedIn?: boolean }
+  input: Pick<LayoutRouteData, "query" | "selected" | "us"> & {
+    loggedIn?: boolean;
+    preload?: NavigationPreloadOptions;
+  }
 ): Promise<InitialNavigationData> {
+  const preloadOptions = resolveNavigationPreloadOptions(input.preload);
+  const preloadSeriesNodes = preloadOptions.seriesNodes;
+  const preloadIssueNodes = preloadOptions.issueNodes;
   const navigationFilterState = await readNavigationFilterState(
     typeof input.query?.filter === "string" ? input.query.filter : null,
     Boolean(input.loggedIn)
@@ -377,19 +387,21 @@ export async function readInitialNavigationData(
 
   const initialSeriesNodesByPublisher: Record<string, Awaited<ReturnType<typeof readNavigationSeries>>> = {};
 
-  const initialSeriesEntries = await Promise.all(
-    Array.from(publishersToExpand).map(async (publisherName) => [
-      publisherName,
-      await readNavigationSeriesCached(
-        input.us,
+  if (preloadSeriesNodes) {
+    const initialSeriesEntries = await Promise.all(
+      Array.from(publishersToExpand).map(async (publisherName) => [
         publisherName,
-        directIssueWhereJson,
-        filteredIssueIdsJson
-      ),
-    ] as const)
-  );
-  for (const [publisherName, seriesNodes] of initialSeriesEntries) {
-    initialSeriesNodesByPublisher[publisherName] = seriesNodes;
+        await readNavigationSeriesCached(
+          input.us,
+          publisherName,
+          directIssueWhereJson,
+          filteredIssueIdsJson
+        ),
+      ] as const)
+    );
+    for (const [publisherName, seriesNodes] of initialSeriesEntries) {
+      initialSeriesNodesByPublisher[publisherName] = seriesNodes;
+    }
   }
 
   const seriesToExpand = new Map<
@@ -402,7 +414,11 @@ export async function readInitialNavigationData(
     }
   >();
 
-  if ((resolvedSelectedPublisherName || selectedSeries?.publisher?.name) && selectedSeries?.title) {
+  if (
+    preloadSeriesNodes &&
+    (resolvedSelectedPublisherName || selectedSeries?.publisher?.name) &&
+    selectedSeries?.title
+  ) {
     const matchingSelectedSeriesNode = resolveSeriesNode(
       initialSeriesNodesByPublisher[resolvedSelectedPublisherName || selectedSeries?.publisher?.name || ""] || [],
       {
@@ -442,7 +458,7 @@ export async function readInitialNavigationData(
     );
   }
 
-  for (const openSeriesKey of navOpenState.series) {
+  for (const openSeriesKey of preloadSeriesNodes ? navOpenState.series : []) {
     const parsedSeriesKey = parseNavigationSeriesKey(openSeriesKey);
     const volume = Number(parsedSeriesKey?.volume || "0");
     const publisherSlug = parsedSeriesKey?.publisher || "";
@@ -495,22 +511,24 @@ export async function readInitialNavigationData(
     Awaited<ReturnType<typeof readNavigationIssues>>
   > = {};
 
-  const initialIssueEntries = await Promise.all(
-    Array.from(seriesToExpand.entries()).map(async ([seriesKey, seriesInput]) => [
-      seriesKey,
-      await readNavigationIssuesCached(
-        input.us,
-        seriesInput.publisher,
-        seriesInput.series,
-        seriesInput.volume,
-        seriesInput.startyear ?? null,
-        directIssueWhereJson,
-        filteredIssueIdsJson
-      ),
-    ] as const)
-  );
-  for (const [seriesKey, issueNodes] of initialIssueEntries) {
-    initialIssueNodesBySeriesKey[seriesKey] = issueNodes;
+  if (preloadSeriesNodes && preloadIssueNodes) {
+    const initialIssueEntries = await Promise.all(
+      Array.from(seriesToExpand.entries()).map(async ([seriesKey, seriesInput]) => [
+        seriesKey,
+        await readNavigationIssuesCached(
+          input.us,
+          seriesInput.publisher,
+          seriesInput.series,
+          seriesInput.volume,
+          seriesInput.startyear ?? null,
+          directIssueWhereJson,
+          filteredIssueIdsJson
+        ),
+      ] as const)
+    );
+    for (const [seriesKey, issueNodes] of initialIssueEntries) {
+      initialIssueNodesBySeriesKey[seriesKey] = issueNodes;
+    }
   }
 
   return {

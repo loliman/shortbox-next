@@ -4,10 +4,12 @@ import { Contains } from "../contains/Contains";
 import { ContainsTitleSimple } from "../contains/ContainsTitleSimple";
 import { IssueDetailsUSStoryDetails } from "./IssueDetailsUSStoryDetails";
 import type { ItemLike } from "../contains/expanded";
+import { readIssueDetailStories } from "@/src/lib/read/issue-details-read";
 
 interface IssueDetailsUSBottomProps {
   issue?: {
-    stories?: unknown[];
+    id?: string | number | null;
+    storyOwnerId?: string | number | null;
     series?: Record<string, unknown>;
     number?: string | number;
   };
@@ -15,11 +17,16 @@ interface IssueDetailsUSBottomProps {
   [key: string]: unknown;
 }
 
-export function IssueDetailsUSBottom(props: Readonly<IssueDetailsUSBottomProps>) {
+export async function IssueDetailsUSBottom(props: Readonly<IssueDetailsUSBottomProps>) {
   const issue = props.issue || {};
-  const stories = Array.isArray(issue.stories)
-    ? issue.stories.filter((item): item is ItemLike => Boolean(item && typeof item === "object"))
-    : [];
+  const rawStories =
+    issue.id && issue.storyOwnerId
+      ? await readIssueDetailStories({
+          selectedIssueId: issue.id,
+          storyOwnerId: issue.storyOwnerId,
+        })
+      : [];
+  const stories = rawStories.filter((item) => Boolean(item && typeof item === "object")) as ItemLike[];
 
   return (
     <Box sx={{ mt: 0 }}>

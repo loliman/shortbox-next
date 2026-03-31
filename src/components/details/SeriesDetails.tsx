@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import NextLink from "next/link";
 import CardHeader from "@mui/material/CardHeader";
 import CardContent from "@mui/material/CardContent";
-import Link from "@mui/material/Link";
 import Typography from "@mui/material/Typography";
 import { generateLabel } from "../../util/hierarchy";
 import TitleLine from "../generic/TitleLine";
@@ -113,14 +112,12 @@ function GenreLinksBlock(props: Readonly<{ genreLinks: string[]; us: boolean }>)
       Genres: {props.genreLinks.map((genre, index) => (
         <React.Fragment key={`genre-link-${genre}`}>
           {index > 0 ? ", " : null}
-          <Link
-            component={NextLink}
+          <NextLink
             href={buildGenreFilterUrl(props.us ? "us" : "de", genre)}
-            underline="hover"
-            color="inherit"
+            style={{ color: "inherit", textDecoration: "underline" }}
           >
             {genre}
-          </Link>
+          </NextLink>
         </React.Fragment>
       ))}
     </Typography>

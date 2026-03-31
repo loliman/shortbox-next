@@ -187,47 +187,6 @@ function createPreviewIssueInclude() {
   });
 }
 
-async function readPreviewIssuesForGroups(groupKeys: string[]) {
-  if (groupKeys.length === 0) return new Map<string, ReturnType<typeof serializePreviewIssue>>();
-
-  const where = groupKeys
-    .map((groupKey) => {
-      const separator = groupKey.indexOf("::");
-      const fkSeries = Number(groupKey.slice(0, separator));
-      const number = groupKey.slice(separator + 2);
-      if (!Number.isFinite(fkSeries) || !number) return null;
-      return {
-        fkSeries: BigInt(fkSeries),
-        number,
-      };
-    })
-    .filter((entry): entry is { fkSeries: bigint; number: string } => Boolean(entry));
-
-  const rows = await prisma.issue.findMany({
-    where: {
-      OR: where,
-    },
-    include: createPreviewIssueInclude(),
-  });
-
-  const grouped = new Map<string, typeof rows>();
-  for (const row of rows) {
-    const key = `${row.fkSeries}::${row.number}`;
-    const current = grouped.get(key) || [];
-    current.push(row);
-    grouped.set(key, current);
-  }
-
-  const previewByGroup = new Map<string, ReturnType<typeof serializePreviewIssue>>();
-  for (const key of groupKeys) {
-    const variants = grouped.get(key) || [];
-    if (variants.length === 0) continue;
-    previewByGroup.set(key, serializePreviewIssue(pickPreferredIssueVariant(variants)));
-  }
-
-  return previewByGroup;
-}
-
 export async function readLastEditedIssues(
   filter: Filter | undefined,
   first: number | undefined,
@@ -259,69 +218,22 @@ export async function readLastEditedIssues(
 
   if (cursorField) {
     const anchorCursor = decodeFeedCursor(after, cursorField, sortDirection);
-    const orderedGroupKeys: string[] = [];
-    const anchorByGroup = new Map<string, FeedAnchorRow>();
-    let scanCursor = anchorCursor;
-    let hasMore = false;
+    const cursorWhere = createFeedCursorWhere(anchorCursor, cursorField, sortDirection);
+    const rows = await prisma.issue.findMany({
+      where: {
+        AND: [where, ...(cursorWhere ? [cursorWhere] : [])],
+      },
+      include: createPreviewIssueInclude(),
+      orderBy: createFeedOrderBy(cursorField, sortDirection),
+      take: limit + 1,
+    });
 
-    while (orderedGroupKeys.length < limit + 1) {
-      const cursorWhere = createFeedCursorWhere(scanCursor, cursorField, sortDirection);
-      const chunkRows = await prisma.issue.findMany({
-        where: {
-          AND: [where, ...(cursorWhere ? [cursorWhere] : [])],
-        },
-        select: {
-          id: true,
-          fkSeries: true,
-          number: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-        orderBy: createFeedOrderBy(cursorField, sortDirection),
-        take: FEED_CHUNK_SIZE,
-      });
-
-      if (chunkRows.length === 0) break;
-
-      for (const row of chunkRows) {
-        const groupKey = `${row.fkSeries}::${row.number}`;
-        if (!anchorByGroup.has(groupKey)) {
-          anchorByGroup.set(groupKey, row);
-          orderedGroupKeys.push(groupKey);
-          if (orderedGroupKeys.length > limit) {
-            hasMore = true;
-            break;
-          }
-        }
-      }
-
-      const lastRow = chunkRows[chunkRows.length - 1];
-      scanCursor = lastRow
-        ? {
-            field: cursorField,
-            direction: sortDirection,
-            value:
-              cursorField === "updatedat"
-                ? lastRow.updatedAt.toISOString()
-                : cursorField === "createdat"
-                  ? lastRow.createdAt.toISOString()
-                  : Number(lastRow.id),
-            id: Number(lastRow.id),
-          }
-        : scanCursor;
-
-      if (hasMore || chunkRows.length < FEED_CHUNK_SIZE) break;
-    }
-
-    const pageGroupKeys = orderedGroupKeys.slice(0, limit);
-    const previewByGroup = await readPreviewIssuesForGroups(pageGroupKeys);
-    const nodes = pageGroupKeys
-      .map((groupKey) => previewByGroup.get(groupKey))
-      .filter((node): node is NonNullable<typeof node> => Boolean(node));
+    const pageRows = rows.slice(0, limit);
+    const nodes = pageRows.map((row) => serializePreviewIssue(row));
     const connection = buildConnectionFromNodes(nodes);
-    connection.pageInfo.hasNextPage = hasMore;
+    connection.pageInfo.hasNextPage = rows.length > limit;
     connection.pageInfo.endCursor = createFeedAnchorCursor(
-      anchorByGroup.get(pageGroupKeys[pageGroupKeys.length - 1]),
+      pageRows[pageRows.length - 1],
       cursorField,
       sortDirection
     );
@@ -335,15 +247,7 @@ export async function readLastEditedIssues(
   });
 
   const sortedRows = sortLastEditedRows(rows, normalizeSortField(order), normalizeSortDirection(direction));
-  const grouped = new Map<string, typeof sortedRows>();
-  for (const issue of sortedRows) {
-    const key = `${issue.fkSeries}::${issue.number}`;
-    if (!grouped.has(key)) grouped.set(key, []);
-    grouped.get(key)?.push(issue);
-  }
-
-  const deduped = Array.from(grouped.values()).map((group) => pickPreferredIssueVariant(group));
-  const pageRows = deduped.slice(0, limit + 1);
+  const pageRows = sortedRows.slice(0, limit + 1);
   const hasNextPage = pageRows.length > limit;
   const nodes = pageRows.slice(0, limit).map((row) => serializePreviewIssue(row));
   const connection = buildConnectionFromNodes(nodes);

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import IssueDetailsDE from "@/src/components/details/IssueDetailsDE";
-import { readIssueDetails } from "@/src/lib/read/issue-read";
+import { readIssueDetails, readIssueMetadata } from "@/src/lib/read/issue-read";
 import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
 import { buildIssueMetadataParts } from "@/src/lib/routes/issue-metadata";
 import { buildHierarchyLevel, buildSelectedRoot, normalizePageQuery } from "@/src/lib/routes/page-state";
@@ -27,20 +27,20 @@ export async function generateMetadata({
   const [resolvedParams, resolvedSearchParams] = await Promise.all([params, searchParams]);
   const selected = buildSelectedRoot(resolvedParams, false);
   const selectedIssue = selected.issue;
-  const initialIssue =
+  const metadataIssue =
     selectedIssue?.series?.publisher?.name && selectedIssue?.series?.title && selectedIssue?.number
-      ? await readIssueDetails({
+      ? await readIssueMetadata({
           us: false,
           publisher: selectedIssue.series.publisher.name,
           series: selectedIssue.series.title,
           volume: Number(selectedIssue.series.volume || 0),
-            startyear: Number(selectedIssue.series.startyear || 0) || undefined,
+          startyear: Number(selectedIssue.series.startyear || 0) || undefined,
           number: selectedIssue.number,
           format: selectedIssue.format || undefined,
           variant: selectedIssue.variant || undefined,
         })
       : null;
-  const metadataParts = buildIssueMetadataParts(initialIssue || selectedIssue, "de");
+  const metadataParts = buildIssueMetadataParts(metadataIssue || selectedIssue, "de");
 
   return createRouteMetadata({
     title: metadataParts.title,
@@ -102,5 +102,4 @@ export default async function DeIssuePage({
     />
   );
 }
-
 
