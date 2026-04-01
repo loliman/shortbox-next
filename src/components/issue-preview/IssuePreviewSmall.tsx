@@ -75,7 +75,6 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
       <CardActionArea
         component={Link}
         href={url}
-        aria-label={`Zu ${issueLabel}`}
         aria-busy={isNavigating}
         onClick={handleClick}
         sx={{

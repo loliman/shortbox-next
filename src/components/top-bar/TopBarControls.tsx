@@ -27,6 +27,9 @@ type LocaleSwitchProps = {
     checked: boolean;
     color?: "primary";
     inputProps?: Record<string, string>;
+    slotProps?: {
+      input?: Record<string, string>;
+    };
     onChange: () => void;
     disabled?: boolean;
   }>;
@@ -97,6 +100,12 @@ export function LocaleSwitch(props: Readonly<LocaleSwitchProps>) {
             inputProps={{
               "aria-label": props.localeSwitchAriaLabel,
               "aria-labelledby": switchLabelId,
+            }}
+            slotProps={{
+              input: {
+                "aria-label": props.localeSwitchAriaLabel,
+                "aria-labelledby": switchLabelId,
+              },
             }}
             onChange={() => {
               props.resetNavigationState?.();
@@ -297,6 +306,7 @@ export function MobileBottomBar(props: Readonly<MobileBottomBarProps>) {
               color="primary"
               disabled={props.navigationPending}
               inputProps={{ "aria-label": props.localeSwitchAriaLabel }}
+              slotProps={{ input: { "aria-label": props.localeSwitchAriaLabel } }}
               onChange={() => {
                 props.resetNavigationState?.();
                 props.onNavigate(buildRouteHref(props.us ? "/de" : "/us", props.query, { filter: null }));

@@ -10,6 +10,7 @@ import { ContainsItem } from "./ContainsItem";
 import type { ItemLike, QueryParams } from "./expanded";
 import type {
   ContainsDetailsSlotComponent,
+  ContainsNavigationSlotComponent,
   ContainsTitleSlotComponent,
 } from "../slotTypes";
 
@@ -18,6 +19,7 @@ interface ContainsProps {
   noEntriesHint?: string;
   items?: ItemLike[] | null;
   itemTitle: ContainsTitleSlotComponent;
+  itemNavigation?: ContainsNavigationSlotComponent;
   itemDetails?: ContainsDetailsSlotComponent;
   query?: QueryParams;
   us?: boolean;
@@ -27,12 +29,14 @@ interface ContainsProps {
 export function Contains(props: Readonly<ContainsProps>) {
   const items = Array.isArray(props.items) ? props.items : [];
   const ItemTitle = props.itemTitle;
+  const ItemNavigation = props.itemNavigation;
   const ItemDetails = props.itemDetails;
   const slotProps: Record<string, unknown> = { ...props };
   delete slotProps.header;
   delete slotProps.noEntriesHint;
   delete slotProps.items;
   delete slotProps.itemTitle;
+  delete slotProps.itemNavigation;
   delete slotProps.itemDetails;
 
   return (
@@ -63,6 +67,7 @@ export function Contains(props: Readonly<ContainsProps>) {
               isLast={idx === items.length - 1}
               item={item}
               itemTitle={ItemTitle}
+              itemNavigation={ItemNavigation}
               itemDetails={ItemDetails as ContainsDetailsSlotComponent}
               query={props.query}
               us={props.us}

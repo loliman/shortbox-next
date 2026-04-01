@@ -1,7 +1,10 @@
 import React from "react";
 import Box from "@mui/material/Box";
 import { Contains } from "../contains/Contains";
-import { ContainsTitleDetailed } from "../contains/ContainsTitleDetailed";
+import {
+  ContainsTitleDetailed,
+  ContainsTitleDetailedNavigation,
+} from "../contains/ContainsTitleDetailed";
 import { IssueDetailsDEStoryDetails } from "./IssueDetailsDEStoryDetails";
 import type { ItemLike } from "../contains/expanded";
 import { readIssueDetailStories } from "@/src/lib/read/issue-details-read";
@@ -36,6 +39,7 @@ export async function IssueDetailsDEBottom(props: Readonly<IssueDetailsDEBottomP
         noEntriesHint="Dieser Ausgabe sind noch keine Geschichten zugeordnet"
         items={stories}
         itemTitle={ContainsTitleDetailed}
+        itemNavigation={ContainsTitleDetailedNavigation}
         itemDetails={IssueDetailsDEStoryDetails}
       />
     </Box>

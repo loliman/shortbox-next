@@ -30,8 +30,6 @@ import { usePendingNavigation } from "./generic/usePendingNavigation";
 
 const SORT_OPTIONS = ["updatedat", "createdat", "releasedate", "series", "publisher"] as const;
 type SortOption = (typeof SORT_OPTIONS)[number];
-const SORT_LABEL_ID = "sort-container-label";
-const SORT_SELECT_ID = "sort-container-select";
 const SORT_OPTION_LABELS: Record<SortOption, string> = {
   updatedat: "Änderungsdatum",
   createdat: "Erfassungsdatum",
@@ -55,6 +53,7 @@ type SortContainerProps = {
 export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
   const localPendingNavigation = usePendingNavigation();
   const { isPending, push } = ownProps.pendingNavigation ?? localPendingNavigation;
+  const instanceId = React.useId();
   const theme = useTheme();
   const initialGuess = useInitialResponsiveGuess();
   const isLandscape = useMediaQuery("(orientation: landscape)", {
@@ -77,6 +76,8 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
   const currentOrder = toValidSortOption(getListingOrder(query));
   const currentDirection = toDirection(getListingDirection(query));
   const currentView = getListingView(query);
+  const sortLabelId = `${instanceId}-sort-container-label`;
+  const sortSelectId = `${instanceId}-sort-container-select`;
 
   const target = selected || { us };
 
@@ -114,10 +115,23 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
       <FormControl
         size="small"
         fullWidth={compactLayout}
-        sx={{ minWidth: compactLayout ? 0 : 200, width: compactLayout ? "100%" : 240 }}
+        sx={(theme) => ({
+          minWidth: compactLayout ? 0 : 200,
+          width: compactLayout ? "100%" : 240,
+          "& .MuiInputLabel-root": {
+            ...theme.applyStyles("dark", {
+              color: `${theme.palette.common.white} !important`,
+            }),
+          },
+          "& .MuiInputLabel-root.Mui-focused": {
+            ...theme.applyStyles("dark", {
+              color: `${theme.palette.common.white} !important`,
+            }),
+          },
+        })}
       >
         <InputLabel
-          id={SORT_LABEL_ID}
+          id={sortLabelId}
           sx={(theme) => ({
             color: theme.palette.text.primary,
             fontWeight: 400,
@@ -129,8 +143,8 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
           {compactLayout ? "Sortierung" : "Sortieren nach"}
         </InputLabel>
         <Select
-          id={SORT_SELECT_ID}
-          labelId={SORT_LABEL_ID}
+          id={sortSelectId}
+          labelId={sortLabelId}
           value={currentOrder}
           label={compactLayout ? "Sortierung" : "Sortieren nach"}
           sx={{

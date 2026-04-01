@@ -2,6 +2,7 @@
 
 import React from "react";
 import Collapse from "@mui/material/Collapse";
+import Box from "@mui/material/Box";
 import { generateSeoUrl } from "../../util/hierarchy";
 import { buildRouteHref } from "../generic/routeHref";
 import type { SelectedRoot } from "../../types/domain";
@@ -508,7 +509,11 @@ export default function List(props: Readonly<ListProps>) {
         const selected = isSameEntityName(selectedPublisherName, publisherName);
 
         return (
-          <React.Fragment key={publisherName || "publisher-empty"}>
+          <Box
+            key={publisherName || "publisher-empty"}
+            component="li"
+            sx={{ listStyle: "none", m: 0, p: 0 }}
+          >
             <NestedRow
               rowKey={publisherName}
               depth={0}
@@ -526,7 +531,12 @@ export default function List(props: Readonly<ListProps>) {
               onClick={handlePublisherClick}
             />
 
-            <Collapse in={expanded} timeout="auto" unmountOnExit>
+            <Collapse
+              in={expanded}
+              timeout="auto"
+              unmountOnExit
+              component="div"
+            >
               <SeriesBranch
                 us={us}
                 publisher={publisherNode}
@@ -547,7 +557,7 @@ export default function List(props: Readonly<ListProps>) {
                 selectedRowKey={selectedRowKey}
               />
             </Collapse>
-          </React.Fragment>
+          </Box>
         );
       })
     );

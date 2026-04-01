@@ -317,10 +317,10 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
           </li>
           );
         }}
-        sx={{
+        sx={(theme) => ({
           width: "100%",
           position: "relative",
-          zIndex: (theme) => theme.zIndex.appBar + 2,
+          zIndex: theme.zIndex.appBar + 2,
           transform: focused ? (compactLayout ? "scale(1)" : "scale(1.1)") : "scale(1)",
           transformOrigin: "center",
           transition: "transform 220ms ease",
@@ -330,6 +330,9 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
             color: "#111111",
             transition:
               "box-shadow 180ms ease, border-color 180ms ease, background-color 180ms ease",
+            "& input": {
+              color: "#111111",
+            },
             "& fieldset": {
               borderColor: "rgba(17, 17, 17, 0.18)",
             },
@@ -340,16 +343,35 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
               borderColor: "#111111",
             },
             "&.Mui-focused": {
-              boxShadow: (theme) =>
-                `0 0 0 3px ${alpha(theme.palette.primary.main, 0.2)}, 0 10px 26px ${alpha(
+              boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.2)}, 0 10px 26px ${alpha(
+                theme.palette.common.black,
+                0.35
+              )}`,
+              backgroundColor: "#ffffff",
+            },
+            ...theme.applyStyles("dark", {
+              backgroundColor: "#2a2f36",
+              color: theme.palette.common.white,
+              "& input": {
+                color: theme.palette.common.white,
+              },
+              "& fieldset": {
+                borderColor: alpha(theme.palette.common.white, 0.34),
+              },
+              "&:hover fieldset": {
+                borderColor: alpha(theme.palette.common.white, 0.54),
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: theme.palette.primary.light,
+              },
+              "&.Mui-focused": {
+                backgroundColor: "#313740",
+                boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.28)}, 0 10px 26px ${alpha(
                   theme.palette.common.black,
                   0.35
                 )}`,
-              backgroundColor: "#ffffff",
-            },
-            "& input": {
-              color: "#111111",
-            },
+              },
+            }),
           },
           "& .MuiAutocomplete-paper": {
             backgroundColor: getResultsSurfaceColor,
@@ -365,8 +387,11 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
           "& .MuiInputBase-input::placeholder": {
             color: "#4a4a4a",
             opacity: 1,
+            ...theme.applyStyles("dark", {
+              color: alpha(theme.palette.common.white, 0.62),
+            }),
           },
-        }}
+        })}
         renderInput={(params) => (
           <TextField
             {...params}
@@ -375,12 +400,26 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
             label="Comic suchen"
             InputLabelProps={{
               ...params.InputLabelProps,
+              shrink: false,
               sx: (theme) => ({
                 color: theme.palette.text.primary,
                 fontWeight: 400,
+                transform: "translate(14px, 9px) scale(1)",
+                transformOrigin: "top left",
+                opacity: focused || pattern.length > 0 ? 0 : 1,
+                transition: "opacity 140ms ease",
                 "&.Mui-focused": {
                   color: theme.palette.text.primary,
                 },
+                "&.MuiInputLabel-shrink": {
+                  transform: "translate(14px, 9px) scale(1)",
+                },
+                ...theme.applyStyles("dark", {
+                  color: alpha(theme.palette.common.white, 0.82),
+                  "&.Mui-focused": {
+                    color: alpha(theme.palette.common.white, 0.82),
+                  },
+                }),
               }),
             }}
             inputProps={{
@@ -394,7 +433,15 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                 <>
                   {loading || navigationPending ? <CircularProgress color="inherit" size={18} /> : null}
                   <InputAdornment position="end">
-                    <SearchIcon sx={{ fontSize: 20, color: "#111111" }} />
+                    <SearchIcon
+                      sx={(theme) => ({
+                        fontSize: 20,
+                        color: "#111111",
+                        ...theme.applyStyles("dark", {
+                          color: theme.palette.common.white,
+                        }),
+                      })}
+                    />
                   </InputAdornment>
                   {params.InputProps.endAdornment}
                 </>

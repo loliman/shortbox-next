@@ -25,6 +25,15 @@ export type ContainsTitleSlotProps = {
 
 export type ContainsTitleSlotComponent = React.ComponentType<any>;
 
+export type ContainsNavigationSlotProps = {
+  item: unknown;
+  query?: QueryParams;
+  us?: boolean;
+  [key: string]: unknown;
+};
+
+export type ContainsNavigationSlotComponent = React.ComponentType<any>;
+
 export type ContainsDetailsSlotProps = {
   item: unknown;
   query?: QueryParams;

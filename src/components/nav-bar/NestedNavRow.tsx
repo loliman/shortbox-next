@@ -36,6 +36,7 @@ export const NestedRow = React.memo(function NestedRow(props: Readonly<NestedRow
 
   return (
     <ListItem
+      component="div"
       disablePadding
       data-nav-row-key={props.navRowKey}
       sx={{
@@ -108,7 +109,7 @@ export function NestedEmptyRow({
   message?: string;
 }) {
   return (
-    <ListItem sx={{ pl: getDepthPadding(depth) }}>
+    <ListItem component="div" sx={{ pl: getDepthPadding(depth) }}>
       <ListItemText primary={message} />
     </ListItem>
   );
@@ -122,7 +123,7 @@ export function NestedLoadingRow({
   message?: string;
 }) {
   return (
-    <ListItem sx={{ pl: getDepthPadding(depth) }}>
+    <ListItem component="div" sx={{ pl: getDepthPadding(depth) }}>
       <ListItemIcon sx={{ minWidth: 28 }}>
         <CircularProgress size={14} />
       </ListItemIcon>

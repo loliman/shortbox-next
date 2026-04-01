@@ -69,12 +69,19 @@ type ContainsTitleDetailedProps = {
   simple?: boolean;
   isCover?: boolean;
   session?: unknown;
+  allowInteractiveActions?: boolean;
   compactLayout?: boolean;
   isPhone?: boolean;
   isTablet?: boolean;
   isTabletLandscape?: boolean;
   drawerOpen?: boolean;
   isPhonePortrait?: boolean;
+  query?: Record<string, unknown> | null;
+};
+
+type ContainsTitleDetailedNavigationProps = {
+  item: ContainsItemLike;
+  us?: boolean;
   query?: Record<string, unknown> | null;
 };
 
@@ -175,6 +182,7 @@ function shouldShowPartialPublicationLabel(item: ContainsItemLike): boolean {
 export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps>) {
   const router = useRouter();
   const item = props.item;
+  const allowInteractiveActions = props.allowInteractiveActions ?? true;
   const issue = resolveIssueForDetails(item);
   const issueSelection = issue ? toIssueSelection(issue) : null;
   const storyExpandNumber = String(item.parent?.number ?? item.number ?? "").trim();
@@ -203,7 +211,7 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
     hasSession: Boolean(props.session),
   });
   const detailButton =
-    !exclusive && issue && issueSelection ? (
+    allowInteractiveActions && !exclusive && issue && issueSelection ? (
       <CoverTooltip issue={issue} us={props.us}>
         <IconButton
           component="span"
@@ -347,32 +355,46 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
               us={props.us}
               number={item.parent.reprintOf.number}
             >
-              <Link
-                component="button"
-                type="button"
-                variant="body2"
-                underline="hover"
-                color="text.primary"
-                sx={{
-                  mt: 0.25,
-                  p: 0,
-                  textAlign: "left",
-                  lineHeight: 1.43,
-                  fontWeight: 600,
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!reprintSelection) return;
-                  router.push(
-                    buildRouteHref(generateSeoUrl(reprintSelection, true), props.query, {
-                      expand: item.parent?.reprintOf?.number,
-                      filter: null,
-                    })
-                  );
-                }}
-              >
-                {reprintSelection ? generateLabel(reprintSelection) : ""}
-              </Link>
+              {allowInteractiveActions ? (
+                <Link
+                  component="button"
+                  type="button"
+                  variant="body2"
+                  underline="hover"
+                  color="text.primary"
+                  sx={{
+                    mt: 0.25,
+                    p: 0,
+                    textAlign: "left",
+                    lineHeight: 1.43,
+                    fontWeight: 600,
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!reprintSelection) return;
+                    router.push(
+                      buildRouteHref(generateSeoUrl(reprintSelection, true), props.query, {
+                        expand: item.parent?.reprintOf?.number,
+                        filter: null,
+                      })
+                    );
+                  }}
+                >
+                  {reprintSelection ? generateLabel(reprintSelection) : ""}
+                </Link>
+              ) : (
+                <Typography
+                  variant="body2"
+                  color="text.primary"
+                  sx={{
+                    mt: 0.25,
+                    lineHeight: 1.43,
+                    fontWeight: 600,
+                  }}
+                >
+                  {reprintSelection ? generateLabel(reprintSelection) : ""}
+                </Typography>
+              )}
             </CoverTooltip>
           </Box>
         ) : null}
@@ -424,6 +446,86 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
           {detailButton}
         </Box>
       )}
+    </Box>
+  );
+}
+
+export function ContainsTitleDetailedNavigation(
+  props: Readonly<ContainsTitleDetailedNavigationProps>
+) {
+  const router = useRouter();
+  const item = props.item;
+  const issue = resolveIssueForDetails(item);
+  const issueSelection = issue ? toIssueSelection(issue) : null;
+  const storyExpandNumber = String(item.parent?.number ?? item.number ?? "").trim();
+  const reprintSelection = item.parent?.reprintOf?.issue
+    ? toIssueSelection(item.parent.reprintOf.issue)
+    : null;
+  const exclusive = Boolean(item.exclusive && !props.us);
+
+  if (!issueSelection && !reprintSelection) return null;
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 1,
+        justifyContent: "flex-end",
+        alignItems: "center",
+        width: "100%",
+        pointerEvents: "auto",
+      }}
+    >
+      {reprintSelection && item.parent?.reprintOf?.issue ? (
+        <CoverTooltip
+          issue={item.parent.reprintOf.issue}
+          us={props.us}
+          number={item.parent.reprintOf.number}
+        >
+          <Link
+            component="button"
+            type="button"
+            variant="body2"
+            underline="hover"
+            color="text.primary"
+            sx={{
+              p: 0,
+              textAlign: "right",
+              lineHeight: 1.43,
+              fontWeight: 600,
+            }}
+            onClick={() => {
+              router.push(
+                buildRouteHref(generateSeoUrl(reprintSelection, true), props.query, {
+                  expand: item.parent?.reprintOf?.number,
+                  filter: null,
+                })
+              );
+            }}
+          >
+            US-Original ansehen
+          </Link>
+        </CoverTooltip>
+      ) : null}
+
+      {!exclusive && issue && issueSelection ? (
+        <CoverTooltip issue={issue} us={props.us}>
+          <IconButton
+            onClick={() => {
+              router.push(
+                buildRouteHref(generateSeoUrl(issueSelection, !props.us), props.query, {
+                  filter: null,
+                  expand: storyExpandNumber || undefined,
+                })
+              );
+            }}
+            aria-label="Details"
+          >
+            <SearchIcon fontSize="small" />
+          </IconButton>
+        </CoverTooltip>
+      ) : null}
     </Box>
   );
 }

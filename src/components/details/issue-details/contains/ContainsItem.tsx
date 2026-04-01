@@ -1,14 +1,16 @@
 "use client";
 
 import React from "react";
-import Accordion from "@mui/material/Accordion";
-import AccordionSummary from "@mui/material/AccordionSummary";
+import ButtonBase from "@mui/material/ButtonBase";
+import Collapse from "@mui/material/Collapse";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import AccordionDetails from "@mui/material/AccordionDetails";
+import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
 import { expanded, hasExpandNumberMatch } from "./expanded";
 import type { ItemLike, QueryParams } from "./expanded";
 import type {
   ContainsDetailsSlotComponent,
+  ContainsNavigationSlotComponent,
   ContainsTitleSlotComponent,
 } from "../slotTypes";
 
@@ -18,6 +20,7 @@ interface ContainsItemProps {
   item: ItemLike;
   query?: QueryParams;
   itemTitle: ContainsTitleSlotComponent;
+  itemNavigation?: ContainsNavigationSlotComponent;
   itemDetails: ContainsDetailsSlotComponent;
   us?: boolean;
   [key: string]: unknown;
@@ -25,10 +28,12 @@ interface ContainsItemProps {
 
 export function ContainsItem(props: Readonly<ContainsItemProps>) {
   const ItemTitle = props.itemTitle;
+  const ItemNavigation = props.itemNavigation;
   const ItemDetails = props.itemDetails;
   const isHighlighted = expanded(props.item, props.query);
   const shouldExpandFromQuery = hasExpandNumberMatch(props.item, props.query);
   const [isExpanded, setIsExpanded] = React.useState<boolean>(shouldExpandFromQuery);
+  const contentId = React.useId();
 
   React.useEffect(() => {
     setIsExpanded(shouldExpandFromQuery);
@@ -48,12 +53,10 @@ export function ContainsItem(props: Readonly<ContainsItemProps>) {
   }
 
   return (
-    <Accordion
-      expanded={isExpanded}
-      onChange={(_, nextExpanded) => {
-        setIsExpanded(nextExpanded);
-      }}
+    <Paper
+      elevation={1}
       sx={(theme) => ({
+        position: "relative",
         borderRadius,
         width: "auto",
         maxWidth: "100%",
@@ -71,7 +74,6 @@ export function ContainsItem(props: Readonly<ContainsItemProps>) {
           : theme.shadows[1],
         transform: isHighlighted ? "translateY(-1px)" : "none",
         transition: "box-shadow 180ms ease, transform 180ms ease, border-color 180ms ease",
-        "&:before": { display: "none" },
         "&::after": isHighlighted
           ? {
               content: '""',
@@ -87,18 +89,6 @@ export function ContainsItem(props: Readonly<ContainsItemProps>) {
               }),
             }
           : undefined,
-        "& .MuiAccordionSummary-root": {
-          backgroundColor: "#ffffff",
-          ...theme.applyStyles("dark", {
-            backgroundColor: "#161b22",
-          }),
-        },
-        "& .MuiAccordionDetails-root": {
-          backgroundColor: "#ffffff",
-          ...theme.applyStyles("dark", {
-            backgroundColor: "#161b22",
-          }),
-        },
         ...theme.applyStyles("dark", {
           borderColor: isHighlighted
             ? "rgba(198, 204, 214, 0.52)"
@@ -112,32 +102,112 @@ export function ContainsItem(props: Readonly<ContainsItemProps>) {
         }),
       })}
     >
-      <AccordionSummary
-        expandIcon={<ExpandMoreIcon />}
-        sx={{
+      <Box
+        sx={(theme) => ({
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) auto auto",
+          alignItems: "start",
+          gap: 1,
+          px: 2,
           py: 1.25,
-          minHeight: 0,
-          "&.Mui-expanded": {
-            minHeight: 0,
-          },
-          "& .MuiAccordionSummary-content": {
-            width: "100%",
-            margin: 0,
-            "&.Mui-expanded": {
-              margin: 0,
+          backgroundColor: "#ffffff",
+          position: "relative",
+          zIndex: 1,
+          ...theme.applyStyles("dark", {
+            backgroundColor: "#161b22",
+          }),
+          ...{
+            "@media (max-width:599.95px)": {
+              px: 1.5,
+              py: 1,
             },
           },
-          "& .MuiAccordionSummary-expandIconWrapper": {
-            margin: 0,
-            alignSelf: "center",
-          },
-        }}
+        })}
       >
-        <ItemTitle {...props} query={props.query} item={props.item} us={props.us} />
-      </AccordionSummary>
-      <AccordionDetails>
-        <ItemDetails {...props} us={props.us} query={props.query} item={props.item} />
-      </AccordionDetails>
-    </Accordion>
+        <ButtonBase
+          onClick={() => {
+            setIsExpanded((prev) => !prev);
+          }}
+          aria-expanded={isExpanded}
+          aria-controls={contentId}
+          sx={{
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            textAlign: "left",
+            borderRadius: 1,
+            minHeight: 0,
+            minWidth: 0,
+          }}
+        >
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <ItemTitle
+              {...props}
+              query={props.query}
+              item={props.item}
+              us={props.us}
+              allowInteractiveActions={false}
+            />
+          </Box>
+        </ButtonBase>
+        {ItemNavigation ? (
+          <Box sx={{ display: "flex", alignItems: "center", minHeight: "100%" }}>
+            <ItemNavigation {...props} query={props.query} item={props.item} us={props.us} />
+          </Box>
+        ) : null}
+        <ButtonBase
+          onClick={() => {
+            setIsExpanded((prev) => !prev);
+          }}
+          aria-expanded={isExpanded}
+          aria-controls={contentId}
+          aria-label={isExpanded ? "Details einklappen" : "Details ausklappen"}
+          sx={{
+            width: 40,
+            height: 40,
+            borderRadius: "999px",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "text.secondary",
+            flexShrink: 0,
+            alignSelf: "center",
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 180ms ease",
+            }}
+          >
+            <ExpandMoreIcon />
+          </Box>
+        </ButtonBase>
+      </Box>
+      <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+        <Box
+          id={contentId}
+          role="region"
+          sx={(theme) => ({
+            px: 2,
+            pb: 2,
+            backgroundColor: "#ffffff",
+            ...theme.applyStyles("dark", {
+              backgroundColor: "#161b22",
+            }),
+            ...{
+              "@media (max-width:599.95px)": {
+                px: 1.5,
+                pb: 1.5,
+              },
+            },
+          })}
+        >
+          <ItemDetails {...props} us={props.us} query={props.query} item={props.item} />
+        </Box>
+      </Collapse>
+    </Paper>
   );
 }
