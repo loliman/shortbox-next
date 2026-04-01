@@ -1,6 +1,6 @@
 import { countChangeRequests } from "@/src/lib/read/issue-read";
 import { readServerSession } from "@/src/lib/server/session";
-import PersistentCatalogShellClient from "@/src/components/app-shell/PersistentCatalogShellClient";
+import PersistentCatalogShell from "@/src/components/app-shell/PersistentCatalogShell";
 
 
 export default async function DeLayout({
@@ -12,12 +12,12 @@ export default async function DeLayout({
   const changeRequestsCount = session?.canAdmin ? await countChangeRequests().catch(() => 0) : 0;
 
   return (
-    <PersistentCatalogShellClient
+    <PersistentCatalogShell
       us={false}
       session={session}
       changeRequestsCount={changeRequestsCount}
     >
       {children}
-    </PersistentCatalogShellClient>
+    </PersistentCatalogShell>
   );
 }

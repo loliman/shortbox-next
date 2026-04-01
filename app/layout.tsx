@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { Suspense } from "react";
 import "./globals.css";
 import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 import AppProviders from "@/src/components/AppProviders";
-import { AppPageLoader } from "@/src/components/generic/loading";
 import { getInitialResponsiveGuess } from "@/src/app/responsiveGuess";
 import { buildWebsiteStructuredData } from "@/src/lib/routes/structured-data";
 
@@ -62,7 +60,7 @@ export default async function RootLayout({
           colorSchemeStorageKey="shortbox_color_scheme"
         />
         <AppProviders initialResponsiveGuess={initialResponsiveGuess}>
-          <Suspense fallback={<AppPageLoader />}>{children}</Suspense>
+          {children}
         </AppProviders>
       </body>
     </html>
