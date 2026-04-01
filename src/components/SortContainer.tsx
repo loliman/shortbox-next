@@ -10,7 +10,7 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import React from "react";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
-import { useTheme } from "@mui/material/styles";
+import { alpha, useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
@@ -138,6 +138,12 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
             "&.Mui-focused": {
               color: theme.palette.text.primary,
             },
+            ...theme.applyStyles("dark", {
+              color: theme.palette.common.white,
+              "&.Mui-focused": {
+                color: theme.palette.common.white,
+              },
+            }),
           })}
         >
           {compactLayout ? "Sortierung" : "Sortieren nach"}
@@ -147,15 +153,16 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
           labelId={sortLabelId}
           value={currentOrder}
           label={compactLayout ? "Sortierung" : "Sortieren nach"}
-          sx={{
-            backgroundColor: (theme) => theme.vars?.palette.background.paper ?? theme.palette.background.paper,
+          sx={(theme) => ({
+            backgroundColor: theme.vars?.palette.background.paper ?? theme.palette.background.paper,
             "& .MuiSelect-select": {
-              color: "text.primary",
+              color: "#111111",
+              WebkitTextFillColor: "#111111",
               fontWeight: 400,
               opacity: 1,
             },
             "& .MuiSelect-icon": {
-              color: "text.primary",
+              color: "#111111",
             },
             "& fieldset": {
               borderColor: "rgba(17, 17, 17, 0.18)",
@@ -166,7 +173,26 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
             "&.Mui-focused fieldset": {
               borderColor: "#111111",
             },
-          }}
+            ...theme.applyStyles("dark", {
+              backgroundColor: "#2a2f36",
+              "& .MuiSelect-select": {
+                color: theme.palette.common.white,
+                WebkitTextFillColor: theme.palette.common.white,
+              },
+              "& .MuiSelect-icon": {
+                color: theme.palette.common.white,
+              },
+              "& fieldset": {
+                borderColor: alpha(theme.palette.common.white, 0.34),
+              },
+              "&:hover fieldset": {
+                borderColor: alpha(theme.palette.common.white, 0.54),
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: theme.palette.primary.light,
+              },
+            }),
+          })}
           disabled={isPending}
           onChange={(e) =>
             push(

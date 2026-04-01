@@ -332,6 +332,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
               "box-shadow 180ms ease, border-color 180ms ease, background-color 180ms ease",
             "& input": {
               color: "#111111",
+              WebkitTextFillColor: "#111111",
             },
             "& fieldset": {
               borderColor: "rgba(17, 17, 17, 0.18)",
@@ -354,6 +355,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
               color: theme.palette.common.white,
               "& input": {
                 color: theme.palette.common.white,
+                WebkitTextFillColor: theme.palette.common.white,
               },
               "& fieldset": {
                 borderColor: alpha(theme.palette.common.white, 0.34),
@@ -385,10 +387,10 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
             backgroundColor: getResultsSurfaceColor,
           },
           "& .MuiInputBase-input::placeholder": {
-            color: "#4a4a4a",
+            color: "#2a2a2a",
             opacity: 1,
             ...theme.applyStyles("dark", {
-              color: alpha(theme.palette.common.white, 0.62),
+              color: alpha(theme.palette.common.white, 0.9),
             }),
           },
         })}
@@ -397,35 +399,10 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
             {...params}
             variant="outlined"
             autoFocus={Boolean(ownProps.autoFocus)}
-            label="Comic suchen"
-            InputLabelProps={{
-              ...params.InputLabelProps,
-              shrink: false,
-              sx: (theme) => ({
-                color: theme.palette.text.primary,
-                fontWeight: 400,
-                transform: "translate(14px, 9px) scale(1)",
-                transformOrigin: "top left",
-                opacity: focused || pattern.length > 0 ? 0 : 1,
-                transition: "opacity 140ms ease",
-                "&.Mui-focused": {
-                  color: theme.palette.text.primary,
-                },
-                "&.MuiInputLabel-shrink": {
-                  transform: "translate(14px, 9px) scale(1)",
-                },
-                ...theme.applyStyles("dark", {
-                  color: alpha(theme.palette.common.white, 0.82),
-                  "&.Mui-focused": {
-                    color: alpha(theme.palette.common.white, 0.82),
-                  },
-                }),
-              }),
-            }}
             inputProps={{
               ...params.inputProps,
-              "aria-label": "Suche",
-              placeholder: undefined,
+              "aria-label": "Comic suchen",
+              placeholder: "Comic suchen",
             }}
             InputProps={{
               ...params.InputProps,
