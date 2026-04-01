@@ -7,13 +7,22 @@ type ResolvedImageState = {
   isLoading: boolean;
 };
 
+type UseResolvedImageUrlOptions = {
+  enabled?: boolean;
+};
+
 export function useResolvedImageUrl(
   candidateUrl: string,
-  fallbackUrl: string
+  fallbackUrl: string,
+  options?: UseResolvedImageUrlOptions
 ): ResolvedImageState {
+  const enabled = options?.enabled ?? true;
   const [state, setState] = React.useState<ResolvedImageState>(() => {
     const nextCandidate = candidateUrl || fallbackUrl;
     if (!nextCandidate || nextCandidate === fallbackUrl) {
+      return { resolvedUrl: fallbackUrl, isLoading: false };
+    }
+    if (!enabled) {
       return { resolvedUrl: fallbackUrl, isLoading: false };
     }
     return { resolvedUrl: "", isLoading: true };
@@ -21,6 +30,10 @@ export function useResolvedImageUrl(
 
   React.useEffect(() => {
     const nextCandidate = candidateUrl || fallbackUrl;
+    if (!enabled) {
+      setState({ resolvedUrl: fallbackUrl, isLoading: false });
+      return;
+    }
     if (nextCandidate === fallbackUrl) {
       setState({ resolvedUrl: fallbackUrl, isLoading: false });
       return;
@@ -41,7 +54,7 @@ export function useResolvedImageUrl(
     return () => {
       isCancelled = true;
     };
-  }, [candidateUrl, fallbackUrl]);
+  }, [candidateUrl, enabled, fallbackUrl]);
 
   return state;
 }

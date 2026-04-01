@@ -22,12 +22,12 @@ function getCoverSource(issue: CoverTooltipIssue): { coverUrl: string; blurCover
   const coverUrl = getPreferredCoverUrl(issue);
   if (coverUrl) return { coverUrl, blurCover: false };
 
-  return { coverUrl: "/nocover.png", blurCover: false };
+  return { coverUrl: "/nocover_preview.png", blurCover: false };
 }
 
 function CoverTooltip(props: Readonly<CoverTooltipProps>) {
   const { coverUrl, blurCover } = getCoverSource(props.issue);
-  const fallbackUrl = "/nocover.png";
+  const fallbackUrl = "/nocover_preview.png";
   const [displayUrl, setDisplayUrl] = React.useState(coverUrl);
 
   React.useEffect(() => {

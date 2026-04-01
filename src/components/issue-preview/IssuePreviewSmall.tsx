@@ -11,6 +11,7 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import CircularProgress from "@mui/material/CircularProgress";
 import { useResolvedImageUrl } from "../generic/useResolvedImageUrl";
+import { useNearViewport } from "../generic/useNearViewport";
 import { buildRouteHref } from "../generic/routeHref";
 import { getIssueLabel, getIssueUrl } from "../../util/issuePresentation";
 import {
@@ -31,7 +32,7 @@ interface IssuePreviewSmallProps {
   isLast?: boolean;
 }
 
-const NO_COVER_URL = "/nocover.png";
+const NO_COVER_URL = "/nocover_preview.png";
 
 export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps>) {
   const us = Boolean(props.us);
@@ -39,9 +40,11 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
   const variant = getIssueVariantLabel(props.issue);
   const { coverUrl } = getIssuePreviewCover(props.issue, us);
   const candidateCoverUrl = coverUrl?.trim() ? coverUrl : NO_COVER_URL;
+  const { isNearViewport, setElement } = useNearViewport();
   const { resolvedUrl: effectiveCoverUrl, isLoading: isCoverLoading } = useResolvedImageUrl(
     candidateCoverUrl,
-    NO_COVER_URL
+    NO_COVER_URL,
+    { enabled: isNearViewport }
   );
   const flags = getIssuePreviewFlags(props.issue, us, hasSession);
   const url = buildRouteHref(getIssueUrl(props.issue, us), props.query);
@@ -50,6 +53,7 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
 
   return (
     <Card
+      ref={setElement}
       sx={(theme) => ({
         backgroundColor: "background.paper",
         overflow: "hidden",

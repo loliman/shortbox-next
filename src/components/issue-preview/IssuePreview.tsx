@@ -11,6 +11,7 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import CircularProgress from "@mui/material/CircularProgress";
 import { useResolvedImageUrl } from "../generic/useResolvedImageUrl";
+import { useNearViewport } from "../generic/useNearViewport";
 import { buildRouteHref } from "../generic/routeHref";
 import { getIssueUrl, getSeriesLabel } from "../../util/issuePresentation";
 import { IssueReferenceInline } from "../generic/IssueNumberInline";
@@ -33,7 +34,7 @@ interface IssuePreviewProps {
   drawerOpen?: boolean;
 }
 
-const NO_COVER_URL = "/nocover.png";
+const NO_COVER_URL = "/nocover_preview.png";
 
 export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
   const us = Boolean(props.us);
@@ -41,9 +42,11 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
   const variant = getIssueVariantLabel(props.issue);
   const { coverUrl } = getIssuePreviewCover(props.issue, us);
   const candidateCoverUrl = coverUrl?.trim() ? coverUrl : NO_COVER_URL;
+  const { isNearViewport, setElement } = useNearViewport();
   const { resolvedUrl: effectiveCoverUrl, isLoading: isCoverLoading } = useResolvedImageUrl(
     candidateCoverUrl,
-    NO_COVER_URL
+    NO_COVER_URL,
+    { enabled: isNearViewport }
   );
   const flags = getIssuePreviewFlags(props.issue, us, hasSession);
   const url = buildRouteHref(getIssueUrl(props.issue, us), props.query);
@@ -55,7 +58,7 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
         : "default";
 
   return (
-    <Box data-audit-ignore-pa11y="issue-preview">
+    <Box data-audit-ignore-pa11y="issue-preview" ref={setElement}>
       <Card
         sx={(theme) => ({
           backgroundColor: "background.paper",
