@@ -41,11 +41,9 @@ export function AppPageLoader(props: Readonly<AppPageLoaderProps>) {
             bottom: -20,
             width: "60%",
             height: "55%",
-            backgroundImage: "url('/background.png')",
-            backgroundPosition: "right bottom",
-            backgroundRepeat: "no-repeat",
-            backgroundSize: "contain",
-            opacity: 0.06,
+            background:
+              "radial-gradient(circle at 100% 100%, rgba(17,17,17,0.08), rgba(17,17,17,0) 58%)",
+            opacity: 1,
             pointerEvents: "none",
           }}
         />

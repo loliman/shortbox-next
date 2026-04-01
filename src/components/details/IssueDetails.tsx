@@ -57,7 +57,7 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
 
   if (loading && !loadedIssue) {
     return (
-      <Box className="data-fade">
+      <Box>
         <QueryResult
           data={undefined}
           loading={true}
@@ -71,7 +71,7 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
 
   if (error || !issueForVariants || !loadedIssue) {
     return (
-      <Box className="data-fade">
+      <Box>
         <QueryResult
           error={error}
           data={loadedIssue}
@@ -157,7 +157,6 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
 
   return (
     <Box
-      className="data-fade"
       key={loadedIssue.id || "issue-details"}
       sx={{ width: "100%", display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}
     >

@@ -150,9 +150,6 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
                 ? `calc(var(--shortbox-nav-offset, ${initialNavOffset}) / 2)`
                 : 0,
             },
-            transition: showNavigation
-              ? "margin-left 225ms cubic-bezier(0.4, 0, 0.6, 1), padding 225ms cubic-bezier(0.4, 0, 0.6, 1)"
-              : undefined,
           }}
         >
           <Card
@@ -187,11 +184,9 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
                   bottom: { xs: -12, sm: -16 },
                   width: "min(100%, 70vw)",
                   height: "45%",
-                  backgroundImage: "url('/background.png')",
-                  backgroundPosition: "right bottom",
-                  backgroundRepeat: "no-repeat",
-                  backgroundSize: "contain",
-                  opacity: 0.04,
+                  background:
+                    "radial-gradient(circle at 100% 100%, rgba(17,17,17,0.08), rgba(17,17,17,0) 58%)",
+                  opacity: 1,
                   pointerEvents: "none",
                   zIndex: 0,
                 }}

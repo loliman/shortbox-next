@@ -46,6 +46,7 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
     NO_COVER_URL,
     { enabled: isNearViewport }
   );
+  const usesFallbackCover = effectiveCoverUrl === NO_COVER_URL;
   const flags = getIssuePreviewFlags(props.issue, us, hasSession);
   const url = buildRouteHref(getIssueUrl(props.issue, us), props.query);
   const issueLabel = getIssueLabel(props.issue);
@@ -98,7 +99,9 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
               backgroundColor: "rgba(0, 0, 0, 0.04)",
               backgroundImage: isCoverLoading
                 ? "linear-gradient(110deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.14) 50%, rgba(0, 0, 0, 0.04) 75%)"
-                : `url(${effectiveCoverUrl})`,
+                : usesFallbackCover
+                  ? "linear-gradient(135deg, rgba(17,17,17,0.08), rgba(17,17,17,0.03) 44%, rgba(17,17,17,0) 100%)"
+                  : `url(${effectiveCoverUrl})`,
               backgroundRepeat: "no-repeat",
               backgroundPosition: isCoverLoading ? "200% 0" : "center",
               backgroundSize: isCoverLoading ? "220% 100%" : "cover",
@@ -130,7 +133,9 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
                 backgroundColor: "rgba(0, 0, 0, 0.3)",
                 backgroundImage: isCoverLoading
                   ? "linear-gradient(110deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.04) 75%)"
-                  : `url(${effectiveCoverUrl})`,
+                  : usesFallbackCover
+                    ? "linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03) 44%, rgba(255,255,255,0) 100%)"
+                    : `url(${effectiveCoverUrl})`,
                 "&::after":
                   effectiveCoverUrl === NO_COVER_URL
                     ? {

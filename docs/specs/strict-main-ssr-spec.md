@@ -7,6 +7,7 @@ Ensure that all user-visible content inside the catalog `main` element is fully 
 - audit the current rendering path for `app/de/*` and `app/us/*`
 - identify all places where `main` content currently depends on client-only layout state, streaming fallbacks, or post-render data fetches
 - refactor the catalog route shell so `main` content is emitted as complete server HTML on first response
+- remove route-level `loading.tsx` fallbacks for canonical catalog routes where those fallbacks would otherwise render skeletons inside `main`, including parent segment fallbacks inherited by detail routes
 - preserve existing route structure, canonical URLs, metadata, and domain behavior
 
 ## Non-Goals
@@ -42,10 +43,12 @@ Ensure that all user-visible content inside the catalog `main` element is fully 
 - moving catalog layouts away from client-rooted shells can affect responsive layout behavior and navigation state continuity
 - removing or reducing streaming can increase TTFB if the server shell is not kept lean
 - detail pages with nested async slots may regress if fallbacks are removed without preserving data availability
+- removing route-level loading UIs can make slow requests feel less responsive in development or on cold starts, so the affected routes must stay narrow and intentional
 
 ## Acceptance Criteria
 - initial HTML for catalog routes contains the full intended `main` content for the route, not just placeholders or shells
 - no route-critical content inside `main` depends on client-side fetches for first render
+- direct navigations to canonical catalog routes do not render route-level skeleton placeholders inside `main` through inherited or leaf `loading.tsx` files
 - header/footer/nav remain functional after hydration
 - `npm run build` succeeds
 - `npm run test:a11y:pa11y` continues to pass

@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
+import type { CSSProperties } from "react";
 import FooterLinks from "../footer/FooterLinks";
 import PersistentCatalogChromeClient from "./PersistentCatalogChromeClient";
 import { COMPACT_BOTTOM_BAR_CLEARANCE, getNavDrawerWidth } from "../layoutMetrics";
@@ -52,30 +53,20 @@ export default async function PersistentCatalogShell(
         }}
       >
         <Box
+          data-shortbox-shell-rail
+          style={
+            {
+              "--shortbox-shell-initial-nav-offset": initialNavOffset,
+              "--shortbox-shell-initial-nav-gutter": initialNavGutter,
+              "--shortbox-shell-compact-bottom-clearance": COMPACT_BOTTOM_BAR_CLEARANCE,
+            } as CSSProperties
+          }
           sx={{
             display: "flex",
             flexGrow: 1,
             minWidth: 0,
             minHeight: 0,
             backgroundColor: "background.default",
-            pl: {
-              xs: 0,
-              sm: 2,
-              lg: `calc((var(--shortbox-nav-gutter, ${initialNavGutter}) / 2) + 8px)`,
-            },
-            pr: {
-              xs: 0,
-              sm: 2,
-              lg: `max(16px, calc((var(--shortbox-nav-gutter, ${initialNavGutter}) / 2) + 8px - (var(--shortbox-nav-offset, ${initialNavOffset}) / 2)))`,
-            },
-            pt: { xs: 0, sm: 2 },
-            pb: { xs: COMPACT_BOTTOM_BAR_CLEARANCE, sm: COMPACT_BOTTOM_BAR_CLEARANCE, lg: 2 },
-            ml: {
-              xs: `var(--shortbox-nav-offset, ${initialNavOffset})`,
-              lg: `calc(var(--shortbox-nav-offset, ${initialNavOffset}) / 2)`,
-            },
-            transition:
-              "margin-left 225ms cubic-bezier(0.4, 0, 0.6, 1), padding 225ms cubic-bezier(0.4, 0, 0.6, 1)",
           }}
         >
           <Card
@@ -89,10 +80,9 @@ export default async function PersistentCatalogShell(
             }}
           >
             <Box
+              data-shortbox-shell-content-frame
               sx={{
                 flexGrow: 1,
-                px: { xs: 0, sm: 2 },
-                pt: { xs: 0, sm: 2 },
                 pb: 0,
                 position: "relative",
                 display: "flex",
@@ -107,11 +97,9 @@ export default async function PersistentCatalogShell(
                   bottom: { xs: -12, sm: -16 },
                   width: "min(100%, 70vw)",
                   height: "45%",
-                  backgroundImage: "url('/background.png')",
-                  backgroundPosition: "right bottom",
-                  backgroundRepeat: "no-repeat",
-                  backgroundSize: "contain",
-                  opacity: 0.04,
+                  background:
+                    "radial-gradient(circle at 100% 100%, rgba(17,17,17,0.08), rgba(17,17,17,0) 58%)",
+                  opacity: 1,
                   pointerEvents: "none",
                   zIndex: 0,
                 }}

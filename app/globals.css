@@ -14,6 +14,51 @@ body {
   min-height: 100vh;
 }
 
+[data-shortbox-shell-rail] {
+  margin-left: var(--shortbox-nav-offset, var(--shortbox-shell-initial-nav-offset, 0px));
+  padding-top: 0;
+  padding-right: 0;
+  padding-bottom: var(--shortbox-shell-compact-bottom-clearance, 0px);
+  padding-left: 0;
+}
+
+[data-shortbox-shell-content-frame] {
+  padding-top: 0;
+  padding-right: 0;
+  padding-left: 0;
+}
+
+@media (min-width: 600px) {
+  [data-shortbox-shell-rail] {
+    padding-top: 16px;
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  [data-shortbox-shell-content-frame] {
+    padding-top: 16px;
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+}
+
+@media (min-width: 1200px) {
+  [data-shortbox-shell-rail] {
+    margin-left: calc(var(--shortbox-nav-offset, var(--shortbox-shell-initial-nav-offset, 0px)) / 2);
+    padding-right: max(
+      16px,
+      calc(
+        (var(--shortbox-nav-gutter, var(--shortbox-shell-initial-nav-gutter, 0px)) / 2) + 8px -
+          (var(--shortbox-nav-offset, var(--shortbox-shell-initial-nav-offset, 0px)) / 2)
+      )
+    );
+    padding-bottom: 16px;
+    padding-left: calc(
+      (var(--shortbox-nav-gutter, var(--shortbox-shell-initial-nav-gutter, 0px)) / 2) + 8px
+    );
+  }
+}
+
 a {
   color: inherit;
 }
