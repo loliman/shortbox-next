@@ -1,8 +1,6 @@
 "use client";
 
 import React from "react";
-import Box from "@mui/material/Box";
-import Divider from "@mui/material/Divider";
 import Collapse from "@mui/material/Collapse";
 import { generateSeoUrl } from "../../util/hierarchy";
 import { buildRouteHref } from "../generic/routeHref";
@@ -510,20 +508,11 @@ export default function List(props: Readonly<ListProps>) {
         const selected = isSameEntityName(selectedPublisherName, publisherName);
 
         return (
-          <Box key={publisherName || "publisher-empty"}>
-            <Divider
-              sx={{
-                mx: "5%",
-                width: "90%",
-                borderColor: (theme) => theme.palette.grey[300],
-                borderBottomWidth: 1,
-                opacity: 0.95,
-              }}
-            />
-
+          <React.Fragment key={publisherName || "publisher-empty"}>
             <NestedRow
               rowKey={publisherName}
               depth={0}
+              showDivider={true}
               navRowKey={publisherName}
               selected={selected}
               label={publisherName}
@@ -558,7 +547,7 @@ export default function List(props: Readonly<ListProps>) {
                 selectedRowKey={selectedRowKey}
               />
             </Collapse>
-          </Box>
+          </React.Fragment>
         );
       })
     );

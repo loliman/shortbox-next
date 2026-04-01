@@ -4,8 +4,8 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import FormControlLabel from "@mui/material/FormControlLabel";
-import Switch from "@mui/material/Switch";
 import Tooltip from "@mui/material/Tooltip";
+import { ContrastSwitch } from "../../../generic/ContrastSwitch";
 import TitleLine from "../../../generic/TitleLine";
 import { editorSectionSx } from "../editorLayout";
 
@@ -37,7 +37,7 @@ function IssueEditorHeader({ header, id, session, edit, us, onToggle }: IssueEdi
           sx={{ m: 0 }}
           control={
             <Tooltip title={(us ? "Deutsche" : "US") + " Ausgabe"}>
-              <Switch disabled={edit} checked={us} onChange={onToggle} color="secondary" />
+              <ContrastSwitch disabled={edit} checked={us} onChange={onToggle} color="secondary" />
             </Tooltip>
           }
           label="US"

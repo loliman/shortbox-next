@@ -73,7 +73,7 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
 
   const handleExpandToggle = showCollapseToggle ? onCloseAll : onShowAll;
   const expandToggleDisabled = showCollapseToggle ? disableCloseAll : disableShowAll;
-  const expandToggleLabel = showCollapseToggle ? "Alles schließen" : "Alles zeigen";
+  const expandToggleLabel = showCollapseToggle ? "Alles einklappen" : "Alles ausklappen";
   const ExpandToggleIcon = showCollapseToggle ? CompressIcon : ExpandIcon;
 
   const drawerContent = (
@@ -99,7 +99,7 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
             overflow: "hidden",
           }}
         >
-          <Tooltip title="Zur Auswahl">
+          <Tooltip describeChild title="Zur Auswahl springen">
             <span>
               <IconButton
                 aria-label="Zur Auswahl"
@@ -125,7 +125,7 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
               </IconButton>
             </span>
           </Tooltip>
-          <Tooltip title={expandToggleLabel}>
+          <Tooltip describeChild title={expandToggleLabel}>
             <span>
               <IconButton
                 aria-label={expandToggleLabel}
@@ -207,5 +207,4 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
     </Drawer>
   );
 }
-
 

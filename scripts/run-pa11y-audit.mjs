@@ -44,6 +44,12 @@ async function main() {
 
       for (const issue of issues.slice(0, 10)) {
         console.log(`  - [${issue.type}] ${issue.message}`);
+        if (issue.selector) {
+          console.log(`    selector: ${issue.selector}`);
+        }
+        if (issue.context) {
+          console.log(`    context: ${truncate(issue.context, 180)}`);
+        }
       }
     }
 
@@ -69,6 +75,12 @@ function summarizeIssues(issues) {
 function parseInteger(value, fallback) {
   const parsed = Number.parseInt(String(value || "").trim(), 10);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function truncate(value, maxLength) {
+  const normalized = String(value || "").replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, maxLength - 1)}…`;
 }
 
 try {

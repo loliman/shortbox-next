@@ -23,6 +23,7 @@ export function IssueNumberInline(props: Readonly<IssueNumberInlineProps>) {
         gap: 0.75,
         minWidth: 0,
         flexWrap: "wrap",
+        color: "inherit",
       }}
     >
       {number ? <Box component="span">{`${props.prefix || "#"}${number}`}</Box> : null}
@@ -30,8 +31,8 @@ export function IssueNumberInline(props: Readonly<IssueNumberInlineProps>) {
         <Box
           component="span"
           sx={{
-            color: "text.secondary",
-            opacity: 0.72,
+            color: "inherit",
+            opacity: 0.88,
             fontSize: "0.85em",
             fontWeight: 400,
             whiteSpace: "nowrap",
@@ -61,6 +62,7 @@ export function IssueReferenceInline(props: Readonly<IssueReferenceInlineProps>)
         gap: 0.75,
         minWidth: 0,
         flexWrap: "wrap",
+        color: "inherit",
       }}
     >
       {props.seriesLabel ? <Box component="span">{props.seriesLabel}</Box> : null}

@@ -32,7 +32,7 @@ export default function TopBarFilterMenu(props: Readonly<TopBarFilterMenuProps>)
 
   return (
     <Box>
-      <Tooltip title={tooltipTitle}>
+      <Tooltip describeChild title={tooltipTitle}>
         <Box sx={{ display: "inline-flex", alignItems: "center" }}>
           <Badge
             color="secondary"

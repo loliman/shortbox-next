@@ -1,10 +1,10 @@
 "use client";
 
-import InputLabel from "@mui/material/InputLabel";
 import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
 import Select from "@mui/material/Select";
-import { generateSeoUrl } from "../util/hierarchy";
 import MenuItem from "@mui/material/MenuItem";
+import { generateSeoUrl } from "../util/hierarchy";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import React from "react";
@@ -32,6 +32,13 @@ const SORT_OPTIONS = ["updatedat", "createdat", "releasedate", "series", "publis
 type SortOption = (typeof SORT_OPTIONS)[number];
 const SORT_LABEL_ID = "sort-container-label";
 const SORT_SELECT_ID = "sort-container-select";
+const SORT_OPTION_LABELS: Record<SortOption, string> = {
+  updatedat: "Änderungsdatum",
+  createdat: "Erfassungsdatum",
+  releasedate: "Erscheinungsdatum",
+  series: "Serie",
+  publisher: "Verlag",
+};
 
 type SortContainerProps = {
   query?: ListingQuery;
@@ -109,12 +116,43 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
         fullWidth={compactLayout}
         sx={{ minWidth: compactLayout ? 0 : 200, width: compactLayout ? "100%" : 240 }}
       >
-        <InputLabel id={SORT_LABEL_ID}>{compactLayout ? "Sortierung" : "Sortieren nach"}</InputLabel>
+        <InputLabel
+          id={SORT_LABEL_ID}
+          sx={(theme) => ({
+            color: theme.palette.text.primary,
+            fontWeight: 400,
+            "&.Mui-focused": {
+              color: theme.palette.text.primary,
+            },
+          })}
+        >
+          {compactLayout ? "Sortierung" : "Sortieren nach"}
+        </InputLabel>
         <Select
           id={SORT_SELECT_ID}
           labelId={SORT_LABEL_ID}
           value={currentOrder}
           label={compactLayout ? "Sortierung" : "Sortieren nach"}
+          sx={{
+            backgroundColor: (theme) => theme.vars?.palette.background.paper ?? theme.palette.background.paper,
+            "& .MuiSelect-select": {
+              color: "text.primary",
+              fontWeight: 400,
+              opacity: 1,
+            },
+            "& .MuiSelect-icon": {
+              color: "text.primary",
+            },
+            "& fieldset": {
+              borderColor: "rgba(17, 17, 17, 0.18)",
+            },
+            "&:hover fieldset": {
+              borderColor: "rgba(17, 17, 17, 0.32)",
+            },
+            "&.Mui-focused fieldset": {
+              borderColor: "#111111",
+            },
+          }}
           disabled={isPending}
           onChange={(e) =>
             push(
@@ -128,11 +166,11 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
             )
           }
         >
-          <MenuItem value={"updatedat"}>Änderungsdatum</MenuItem>
-          <MenuItem value={"createdat"}>Erfassungsdatum</MenuItem>
-          <MenuItem value={"releasedate"}>Erscheinungsdatum</MenuItem>
-          <MenuItem value={"series"}>Serie</MenuItem>
-          <MenuItem value={"publisher"}>Verlag</MenuItem>
+          <MenuItem value={"updatedat"}>{SORT_OPTION_LABELS.updatedat}</MenuItem>
+          <MenuItem value={"createdat"}>{SORT_OPTION_LABELS.createdat}</MenuItem>
+          <MenuItem value={"releasedate"}>{SORT_OPTION_LABELS.releasedate}</MenuItem>
+          <MenuItem value={"series"}>{SORT_OPTION_LABELS.series}</MenuItem>
+          <MenuItem value={"publisher"}>{SORT_OPTION_LABELS.publisher}</MenuItem>
         </Select>
       </FormControl>
 

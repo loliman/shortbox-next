@@ -12,8 +12,8 @@ import AutocompleteBase from "../../generic/AutocompleteBase";
 import { useAutocompleteQuery } from "../../generic/useAutocompleteQuery";
 import Box from "@mui/material/Box";
 import Tooltip from "@mui/material/Tooltip";
-import Switch from "@mui/material/Switch";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import { ContrastSwitch } from "../../generic/ContrastSwitch";
 import TitleLine from "../../generic/TitleLine";
 import Stack from "@mui/material/Stack";
 import type { FieldItem } from "../../../util/filterFieldHelpers";
@@ -157,7 +157,7 @@ function SeriesEditorView(props: Readonly<SeriesEditorProps>) {
                   sx={{ m: 0 }}
                   control={
                     <Tooltip title={(values.publisher.us ? "Deutscher" : "US") + " Serie"}>
-                      <Switch
+                      <ContrastSwitch
                         disabled={edit}
                         checked={values.publisher.us}
                         onChange={() => {

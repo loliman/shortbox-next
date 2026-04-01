@@ -15,6 +15,7 @@ type NestedRowProps = {
   rowKey: string;
   depth: number;
   label: string;
+  showDivider?: boolean;
   navRowKey?: string;
   selected?: boolean;
   expanded: boolean;
@@ -34,25 +35,35 @@ export const NestedRow = React.memo(function NestedRow(props: Readonly<NestedRow
   };
 
   return (
-    <ListItemButton
-      className="row"
-      divider={false}
+    <ListItem
+      disablePadding
       data-nav-row-key={props.navRowKey}
-      selected={props.selected ?? false}
-      disabled={props.disabled}
-      onClick={handleClick}
       sx={{
         pl: getDepthPadding(props.depth),
-        "&.Mui-selected": { backgroundColor: "transparent" },
-        "&.Mui-selected:hover": { backgroundColor: "action.hover" },
+        borderTop: props.showDivider ? 1 : 0,
+        borderColor: "divider",
       }}
     >
       <ExpandToggle expanded={props.expanded} pending={props.pending} onToggle={handleToggle} />
-      <ListItemText
-        primary={props.label}
-        primaryTypographyProps={{ noWrap: true, sx: { fontWeight: props.selected ? 700 : 400 } }}
-      />
-    </ListItemButton>
+      <ListItemButton
+        className="row"
+        divider={false}
+        selected={props.selected ?? false}
+        disabled={props.disabled}
+        onClick={handleClick}
+        sx={{
+          minWidth: 0,
+          pr: 1,
+          "&.Mui-selected": { backgroundColor: "transparent" },
+          "&.Mui-selected:hover": { backgroundColor: "action.hover" },
+        }}
+      >
+        <ListItemText
+          primary={props.label}
+          primaryTypographyProps={{ noWrap: true, sx: { fontWeight: props.selected ? 700 : 400 } }}
+        />
+      </ListItemButton>
+    </ListItem>
   );
 });
 
@@ -65,7 +76,7 @@ type ExpandToggleProps = {
 const ExpandToggle = React.memo(function ExpandToggle(props: Readonly<ExpandToggleProps>) {
   if (props.pending) {
     return (
-      <ListItemIcon sx={{ minWidth: 32 }}>
+      <ListItemIcon sx={{ minWidth: 32, justifyContent: "center" }}>
         <CircularProgress size={16} sx={{ ml: 1 }} />
       </ListItemIcon>
     );
@@ -74,9 +85,8 @@ const ExpandToggle = React.memo(function ExpandToggle(props: Readonly<ExpandTogg
   const Icon = props.expanded ? ExpandMoreIcon : ChevronRightIcon;
 
   return (
-    <ListItemIcon sx={{ minWidth: 32 }}>
+    <ListItemIcon sx={{ minWidth: 32, justifyContent: "center" }}>
       <IconButton
-        component="span"
         size="small"
         aria-label={props.expanded ? "Einklappen" : "Ausklappen"}
         onClick={(e) => {

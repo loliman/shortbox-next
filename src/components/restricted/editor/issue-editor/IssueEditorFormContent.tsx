@@ -1,6 +1,5 @@
 import React from "react";
 import FormControlLabel from "@mui/material/FormControlLabel";
-import Switch from "@mui/material/Switch";
 import Tooltip from "@mui/material/Tooltip";
 import IssueEditorActions from "./IssueEditorActions";
 import IssueEditorIdentifiersFields from "./IssueEditorIdentifiersFields";
@@ -9,6 +8,7 @@ import IssueEditorRelations from "./IssueEditorRelations";
 import IssueEditorSeriesFields from "./IssueEditorSeriesFields";
 import type { IssueEditorFormContentProps } from "./types";
 import TitleLine from "../../../generic/TitleLine";
+import { ContrastSwitch } from "../../../generic/ContrastSwitch";
 import FormPageShell from "../../../form-shell/FormPageShell";
 import FormSection from "../../../form-shell/FormSection";
 
@@ -43,7 +43,7 @@ function IssueEditorFormContent(props: IssueEditorFormContentProps) {
           sx={{ m: 0 }}
           control={
             <Tooltip title={(values.series.publisher.us ? "Deutsche" : "US") + " Ausgabe"}>
-              <Switch
+              <ContrastSwitch
                 disabled={edit}
                 checked={values.series.publisher.us}
                 onChange={() => {

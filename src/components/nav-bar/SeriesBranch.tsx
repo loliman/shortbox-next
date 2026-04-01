@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Box from "@mui/material/Box";
 import Collapse from "@mui/material/Collapse";
 import MuiList from "@mui/material/List";
 import type { Issue, SelectedRoot, Series } from "../../types/domain";
@@ -255,7 +254,7 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
         const expanded = Boolean(expandedSeries[seriesKey]);
 
         return (
-          <Box key={seriesKey}>
+          <React.Fragment key={seriesKey}>
             <NestedRow
               rowKey={seriesKey}
               depth={1}
@@ -290,7 +289,7 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
                 selectedRowKey={selectedRowKey}
               />
             </Collapse>
-          </Box>
+          </React.Fragment>
         );
       })}
     </MuiList>

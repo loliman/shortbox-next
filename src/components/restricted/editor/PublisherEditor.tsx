@@ -9,9 +9,9 @@ import { generateLabel, generateSeoUrl } from "../../../util/hierarchy";
 import Button from "@mui/material/Button";
 import { stripItem } from "../../../util/util";
 import Box from "@mui/material/Box";
-import Switch from "@mui/material/Switch";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Tooltip from "@mui/material/Tooltip";
+import { ContrastSwitch } from "../../generic/ContrastSwitch";
 import TitleLine from "../../generic/TitleLine";
 import Stack from "@mui/material/Stack";
 import { mutationRequest } from "../../../lib/client/mutation-request";
@@ -134,7 +134,7 @@ function PublisherEditorView(props: Readonly<PublisherEditorProps>) {
                 sx={{ m: 0 }}
                 control={
                   <Tooltip title={(values.us ? "Deutscher" : "US") + " Verlag"}>
-                    <Switch
+                    <ContrastSwitch
                       disabled={edit}
                       checked={values.us}
                       onChange={() => {

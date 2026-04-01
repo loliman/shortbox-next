@@ -34,6 +34,8 @@ type LocaleSwitchProps = {
 };
 
 export function LocaleSwitch(props: Readonly<LocaleSwitchProps>) {
+  const switchLabelId = React.useId();
+
   return (
     <Box
       sx={(theme) => ({
@@ -45,34 +47,57 @@ export function LocaleSwitch(props: Readonly<LocaleSwitchProps>) {
         py: 0.5,
         borderRadius: 999,
         border: "1px solid",
-        borderColor: props.us ? "rgba(59, 130, 246, 0.28)" : (theme.vars?.palette.divider ?? theme.palette.divider),
-        backgroundColor: props.us ? "rgba(191, 219, 254, 0.2)" : "rgba(0,0,0,0.02)",
+        borderColor: props.us ? "#93c5fd" : "rgba(255,255,255,0.28)",
+        backgroundColor: props.us ? "#1d4ed8" : "#1f2937",
         ...(props.us
           ? theme.applyStyles("dark", {
-              borderColor: "rgba(96, 165, 250, 0.6)",
-              backgroundColor: "rgba(30, 64, 175, 0.25)",
+              borderColor: "#bfdbfe",
+              backgroundColor: "#1d4ed8",
             })
           : theme.applyStyles("dark", {
-              backgroundColor: "rgba(255,255,255,0.04)",
+              backgroundColor: "#1f2937",
             })),
       })}
     >
       <Typography
         sx={{
-          fontSize: "0.74rem",
-          fontWeight: props.us ? 500 : 700,
-          opacity: props.us ? 0.65 : 1,
+          fontSize: "0.8rem",
+          fontWeight: props.us ? 600 : 700,
+          color: "common.white",
         }}
       >
         DE
       </Typography>
-      <Tooltip title={"Wechseln zu " + (props.us ? "Deutsch" : "US")}>
-        <Box sx={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+      <Tooltip describeChild title={"Wechseln zu " + (props.us ? "Deutsch" : "US")}>
+        <Box
+          component="label"
+          sx={{ position: "relative", display: "inline-flex", alignItems: "center", cursor: "pointer" }}
+        >
+          <Box
+            component="span"
+            id={switchLabelId}
+            sx={{
+              position: "absolute",
+              width: 1,
+              height: 1,
+              p: 0,
+              m: -1,
+              overflow: "hidden",
+              clip: "rect(0 0 0 0)",
+              whiteSpace: "nowrap",
+              border: 0,
+            }}
+          >
+            {props.localeSwitchAriaLabel}
+          </Box>
           <props.SwitchComponent
             checked={props.us}
             color="primary"
             disabled={props.pending}
-            inputProps={{ "aria-label": props.localeSwitchAriaLabel }}
+            inputProps={{
+              "aria-label": props.localeSwitchAriaLabel,
+              "aria-labelledby": switchLabelId,
+            }}
             onChange={() => {
               props.resetNavigationState?.();
               props.onNavigate(buildRouteHref(props.us ? "/de" : "/us", props.query, { filter: null }));
@@ -94,9 +119,9 @@ export function LocaleSwitch(props: Readonly<LocaleSwitchProps>) {
       </Tooltip>
       <Typography
         sx={{
-          fontSize: "0.74rem",
-          fontWeight: props.us ? 700 : 500,
-          opacity: props.us ? 1 : 0.65,
+          fontSize: "0.8rem",
+          fontWeight: props.us ? 700 : 600,
+          color: "common.white",
         }}
       >
         US
@@ -262,10 +287,10 @@ export function MobileBottomBar(props: Readonly<MobileBottomBarProps>) {
         onLogout={props.onLogout}
       />
       <Box sx={{ ml: 0.25, display: "inline-flex", alignItems: "center", gap: 0.35 }}>
-        <Typography sx={{ fontSize: "0.74rem", fontWeight: 700, opacity: props.us ? 0.7 : 1 }}>
+        <Typography sx={{ fontSize: "0.74rem", fontWeight: 700, opacity: props.us ? 0.92 : 1, color: "common.white" }}>
           DE
         </Typography>
-        <Tooltip title={"Wechseln zu " + (props.us ? "Deutsch" : "US")}>
+        <Tooltip describeChild title={"Wechseln zu " + (props.us ? "Deutsch" : "US")}>
           <Box sx={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
             <props.SwitchComponent
               checked={props.us}
@@ -291,7 +316,7 @@ export function MobileBottomBar(props: Readonly<MobileBottomBarProps>) {
             ) : null}
           </Box>
         </Tooltip>
-        <Typography sx={{ fontSize: "0.74rem", fontWeight: 700, opacity: props.us ? 1 : 0.7 }}>
+        <Typography sx={{ fontSize: "0.74rem", fontWeight: 700, opacity: props.us ? 1 : 0.92, color: "common.white" }}>
           US
         </Typography>
       </Box>

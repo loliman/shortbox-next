@@ -325,18 +325,19 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
           transformOrigin: "center",
           transition: "transform 220ms ease",
           "& .MuiOutlinedInput-root": {
-            backgroundColor: "background.paper",
+            backgroundColor: "#ffffff",
             borderRadius: 2.5,
+            color: "#111111",
             transition:
               "box-shadow 180ms ease, border-color 180ms ease, background-color 180ms ease",
             "& fieldset": {
-              borderColor: "divider",
+              borderColor: "rgba(17, 17, 17, 0.18)",
             },
             "&:hover fieldset": {
-              borderColor: "text.secondary",
+              borderColor: "rgba(17, 17, 17, 0.32)",
             },
             "&.Mui-focused fieldset": {
-              borderColor: "primary.light",
+              borderColor: "#111111",
             },
             "&.Mui-focused": {
               boxShadow: (theme) =>
@@ -344,7 +345,10 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                   theme.palette.common.black,
                   0.35
                 )}`,
-              backgroundColor: "background.paper",
+              backgroundColor: "#ffffff",
+            },
+            "& input": {
+              color: "#111111",
             },
           },
           "& .MuiAutocomplete-paper": {
@@ -359,7 +363,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
             backgroundColor: getResultsSurfaceColor,
           },
           "& .MuiInputBase-input::placeholder": {
-            color: "text.secondary",
+            color: "#4a4a4a",
             opacity: 1,
           },
         }}
@@ -368,10 +372,21 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
             {...params}
             variant="outlined"
             autoFocus={Boolean(ownProps.autoFocus)}
-            placeholder="Nach Comic suchen..."
+            label="Comic suchen"
+            InputLabelProps={{
+              ...params.InputLabelProps,
+              sx: (theme) => ({
+                color: theme.palette.text.primary,
+                fontWeight: 400,
+                "&.Mui-focused": {
+                  color: theme.palette.text.primary,
+                },
+              }),
+            }}
             inputProps={{
               ...params.inputProps,
               "aria-label": "Suche",
+              placeholder: undefined,
             }}
             InputProps={{
               ...params.InputProps,
@@ -379,7 +394,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                 <>
                   {loading || navigationPending ? <CircularProgress color="inherit" size={18} /> : null}
                   <InputAdornment position="end">
-                    <SearchIcon sx={{ fontSize: 20, color: "text.secondary" }} />
+                    <SearchIcon sx={{ fontSize: 20, color: "#111111" }} />
                   </InputAdornment>
                   {params.InputProps.endAdornment}
                 </>

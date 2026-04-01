@@ -178,6 +178,8 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
               issueNode.format || "",
               idx,
             ].join("|")}
+            component="li"
+            sx={{ listStyle: "none", m: 0, p: 0 }}
           >
             <ListItemButton
               className="row"
