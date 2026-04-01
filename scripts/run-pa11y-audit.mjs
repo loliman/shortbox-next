@@ -1,15 +1,19 @@
+import fs from "node:fs/promises";
+import path from "node:path";
 import process from "node:process";
 import pa11y from "pa11y";
-import { getAuditBaseUrl, loadAuditRoutes, withStartedAuditServer } from "./audit-shared.mjs";
+import { loadAuditRoutes, withStartedAuditServer } from "./audit-shared.mjs";
 
 const DEFAULT_RUNNERS = ["axe"];
 const DEFAULT_WAIT_MS = 500;
 const DEFAULT_TIMEOUT_MS = 60_000;
 const DEFAULT_LEVEL = "error";
 const DEFAULT_THRESHOLD = 0;
+const DEFAULT_PA11Y_CONFIG_FILE = path.resolve(process.cwd(), "scripts/pa11y-overrides.json");
 
 async function main() {
   const routes = await loadAuditRoutes();
+  const overrides = await loadPa11yOverrides();
   const level = String(process.env.PA11Y_LEVEL || DEFAULT_LEVEL);
   const threshold = parseInteger(process.env.PA11Y_THRESHOLD, DEFAULT_THRESHOLD);
   const wait = parseInteger(process.env.PA11Y_WAIT_MS, DEFAULT_WAIT_MS);
@@ -23,12 +27,17 @@ async function main() {
 
     for (const route of routes) {
       const url = new URL(route.path, `${baseUrl}/`).toString();
+      const routeOverrides = resolveRouteOverrides(overrides, route);
       const result = await pa11y(url, {
         runners: DEFAULT_RUNNERS,
         level,
         threshold,
         wait,
         timeout,
+        ...(routeOverrides.ignore.length > 0 ? { ignore: routeOverrides.ignore } : {}),
+        ...(routeOverrides.hideElements.length > 0
+          ? { hideElements: routeOverrides.hideElements.join(", ") }
+          : {}),
       });
 
       const issues = Array.isArray(result.issues) ? result.issues : [];
@@ -41,6 +50,12 @@ async function main() {
       console.log(
         `  issues: ${issues.length} (errors: ${summary.error}, warnings: ${summary.warning}, notices: ${summary.notice})`
       );
+      if (routeOverrides.ignore.length > 0) {
+        console.log(`  ignore: ${routeOverrides.ignore.join(", ")}`);
+      }
+      if (routeOverrides.hideElements.length > 0) {
+        console.log(`  hidden: ${routeOverrides.hideElements.join(", ")}`);
+      }
 
       for (const issue of issues.slice(0, 10)) {
         console.log(`  - [${issue.type}] ${issue.message}`);
@@ -59,6 +74,63 @@ async function main() {
   });
 }
 
+async function loadPa11yOverrides() {
+  const configFile = path.resolve(
+    process.cwd(),
+    String(process.env.PA11Y_CONFIG_FILE || DEFAULT_PA11Y_CONFIG_FILE)
+  );
+
+  try {
+    const fileContent = await fs.readFile(configFile, "utf8");
+    return normalizePa11yOverrides(JSON.parse(fileContent));
+  } catch (error) {
+    if (isMissingFileError(error)) {
+      return normalizePa11yOverrides({});
+    }
+    throw error;
+  }
+}
+
+function normalizePa11yOverrides(input) {
+  const parsed = isRecord(input) ? input : {};
+  return {
+    global: normalizeOverrideEntry(parsed.global),
+    routes: Object.fromEntries(
+      Object.entries(isRecord(parsed.routes) ? parsed.routes : {}).map(([key, value]) => [
+        key,
+        normalizeOverrideEntry(value),
+      ])
+    ),
+  };
+}
+
+function resolveRouteOverrides(overrides, route) {
+  const routeByName = overrides.routes[route.name];
+  const routeByPath = overrides.routes[route.path];
+  return mergeOverrideEntries(overrides.global, routeByName, routeByPath);
+}
+
+function normalizeOverrideEntry(input) {
+  const parsed = isRecord(input) ? input : {};
+  return {
+    ignore: normalizeStringArray(parsed.ignore),
+    hideElements: normalizeStringArray(parsed.hideElements),
+  };
+}
+
+function mergeOverrideEntries(...entries) {
+  return entries.reduce(
+    (merged, entry) => ({
+      ignore: dedupeStrings([...merged.ignore, ...normalizeStringArray(entry?.ignore)]),
+      hideElements: dedupeStrings([
+        ...merged.hideElements,
+        ...normalizeStringArray(entry?.hideElements),
+      ]),
+    }),
+    { ignore: [], hideElements: [] }
+  );
+}
+
 function summarizeIssues(issues) {
   return issues.reduce(
     (counts, issue) => {
@@ -75,6 +147,27 @@ function summarizeIssues(issues) {
 function parseInteger(value, fallback) {
   const parsed = Number.parseInt(String(value || "").trim(), 10);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function normalizeStringArray(value) {
+  if (!Array.isArray(value)) return [];
+  return dedupeStrings(
+    value
+      .map((entry) => String(entry || "").trim())
+      .filter(Boolean)
+  );
+}
+
+function dedupeStrings(values) {
+  return [...new Set(values)];
+}
+
+function isRecord(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isMissingFileError(error) {
+  return Boolean(error) && typeof error === "object" && "code" in error && error.code === "ENOENT";
 }
 
 function truncate(value, maxLength) {

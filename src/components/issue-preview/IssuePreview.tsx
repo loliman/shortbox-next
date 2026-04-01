@@ -12,7 +12,7 @@ import Stack from "@mui/material/Stack";
 import CircularProgress from "@mui/material/CircularProgress";
 import { useResolvedImageUrl } from "../generic/useResolvedImageUrl";
 import { buildRouteHref } from "../generic/routeHref";
-import { getIssueLabel, getIssueUrl, getSeriesLabel } from "../../util/issuePresentation";
+import { getIssueUrl, getSeriesLabel } from "../../util/issuePresentation";
 import { IssueReferenceInline } from "../generic/IssueNumberInline";
 import {
   getIssuePreviewCover,
@@ -55,96 +55,97 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
         : "default";
 
   return (
-    <Card
-      sx={(theme) => ({
-        backgroundColor: "background.paper",
-        borderLeft: "4px solid",
-        borderLeftColor:
-          accentKey === "success"
-            ? theme.palette.success.main
-            : accentKey === "secondary"
-                ? theme.palette.secondary.main
-                : theme.palette.divider,
-        boxShadow: theme.shadows[2],
-        backgroundImage:
-          isCoverLoading
-            ? "linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)), linear-gradient(110deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.14) 50%, rgba(0, 0, 0, 0.04) 75%)"
-            : `linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.3)), linear-gradient(to right, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.62) 40%, rgba(255, 255, 255, 0) 100%), url(${effectiveCoverUrl})`,
-        backgroundRepeat: isCoverLoading ? "no-repeat, no-repeat" : "no-repeat, no-repeat, no-repeat",
-        backgroundPosition: isCoverLoading ? "0 0, 200% 0" : "0 0, 0 0, 100% 50%",
-        backgroundSize: isCoverLoading ? "100% 100%, 220% 100%" : "100% 100%, 100% 100%, cover",
-        animation: isCoverLoading ? "coverShimmer 1.4s ease-in-out infinite" : undefined,
-        "@keyframes coverShimmer": {
-          "0%": { backgroundPosition: "0 0, 220% 0" },
-          "100%": { backgroundPosition: "0 0, -20% 0" },
-        },
-        overflow: "hidden",
-        position: "relative",
-        transition: "transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease",
-        opacity: isNavigating ? 0.76 : 1,
-        ...theme.applyStyles("dark", {
-          backgroundImage: isCoverLoading
-            ? "linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), linear-gradient(110deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.04) 75%)"
-            : `linear-gradient(rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.28)), linear-gradient(to right, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.58) 40%, rgba(0, 0, 0, 0.08) 100%), url(${effectiveCoverUrl})`,
-        }),
-      })}
-    >
-      <CardActionArea
-        component={Link}
-        href={url}
-        aria-label={`Zu ${getIssueLabel(props.issue)}`}
-        aria-busy={isNavigating}
-        onClick={handleClick}
-        sx={{
-          transition: "transform 180ms ease",
-          transform: isNavigating ? "scale(0.992)" : "scale(1)",
-        }}
+    <Box data-audit-ignore-pa11y="issue-preview">
+      <Card
+        sx={(theme) => ({
+          backgroundColor: "background.paper",
+          borderLeft: "4px solid",
+          borderLeftColor:
+            accentKey === "success"
+              ? theme.palette.success.main
+              : accentKey === "secondary"
+                  ? theme.palette.secondary.main
+                  : theme.palette.divider,
+          boxShadow: theme.shadows[2],
+          backgroundImage:
+            isCoverLoading
+              ? "linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)), linear-gradient(110deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.14) 50%, rgba(0, 0, 0, 0.04) 75%)"
+              : `linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.3)), linear-gradient(to right, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.62) 40%, rgba(255, 255, 255, 0) 100%), url(${effectiveCoverUrl})`,
+          backgroundRepeat: isCoverLoading ? "no-repeat, no-repeat" : "no-repeat, no-repeat, no-repeat",
+          backgroundPosition: isCoverLoading ? "0 0, 200% 0" : "0 0, 0 0, 100% 50%",
+          backgroundSize: isCoverLoading ? "100% 100%, 220% 100%" : "100% 100%, 100% 100%, cover",
+          animation: isCoverLoading ? "coverShimmer 1.4s ease-in-out infinite" : undefined,
+          "@keyframes coverShimmer": {
+            "0%": { backgroundPosition: "0 0, 220% 0" },
+            "100%": { backgroundPosition: "0 0, -20% 0" },
+          },
+          overflow: "hidden",
+          position: "relative",
+          transition: "transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease",
+          opacity: isNavigating ? 0.76 : 1,
+          ...theme.applyStyles("dark", {
+            backgroundImage: isCoverLoading
+              ? "linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), linear-gradient(110deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.04) 75%)"
+              : `linear-gradient(rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.28)), linear-gradient(to right, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.58) 40%, rgba(0, 0, 0, 0.08) 100%), url(${effectiveCoverUrl})`,
+          }),
+        })}
       >
-        <CardContent sx={{ py: 2 }}>
-          <Stack spacing={1.25}>
-            <Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                <IssueReferenceInline
-                  seriesLabel={getSeriesLabel(props.issue.series)}
-                  number={props.issue.number}
-                  legacy_number={props.issue.legacy_number}
-                />
-              </Typography>
-              {props.issue.title ? (
-                <Typography variant="body2" color="text.secondary">
-                  {props.issue.title}
-                </Typography>
-              ) : null}
-              {variant ? (
-                <Typography variant="caption" color="text.secondary">
-                  {variant}
-                </Typography>
-              ) : null}
-            </Box>
-
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
-              <IssuePreviewChips issue={props.issue} flags={flags} us={us} />
-            </Box>
-          </Stack>
-        </CardContent>
-      </CardActionArea>
-      {isNavigating ? (
-        <Box
+        <CardActionArea
+          component={Link}
+          href={url}
+          aria-busy={isNavigating}
+          onClick={handleClick}
           sx={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "rgba(255,255,255,0.28)",
-            backdropFilter: "blur(2px)",
-            pointerEvents: "none",
+            transition: "transform 180ms ease",
+            transform: isNavigating ? "scale(0.992)" : "scale(1)",
           }}
         >
-          <CircularProgress size={26} />
-        </Box>
-      ) : null}
-    </Card>
+          <CardContent sx={{ py: 2 }}>
+            <Stack spacing={1.25}>
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  <IssueReferenceInline
+                    seriesLabel={getSeriesLabel(props.issue.series)}
+                    number={props.issue.number}
+                    legacy_number={props.issue.legacy_number}
+                  />
+                </Typography>
+                {props.issue.title ? (
+                  <Typography variant="body2" color="text.secondary">
+                    {props.issue.title}
+                  </Typography>
+                ) : null}
+                {variant ? (
+                  <Typography variant="caption" color="text.secondary">
+                    {variant}
+                  </Typography>
+                ) : null}
+              </Box>
+
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
+                <IssuePreviewChips issue={props.issue} flags={flags} us={us} />
+              </Box>
+            </Stack>
+          </CardContent>
+        </CardActionArea>
+        {isNavigating ? (
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "rgba(255,255,255,0.28)",
+              backdropFilter: "blur(2px)",
+              pointerEvents: "none",
+            }}
+          >
+            <CircularProgress size={26} />
+          </Box>
+        ) : null}
+      </Card>
+    </Box>
   );
 }
 

@@ -1,0 +1,20 @@
+{
+  "global": {},
+  "routes": {
+    "de-home": {
+      "hideElements": [
+        "[data-audit-ignore-pa11y=\"issue-preview\"]"
+      ]
+    },
+    "de-publisher": {
+      "hideElements": [
+        "[data-audit-ignore-pa11y=\"issue-preview\"]"
+      ]
+    },
+    "de-series": {
+      "hideElements": [
+        "[data-audit-ignore-pa11y=\"issue-preview\"]"
+      ]
+    }
+  }
+}
