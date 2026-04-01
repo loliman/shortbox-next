@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import dynamic from "next/dynamic";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material/styles";
@@ -16,10 +17,13 @@ import {
   getListingView,
   parseListingFilter,
 } from "../util/listingQuery";
-import ListingToolbar from "./listing/ListingToolbar";
 import type { SessionData } from "../app/session";
 import { useInitialResponsiveGuess } from "../app/responsiveGuessContext";
 import type { LayoutRouteData, RouteQuery } from "../types/route-ui";
+
+const DeferredListingToolbar = dynamic(() => import("./listing/ListingToolbar"), {
+  loading: () => null,
+});
 
 type HomePreviewProps = {
   us: boolean;
@@ -174,7 +178,7 @@ export default function HomeFeedClient(props: Readonly<HomeFeedClientProps>) {
   return (
     <>
       {!compactLayout && query?.filter ? (
-        <ListingToolbar
+        <DeferredListingToolbar
           query={query}
           previewProps={previewProps}
           compactLayout={compactLayout}
@@ -183,7 +187,7 @@ export default function HomeFeedClient(props: Readonly<HomeFeedClientProps>) {
       ) : null}
 
       {compactLayout ? (
-        <ListingToolbar
+        <DeferredListingToolbar
           query={query}
           previewProps={previewProps}
           compactLayout={compactLayout}

@@ -7,23 +7,107 @@ import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import React from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { alpha, styled } from "@mui/material/styles";
 import IconButton from "@mui/material/IconButton";
 import ButtonBase from "@mui/material/ButtonBase";
-import SearchBar from "./SearchBar";
 import type { SelectedRoot } from "../../types/domain";
-import TopBarFilterMenu from "./TopBarFilterMenu";
-import {
-  DesktopActions,
-  MobileBottomBar,
-  ThemeToggleButton,
-} from "./TopBarControls";
 import CloseIcon from "@mui/icons-material/Close";
+import SearchIcon from "@mui/icons-material/Search";
 import { isMockMode } from "../../app/mockMode";
 import { mutationRequest } from "../../lib/client/mutation-request";
 import type { RouteQuery } from "../../types/route-ui";
 import { buildRouteHref } from "../generic/routeHref";
 import { usePendingNavigation } from "../generic/usePendingNavigation";
+
+const DeferredSearchBar = dynamic(() => import("./SearchBar"), {
+  ssr: false,
+  loading: () => <SearchBarPlaceholder />,
+});
+
+const DeferredTopBarFilterMenu = dynamic(() => import("./TopBarFilterMenu"), {
+  loading: () => <FilterButtonPlaceholder />,
+});
+
+type SwitchComponentProps = {
+  checked: boolean;
+  color?: "primary";
+  inputProps?: Record<string, string>;
+  slotProps?: {
+    input?: Record<string, string>;
+  };
+  onChange: () => void;
+  disabled?: boolean;
+};
+
+type DeferredDesktopActionsProps = {
+  us: boolean;
+  session?: { loggedIn?: boolean; canAdmin?: boolean } | null;
+  query?: { filter?: string | null; order?: string | null; direction?: string | null } | null;
+  localeSwitchAriaLabel: string;
+  changeRequestsCount: number;
+  previewImportActive: boolean;
+  toggleTheme?: () => void;
+  onNavigate: (href: string) => void;
+  onLogout: () => void;
+  resetNavigationState?: () => void;
+  SwitchComponent: React.ComponentType<SwitchComponentProps>;
+  navigationPending?: boolean;
+};
+
+type DeferredMobileBottomBarProps = {
+  us: boolean;
+  session?: { loggedIn?: boolean; canAdmin?: boolean } | null;
+  query?: { filter?: string | null; order?: string | null; direction?: string | null } | null;
+  isFilterActive?: boolean | string | null;
+  selected: unknown;
+  initialFilterCount?: number | null;
+  localeSwitchAriaLabel: string;
+  changeRequestsCount: number;
+  previewImportActive: boolean;
+  onOpenSearch: () => void;
+  onToggleDrawer?: () => void;
+  onNavigate: (href: string) => void;
+  onLogout: () => void;
+  resetNavigationState?: () => void;
+  SwitchComponent: React.ComponentType<SwitchComponentProps>;
+  HamburgerIconComponent: React.ComponentType<{ open: boolean }>;
+  drawerOpen?: boolean;
+  showNavigation?: boolean;
+  navigationPending?: boolean;
+  FilterButton: React.ComponentType<{
+    us: boolean;
+    selected: unknown;
+    isFilterActive?: boolean | string | null;
+    initialFilterCount?: number | null;
+    query?: { filter?: string | null } | null;
+    session?: { loggedIn?: boolean } | null;
+  }>;
+};
+
+const DeferredDesktopActions = dynamic<DeferredDesktopActionsProps>(
+  async () => (await import("./TopBarControls")).DesktopActions,
+  {
+    ssr: false,
+    loading: () => <DesktopActionsPlaceholder />,
+  }
+);
+
+const DeferredMobileBottomBar = dynamic<DeferredMobileBottomBarProps>(
+  async () => (await import("./TopBarControls")).MobileBottomBar,
+  {
+    ssr: false,
+    loading: () => null,
+  }
+);
+
+const DeferredThemeToggleButton = dynamic<{ onClick?: () => void }>(
+  async () => (await import("./TopBarControls")).ThemeToggleButton,
+  {
+    ssr: false,
+    loading: () => <ThemeTogglePlaceholder />,
+  }
+);
 
 interface TopBarProps {
   toggleDrawer?: () => void;
@@ -213,7 +297,7 @@ export default function TopBar(ownProps: TopBarProps) {
         />
 
         {compactLayout ? null : (
-          <DesktopActions
+          <DeferredDesktopActions
             us={us}
             session={ownProps.session}
             query={query}
@@ -239,7 +323,7 @@ export default function TopBar(ownProps: TopBarProps) {
       ) : null}
 
       {compactLayout ? (
-        <MobileBottomBar
+        <DeferredMobileBottomBar
           us={us}
           session={ownProps.session}
           query={query}
@@ -259,7 +343,7 @@ export default function TopBar(ownProps: TopBarProps) {
           HamburgerIconComponent={HamburgerIcon}
           drawerOpen={drawerOpen}
           showNavigation={showNavigation}
-          FilterButton={TopBarFilterMenu}
+          FilterButton={DeferredTopBarFilterMenu}
         />
       ) : null}
 
@@ -326,7 +410,7 @@ function TopBarCompactActions(props: {
 
   return (
     <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.25 }}>
-      <ThemeToggleButton onClick={props.toggleTheme} />
+      <DeferredThemeToggleButton onClick={props.toggleTheme} />
     </Box>
   );
 }
@@ -355,7 +439,7 @@ function TopBarSearchCenter(props: {
       }}
     >
       <Box sx={{ minWidth: 0, flex: 1, position: "relative" }}>
-        <SearchBar
+        <DeferredSearchBar
           us={props.us}
           compactLayout={false}
         />
@@ -372,7 +456,7 @@ function TopBarSearchCenter(props: {
           />
         ) : null}
       </Box>
-      <TopBarFilterMenu
+      <DeferredTopBarFilterMenu
         us={props.us}
         selected={props.selected}
         isFilterActive={props.isFilterActive}
@@ -406,7 +490,7 @@ function MobileSearchOverlay(props: {
     >
       <Box sx={{ width: "95vw", mx: "auto", position: "relative" }}>
         <Box sx={{ minWidth: 0, pr: 7.5 }}>
-          <SearchBar
+          <DeferredSearchBar
             us={props.us}
             autoFocus={true}
             compactLayout={true}
@@ -452,6 +536,71 @@ function MobileSearchOverlay(props: {
       </Box>
     </Box>
   );
+}
+
+function SearchBarPlaceholder() {
+  return (
+    <Box
+      aria-hidden
+      sx={(theme) => ({
+        width: "100%",
+        height: 40,
+        display: "flex",
+        alignItems: "center",
+        gap: 1,
+        px: 1.5,
+        borderRadius: 999,
+        border: "1px solid",
+        borderColor: alpha(theme.palette.common.white, theme.palette.mode === "dark" ? 0.18 : 0.24),
+        backgroundColor:
+          theme.palette.mode === "dark"
+            ? alpha(theme.palette.common.white, 0.08)
+            : alpha(theme.palette.common.white, 0.16),
+        color: theme.palette.common.white,
+      })}
+    >
+      <SearchIcon sx={{ fontSize: 18, opacity: 0.92 }} />
+      <Box
+        component="span"
+        sx={{
+          fontSize: "0.95rem",
+          lineHeight: 1,
+          opacity: 0.88,
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+        }}
+      >
+        Comic suchen
+      </Box>
+    </Box>
+  );
+}
+
+function FilterButtonPlaceholder() {
+  return <Box aria-hidden sx={{ width: 40, height: 40, flexShrink: 0 }} />;
+}
+
+function DesktopActionsPlaceholder() {
+  return (
+    <Box
+      aria-hidden
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 0.5,
+        minWidth: 0,
+        justifySelf: "end",
+      }}
+    >
+      <Box sx={{ width: 112, height: 36, borderRadius: 999, bgcolor: "rgba(255,255,255,0.08)" }} />
+      <ThemeTogglePlaceholder />
+    </Box>
+  );
+}
+
+function ThemeTogglePlaceholder() {
+  return <Box aria-hidden sx={{ width: 40, height: 40, borderRadius: "50%" }} />;
 }
 
 function HamburgerIcon(props: { open: boolean }) {

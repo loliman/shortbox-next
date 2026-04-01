@@ -1,14 +1,23 @@
 "use client";
 
 import React from "react";
+import dynamic from "next/dynamic";
 import { usePathname, useSearchParams } from "next/navigation";
 import LayoutChromeClient from "../LayoutChromeClient";
-import AddFab from "../fab/AddFab";
-import ErrorFab from "../fab/ErrorFab";
 import { getHierarchyLevel, getSelected, HierarchyLevel } from "../../util/hierarchy";
 import type { SessionData } from "../../app/session";
 import { parseSeoFilterRoutePathname } from "../../lib/routes/seo-filter-route";
 import type { IssueNode, PublisherNode, SeriesNode } from "../nav-bar/listTreeUtils";
+
+const DeferredAddFab = dynamic(() => import("../fab/AddFab"), {
+  ssr: false,
+  loading: () => null,
+});
+
+const DeferredErrorFab = dynamic(() => import("../fab/ErrorFab"), {
+  ssr: false,
+  loading: () => null,
+});
 
 type NavigationState = {
   initialPublisherNodes?: PublisherNode[];
@@ -121,7 +130,7 @@ export default function PersistentCatalogChromeClient(
       />
 
       {props.session?.canWrite ? (
-        <AddFab
+        <DeferredAddFab
           session={props.session}
           level={level}
           selected={selected}
@@ -129,7 +138,7 @@ export default function PersistentCatalogChromeClient(
           previewImportActive={props.previewImportActive}
         />
       ) : props.us || level === HierarchyLevel.ROOT ? null : (
-        <ErrorFab level={level} selected={selected} us={props.us} />
+        <DeferredErrorFab level={level} selected={selected} us={props.us} />
       )}
     </>
   );

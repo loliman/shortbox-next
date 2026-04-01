@@ -8,6 +8,7 @@ Reduce the highest-signal accessibility audit failures reported by the existing 
 - map the most actionable findings to concrete components
 - fix the highest-priority, lowest-risk accessibility issues first
 - re-run the existing audit commands to verify the changes
+- reduce the remaining high-confidence Lighthouse overhead on catalog entry routes when a safe split does not weaken SSR content in `main`
 
 ## Non-Goals
 - broad visual redesigns
@@ -20,6 +21,7 @@ Reduce the highest-signal accessibility audit failures reported by the existing 
 - list markup should better reflect the rendered semantics
 - form controls and icon-only actions should expose valid accessible names
 - invalid ARIA usage should be removed or corrected where the fix is low risk
+- catalog `main` content should remain server-rendered while non-critical catalog chrome may hydrate after first paint
 
 ## Affected Areas
 - `src/components/`
@@ -40,10 +42,12 @@ Reduce the highest-signal accessibility audit failures reported by the existing 
 ## Risks
 - changing interactive markup can subtly affect click targets, keyboard navigation, or styling
 - some audit findings may be false positives caused by third-party UI primitives
-- Lighthouse performance issues may remain if the safe fixes are accessibility-only
+- deferring client-only chrome can change the first-paint timing of navigation and floating actions
+- Lighthouse performance issues may remain if the safe fixes stop short of larger client-surface refactors
 
 ## Acceptance Criteria
 - current audit findings are reproduced locally with the existing scripts
 - the highest-priority low-risk accessibility issues are fixed in place
+- non-critical catalog chrome may be deferred only when `main` SSR content remains intact
 - `npm run lint`, `npm run test:a11y:pa11y`, and at least one `unlighthouse` audit run after the changes
 - remaining findings are documented with rationale when not fixed

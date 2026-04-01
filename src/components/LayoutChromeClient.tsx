@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import dynamic from "next/dynamic";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import type { IssueNode, PublisherNode, SeriesNode } from "./nav-bar/listTreeUtils";
@@ -8,10 +9,14 @@ import type { SessionData } from "../app/session";
 import { useInitialResponsiveGuess } from "../app/responsiveGuessContext";
 import type { LayoutRouteData, RouteQuery } from "../types/route-ui";
 import TopBar from "./top-bar/TopBar";
-import List from "./nav-bar/List";
 import { useThemeModeContext } from "./generic/AppContext";
 import { useSnackbarBridge } from "./generic/useSnackbarBridge";
 import { useLayoutChromeState } from "./useLayoutChromeState";
+
+const DeferredNavList = dynamic(() => import("./nav-bar/List"), {
+  ssr: false,
+  loading: () => null,
+});
 
 interface LayoutChromeClientProps {
   selected: LayoutRouteData["selected"];
@@ -82,7 +87,7 @@ export default function LayoutChromeClient(props: Readonly<LayoutChromeClientPro
       />
 
       {showNavigation ? (
-        <List
+        <DeferredNavList
           key={navigationInstanceKey}
           initialPublisherNodes={props.initialPublisherNodes}
           initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher}
