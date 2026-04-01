@@ -186,6 +186,9 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
         open={Boolean(drawerOpen)}
         onClose={() => toggleDrawer?.()}
         onOpen={() => toggleDrawer?.()}
+        ModalProps={{
+          keepMounted: false,
+        }}
         PaperProps={{
           sx: paperSx,
         }}
@@ -207,4 +210,3 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
     </Drawer>
   );
 }
-

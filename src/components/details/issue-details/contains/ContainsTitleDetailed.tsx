@@ -269,8 +269,8 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
                 lineHeight: 1.5,
                 textTransform: "uppercase",
                 letterSpacing: "0.16em",
-                color: "text.secondary",
-                opacity: 0.9,
+                color: "text.primary",
+                opacity: 1,
               }}
             >
               {storyTitleLabel}
@@ -285,14 +285,15 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
           </Box>
           <Typography
             variant="subtitle1"
+            component="div"
             sx={{
               fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif',
               fontSize: "1rem",
               lineHeight: 1.75,
               fontWeight: 700,
-              color: "text.secondary",
+              color: "text.primary",
               letterSpacing: "0.01em",
-              opacity: 0.9,
+              opacity: 1,
             }}
           >
             <IssueReferenceInline
@@ -312,8 +313,8 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
                 fontSize: "0.9rem",
                 lineHeight: 1.55,
                 fontWeight: 500,
-                color: "text.secondary",
-                opacity: 0.9,
+                color: "text.primary",
+                opacity: 1,
               }}
             >
               {parentTitle}
@@ -326,8 +327,8 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
                 fontSize: "0.85rem",
                 lineHeight: 1.5,
                 fontWeight: 500,
-                color: "text.secondary",
-                opacity: 0.9,
+                color: "text.primary",
+                opacity: 1,
               }}
             >
               {variant} Variant

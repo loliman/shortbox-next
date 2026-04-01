@@ -90,22 +90,23 @@ export function ContainsTitleSimple(props: Readonly<ContainsTitleSimpleProps>) {
               lineHeight: 1.5,
               textTransform: "uppercase",
               letterSpacing: "0.16em",
-              color: "text.secondary",
-              opacity: 0.9,
+              color: "text.primary",
+              opacity: 1,
             }}
           >
             {storyTitle === "" ? "Story" : storyTitle}
           </Typography>
           <Typography
             variant="subtitle1"
+            component="div"
             sx={{
               fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif',
               fontSize: "1rem",
               lineHeight: 1.75,
               fontWeight: 700,
-              color: "text.secondary",
+              color: "text.primary",
               letterSpacing: "0.01em",
-              opacity: 0.9,
+              opacity: 1,
             }}
           >
             {hasIssueReference ? (
@@ -126,9 +127,9 @@ export function ContainsTitleSimple(props: Readonly<ContainsTitleSimpleProps>) {
               fontSize: "1rem",
               lineHeight: 1.75,
               fontWeight: 700,
-              color: "text.secondary",
+              color: "text.primary",
               letterSpacing: "0.01em",
-              opacity: 0.9,
+              opacity: 1,
             }}
           >
             {subtitleText || null}

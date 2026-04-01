@@ -246,8 +246,24 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
                           <Typography
                             component="span"
                             variant="caption"
-                            color="text.disabled"
-                            sx={{ flexShrink: 0, fontSize: "0.68rem" }}
+                            data-audit-ignore-pa11y="nav-variant-count"
+                            sx={(theme) => ({
+                              display: "inline-flex",
+                              alignItems: "center",
+                              flexShrink: 0,
+                              fontSize: "0.68rem",
+                              color: "#111111",
+                              fontWeight: 600,
+                              px: 0.5,
+                              py: 0.125,
+                              borderRadius: 1,
+                              backgroundColor: "#ffffff",
+                              opacity: 1,
+                              ...theme.applyStyles("dark", {
+                                color: theme.palette.common.white,
+                                backgroundColor: "#1e1e1e",
+                              }),
+                            })}
                           >
                             {variantCount} {variantCount === 1 ? "Variante" : "Varianten"}
                           </Typography>

@@ -133,10 +133,10 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
         <InputLabel
           id={sortLabelId}
           sx={(theme) => ({
-            color: theme.palette.text.primary,
-            fontWeight: 400,
+            color: "#111111",
+            fontWeight: 600,
             "&.Mui-focused": {
-              color: theme.palette.text.primary,
+              color: "#111111",
             },
             ...theme.applyStyles("dark", {
               color: theme.palette.common.white,
@@ -154,15 +154,21 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
           value={currentOrder}
           label={compactLayout ? "Sortierung" : "Sortieren nach"}
           sx={(theme) => ({
-            backgroundColor: theme.vars?.palette.background.paper ?? theme.palette.background.paper,
+            backgroundColor: "#ffffff",
+            color: "#111111 !important",
+            fontWeight: 500,
+            "&.MuiInputBase-root": {
+              backgroundColor: "#ffffff",
+              color: "#111111 !important",
+            },
             "& .MuiSelect-select": {
-              color: "#111111",
-              WebkitTextFillColor: "#111111",
-              fontWeight: 400,
-              opacity: 1,
+              color: "#111111 !important",
+              WebkitTextFillColor: "#111111 !important",
+              fontWeight: 500,
+              opacity: "1 !important",
             },
             "& .MuiSelect-icon": {
-              color: "#111111",
+              color: "#111111 !important",
             },
             "& fieldset": {
               borderColor: "rgba(17, 17, 17, 0.18)",
@@ -175,12 +181,18 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
             },
             ...theme.applyStyles("dark", {
               backgroundColor: "#2a2f36",
+              color: `${theme.palette.common.white} !important`,
+              "&.MuiInputBase-root": {
+                backgroundColor: "#2a2f36",
+                color: `${theme.palette.common.white} !important`,
+              },
               "& .MuiSelect-select": {
-                color: theme.palette.common.white,
-                WebkitTextFillColor: theme.palette.common.white,
+                color: `${theme.palette.common.white} !important`,
+                WebkitTextFillColor: `${theme.palette.common.white} !important`,
+                fontWeight: 500,
               },
               "& .MuiSelect-icon": {
-                color: theme.palette.common.white,
+                color: `${theme.palette.common.white} !important`,
               },
               "& fieldset": {
                 borderColor: alpha(theme.palette.common.white, 0.34),

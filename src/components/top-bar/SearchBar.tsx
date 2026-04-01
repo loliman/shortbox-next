@@ -328,11 +328,19 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
             backgroundColor: "#ffffff",
             borderRadius: 2.5,
             color: "#111111",
+            opacity: 1,
             transition:
               "box-shadow 180ms ease, border-color 180ms ease, background-color 180ms ease",
             "& input": {
-              color: "#111111",
-              WebkitTextFillColor: "#111111",
+              color: "#111111 !important",
+              WebkitTextFillColor: "#111111 !important",
+              opacity: "1 !important",
+              fontWeight: 500,
+            },
+            "& input::placeholder": {
+              color: "#111111 !important",
+              WebkitTextFillColor: "#111111 !important",
+              opacity: "1 !important",
             },
             "& fieldset": {
               borderColor: "rgba(17, 17, 17, 0.18)",
@@ -354,8 +362,15 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
               backgroundColor: "#2a2f36",
               color: theme.palette.common.white,
               "& input": {
-                color: theme.palette.common.white,
-                WebkitTextFillColor: theme.palette.common.white,
+                color: `${theme.palette.common.white} !important`,
+                WebkitTextFillColor: `${theme.palette.common.white} !important`,
+                opacity: "1 !important",
+                fontWeight: 500,
+              },
+              "& input::placeholder": {
+                color: `${theme.palette.common.white} !important`,
+                WebkitTextFillColor: `${theme.palette.common.white} !important`,
+                opacity: "1 !important",
               },
               "& fieldset": {
                 borderColor: alpha(theme.palette.common.white, 0.34),
@@ -387,10 +402,12 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
             backgroundColor: getResultsSurfaceColor,
           },
           "& .MuiInputBase-input::placeholder": {
-            color: "#2a2a2a",
-            opacity: 1,
+            color: "#111111 !important",
+            WebkitTextFillColor: "#111111 !important",
+            opacity: "1 !important",
             ...theme.applyStyles("dark", {
-              color: alpha(theme.palette.common.white, 0.9),
+              color: `${theme.palette.common.white} !important`,
+              WebkitTextFillColor: `${theme.palette.common.white} !important`,
             }),
           },
         })}
@@ -399,6 +416,37 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
             {...params}
             variant="outlined"
             autoFocus={Boolean(ownProps.autoFocus)}
+            sx={(theme) => ({
+              "& .MuiOutlinedInput-root": {
+                backgroundColor: "#ffffff",
+                color: "#111111",
+              },
+              "& .MuiOutlinedInput-input": {
+                color: "#111111 !important",
+                WebkitTextFillColor: "#111111 !important",
+                fontWeight: 500,
+                opacity: "1 !important",
+              },
+              "& .MuiOutlinedInput-input::placeholder": {
+                color: "#111111 !important",
+                WebkitTextFillColor: "#111111 !important",
+                opacity: "1 !important",
+              },
+              ...theme.applyStyles("dark", {
+                "& .MuiOutlinedInput-root": {
+                  backgroundColor: "#2a2f36",
+                  color: theme.palette.common.white,
+                },
+                "& .MuiOutlinedInput-input": {
+                  color: `${theme.palette.common.white} !important`,
+                  WebkitTextFillColor: `${theme.palette.common.white} !important`,
+                },
+                "& .MuiOutlinedInput-input::placeholder": {
+                  color: `${theme.palette.common.white} !important`,
+                  WebkitTextFillColor: `${theme.palette.common.white} !important`,
+                },
+              }),
+            })}
             inputProps={{
               ...params.inputProps,
               "aria-label": "Comic suchen",

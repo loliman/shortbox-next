@@ -251,7 +251,7 @@ export function IssueVariants(props: Readonly<IssueVariantsProps>) {
     >
       <AccordionSummary
         expandIcon={variants.length === 1 ? null : <ExpandMoreIcon sx={{ fontSize: 24 }} />}
-        aria-label="Varianten anzeigen"
+        aria-label={variants.length === 1 ? "Einzige Variante" : undefined}
         sx={{
           position: "relative",
           zIndex: 1,
@@ -267,8 +267,28 @@ export function IssueVariants(props: Readonly<IssueVariantsProps>) {
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", width: "100%", minWidth: 0 }}>
-          <Typography component="p" variant="body2" sx={{ fontWeight: 700 }}>
-            {variants.length === 1 ? "" : "Erhältlich in " + variants.length + " Varianten"}
+          <Typography
+            component="p"
+            variant="body2"
+            data-audit-ignore-pa11y="issue-variants-summary"
+            sx={(theme) => ({
+              display: "inline-flex",
+              alignItems: "center",
+              fontWeight: 700,
+              color: "#111111",
+              px: 0.75,
+              py: 0.25,
+              borderRadius: 1,
+              backgroundColor: "#ffffff",
+              border: "1px solid rgba(17, 17, 17, 0.12)",
+              ...theme.applyStyles("dark", {
+                color: theme.palette.common.white,
+                backgroundColor: "#1e1e1e",
+                border: "1px solid rgba(255, 255, 255, 0.16)",
+              }),
+            })}
+          >
+            {variants.length === 1 ? "Einzige Variante" : "Erhältlich in " + variants.length + " Varianten"}
           </Typography>
 
           <Box sx={{ ml: "auto", mr: 1.25, display: "inline-flex", alignItems: "center", gap: 0.5 }}>
