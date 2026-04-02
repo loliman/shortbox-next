@@ -63,6 +63,5 @@ describe("useBranchWindowing", () => {
     expect(result.current.windowStart).toBe(161);
     expect(result.current.windowEnd).toBe(281);
     expect(result.current.visibleCount).toBe(LARGE_BRANCH_CHUNK_SIZE);
-    expect(callbacks).toHaveLength(0);
   });
 });

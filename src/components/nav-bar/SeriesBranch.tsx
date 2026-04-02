@@ -25,7 +25,6 @@ import {
   readNavExpansionState,
   writeNavExpansionState,
 } from "./navStateStorage";
-import { LARGE_BRANCH_OCCLUSION_THRESHOLD } from "./branchWindowing";
 import { useBranchWindowing } from "./useBranchWindowing";
 import { markNavPerf, measureNavPerf } from "./navPerfDebug";
 
@@ -82,6 +81,7 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
   const publisherName = publisher.name || "";
   const seriesStateKey = `${props.navStateKey}|${publisherName}`;
   const seriesNodes = React.useMemo(() => initialSeriesNodes || [], [initialSeriesNodes]);
+  const seriesListRef = React.useRef<HTMLUListElement | null>(null);
   const [expandedSeries, setExpandedSeries] = React.useState<Record<string, boolean>>(() =>
     buildExpandedSeries(initialSeriesNodes || [], activeSeriesKey, selectedIssue)
   );
@@ -179,10 +179,13 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
   const { visibleCount, windowEnd, windowStart, windowingEnabled } = useBranchWindowing(
     seriesNodes.length,
     prioritizedSeriesIndex,
-    Boolean(deferProgressiveWindowing)
+    Boolean(deferProgressiveWindowing),
+    {
+      rowHeight: SERIES_ROW_HEIGHT,
+      navScrollContainerRef,
+      branchListRef: seriesListRef,
+    }
   );
-  const enableSeriesOcclusion =
-    seriesNodes.length > LARGE_BRANCH_OCCLUSION_THRESHOLD && prioritizedSeriesIndex == null;
   const visibleSeriesNodes = React.useMemo(
     () => (windowingEnabled ? seriesNodes.slice(windowStart, windowEnd) : seriesNodes),
     [seriesNodes, windowEnd, windowStart, windowingEnabled]
@@ -366,7 +369,7 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
   if (seriesNodes.length === 0) return <NestedEmptyRow depth={1} message="Keine Serien vorhanden" />;
 
   return (
-    <MuiList disablePadding>
+    <MuiList disablePadding ref={seriesListRef}>
       {windowingEnabled && windowStart > 0 ? (
         <Box
           component="li"
@@ -419,8 +422,6 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
               listStyle: "none",
               m: 0,
               p: 0,
-              contentVisibility: enableSeriesOcclusion ? "auto" : undefined,
-              containIntrinsicSize: enableSeriesOcclusion ? "44px" : undefined,
             }}
           >
             <NestedRow

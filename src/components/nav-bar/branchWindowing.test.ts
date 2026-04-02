@@ -1,12 +1,15 @@
 import {
+  getVisibleBranchWindow,
   getInitialWindowRange,
   getInitialViewportScrollTop,
   getInitialViewportTargetOffset,
   getInitialWindowRowCount,
   getNextWindowRange,
   getNextWindowRowCount,
+  getWindowRangeForVisibleRows,
   ISSUE_ROW_HEIGHT,
   LARGE_BRANCH_CHUNK_SIZE,
+  LARGE_BRANCH_SCROLL_OVERSCAN_ROWS,
   LARGE_BRANCH_SELECTED_BUFFER,
   LARGE_BRANCH_ROW_THRESHOLD,
   PUBLISHER_ROW_HEIGHT,
@@ -45,6 +48,35 @@ describe("branchWindowing", () => {
     expect(getNextWindowRange({ start: 161, end: 281 }, 500, 220)).toEqual({
       start: 101,
       end: 341,
+    });
+  });
+
+  it("should_when_branchIntersectsViewport_then_resolveVisibleWindowWithinBranch", () => {
+    expect(getVisibleBranchWindow(-120, 1200, 400)).toEqual({
+      top: 120,
+      bottom: 520,
+    });
+  });
+
+  it("should_when_branchIsOutsideViewport_then_returnNullVisibleWindow", () => {
+    expect(getVisibleBranchWindow(450, 1200, 400)).toBeNull();
+  });
+
+  it("should_when_scrollingIntoPlaceholder_then_expandWindowTowardVisibleRows", () => {
+    expect(
+      getWindowRangeForVisibleRows(
+        { start: 0, end: LARGE_BRANCH_CHUNK_SIZE },
+        500,
+        SERIES_ROW_HEIGHT,
+        {
+          top: 5800,
+          bottom: 6200,
+        }
+      )
+    ).toEqual({
+      start: 0,
+      end:
+        Math.ceil(6200 / SERIES_ROW_HEIGHT) + LARGE_BRANCH_SCROLL_OVERSCAN_ROWS,
     });
   });
 

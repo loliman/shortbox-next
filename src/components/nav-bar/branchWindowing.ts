@@ -6,10 +6,16 @@ export const NAV_LIST_TOP_PADDING = 4;
 export const PUBLISHER_ROW_HEIGHT = 48;
 export const SERIES_ROW_HEIGHT = 44;
 export const ISSUE_ROW_HEIGHT = 36;
+export const LARGE_BRANCH_SCROLL_OVERSCAN_ROWS = 12;
 
 export type BranchWindowRange = {
   start: number;
   end: number;
+};
+
+export type BranchVisibilityWindow = {
+  top: number;
+  bottom: number;
 };
 
 export type InitialViewportSelection =
@@ -117,6 +123,44 @@ export function getNextWindowRange(
   return {
     start: Math.max(0, currentRange.start - growPerSide),
     end: Math.min(totalCount, currentRange.end + growPerSide),
+  };
+}
+
+export function getVisibleBranchWindow(
+  branchTop: number,
+  branchHeight: number,
+  containerHeight: number
+): BranchVisibilityWindow | null {
+  if (branchHeight <= 0 || containerHeight <= 0) return null;
+
+  const top = Math.max(0, -branchTop);
+  const bottom = Math.min(branchHeight, containerHeight - branchTop);
+  if (bottom <= top) return null;
+
+  return { top, bottom };
+}
+
+export function getWindowRangeForVisibleRows(
+  currentRange: BranchWindowRange,
+  totalCount: number,
+  rowHeight: number,
+  visibleWindow: BranchVisibilityWindow,
+  overscanRows = LARGE_BRANCH_SCROLL_OVERSCAN_ROWS
+): BranchWindowRange {
+  if (totalCount <= 0 || rowHeight <= 0) return { start: 0, end: 0 };
+
+  const desiredStart = Math.max(
+    0,
+    Math.floor(visibleWindow.top / rowHeight) - overscanRows
+  );
+  const desiredEnd = Math.min(
+    totalCount,
+    Math.ceil(visibleWindow.bottom / rowHeight) + overscanRows
+  );
+
+  return {
+    start: Math.min(currentRange.start, desiredStart),
+    end: Math.max(currentRange.end, desiredEnd),
   };
 }
 

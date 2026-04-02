@@ -26,7 +26,6 @@ import {
   type SeriesNode,
   toIssueSeriesSelected,
 } from "./listTreeUtils";
-import { LARGE_BRANCH_OCCLUSION_THRESHOLD } from "./branchWindowing";
 import { useBranchWindowing } from "./useBranchWindowing";
 import { markNavPerf, measureNavPerf } from "./navPerfDebug";
 
@@ -80,10 +79,13 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
   const { visibleCount, windowEnd, windowStart, windowingEnabled } = useBranchWindowing(
     issueNodes.length,
     prioritizedIssueIndex,
-    Boolean(deferProgressiveWindowing)
+    Boolean(deferProgressiveWindowing),
+    {
+      rowHeight: ISSUE_ROW_HEIGHT,
+      navScrollContainerRef,
+      branchListRef: issueListRef,
+    }
   );
-  const enableIssueOcclusion =
-    issueNodes.length > LARGE_BRANCH_OCCLUSION_THRESHOLD && prioritizedIssueIndex == null;
   const visibleIssueNodes = React.useMemo(
     () => (windowingEnabled ? issueNodes.slice(windowStart, windowEnd) : issueNodes),
     [issueNodes, windowEnd, windowStart, windowingEnabled]
@@ -287,8 +289,6 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
               listStyle: "none",
               m: 0,
               p: 0,
-              contentVisibility: enableIssueOcclusion ? "auto" : undefined,
-              containIntrinsicSize: enableIssueOcclusion ? "36px" : undefined,
             }}
           >
             <ListItemButton
