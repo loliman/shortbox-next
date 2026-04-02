@@ -78,7 +78,12 @@ const ExpandToggle = React.memo(function ExpandToggle(props: Readonly<ExpandTogg
   if (props.pending) {
     return (
       <ListItemIcon sx={{ minWidth: 32, justifyContent: "center" }}>
-        <CircularProgress size={16} sx={{ ml: 1 }} />
+        <CircularProgress
+          size={16}
+          aria-hidden="true"
+          role="presentation"
+          sx={{ ml: 1 }}
+        />
       </ListItemIcon>
     );
   }
@@ -125,7 +130,11 @@ export function NestedLoadingRow({
   return (
     <ListItem component="div" sx={{ pl: getDepthPadding(depth) }}>
       <ListItemIcon sx={{ minWidth: 28 }}>
-        <CircularProgress size={14} />
+        <CircularProgress
+          size={14}
+          aria-hidden="true"
+          role="presentation"
+        />
       </ListItemIcon>
       <ListItemText primary={message} />
     </ListItem>

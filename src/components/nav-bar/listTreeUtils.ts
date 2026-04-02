@@ -38,18 +38,7 @@ export type IssueNode = {
 };
 
 export type NavListAction =
-  | {
-      type: "closeAll";
-      token: number;
-    }
-  | {
-      type: "showAll";
-      token: number;
-      scope: "root" | "publisher" | "series";
-      publisherName?: string | null;
-      seriesKey?: string | null;
-    }
-  | {
+  {
       type: "scrollToSelected";
       token: number;
       publisherName?: string | null;
@@ -170,6 +159,54 @@ export function isSelectedIssue(
   return doesSeriesNodeMatchIssueSeries(seriesNode, selectedIssue?.series);
 }
 
+export function doesIssueNodeMatchSelectedIssueRoute(
+  issueNode: IssueNode,
+  selectedIssue: Issue | undefined,
+  fallbackSeriesNode?: SeriesNode
+): boolean {
+  const selectedNumber = normalizeIssueNumber(selectedIssue?.number);
+  if (selectedNumber === "") return false;
+  if (!isIssueNumberMatch(issueNode.number, selectedNumber)) return false;
+
+  const matchingSeriesNode = issueNode.series || fallbackSeriesNode;
+  if (
+    matchingSeriesNode &&
+    !doesSeriesNodeMatchIssueSeries(
+      {
+        title: matchingSeriesNode.title,
+        volume: matchingSeriesNode.volume,
+        startyear: matchingSeriesNode.startyear,
+        publisher: matchingSeriesNode.publisher,
+      },
+      selectedIssue?.series
+    )
+  ) {
+    return false;
+  }
+
+  const selectedFormat = normalizeMatchText(selectedIssue?.format);
+  const selectedVariant = normalizeMatchText(selectedIssue?.variant);
+  if (!selectedFormat && !selectedVariant) return true;
+
+  const candidates = [
+    {
+      format: issueNode.format,
+      variant: issueNode.variant,
+    },
+    ...(issueNode.variants || []),
+  ];
+
+  const hasExactVariantMatch = candidates.some((candidate) => {
+    if (!candidate) return false;
+    const formatMatches = !selectedFormat || normalizeMatchText(candidate.format) === selectedFormat;
+    const variantMatches = !selectedVariant || normalizeMatchText(candidate.variant) === selectedVariant;
+    return formatMatches && variantMatches;
+  });
+  if (hasExactVariantMatch) return true;
+
+  return true;
+}
+
 export function normalizeIssuePart(value: unknown): string {
   if (value === null || value === undefined) return "";
   return String(value).trim();
@@ -262,7 +299,56 @@ export function isSeriesNodeSelected(
 export function isElementVisibleInContainer(element: HTMLElement, container: HTMLElement): boolean {
   const elementRect = element.getBoundingClientRect();
   const containerRect = container.getBoundingClientRect();
-  return elementRect.bottom > containerRect.top && elementRect.top < containerRect.bottom;
+  const containerHeight = containerRect.height;
+  const comfortInset = Math.min(96, Math.max(24, containerHeight * 0.18));
+  const comfortTop = containerRect.top + comfortInset;
+  const comfortBottom = containerRect.bottom - comfortInset;
+
+  if (comfortBottom <= comfortTop) {
+    return elementRect.bottom > containerRect.top && elementRect.top < containerRect.bottom;
+  }
+
+  const fullyInsideComfortZone =
+    elementRect.top >= comfortTop && elementRect.bottom <= comfortBottom;
+
+  if (fullyInsideComfortZone) return true;
+
+  const elementCenter = (elementRect.top + elementRect.bottom) / 2;
+  return elementCenter >= comfortTop && elementCenter <= comfortBottom;
+}
+
+export function scrollNavElementIntoView(
+  element: HTMLElement,
+  container?: HTMLElement | null,
+  options?: { behavior?: ScrollBehavior }
+) {
+  const prefersReducedMotion =
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const behavior = prefersReducedMotion ? "auto" : (options?.behavior ?? "smooth");
+
+  if (container) {
+    const elementRect = element.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    const offsetWithinContainer = elementRect.top - containerRect.top;
+    const targetScrollTop =
+      container.scrollTop +
+      offsetWithinContainer -
+      Math.max(0, (container.clientHeight - elementRect.height) / 2);
+
+    container.scrollTo({
+      top: Math.max(0, targetScrollTop),
+      behavior,
+    });
+    return;
+  }
+
+  element.scrollIntoView({
+    block: "center",
+    inline: "nearest",
+    behavior,
+  });
 }
 
 export function getIssueNodeVariant(issueNode: IssueNode): string | undefined {

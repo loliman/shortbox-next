@@ -8,6 +8,13 @@ import { getHierarchyLevel, getSelected, HierarchyLevel } from "../../util/hiera
 import type { SessionData } from "../../app/session";
 import { parseSeoFilterRoutePathname } from "../../lib/routes/seo-filter-route";
 import type { IssueNode, PublisherNode, SeriesNode } from "../nav-bar/listTreeUtils";
+import { useNavigationFeedbackContext } from "../generic/AppContext";
+import {
+  markNavPerf,
+  measureNavPerf,
+  observeNavLongTasks,
+  resetNavPerfSession,
+} from "../nav-bar/navPerfDebug";
 
 const DeferredAddFab = dynamic(() => import("../fab/AddFab"), {
   ssr: false,
@@ -37,9 +44,11 @@ type PersistentCatalogChromeClientProps = {
 export default function PersistentCatalogChromeClient(
   props: Readonly<PersistentCatalogChromeClientProps>
 ) {
+  const navigationFeedback = useNavigationFeedbackContext();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [navigationState, setNavigationState] = React.useState<NavigationState | null>(null);
+  const [navigationStateRouteKey, setNavigationStateRouteKey] = React.useState<string | null>(null);
   const [navigationLoading, setNavigationLoading] = React.useState(true);
   const routeFilter = React.useMemo(() => parseSeoFilterRoutePathname(pathname), [pathname]);
   const query = React.useMemo(() => {
@@ -71,10 +80,49 @@ export default function PersistentCatalogChromeClient(
     return getSelected(params, props.us);
   }, [pathname, props.us, routeFilter]);
   const level = React.useMemo(() => getHierarchyLevel(selected), [selected]);
+  const routeKey = React.useMemo(
+    () => `${pathname || ""}?${searchParams?.toString() || ""}`,
+    [pathname, searchParams]
+  );
+  const routeScopedNavigationState =
+    navigationStateRouteKey === routeKey ? navigationState : null;
 
   React.useEffect(() => {
+    resetNavPerfSession(routeKey, {
+      us: props.us,
+      pathname,
+      routeFilterKind: routeFilter?.kind ?? null,
+      routeFilterSlug: routeFilter?.slug ?? null,
+    });
+    const disconnectLongTasks = observeNavLongTasks();
+    markNavPerf("chrome:init");
+    return () => {
+      disconnectLongTasks();
+    };
+  }, [pathname, props.us, routeFilter?.kind, routeFilter?.slug, routeKey]);
+
+  React.useEffect(() => {
+    navigationFeedback.setChromeLoading(navigationLoading);
+    if (!navigationLoading) {
+      markNavPerf("chrome:ready");
+      measureNavPerf("chrome:init-to-ready", "chrome:init", "chrome:ready");
+    }
+  }, [navigationFeedback, navigationLoading]);
+
+  React.useEffect(() => {
+    return () => {
+      navigationFeedback.setChromeLoading(false);
+    };
+  }, [navigationFeedback]);
+
+  React.useEffect(() => {
+    setNavigationStateRouteKey(null);
     const controller = new AbortController();
     setNavigationLoading(true);
+    markNavPerf("navigation-state:fetch:start", {
+      pathname,
+      filter: searchParams.get("filter"),
+    });
 
     const params = new URLSearchParams({ us: String(props.us) });
     const parts = (pathname || "").split("/").filter(Boolean);
@@ -103,10 +151,23 @@ export default function PersistentCatalogChromeClient(
       .then((data) => {
         if (!data) return;
         setNavigationState(data);
+        setNavigationStateRouteKey(routeKey);
+        markNavPerf("navigation-state:fetch:end", {
+          publishers: data.initialPublisherNodes?.length ?? 0,
+          resolvedFilterQuery: data.resolvedFilterQuery ?? null,
+        });
+        measureNavPerf(
+          "navigation-state:fetch",
+          "navigation-state:fetch:start",
+          "navigation-state:fetch:end"
+        );
         setNavigationLoading(false);
       })
       .catch((error: unknown) => {
         if ((error as { name?: string } | null)?.name === "AbortError") return;
+        markNavPerf("navigation-state:fetch:error", {
+          message: error instanceof Error ? error.message : String(error),
+        });
         setNavigationLoading(false);
       });
 
@@ -120,11 +181,11 @@ export default function PersistentCatalogChromeClient(
         us={props.us}
         showNavigation={true}
         query={query}
-        initialPublisherNodes={navigationState?.initialPublisherNodes}
-        initialSeriesNodesByPublisher={navigationState?.initialSeriesNodesByPublisher}
-        initialIssueNodesBySeriesKey={navigationState?.initialIssueNodesBySeriesKey}
+        initialPublisherNodes={routeScopedNavigationState?.initialPublisherNodes}
+        initialSeriesNodesByPublisher={routeScopedNavigationState?.initialSeriesNodesByPublisher}
+        initialIssueNodesBySeriesKey={routeScopedNavigationState?.initialIssueNodesBySeriesKey}
         session={props.session}
-        initialFilterCount={navigationState?.initialFilterCount}
+        initialFilterCount={routeScopedNavigationState?.initialFilterCount}
         changeRequestsCount={props.changeRequestsCount ?? 0}
         navigationLoading={navigationLoading}
       />

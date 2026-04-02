@@ -2,6 +2,8 @@
 
 import React from "react";
 import dynamic from "next/dynamic";
+import Box from "@mui/material/Box";
+import CircularProgress from "@mui/material/CircularProgress";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import type { IssueNode, PublisherNode, SeriesNode } from "./nav-bar/listTreeUtils";
@@ -9,13 +11,14 @@ import type { SessionData } from "../app/session";
 import { useInitialResponsiveGuess } from "../app/responsiveGuessContext";
 import type { LayoutRouteData, RouteQuery } from "../types/route-ui";
 import TopBar from "./top-bar/TopBar";
+import NavDrawer from "./nav-bar/NavDrawer";
 import { useThemeModeContext } from "./generic/AppContext";
 import { useSnackbarBridge } from "./generic/useSnackbarBridge";
 import { useLayoutChromeState } from "./useLayoutChromeState";
 
 const DeferredNavList = dynamic(() => import("./nav-bar/List"), {
   ssr: false,
-  loading: () => null,
+  loading: () => <NavListLoadingFallback />,
 });
 
 interface LayoutChromeClientProps {
@@ -36,7 +39,13 @@ interface LayoutChromeClientProps {
 
 export default function LayoutChromeClient(props: Readonly<LayoutChromeClientProps>) {
   const showNavigation = props.showNavigation ?? true;
-  const navigationInstanceKey = `${props.us}|${String(props.query?.filter || "")}|${String(props.query?.routeFilterKind || "")}|${String(props.query?.routeFilterSlug || "")}`;
+  const navigationInstanceKey = [
+    props.us,
+    String(props.query?.filter || ""),
+    String(props.query?.routeFilterKind || ""),
+    String(props.query?.routeFilterSlug || ""),
+    getSelectedPathKey(props.selected),
+  ].join("|");
   const theme = useTheme();
   const initialGuess = useInitialResponsiveGuess();
   const isLandscape = useMediaQuery("(orientation: landscape)", {
@@ -66,6 +75,7 @@ export default function LayoutChromeClient(props: Readonly<LayoutChromeClientPro
         }
       : null
   );
+  const navPayloadReady = !props.navigationLoading && Boolean(props.initialPublisherNodes);
 
   return (
     <>
@@ -87,33 +97,130 @@ export default function LayoutChromeClient(props: Readonly<LayoutChromeClientPro
       />
 
       {showNavigation ? (
-        <DeferredNavList
-          key={navigationInstanceKey}
-          initialPublisherNodes={props.initialPublisherNodes}
-          initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher}
-          initialIssueNodesBySeriesKey={props.initialIssueNodesBySeriesKey}
-          drawerOpen={chromeState.drawerOpen}
-          toggleDrawer={chromeState.toggleDrawer}
-          temporaryDrawer={temporaryDrawer}
-          phonePortrait={isPhonePortrait}
-          query={
-            props.query as
-              | {
-                  filter?: string | null;
-                  routeFilterKind?: string | null;
-                  routeFilterSlug?: string | null;
-                  navOpen?: string | null;
-                  navPublisher?: string | null;
-                  navSeries?: string | null;
-                }
-              | null
-          }
-          selected={props.selected}
-          session={session}
-          us={props.us}
-          loading={props.navigationLoading}
-        />
+        navPayloadReady ? (
+          <DeferredNavList
+            key={navigationInstanceKey}
+            initialPublisherNodes={props.initialPublisherNodes}
+            initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher}
+            initialIssueNodesBySeriesKey={props.initialIssueNodesBySeriesKey}
+            drawerOpen={chromeState.drawerOpen}
+            toggleDrawer={chromeState.toggleDrawer}
+            temporaryDrawer={temporaryDrawer}
+            phonePortrait={isPhonePortrait}
+            query={
+              props.query as
+                | {
+                    filter?: string | null;
+                    routeFilterKind?: string | null;
+                    routeFilterSlug?: string | null;
+                    navOpen?: string | null;
+                    navPublisher?: string | null;
+                    navSeries?: string | null;
+                  }
+                | null
+            }
+            selected={props.selected}
+            session={session}
+            us={props.us}
+            loading={props.navigationLoading}
+          />
+        ) : (
+          <NavListLoadingFallback />
+        )
       ) : null}
     </>
+  );
+}
+
+function getSelectedPathKey(selected: LayoutRouteData["selected"]) {
+  if (selected.issue) {
+    return [
+      "issue",
+      selected.issue.series.publisher.name || "",
+      selected.issue.series.title || "",
+      selected.issue.series.volume || "",
+      selected.issue.series.startyear || "",
+      selected.issue.number || "",
+      selected.issue.format || "",
+      selected.issue.variant || "",
+    ].join("|");
+  }
+
+  if (selected.series) {
+    return [
+      "series",
+      selected.series.publisher.name || "",
+      selected.series.title || "",
+      selected.series.volume || "",
+      selected.series.startyear || "",
+    ].join("|");
+  }
+
+  if (selected.publisher) {
+    return ["publisher", selected.publisher.name || ""].join("|");
+  }
+
+  return "root";
+}
+
+function NavListLoadingFallback() {
+  const theme = useTheme();
+  const initialGuess = useInitialResponsiveGuess();
+  const isLandscape = useMediaQuery("(orientation: landscape)", {
+    defaultMatches: initialGuess?.isLandscape ?? true,
+  });
+  const isPhone = useMediaQuery(theme.breakpoints.down("sm"), {
+    defaultMatches: initialGuess?.isPhone ?? false,
+  });
+  const isDesktop = useMediaQuery(theme.breakpoints.up("lg"), {
+    defaultMatches: initialGuess?.isDesktop ?? true,
+  });
+  const isTablet = !isPhone && !isDesktop;
+  const temporaryDrawer = isPhone || (isTablet && !isLandscape);
+  const listRef = React.useRef<HTMLUListElement | null>(null);
+  const navScrollContainerRef = React.useRef<HTMLDivElement | null>(null);
+
+  if (temporaryDrawer) return null;
+
+  return (
+    <NavDrawer
+      temporary={temporaryDrawer}
+      drawerOpen={!temporaryDrawer}
+      navStateKey="nav-loading"
+      navScrollContainerRef={navScrollContainerRef}
+      listRef={listRef}
+      disableScrollToSelected={true}
+    >
+      <Box
+        role="status"
+        aria-live="polite"
+        aria-label="Navigation wird geladen"
+        sx={{
+          px: 2,
+          py: 2,
+          minHeight: 108,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Box
+          sx={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 1,
+            px: 1.5,
+            py: 1,
+            borderRadius: 999,
+            border: "1px solid",
+            borderColor: "divider",
+            bgcolor: "background.paper",
+            color: "text.secondary",
+          }}
+        >
+          <CircularProgress size={16} />
+        </Box>
+      </Box>
+    </NavDrawer>
   );
 }

@@ -3,20 +3,29 @@
 import React from "react";
 import Collapse from "@mui/material/Collapse";
 import Box from "@mui/material/Box";
+import CircularProgress from "@mui/material/CircularProgress";
+import Typography from "@mui/material/Typography";
 import { generateSeoUrl } from "../../util/hierarchy";
 import { buildRouteHref } from "../generic/routeHref";
 import type { SelectedRoot } from "../../types/domain";
 import {
+  doesIssueNodeMatchSelectedIssueRoute,
   getSeriesKey,
   type NavListAction,
   getSelectedPublisherName,
   getSelectedSeriesKey,
   isElementVisibleInContainer,
   isSameEntityName,
+  scrollNavElementIntoView,
   type IssueNode,
   type PublisherNode,
   type SeriesNode,
 } from "./listTreeUtils";
+import {
+  getInitialViewportScrollTop,
+  type InitialViewportSelection,
+} from "./branchWindowing";
+import { markNavPerf, measureNavPerf, printNavPerfSummary } from "./navPerfDebug";
 import NavDrawer from "./NavDrawer";
 import SeriesBranch from "./SeriesBranch";
 import { NestedEmptyRow, NestedRow } from "./NestedNavRow";
@@ -92,16 +101,37 @@ export default function List(props: Readonly<ListProps>) {
     () => props.initialPublisherNodes || [],
     [props.initialPublisherNodes]
   );
-  const [expandedPublishers, setExpandedPublishers] = React.useState<Record<string, boolean>>({});
+  const [expandedPublishers, setExpandedPublishers] = React.useState<Record<string, boolean>>(() => {
+    if (!selectedPublisherName) return {};
+    const canonicalPublisherName =
+      (props.initialPublisherNodes || []).find((node) => isSameEntityName(node.name, selectedPublisherName))
+        ?.name || selectedPublisherName;
+    return buildExpandedPublishers(canonicalPublisherName ? [canonicalPublisherName] : []);
+  });
   const [publisherExpansionReady, setPublisherExpansionReady] = React.useState(false);
   const [pendingPublisherKey, setPendingPublisherKey] = React.useState<string | null>(null);
   const [pendingNavigationKey, setPendingNavigationKey] = React.useState<string | null>(null);
   const [navAction, setNavAction] = React.useState<NavListAction | null>(null);
+  const [selectedPathReady, setSelectedPathReady] = React.useState(() => !selectedPublisherName);
   const navActionTokenRef = React.useRef(0);
+  const publisherAutoRevealKeyRef = React.useRef<string | null>(null);
+  const selectedPathInitKeyRef = React.useRef<string | null>(null);
+  const deferredExpandedPublishersRef = React.useRef<Record<string, boolean> | null>(null);
+  const deferredPublisherRestoreCompensationRef = React.useRef<{
+    anchorTop: number;
+    publisherName: string;
+  } | null>(null);
+  const initialViewportAppliedKeyRef = React.useRef<string | null>(null);
   const contentReady = true;
   const [seriesNodesByPublisher, setSeriesNodesByPublisher] = React.useState<Record<string, SeriesNode[]>>(
     () => {
       const nextState: Record<string, SeriesNode[]> = { ...(props.initialSeriesNodesByPublisher || {}) };
+      if (selectedPublisherName && !nextState[selectedPublisherName]) {
+        const cachedSelectedSeries = readCachedSeries(navStateKey, selectedPublisherName);
+        if (cachedSelectedSeries) {
+          nextState[selectedPublisherName] = cachedSelectedSeries;
+        }
+      }
       for (const publisherName of Object.keys(nextState)) {
         writeCachedSeries(navStateKey, publisherName, nextState[publisherName] || []);
       }
@@ -111,18 +141,158 @@ export default function List(props: Readonly<ListProps>) {
   const [issueNodesBySeriesKey, setIssueNodesBySeriesKey] = React.useState<Record<string, IssueNode[]>>(
     () => {
       const nextState: Record<string, IssueNode[]> = { ...(props.initialIssueNodesBySeriesKey || {}) };
+      if (selectedSeriesKey && !nextState[selectedSeriesKey]) {
+        const cachedSelectedIssues = readCachedIssues(navStateKey, selectedSeriesKey);
+        if (cachedSelectedIssues) {
+          nextState[selectedSeriesKey] = cachedSelectedIssues;
+        }
+      }
       for (const seriesKey of Object.keys(nextState)) {
         writeCachedIssues(navStateKey, seriesKey, nextState[seriesKey] || []);
       }
       return nextState;
     }
   );
-  const hasExpandedPublishers = React.useMemo(
-    () => Object.values(expandedPublishers).some(Boolean),
-    [expandedPublishers]
+  const canonicalSelectedPublisherName = React.useMemo(() => {
+    if (!selectedPublisherName) return null;
+    return (
+      visiblePublisherNodes.find((node) => isSameEntityName(node.name, selectedPublisherName))?.name
+        || selectedPublisherName
+    );
+  }, [selectedPublisherName, visiblePublisherNodes]);
+  const selectedPublisherIndex = React.useMemo(() => {
+    if (!canonicalSelectedPublisherName) return -1;
+    return visiblePublisherNodes.findIndex((node) =>
+      isSameEntityName(node.name, canonicalSelectedPublisherName)
+    );
+  }, [canonicalSelectedPublisherName, visiblePublisherNodes]);
+  const selectedSeriesNodes = React.useMemo(() => {
+    if (!canonicalSelectedPublisherName) return null;
+    return seriesNodesByPublisher[canonicalSelectedPublisherName] || null;
+  }, [canonicalSelectedPublisherName, seriesNodesByPublisher]);
+  const selectedSeriesIndex = React.useMemo(() => {
+    if (!selectedSeriesKey || !selectedSeriesNodes) return -1;
+    return selectedSeriesNodes.findIndex((seriesNode) => getSeriesKey(seriesNode) === selectedSeriesKey);
+  }, [selectedSeriesKey, selectedSeriesNodes]);
+  const selectedIssueNodes = React.useMemo(() => {
+    if (!selectedSeriesKey) return null;
+    return issueNodesBySeriesKey[selectedSeriesKey] ?? null;
+  }, [issueNodesBySeriesKey, selectedSeriesKey]);
+  const selectedIssueIndex = React.useMemo(() => {
+    if (!selectedIssue || !selectedSeriesKey) return -1;
+    const issueNodes = selectedIssueNodes || [];
+    return issueNodes.findIndex((issueNode) =>
+      doesIssueNodeMatchSelectedIssueRoute(issueNode, selectedIssue)
+    );
+  }, [selectedIssue, selectedIssueNodes, selectedSeriesKey]);
+  const isAwaitingIssueViewport = Boolean(
+    selectedIssue &&
+      selectedSeriesKey &&
+      selectedSeriesIndex >= 0 &&
+      selectedIssueNodes == null
   );
+  const isIssueViewportMiss = Boolean(
+    selectedIssue &&
+      selectedSeriesKey &&
+      selectedSeriesIndex >= 0 &&
+      selectedIssueNodes &&
+      selectedIssueIndex < 0
+  );
+  const initialViewportSelection = React.useMemo<InitialViewportSelection | null>(() => {
+    if (selectedPublisherIndex < 0) return null;
+
+    if (selectedIssue && selectedSeriesNodes && selectedSeriesIndex >= 0 && selectedSeriesKey) {
+      const issueNodes = selectedIssueNodes;
+      if (!issueNodes) return null;
+      if (selectedIssueIndex >= 0) {
+        return {
+          publisherIndex: selectedPublisherIndex,
+          series: {
+            totalCount: selectedSeriesNodes.length,
+            selectedIndex: selectedSeriesIndex,
+          },
+          issue: {
+            totalCount: issueNodes.length,
+            selectedIndex: selectedIssueIndex,
+          },
+        };
+      }
+    }
+
+    if (selectedSeriesNodes && selectedSeriesIndex >= 0) {
+      return {
+        publisherIndex: selectedPublisherIndex,
+        series: {
+          totalCount: selectedSeriesNodes.length,
+          selectedIndex: selectedSeriesIndex,
+        },
+      };
+    }
+
+    if (selectedPublisherIndex >= 0) {
+      return {
+        publisherIndex: selectedPublisherIndex,
+      };
+    }
+
+    return null;
+  }, [
+    selectedIssue,
+    selectedIssueIndex,
+    selectedIssueNodes,
+    selectedPublisherIndex,
+    selectedSeriesIndex,
+    selectedSeriesKey,
+    selectedSeriesNodes,
+  ]);
+  const canUseInitialViewportModel = Boolean(selectedRowKey && initialViewportSelection);
+  const allowAutoRevealFallback =
+    !canUseInitialViewportModel && !isAwaitingIssueViewport
+      ? true
+      : isIssueViewportMiss;
 
   React.useEffect(() => {
+    setSelectedPathReady(!selectedPublisherName);
+    const selectedPathInitKey = [
+      navStateKey,
+      selectedPublisherName || "",
+      selectedSeriesKey || "",
+      selectedRowKey || "",
+    ].join("|");
+    selectedPathInitKeyRef.current = selectedPathInitKey;
+    if (selectedPublisherName) {
+      markNavPerf("selected-path:init:start", {
+        publisher: selectedPublisherName,
+        seriesKey: selectedSeriesKey,
+        rowKey: selectedRowKey,
+      });
+    }
+  }, [navStateKey, selectedPublisherName, selectedSeriesKey, selectedRowKey]);
+
+  React.useEffect(() => {
+    if (!selectedPathReady || !selectedPublisherName) return;
+    if (!selectedPathInitKeyRef.current) return;
+
+    markNavPerf("selected-path:init:ready", {
+      publisher: canonicalSelectedPublisherName || selectedPublisherName,
+      seriesKey: selectedSeriesKey,
+      rowKey: selectedRowKey,
+    });
+    measureNavPerf(
+      "selected-path:init",
+      "selected-path:init:start",
+      "selected-path:init:ready"
+    );
+    printNavPerfSummary("selected-path-ready");
+  }, [
+    canonicalSelectedPublisherName,
+    selectedPathReady,
+    selectedPublisherName,
+    selectedRowKey,
+    selectedSeriesKey,
+  ]);
+
+  React.useLayoutEffect(() => {
     const storedExpansion = readNavExpansionState(navStateKey);
     const hasStoredExpansion = hasNavExpansionState(navStateKey);
 
@@ -147,21 +317,76 @@ export default function List(props: Readonly<ListProps>) {
             })
           )
         : storedExpansion;
+    deferredExpandedPublishersRef.current = normalizedStored;
 
     setExpandedPublishers(
-      hasStoredExpansion
-        ? { ...normalizedStored, ...requiredExpansion }
-        : requiredExpansion
+      selectedPublisherName
+        ? requiredExpansion
+        : hasStoredExpansion
+          ? { ...normalizedStored, ...requiredExpansion }
+          : requiredExpansion
     );
     setPublisherExpansionReady(true);
   }, [navStateKey, selectedPublisherName, visiblePublisherNodes]);
+
+  React.useLayoutEffect(() => {
+    if (!selectedPathReady) return;
+    const deferredExpandedPublishers = deferredExpandedPublishersRef.current;
+    if (!deferredExpandedPublishers) return;
+
+    const container = navScrollContainerRef.current;
+    const selectedPublisherRow = canonicalSelectedPublisherName
+      ? container?.querySelector<HTMLElement>(
+          `[data-nav-row-key="${CSS.escape(canonicalSelectedPublisherName)}"]`
+        ) || null
+      : null;
+
+    deferredPublisherRestoreCompensationRef.current =
+      container && selectedPublisherRow && canonicalSelectedPublisherName
+        ? {
+            publisherName: canonicalSelectedPublisherName,
+            anchorTop:
+              selectedPublisherRow.getBoundingClientRect().top - container.getBoundingClientRect().top,
+          }
+        : null;
+
+    setExpandedPublishers((prev) => ({ ...deferredExpandedPublishers, ...prev }));
+    deferredExpandedPublishersRef.current = null;
+  }, [canonicalSelectedPublisherName, selectedPathReady]);
+
+  React.useLayoutEffect(() => {
+    const pendingCompensation = deferredPublisherRestoreCompensationRef.current;
+    if (!pendingCompensation) return;
+
+    const container = navScrollContainerRef.current;
+    if (!container) {
+      deferredPublisherRestoreCompensationRef.current = null;
+      return;
+    }
+
+    const selectedPublisherRow = container.querySelector<HTMLElement>(
+      `[data-nav-row-key="${CSS.escape(pendingCompensation.publisherName)}"]`
+    );
+    if (!selectedPublisherRow) {
+      deferredPublisherRestoreCompensationRef.current = null;
+      return;
+    }
+
+    const nextAnchorTop =
+      selectedPublisherRow.getBoundingClientRect().top - container.getBoundingClientRect().top;
+    const delta = nextAnchorTop - pendingCompensation.anchorTop;
+    if (delta !== 0) {
+      container.scrollTop += delta;
+    }
+    deferredPublisherRestoreCompensationRef.current = null;
+  }, [expandedPublishers]);
 
   React.useEffect(() => {
     if (!publisherExpansionReady) return;
     writeNavExpansionState(navStateKey, expandedPublishers);
   }, [expandedPublishers, navStateKey, publisherExpansionReady]);
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     setSeriesNodesByPublisher((prev) => {
       const nextState = { ...prev };
       for (const [publisherName, seriesNodes] of Object.entries(props.initialSeriesNodesByPublisher || {})) {
@@ -172,7 +397,19 @@ export default function List(props: Readonly<ListProps>) {
     });
   }, [props.initialSeriesNodesByPublisher, navStateKey]);
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
+    if (!selectedPublisherName) return;
+    if (seriesNodesByPublisher[selectedPublisherName]) return;
+
+    const cachedSelectedSeries = readCachedSeries(navStateKey, selectedPublisherName);
+    if (!cachedSelectedSeries) return;
+
+    setSeriesNodesByPublisher((prev) =>
+      prev[selectedPublisherName] ? prev : { ...prev, [selectedPublisherName]: cachedSelectedSeries }
+    );
+  }, [navStateKey, selectedPublisherName, seriesNodesByPublisher]);
+
+  React.useLayoutEffect(() => {
     setIssueNodesBySeriesKey((prev) => {
       const nextState = { ...prev };
       for (const [seriesKey, issueNodes] of Object.entries(props.initialIssueNodesBySeriesKey || {})) {
@@ -183,20 +420,81 @@ export default function List(props: Readonly<ListProps>) {
     });
   }, [props.initialIssueNodesBySeriesKey, navStateKey]);
 
+  React.useLayoutEffect(() => {
+    if (!selectedSeriesKey) return;
+    if (issueNodesBySeriesKey[selectedSeriesKey]) return;
+
+    const cachedSelectedIssues = readCachedIssues(navStateKey, selectedSeriesKey);
+    if (!cachedSelectedIssues) return;
+
+    setIssueNodesBySeriesKey((prev) =>
+      prev[selectedSeriesKey] ? prev : { ...prev, [selectedSeriesKey]: cachedSelectedIssues }
+    );
+  }, [issueNodesBySeriesKey, navStateKey, selectedSeriesKey]);
+
   React.useEffect(() => {
     if (isPending) return;
     setPendingPublisherKey(null);
     setPendingNavigationKey(null);
   }, [isPending]);
 
+  const scrollRowIntoView = React.useCallback(
+    (rowKey: string, force = false, behavior?: ScrollBehavior) => {
+      const container = navScrollContainerRef.current;
+      if (!container) return false;
+
+      const row = container.querySelector<HTMLElement>(`[data-nav-row-key="${CSS.escape(rowKey)}"]`);
+      if (!row) return false;
+      if (!force && isElementVisibleInContainer(row, container)) return true;
+
+      scrollNavElementIntoView(row, container, { behavior });
+      return true;
+    },
+    []
+  );
+
   React.useLayoutEffect(() => {
+    if (canUseInitialViewportModel) {
+      const container = navScrollContainerRef.current;
+      if (!container || !initialViewportSelection) return;
+
+      const initialViewportKey = `${navStateKey}|${selectedRowKey || ""}|${getInitialViewportSelectionSignature(initialViewportSelection)}`;
+      if (initialViewportAppliedKeyRef.current !== initialViewportKey) {
+        const resolvedByExactRow =
+          selectedRowKey
+            ? scrollRowIntoView(selectedRowKey, true, "auto")
+            : false;
+        if (!resolvedByExactRow) {
+          container.scrollTop = getInitialViewportScrollTop(
+            initialViewportSelection,
+            container.clientHeight
+          );
+        }
+        initialViewportAppliedKeyRef.current = initialViewportKey;
+      }
+      if (!selectedPathReady) {
+        setSelectedPathReady(true);
+      }
+      return;
+    }
+
+    if (selectedRowKey) return;
+
     const targetScrollTop = readNavScrollTop(navStateKey);
     const container = navScrollContainerRef.current;
     if (container) container.scrollTop = targetScrollTop;
 
     const listElement = listRef.current;
     if (listElement) listElement.scrollTop = targetScrollTop;
-  }, [navStateKey, visiblePublisherNodes.length]);
+  }, [
+    canUseInitialViewportModel,
+    initialViewportSelection,
+    navStateKey,
+    scrollRowIntoView,
+    selectedPathReady,
+    selectedRowKey,
+    visiblePublisherNodes.length,
+  ]);
 
   React.useEffect(() => {
     return () => {
@@ -209,11 +507,16 @@ export default function List(props: Readonly<ListProps>) {
     suppressIssueAutoScrollRef.current = false;
   }, [selectedIssue?.number]);
 
-  React.useEffect(() => {
+  const tryResolveInitialPublisherViewport = React.useCallback(() => {
+    if (isAwaitingIssueViewport) return;
+    if (canUseInitialViewportModel) return;
     if (!selectedPublisherName) return;
 
     // Keep deeper explicit targets (series/issue row keys) in control.
     if (selectedRowKey && !isSameEntityName(selectedRowKey, selectedPublisherName)) return;
+
+    const autoRevealKey = `${navStateKey}|publisher|${selectedPublisherName}|${selectedRowKey || ""}`;
+    if (publisherAutoRevealKeyRef.current === autoRevealKey) return;
 
     const container = navScrollContainerRef.current;
     const listElement = listRef.current;
@@ -223,42 +526,58 @@ export default function List(props: Readonly<ListProps>) {
       listElement.querySelectorAll<HTMLElement>("[data-nav-row-key]")
     ).find((element) => isSameEntityName(element.dataset.navRowKey, selectedPublisherName));
     if (!selectedRow) return;
-    if (isElementVisibleInContainer(selectedRow, container)) return;
+    if (isElementVisibleInContainer(selectedRow, container)) {
+      publisherAutoRevealKeyRef.current = autoRevealKey;
+      if (!selectedSeriesKey) {
+        setSelectedPathReady(true);
+      }
+      return;
+    }
 
-    selectedRow.scrollIntoView({
-      block: "center",
-      inline: "nearest",
+    scrollNavElementIntoView(selectedRow, container, { behavior: "auto" });
+    publisherAutoRevealKeyRef.current = autoRevealKey;
+    if (!selectedSeriesKey) {
+      setSelectedPathReady(true);
+    }
+  }, [
+    canUseInitialViewportModel,
+    isAwaitingIssueViewport,
+    navStateKey,
+    selectedPublisherName,
+    selectedRowKey,
+    selectedSeriesKey,
+  ]);
+
+  React.useLayoutEffect(() => {
+    tryResolveInitialPublisherViewport();
+  }, [tryResolveInitialPublisherViewport, visiblePublisherNodes.length]);
+
+  const handleSelectedPathReady = React.useCallback(() => {
+    markNavPerf("selected-path:priority-ready", {
+      publisher: canonicalSelectedPublisherName || selectedPublisherName,
+      seriesKey: selectedSeriesKey,
+      rowKey: selectedRowKey,
     });
-  }, [selectedPublisherName, selectedRowKey, expandedPublishers, visiblePublisherNodes.length]);
-
-  const scrollRowIntoView = React.useCallback(
-    (rowKey: string, force = false) => {
-      const container = navScrollContainerRef.current;
-      if (!container) return false;
-
-      const row = container.querySelector<HTMLElement>(`[data-nav-row-key="${CSS.escape(rowKey)}"]`);
-      if (!row) return false;
-      if (!force && isElementVisibleInContainer(row, container)) return true;
-
-      row.scrollIntoView({
-        block: "center",
-        inline: "nearest",
-      });
-      return true;
-    },
-    []
-  );
+    measureNavPerf(
+      "selected-path:priority",
+      "selected-path:init:start",
+      "selected-path:priority-ready"
+    );
+    setSelectedPathReady(true);
+  }, [canonicalSelectedPublisherName, selectedPublisherName, selectedRowKey, selectedSeriesKey]);
 
   const updateNavOpenState = React.useCallback(
     async (publisherName: string) => {
       if (seriesNodesByPublisher[publisherName]) return true;
       const cached = readCachedSeries(navStateKey, publisherName);
       if (cached) {
+        markNavPerf("publisher-series:cache-hit", { publisher: publisherName, count: cached.length });
         setSeriesNodesByPublisher((prev) => (prev[publisherName] ? prev : { ...prev, [publisherName]: cached }));
         return true;
       }
 
       setPendingPublisherKey(`publisher:${publisherName}`);
+      markNavPerf("publisher-series:fetch:start", { publisher: publisherName });
       try {
         const params = new URLSearchParams({
           scope: "series",
@@ -272,6 +591,16 @@ export default function List(props: Readonly<ListProps>) {
         if (!response.ok) return false;
         const payload = (await response.json()) as { items?: SeriesNode[] };
         const seriesNodes = payload.items || [];
+        markNavPerf("publisher-series:fetch:end", {
+          publisher: publisherName,
+          count: seriesNodes.length,
+        });
+        measureNavPerf(
+          "publisher-series:fetch",
+          "publisher-series:fetch:start",
+          "publisher-series:fetch:end",
+          { publisher: publisherName }
+        );
         writeCachedSeries(navStateKey, publisherName, seriesNodes);
         setSeriesNodesByPublisher((prev) => ({ ...prev, [publisherName]: seriesNodes }));
         return true;
@@ -292,11 +621,17 @@ export default function List(props: Readonly<ListProps>) {
       if (issueNodesBySeriesKey[seriesKey]) return true;
       const cached = readCachedIssues(navStateKey, seriesKey);
       if (cached) {
+        markNavPerf("series-issues:cache-hit", {
+          publisher: publisherName,
+          seriesKey,
+          count: cached.length,
+        });
         setIssueNodesBySeriesKey((prev) => (prev[seriesKey] ? prev : { ...prev, [seriesKey]: cached }));
         return true;
       }
 
       setPendingPublisherKey(`series:${publisherName}:${seriesKey}`);
+      markNavPerf("series-issues:fetch:start", { publisher: publisherName, seriesKey });
       try {
         const params = new URLSearchParams({
           scope: "issues",
@@ -315,6 +650,17 @@ export default function List(props: Readonly<ListProps>) {
         if (!response.ok) return false;
         const payload = (await response.json()) as { items?: IssueNode[] };
         const issueNodes = payload.items || [];
+        markNavPerf("series-issues:fetch:end", {
+          publisher: publisherName,
+          seriesKey,
+          count: issueNodes.length,
+        });
+        measureNavPerf(
+          "series-issues:fetch",
+          "series-issues:fetch:start",
+          "series-issues:fetch:end",
+          { publisher: publisherName, seriesKey }
+        );
         writeCachedIssues(navStateKey, seriesKey, issueNodes);
         setIssueNodesBySeriesKey((prev) => ({ ...prev, [seriesKey]: issueNodes }));
         return true;
@@ -328,11 +674,20 @@ export default function List(props: Readonly<ListProps>) {
   );
 
   React.useEffect(() => {
-    for (const publisherName of Object.keys(expandedPublishers)) {
-      if (!expandedPublishers[publisherName]) continue;
+    const expandedPublisherNames = Object.keys(expandedPublishers).filter(
+      (publisherName) => expandedPublishers[publisherName]
+    );
+    const publishersToLoad =
+      !canonicalSelectedPublisherName || selectedPathReady
+        ? expandedPublisherNames
+        : expandedPublisherNames.filter((publisherName) =>
+            isSameEntityName(publisherName, canonicalSelectedPublisherName)
+          );
+
+    for (const publisherName of publishersToLoad) {
       void updateNavOpenState(publisherName);
     }
-  }, [expandedPublishers, updateNavOpenState]);
+  }, [canonicalSelectedPublisherName, expandedPublishers, selectedPathReady, updateNavOpenState]);
 
   const pushSelection = React.useCallback(
     (_event: unknown, item: SelectedRoot, closeOnPhone = false) => {
@@ -416,46 +771,10 @@ export default function List(props: Readonly<ListProps>) {
     };
   }, [props.selected.issue, props.selected.publisher, props.selected.series, selectedPublisherName, selectedSeriesKey]);
 
-  const canonicalSelectedPublisherName = React.useMemo(() => {
-    if (!selectedContext.publisherName) return null;
-    return (
-      visiblePublisherNodes.find((node) => isSameEntityName(node.name, selectedContext.publisherName))
-        ?.name || selectedContext.publisherName
-    );
-  }, [selectedContext.publisherName, visiblePublisherNodes]);
-
   const getNextNavActionToken = React.useCallback(() => {
     navActionTokenRef.current += 1;
     return navActionTokenRef.current;
   }, []);
-
-  const handleCloseAll = React.useCallback(() => {
-    setExpandedPublishers({});
-    writeNavExpansionState(navStateKey, {});
-    for (const publisherName of Object.keys(seriesNodesByPublisher)) {
-      writeNavExpansionState(`${navStateKey}|${publisherName}`, {});
-    }
-    setNavAction({ type: "closeAll", token: getNextNavActionToken() });
-  }, [getNextNavActionToken, navStateKey, seriesNodesByPublisher]);
-
-  const handleShowAll = React.useCallback(() => {
-    if (selectedContext.scope === "root") {
-      setExpandedPublishers(buildExpandedPublishers(visiblePublisherNodes.map((node) => node.name || "").filter(Boolean)));
-      setNavAction({ type: "showAll", token: getNextNavActionToken(), scope: "root" });
-      return;
-    }
-
-    if (!canonicalSelectedPublisherName) return;
-
-    setExpandedPublishers((prev) => ({ ...prev, [canonicalSelectedPublisherName]: true }));
-    setNavAction({
-      type: "showAll",
-      token: getNextNavActionToken(),
-      scope: selectedContext.scope,
-      publisherName: canonicalSelectedPublisherName,
-      seriesKey: selectedContext.seriesKey,
-    });
-  }, [canonicalSelectedPublisherName, getNextNavActionToken, selectedContext, visiblePublisherNodes]);
 
   const handleScrollToSelected = React.useCallback(async () => {
     if (!selectedRowKey) return;
@@ -495,11 +814,37 @@ export default function List(props: Readonly<ListProps>) {
 
   const content =
     loading && visiblePublisherNodes.length === 0 ? (
-      <>
-        {Array.from({ length: 20 }, (_unused, idx) => (
-          <TypeListEntryPlaceholder key={`nav-loading-placeholder-${idx}`} />
-        ))}
-      </>
+      <Box
+        component="li"
+        role="status"
+        aria-live="polite"
+        aria-label="Navigation wird geladen"
+        sx={{
+          listStyle: "none",
+          m: 0,
+          p: 2,
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
+        <Box
+          aria-hidden
+          sx={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 1,
+            px: 1.5,
+            py: 1,
+            borderRadius: 999,
+            border: "1px solid",
+            borderColor: "divider",
+            bgcolor: "background.paper",
+            color: "text.secondary",
+          }}
+        >
+          <CircularProgress size={16} />
+        </Box>
+      </Box>
     ) : visiblePublisherNodes.length === 0 ? (
       <NestedEmptyRow depth={0} message="Keine Einträge vorhanden" />
     ) : (
@@ -507,6 +852,46 @@ export default function List(props: Readonly<ListProps>) {
         const publisherName = publisherNode.name || "";
         const expanded = Boolean(expandedPublishers[publisherName]);
         const selected = isSameEntityName(selectedPublisherName, publisherName);
+        const bypassSeriesCollapse =
+          expanded &&
+          selected &&
+          !selectedPathReady &&
+          isSameEntityName(publisherName, canonicalSelectedPublisherName);
+        const seriesBranch = (
+          <SeriesBranch
+            us={us}
+            publisher={publisherNode}
+            initialSeriesNodes={seriesNodesByPublisher[publisherName]}
+            initialIssueNodesBySeriesKey={issueNodesBySeriesKey}
+            navStateKey={navStateKey}
+            activeSeriesKey={selected ? selectedSeriesKey : null}
+            selectedIssue={selectedIssue}
+            session={props.session}
+            pushSelection={pushSelection}
+            ensureIssueNodesLoaded={ensureIssueNodesLoaded}
+            navScrollContainerRef={navScrollContainerRef}
+            suppressAutoScrollRef={suppressIssueAutoScrollRef}
+            navigationPending={isPending}
+            pendingNavigationKey={pendingNavigationKey}
+            pendingPublisherKey={pendingPublisherKey}
+            navAction={navAction}
+            selectedRowKey={selectedRowKey}
+            deferNonPriorityInitialization={!selectedPathReady}
+            deferProgressiveWindowing={
+              !selectedPathReady && isSameEntityName(publisherName, canonicalSelectedPublisherName)
+            }
+            restoreStoredExpansion={
+              selectedPathReady || !isSameEntityName(publisherName, canonicalSelectedPublisherName)
+            }
+            allowAutoRevealFallback={allowAutoRevealFallback}
+            bypassInitialIssueCollapseAnimation={bypassSeriesCollapse}
+            onPriorityPathReady={
+              isSameEntityName(publisherName, canonicalSelectedPublisherName)
+                ? handleSelectedPathReady
+                : undefined
+            }
+          />
+        );
 
         return (
           <Box
@@ -531,32 +916,20 @@ export default function List(props: Readonly<ListProps>) {
               onClick={handlePublisherClick}
             />
 
-            <Collapse
-              in={expanded}
-              timeout="auto"
-              unmountOnExit
-              component="div"
-            >
-              <SeriesBranch
-                us={us}
-                publisher={publisherNode}
-                initialSeriesNodes={seriesNodesByPublisher[publisherName]}
-                initialIssueNodesBySeriesKey={issueNodesBySeriesKey}
-                navStateKey={navStateKey}
-                activeSeriesKey={selected ? selectedSeriesKey : null}
-                selectedIssue={selectedIssue}
-                session={props.session}
-                pushSelection={pushSelection}
-                ensureIssueNodesLoaded={ensureIssueNodesLoaded}
-                navScrollContainerRef={navScrollContainerRef}
-                suppressAutoScrollRef={suppressIssueAutoScrollRef}
-                navigationPending={isPending}
-                pendingNavigationKey={pendingNavigationKey}
-                pendingPublisherKey={pendingPublisherKey}
-                navAction={navAction}
-                selectedRowKey={selectedRowKey}
-              />
-            </Collapse>
+            {bypassSeriesCollapse ? (
+              <Box component="div">
+                {seriesBranch}
+              </Box>
+            ) : (
+              <Collapse
+                in={expanded}
+                timeout="auto"
+                unmountOnExit
+                component="div"
+              >
+                {seriesBranch}
+              </Collapse>
+            )}
           </Box>
         );
       })
@@ -572,12 +945,7 @@ export default function List(props: Readonly<ListProps>) {
       navScrollContainerRef={navScrollContainerRef}
       listRef={listRef}
       onScrollToSelected={handleScrollToSelected}
-      onCloseAll={handleCloseAll}
-      onShowAll={handleShowAll}
-      showCollapseToggle={hasExpandedPublishers}
       disableScrollToSelected={!selectedRowKey}
-      disableCloseAll={visiblePublisherNodes.length === 0}
-      disableShowAll={visiblePublisherNodes.length === 0 || isIssueLevelSelected}
     >
       {content}
     </NavDrawer>
@@ -619,4 +987,23 @@ function buildPendingNavigationKey(item: SelectedRoot) {
   }
 
   return "";
+}
+
+function getInitialViewportSelectionSignature(selection: InitialViewportSelection) {
+  if (!("series" in selection)) {
+    return `publisher:${selection.publisherIndex}`;
+  }
+
+  if (!("issue" in selection)) {
+    return `series:${selection.publisherIndex}:${selection.series.selectedIndex}:${selection.series.totalCount}`;
+  }
+
+  return [
+    "issue",
+    selection.publisherIndex,
+    selection.series.selectedIndex,
+    selection.series.totalCount,
+    selection.issue.selectedIndex,
+    selection.issue.totalCount,
+  ].join(":");
 }

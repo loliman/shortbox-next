@@ -164,7 +164,7 @@ function mockVariantOnlyIssueList(issueNumbers: string[] = ["126", "126"]) {
   );
 }
 
-describe.skip("nav-bar List", () => {
+describe("nav-bar List", () => {
   let originalScrollIntoView: unknown;
 
   beforeEach(() => {

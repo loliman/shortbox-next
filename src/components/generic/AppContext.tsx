@@ -16,13 +16,30 @@ export interface ThemeContextValue {
   toggleTheme: () => void;
 }
 
+export interface NavigationFeedbackContextValue {
+  navigationPending: boolean;
+  chromeLoading: boolean;
+  beginNavigation: () => void;
+  setChromeLoading: (loading: boolean) => void;
+}
+
 const defaultThemeContextValue: ThemeContextValue = {
   themeMode: "light",
   themeReady: false,
   toggleTheme: () => {},
 };
 
+const defaultNavigationFeedbackContextValue: NavigationFeedbackContextValue = {
+  navigationPending: false,
+  chromeLoading: false,
+  beginNavigation: () => {},
+  setChromeLoading: () => {},
+};
+
 export const ThemeModeContext = React.createContext<ThemeContextValue>(defaultThemeContextValue);
+export const NavigationFeedbackContext = React.createContext<NavigationFeedbackContextValue>(
+  defaultNavigationFeedbackContextValue
+);
 
 export function ThemeModeProvider({
   children,
@@ -48,6 +65,10 @@ export function ThemeModeProvider({
 
 export function useThemeModeContext() {
   return React.useContext(ThemeModeContext);
+}
+
+export function useNavigationFeedbackContext() {
+  return React.useContext(NavigationFeedbackContext);
 }
 
 export default ThemeModeProvider;

@@ -8,8 +8,6 @@ import MuiList from "@mui/material/List";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
-import CompressIcon from "@mui/icons-material/Compress";
-import ExpandIcon from "@mui/icons-material/Expand";
 import {
   COMPACT_BOTTOM_BAR_CLEARANCE,
   drawerHeaderAdjustedHeight,
@@ -27,12 +25,7 @@ type NavDrawerProps = {
   navScrollContainerRef: React.RefObject<HTMLDivElement | null>;
   listRef: React.RefObject<HTMLUListElement | null>;
   onScrollToSelected?: () => void;
-  onCloseAll?: () => void;
-  onShowAll?: () => void;
-  showCollapseToggle?: boolean;
   disableScrollToSelected?: boolean;
-  disableCloseAll?: boolean;
-  disableShowAll?: boolean;
   children: React.ReactNode;
 };
 
@@ -46,12 +39,7 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
     navScrollContainerRef,
     listRef,
     onScrollToSelected,
-    onCloseAll,
-    onShowAll,
-    showCollapseToggle = false,
     disableScrollToSelected = false,
-    disableCloseAll = false,
-    disableShowAll = false,
     children,
   } = props;
   const drawerWidth = getNavDrawerWidth(temporary);
@@ -70,11 +58,6 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
     },
     [navStateKey]
   );
-
-  const handleExpandToggle = showCollapseToggle ? onCloseAll : onShowAll;
-  const expandToggleDisabled = showCollapseToggle ? disableCloseAll : disableShowAll;
-  const expandToggleLabel = showCollapseToggle ? "Alles einklappen" : "Alles ausklappen";
-  const ExpandToggleIcon = showCollapseToggle ? CompressIcon : ExpandIcon;
 
   const drawerContent = (
     <Box sx={{ position: "relative", width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
@@ -122,34 +105,6 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
                 }}
               >
                 <MyLocationIcon sx={{ fontSize: 18 }} />
-              </IconButton>
-            </span>
-          </Tooltip>
-          <Tooltip describeChild title={expandToggleLabel}>
-            <span>
-              <IconButton
-                aria-label={expandToggleLabel}
-                onClick={handleExpandToggle}
-                disabled={expandToggleDisabled}
-                size="small"
-                sx={{
-                  width: 34,
-                  height: 34,
-                  color: "text.primary",
-                  borderRadius: 0,
-                  backgroundColor: "background.paper",
-                  borderLeft: "1px solid",
-                  borderColor: "divider",
-                  "&:hover": {
-                    backgroundColor: "action.hover",
-                  },
-                  "&.Mui-disabled": {
-                    backgroundColor: "background.paper",
-                    opacity: 0.72,
-                  },
-                }}
-              >
-                <ExpandToggleIcon sx={{ fontSize: 18 }} />
               </IconButton>
             </span>
           </Tooltip>

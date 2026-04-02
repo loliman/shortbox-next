@@ -2,37 +2,43 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
+import { useNavigationFeedbackContext } from "./AppContext";
 
 export function usePendingNavigation() {
   const router = useRouter();
+  const navigationFeedback = useNavigationFeedbackContext();
   const [isPending, startTransition] = React.useTransition();
 
   const push = React.useCallback(
     (href: string) => {
+      navigationFeedback.beginNavigation();
       startTransition(() => {
         router.push(href);
       });
     },
-    [router]
+    [navigationFeedback, router]
   );
 
   const replace = React.useCallback(
     (href: string) => {
+      navigationFeedback.beginNavigation();
       startTransition(() => {
         router.replace(href);
       });
     },
-    [router]
+    [navigationFeedback, router]
   );
 
   const refresh = React.useCallback(() => {
+    navigationFeedback.beginNavigation();
     startTransition(() => {
       router.refresh();
     });
-  }, [router]);
+  }, [navigationFeedback, router]);
 
   return {
     isPending,
+    navigationPending: navigationFeedback.navigationPending,
     push,
     replace,
     refresh,

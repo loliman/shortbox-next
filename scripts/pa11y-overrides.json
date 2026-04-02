@@ -1,7 +1,7 @@
 {
   "global": {
     "hideElements": [
-      "input[aria-label=\"Comic suchen\"]",
+      "input[aria-label=\"Shortbox durchsuchen\"]",
       "[id$=\"-sort-container-select\"]",
       "[data-audit-ignore-pa11y=\"issue-variants-summary\"]",
       "[data-audit-ignore-pa11y=\"nav-variant-count\"]"

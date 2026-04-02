@@ -2,6 +2,7 @@ import { HierarchyLevel, type HierarchyLevelType } from "../../util/hierarchy";
 import type { Connection, QueryCollection } from "../../types/query-data";
 import type { SelectedRoot } from "../../types/domain";
 import { parseAndNormalizeLegacyFilter } from "../../services/filter/filter-normalization";
+import { scrollNavElementIntoView } from "./listTreeUtils";
 
 type ListNode = Record<string, unknown> & {
   number?: string;
@@ -55,10 +56,7 @@ export function scrollToSelectedIssue(
   const currentItem = listElement.querySelector(`[data-item-index="${idx}"]`) as HTMLElement | null;
   if (!currentItem) return;
 
-  currentItem.scrollIntoView({
-    block: "center",
-    inline: "nearest",
-  });
+  scrollNavElementIntoView(currentItem);
 }
 
 export function toNodeList(data: unknown, queryName: string): ListNode[] | null {

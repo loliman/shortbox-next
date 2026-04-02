@@ -19,15 +19,9 @@ import { mutationRequest } from "../../lib/client/mutation-request";
 import type { RouteQuery } from "../../types/route-ui";
 import { buildRouteHref } from "../generic/routeHref";
 import { usePendingNavigation } from "../generic/usePendingNavigation";
-
-const DeferredSearchBar = dynamic(() => import("./SearchBar"), {
-  ssr: false,
-  loading: () => <SearchBarPlaceholder />,
-});
-
-const DeferredTopBarFilterMenu = dynamic(() => import("./TopBarFilterMenu"), {
-  loading: () => <FilterButtonPlaceholder />,
-});
+import { useNavigationFeedbackContext } from "../generic/AppContext";
+import SearchBar from "./SearchBar";
+import TopBarFilterMenu from "./TopBarFilterMenu";
 
 type SwitchComponentProps = {
   checked: boolean;
@@ -193,11 +187,13 @@ const Android12Switch = styled(Switch)(({ theme }) => ({
 }));
 
 export default function TopBar(ownProps: TopBarProps) {
+  const navigationFeedback = useNavigationFeedbackContext();
   const {
-    isPending: navigationPending,
+    navigationPending,
     push: pushNavigation,
     refresh: refreshNavigation,
   } = usePendingNavigation();
+  const progressVisible = navigationFeedback.navigationPending || navigationFeedback.chromeLoading;
   const toggleDrawer = ownProps.toggleDrawer;
   const drawerOpen = ownProps.drawerOpen;
   const us = Boolean(ownProps.us);
@@ -278,6 +274,7 @@ export default function TopBar(ownProps: TopBarProps) {
           us={us}
           query={query}
           resetNavigationState={ownProps.resetNavigationState}
+          onNavigate={navigate}
         />
 
         <TopBarCompactActions
@@ -343,9 +340,11 @@ export default function TopBar(ownProps: TopBarProps) {
           HamburgerIconComponent={HamburgerIcon}
           drawerOpen={drawerOpen}
           showNavigation={showNavigation}
-          FilterButton={DeferredTopBarFilterMenu}
+          FilterButton={TopBarFilterMenu}
         />
       ) : null}
+
+      {progressVisible ? <GlobalNavigationIndicator /> : null}
 
     </AppBar>
   );
@@ -359,6 +358,7 @@ function TopBarStart(props: {
   us: boolean;
   query?: RouteQuery | null;
   resetNavigationState?: () => void;
+  onNavigate: (href: string) => void;
 }) {
   const homeHref = buildRouteHref(props.us ? "/us" : "/de", props.query);
 
@@ -386,8 +386,20 @@ function TopBarStart(props: {
         component={Link}
         href={homeHref}
         aria-label="Zur Startseite"
-        onClick={() => {
+        onClick={(event) => {
           props.resetNavigationState?.();
+          if (
+            event.defaultPrevented ||
+            event.button !== 0 ||
+            event.metaKey ||
+            event.ctrlKey ||
+            event.shiftKey ||
+            event.altKey
+          ) {
+            return;
+          }
+          event.preventDefault();
+          props.onNavigate(homeHref);
         }}
         sx={{
           display: "inline-flex",
@@ -439,7 +451,7 @@ function TopBarSearchCenter(props: {
       }}
     >
       <Box sx={{ minWidth: 0, flex: 1, position: "relative" }}>
-        <DeferredSearchBar
+        <SearchBar
           us={props.us}
           compactLayout={false}
         />
@@ -456,7 +468,7 @@ function TopBarSearchCenter(props: {
           />
         ) : null}
       </Box>
-      <DeferredTopBarFilterMenu
+      <TopBarFilterMenu
         us={props.us}
         selected={props.selected}
         isFilterActive={props.isFilterActive}
@@ -490,7 +502,7 @@ function MobileSearchOverlay(props: {
     >
       <Box sx={{ width: "95vw", mx: "auto", position: "relative" }}>
         <Box sx={{ minWidth: 0, pr: 7.5 }}>
-          <DeferredSearchBar
+          <SearchBar
             us={props.us}
             autoFocus={true}
             compactLayout={true}
@@ -538,49 +550,6 @@ function MobileSearchOverlay(props: {
   );
 }
 
-function SearchBarPlaceholder() {
-  return (
-    <Box
-      aria-hidden
-      sx={(theme) => ({
-        width: "100%",
-        height: 40,
-        display: "flex",
-        alignItems: "center",
-        gap: 1,
-        px: 1.5,
-        borderRadius: 999,
-        border: "1px solid",
-        borderColor: alpha(theme.palette.common.white, theme.palette.mode === "dark" ? 0.18 : 0.24),
-        backgroundColor:
-          theme.palette.mode === "dark"
-            ? alpha(theme.palette.common.white, 0.08)
-            : alpha(theme.palette.common.white, 0.16),
-        color: theme.palette.common.white,
-      })}
-    >
-      <SearchIcon sx={{ fontSize: 18, opacity: 0.92 }} />
-      <Box
-        component="span"
-        sx={{
-          fontSize: "0.95rem",
-          lineHeight: 1,
-          opacity: 0.88,
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-        }}
-      >
-        Comic suchen
-      </Box>
-    </Box>
-  );
-}
-
-function FilterButtonPlaceholder() {
-  return <Box aria-hidden sx={{ width: 40, height: 40, flexShrink: 0 }} />;
-}
-
 function DesktopActionsPlaceholder() {
   return (
     <Box
@@ -601,6 +570,47 @@ function DesktopActionsPlaceholder() {
 
 function ThemeTogglePlaceholder() {
   return <Box aria-hidden sx={{ width: 40, height: 40, borderRadius: "50%" }} />;
+}
+
+function GlobalNavigationIndicator() {
+  return (
+    <Box
+      aria-hidden
+      sx={{
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: -1,
+        height: 2,
+        overflow: "hidden",
+        pointerEvents: "none",
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          inset: 0,
+          opacity: 0.22,
+          background:
+            "linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.6), rgba(255,255,255,0))",
+        },
+        "&::after": {
+          content: '""',
+          position: "absolute",
+          top: 0,
+          bottom: 0,
+          width: "28%",
+          minWidth: 84,
+          borderRadius: 999,
+          background:
+            "linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.95), rgba(255,255,255,0))",
+          animation: "shortboxNavigationIndicator 920ms ease-in-out infinite",
+        },
+        "@keyframes shortboxNavigationIndicator": {
+          "0%": { transform: "translateX(-115%)" },
+          "100%": { transform: "translateX(430%)" },
+        },
+      }}
+    />
+  );
 }
 
 function HamburgerIcon(props: { open: boolean }) {

@@ -2,7 +2,6 @@
 
 import React from "react";
 import NextLink from "next/link";
-import { useRouter } from "next/navigation";
 import ListItem from "@mui/material/ListItem";
 import Typography from "@mui/material/Typography";
 import Link from "@mui/material/Link";
@@ -15,6 +14,7 @@ import type { StoryIssue } from "./utils/storyIssueUtils";
 import { getIssueLabel, getIssueUrl, getSeriesLabel } from "../../../util/issuePresentation";
 import { IssueReferenceInline } from "../../generic/IssueNumberInline";
 import { buildRouteHref } from "../../generic/routeHref";
+import { usePendingNavigation } from "../../generic/usePendingNavigation";
 
 type ParentLink = {
   issue: StoryIssue;
@@ -38,7 +38,7 @@ type StoryIssueListItemProps = {
 };
 
 export function StoryIssueListItem(props: Readonly<StoryIssueListItemProps>) {
-  const router = useRouter();
+  const { push } = usePendingNavigation();
   const publisherTitle = props.issue?.series?.publisher?.name || "";
   const routeUs = Boolean(props.routeUs);
   const coverUs = props.coverUs === undefined ? routeUs : props.coverUs;
@@ -49,7 +49,7 @@ export function StoryIssueListItem(props: Readonly<StoryIssueListItemProps>) {
       divider={props.divider}
       sx={{ px: 0, py: 1.25, alignItems: "flex-start", justifyContent: "space-between", gap: 1 }}
       onClick={() =>
-        router.push(
+        push(
           buildRouteHref(getIssueUrl(props.issue, routeUs), null, {
             expand: props.number,
             filter: null,
@@ -166,7 +166,7 @@ export function StoryIssueListItem(props: Readonly<StoryIssueListItemProps>) {
           <IconButton
             onClick={(e) => {
               e.stopPropagation();
-              router.push(
+              push(
                 buildRouteHref(getIssueUrl(props.issue, routeUs), null, {
                   expand: props.number,
                   filter: null,

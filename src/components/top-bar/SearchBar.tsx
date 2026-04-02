@@ -34,7 +34,7 @@ interface SearchBarProps {
 }
 
 export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
-  const { isPending: navigationPending, push } = usePendingNavigation();
+  const { navigationPending, push } = usePendingNavigation();
   const [pattern, setPattern] = useState("");
   const [debouncedPattern, setDebouncedPattern] = useState("");
   const [focused, setFocused] = useState(false);
@@ -253,7 +253,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                 noWrap
                 sx={{ minWidth: 0, flexShrink: 0, fontSize: "1rem", color: "text.primary" }}
               >
-                Tippen zum Suchen
+                Shortbox durchsuchen
               </Typography>
               <Typography component="span" noWrap sx={{ minWidth: "1.2em", textAlign: "left" }}>
                 {".".repeat(hintDotCount)}
@@ -422,6 +422,8 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                 color: "#111111",
               },
               "& .MuiOutlinedInput-input": {
+                fontSize: "0.95rem",
+                lineHeight: 1.2,
                 color: "#111111 !important",
                 WebkitTextFillColor: "#111111 !important",
                 fontWeight: 500,
@@ -449,8 +451,8 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
             })}
             inputProps={{
               ...params.inputProps,
-              "aria-label": "Comic suchen",
-              placeholder: "Comic suchen",
+              "aria-label": "Shortbox durchsuchen",
+              placeholder: "Shortbox durchsuchen",
             }}
             InputProps={{
               ...params.InputProps,

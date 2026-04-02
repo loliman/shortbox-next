@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation";
 import Chip from "@mui/material/Chip";
 import Box from "@mui/material/Box";
 import { buildArcFilterUrl } from "@/src/lib/url-builder";
+import { usePendingNavigation } from "../../generic/usePendingNavigation";
 
 type ArcLike = {
   title?: string | null;
@@ -18,7 +18,7 @@ type StoryArcChipsProps = {
 };
 
 export function StoryArcChips(props: Readonly<StoryArcChipsProps>) {
-  const router = useRouter();
+  const { push } = usePendingNavigation();
   const arcs = (props.arcs || []).filter((arc) => Boolean(arc?.title));
   if (arcs.length === 0) return null;
 
@@ -44,7 +44,7 @@ export function StoryArcChips(props: Readonly<StoryArcChipsProps>) {
               label={arcTitle + " (" + type + ")"}
               color={color}
               onClick={() =>
-                router.push(
+                push(
                   buildArcFilterUrl(props.us ? "us" : "de", arcTitle)
                 )
               }

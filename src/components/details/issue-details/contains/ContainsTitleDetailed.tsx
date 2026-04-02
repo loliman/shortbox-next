@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation";
 import Typography from "@mui/material/Typography";
 import Link from "@mui/material/Link";
 import Chip from "@mui/material/Chip";
@@ -13,6 +12,7 @@ import { generateLabel, generateSeoUrl } from "../../../../util/hierarchy";
 import type { SelectedRoot } from "../../../../types/domain";
 import { IssueReferenceInline } from "../../../generic/IssueNumberInline";
 import { buildRouteHref } from "../../../generic/routeHref";
+import { usePendingNavigation } from "../../../generic/usePendingNavigation";
 
 type ContainsIssueLike = {
   number?: string | number;
@@ -180,7 +180,7 @@ function shouldShowPartialPublicationLabel(item: ContainsItemLike): boolean {
 }
 
 export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps>) {
-  const router = useRouter();
+  const { push } = usePendingNavigation();
   const item = props.item;
   const allowInteractiveActions = props.allowInteractiveActions ?? true;
   const issue = resolveIssueForDetails(item);
@@ -217,7 +217,7 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
           component="span"
           onClick={(e) => {
             e.stopPropagation();
-            router.push(
+            push(
               buildRouteHref(generateSeoUrl(issueSelection, !props.us), props.query, {
                 filter: null,
                 expand: storyExpandNumber || undefined,
@@ -373,7 +373,7 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
                   onClick={(e) => {
                     e.stopPropagation();
                     if (!reprintSelection) return;
-                    router.push(
+                    push(
                       buildRouteHref(generateSeoUrl(reprintSelection, true), props.query, {
                         expand: item.parent?.reprintOf?.number,
                         filter: null,
@@ -454,7 +454,7 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
 export function ContainsTitleDetailedNavigation(
   props: Readonly<ContainsTitleDetailedNavigationProps>
 ) {
-  const router = useRouter();
+  const { push } = usePendingNavigation();
   const item = props.item;
   const issue = resolveIssueForDetails(item);
   const issueSelection = issue ? toIssueSelection(issue) : null;
@@ -497,7 +497,7 @@ export function ContainsTitleDetailedNavigation(
               fontWeight: 600,
             }}
             onClick={() => {
-              router.push(
+              push(
                 buildRouteHref(generateSeoUrl(reprintSelection, true), props.query, {
                   expand: item.parent?.reprintOf?.number,
                   filter: null,
@@ -514,7 +514,7 @@ export function ContainsTitleDetailedNavigation(
         <CoverTooltip issue={issue} us={props.us}>
           <IconButton
             onClick={() => {
-              router.push(
+              push(
                 buildRouteHref(generateSeoUrl(issueSelection, !props.us), props.query, {
                   filter: null,
                   expand: storyExpandNumber || undefined,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import {
+  doesIssueNodeMatchSelectedIssueRoute,
   doesSeriesNodeMatchIssueSeries,
   getSelectedSeriesKey,
   getSeriesKey,
@@ -95,5 +96,37 @@ describe("listTreeUtils", () => {
       )
     ).toBe(true);
   });
-});
 
+  it("matches grouped issue rows for non-primary selected variants", () => {
+    expect(
+      doesIssueNodeMatchSelectedIssueRoute(
+        {
+          number: "126",
+          format: "Heft",
+          variant: "Comicshop Ausgabe",
+          variants: [
+            { format: "Heft", variant: "Comicshop Ausgabe" },
+            { format: "Heft", variant: "Kiosk Ausgabe" },
+          ],
+          series: {
+            title: "Star Wars",
+            volume: 2,
+            startyear: 2021,
+            publisher: { name: "Panini - Star Wars & Generation" },
+          },
+        },
+        {
+          number: "126",
+          format: "Heft",
+          variant: "Kiosk Ausgabe",
+          series: {
+            title: "Star Wars",
+            volume: 2,
+            startyear: 2021,
+            publisher: { name: "Panini - Star Wars & Generation" },
+          },
+        } as any
+      )
+    ).toBe(true);
+  });
+});

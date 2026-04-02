@@ -20,11 +20,15 @@ import {
   isElementVisibleInContainer,
   isIssueNumberMatch,
   isSelectedIssue,
+  scrollNavElementIntoView,
   type IssueNode,
   normalizeIssueNumber,
   type SeriesNode,
   toIssueSeriesSelected,
 } from "./listTreeUtils";
+import { LARGE_BRANCH_OCCLUSION_THRESHOLD } from "./branchWindowing";
+import { useBranchWindowing } from "./useBranchWindowing";
+import { markNavPerf, measureNavPerf } from "./navPerfDebug";
 
 type IssuesBranchProps = {
   us: boolean;
@@ -40,9 +44,14 @@ type IssuesBranchProps = {
   loading?: boolean;
   scrollRequestId?: number;
   selectedRowKey?: string | null;
+  deferProgressiveWindowing?: boolean;
+  allowAutoRevealFallback?: boolean;
+  onPriorityPathReady?: () => void;
 };
 
 const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBranchProps>) {
+  const ISSUE_ROW_HEIGHT = 36;
+  const ISSUE_AUTO_REVEAL_MAX_ATTEMPTS = 8;
   const {
     series,
     us,
@@ -53,14 +62,33 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
     selectedRowKey,
     navScrollContainerRef,
     scrollRequestId,
-    suppressAutoScrollRef,
+    deferProgressiveWindowing,
+    allowAutoRevealFallback,
+    onPriorityPathReady,
   } = props;
   const selectedSeries = doesSeriesNodeMatchIssueSeries(series, selectedIssue?.series);
   const selectedIssueNumber = selectedSeries ? normalizeIssueNumber(selectedIssue?.number) : "";
   const previousIssueNumberRef = React.useRef("");
   const skipSameIssueAutoScrollRef = React.useRef(false);
+  const autoRevealKeyRef = React.useRef<string | null>(null);
   const issueListRef = React.useRef<HTMLUListElement | null>(null);
   const issueNodes = React.useMemo(() => initialIssueNodes ?? [], [initialIssueNodes]);
+  const prioritizedIssueIndex = React.useMemo(() => {
+    if (!selectedIssueNumber) return null;
+    const index = issueNodes.findIndex((issueNode) => isIssueNumberMatch(issueNode.number, selectedIssueNumber));
+    return index >= 0 ? index : null;
+  }, [issueNodes, selectedIssueNumber]);
+  const { visibleCount, windowEnd, windowStart, windowingEnabled } = useBranchWindowing(
+    issueNodes.length,
+    prioritizedIssueIndex,
+    Boolean(deferProgressiveWindowing)
+  );
+  const enableIssueOcclusion =
+    issueNodes.length > LARGE_BRANCH_OCCLUSION_THRESHOLD && prioritizedIssueIndex == null;
+  const visibleIssueNodes = React.useMemo(
+    () => (windowingEnabled ? issueNodes.slice(windowStart, windowEnd) : issueNodes),
+    [issueNodes, windowEnd, windowStart, windowingEnabled]
+  );
 
   React.useEffect(() => {
     skipSameIssueAutoScrollRef.current = Boolean(
@@ -71,60 +99,12 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
     previousIssueNumberRef.current = selectedIssueNumber;
   }, [selectedIssueNumber]);
 
-  const scrollSelectedIssueIntoView = React.useCallback(() => {
+  const scrollSelectedIssueIntoView = React.useCallback((force = false) => {
     if (!selectedIssueNumber) return;
 
     const listElement = issueListRef.current;
     const scrollContainer = navScrollContainerRef.current;
-    if (!listElement || !scrollContainer) return;
-
-    const selectedItem = Array.from(
-      listElement.querySelectorAll<HTMLElement>("[data-nav-issue-number]")
-    ).find((element) => isIssueNumberMatch(element.dataset.navIssueNumber, selectedIssueNumber));
-    if (!selectedItem) return;
-    if (isElementVisibleInContainer(selectedItem, scrollContainer)) return;
-
-    selectedItem.scrollIntoView({
-      block: "center",
-      inline: "nearest",
-    });
-  }, [navScrollContainerRef, selectedIssueNumber]);
-
-  React.useEffect(() => {
-    if (!selectedIssueNumber) return;
-
-    if (skipSameIssueAutoScrollRef.current) {
-      skipSameIssueAutoScrollRef.current = false;
-      return;
-    }
-
-    scrollSelectedIssueIntoView();
-
-    if (typeof ResizeObserver === "undefined") return;
-    const listElement = issueListRef.current;
-    if (!listElement) return;
-
-    const observer = new ResizeObserver(() => {
-      scrollSelectedIssueIntoView();
-    });
-    observer.observe(listElement);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [
-    issueNodes,
-    selectedIssueNumber,
-    suppressAutoScrollRef,
-    scrollSelectedIssueIntoView,
-  ]);
-
-  React.useEffect(() => {
-    if (!scrollRequestId) return;
-
-    const listElement = issueListRef.current;
-    const scrollContainer = navScrollContainerRef.current;
-    if (!listElement || !scrollContainer) return;
+    if (!listElement || !scrollContainer) return false;
 
     let selectedItem = selectedRowKey
       ? listElement.querySelector<HTMLElement>(`[data-nav-row-key="${CSS.escape(selectedRowKey)}"]`)
@@ -135,13 +115,126 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
         (element) => isIssueNumberMatch(element.dataset.navIssueNumber, selectedIssueNumber)
       ) ?? null;
 
-    if (!selectedItem) return;
+    if (!selectedItem) return false;
+    if (!force && isElementVisibleInContainer(selectedItem, scrollContainer)) return true;
 
-    selectedItem.scrollIntoView({
-      block: "center",
-      inline: "nearest",
+    scrollNavElementIntoView(selectedItem, scrollContainer, {
+      behavior: force ? "smooth" : "auto",
     });
-  }, [navScrollContainerRef, scrollRequestId, selectedIssueNumber, selectedRowKey]);
+    return true;
+  }, [navScrollContainerRef, selectedIssueNumber, selectedRowKey]);
+
+  const scheduleIssueAutoReveal = React.useCallback(
+    (autoRevealKey: string, force = false) => {
+      let frameId = 0;
+      let cancelled = false;
+      let attempts = 0;
+      markNavPerf("issue:reveal:start", {
+        seriesKey: `${series.publisher?.name || ""}|${series.title || ""}|${series.volume || ""}`,
+        selectedIssueNumber,
+        selectedRowKey,
+        visibleCount,
+        windowStart,
+        windowEnd,
+        totalCount: issueNodes.length,
+        force,
+      });
+
+      const run = () => {
+        if (cancelled) return;
+        const resolved = scrollSelectedIssueIntoView(force);
+        if (resolved) {
+          autoRevealKeyRef.current = autoRevealKey;
+          markNavPerf("issue:reveal:end", {
+            selectedIssueNumber,
+            selectedRowKey,
+            attempts,
+          });
+          measureNavPerf("issue:reveal", "issue:reveal:start", "issue:reveal:end");
+          onPriorityPathReady?.();
+          return;
+        }
+        if (attempts >= ISSUE_AUTO_REVEAL_MAX_ATTEMPTS) {
+          autoRevealKeyRef.current = null;
+          return;
+        }
+        attempts += 1;
+        frameId = window.requestAnimationFrame(run);
+      };
+
+      frameId = window.requestAnimationFrame(run);
+
+      return () => {
+        cancelled = true;
+        if (frameId) window.cancelAnimationFrame(frameId);
+      };
+    },
+    [
+      issueNodes.length,
+      onPriorityPathReady,
+      scrollSelectedIssueIntoView,
+      selectedIssueNumber,
+      selectedRowKey,
+      series.publisher?.name,
+      series.title,
+      series.volume,
+      visibleCount,
+      windowEnd,
+      windowStart,
+    ]
+  );
+
+  const tryResolveInitialIssueViewport = React.useCallback(() => {
+    if (allowAutoRevealFallback === false) return;
+    if (!selectedIssueNumber) return;
+
+    if (skipSameIssueAutoScrollRef.current) {
+      skipSameIssueAutoScrollRef.current = false;
+      return;
+    }
+
+    const autoRevealKey = `${selectedIssueNumber}|${selectedRowKey || ""}|${issueNodes.length}`;
+    if (autoRevealKeyRef.current === autoRevealKey) return;
+
+    const resolvedImmediately = scrollSelectedIssueIntoView(false);
+    if (resolvedImmediately) {
+      autoRevealKeyRef.current = autoRevealKey;
+      onPriorityPathReady?.();
+      return;
+    }
+  }, [
+    allowAutoRevealFallback,
+    issueNodes.length,
+    onPriorityPathReady,
+    scrollSelectedIssueIntoView,
+    selectedIssueNumber,
+    selectedRowKey,
+  ]);
+
+  React.useLayoutEffect(() => {
+    tryResolveInitialIssueViewport();
+  }, [tryResolveInitialIssueViewport]);
+
+  React.useEffect(() => {
+    if (allowAutoRevealFallback === false) return;
+    if (!selectedIssueNumber) return;
+
+    const autoRevealKey = `${selectedIssueNumber}|${selectedRowKey || ""}|${issueNodes.length}`;
+    if (autoRevealKeyRef.current === autoRevealKey) return;
+
+    return scheduleIssueAutoReveal(autoRevealKey, false);
+  }, [
+    allowAutoRevealFallback,
+    issueNodes.length,
+    selectedIssueNumber,
+    selectedRowKey,
+    scheduleIssueAutoReveal,
+  ]);
+
+  React.useEffect(() => {
+    if (!scrollRequestId) return;
+    return scheduleIssueAutoReveal(`force|${scrollRequestId}|${selectedRowKey || ""}`, true);
+  }, [scheduleIssueAutoReveal, scrollRequestId]);
 
   if (props.loading) {
     return <NestedLoadingRow depth={2} message="Ausgaben werden geladen..." />;
@@ -151,7 +244,19 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
 
   return (
     <MuiList disablePadding ref={issueListRef}>
-      {issueNodes.map((issueNode, idx) => {
+      {windowingEnabled && windowStart > 0 ? (
+        <Box
+          component="li"
+          aria-hidden
+          sx={{
+            listStyle: "none",
+            m: 0,
+            p: 0,
+            height: `${windowStart * ISSUE_ROW_HEIGHT}px`,
+          }}
+        />
+      ) : null}
+      {visibleIssueNodes.map((issueNode, idx) => {
         const selected = isSelectedIssue(issueNode, selectedIssue, series);
         const issueNumber = issueNode.number || "";
         const issueSeries = toIssueSeriesSelected(issueNode, series, us);
@@ -179,7 +284,13 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
               idx,
             ].join("|")}
             component="li"
-            sx={{ listStyle: "none", m: 0, p: 0 }}
+            sx={{
+              listStyle: "none",
+              m: 0,
+              p: 0,
+              contentVisibility: enableIssueOcclusion ? "auto" : undefined,
+              containIntrinsicSize: enableIssueOcclusion ? "36px" : undefined,
+            }}
           >
             <ListItemButton
               className="row"
@@ -240,7 +351,12 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
                           </Box>
                         </Typography>
                         {issueIsPending ? (
-                          <CircularProgress size={14} sx={{ flexShrink: 0 }} />
+                          <CircularProgress
+                            size={14}
+                            aria-hidden="true"
+                            role="presentation"
+                            sx={{ flexShrink: 0 }}
+                          />
                         ) : null}
                         {hasVariants ? (
                           <Typography
@@ -279,6 +395,18 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
           </Box>
         );
       })}
+      {windowingEnabled && windowEnd < issueNodes.length ? (
+        <Box
+          component="li"
+          aria-hidden
+          sx={{
+            listStyle: "none",
+            m: 0,
+            p: 0,
+            height: `${Math.max(0, issueNodes.length - windowEnd) * ISSUE_ROW_HEIGHT}px`,
+          }}
+        />
+      ) : null}
     </MuiList>
   );
 });
