@@ -664,6 +664,32 @@ function toIssueIndividualEntryShape(entry: any) {
   };
 }
 
+function toReleaseDateTimestamp(value: unknown): number {
+  if (value instanceof Date) return value.getTime();
+
+  const parsed = new Date(String(value || "")).getTime();
+  return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY;
+}
+
+function compareStoryIssueReferencesByReleaseDate(left: any, right: any) {
+  const releaseDateCompare =
+    toReleaseDateTimestamp(left?.issue?.releaseDate) - toReleaseDateTimestamp(right?.issue?.releaseDate);
+  if (releaseDateCompare !== 0) return releaseDateCompare;
+
+  const issueNumberCompare = normalizeText(left?.issue?.number).localeCompare(
+    normalizeText(right?.issue?.number),
+    undefined,
+    { numeric: true, sensitivity: "base" }
+  );
+  if (issueNumberCompare !== 0) return issueNumberCompare;
+
+  return Number(left?.issue?.id ?? left?.id ?? 0) - Number(right?.issue?.id ?? right?.id ?? 0);
+}
+
+function sortStoryIssueReferencesByReleaseDate<T>(references: T[] | null | undefined): T[] {
+  return Array.isArray(references) ? [...references].sort(compareStoryIssueReferencesByReleaseDate) : [];
+}
+
 function toIssueStoryShape(story: any, includeParent: boolean, issueOverride?: any) {
   return {
     id: serializeIssueId(story.id),
@@ -682,8 +708,8 @@ function toIssueStoryShape(story: any, includeParent: boolean, issueOverride?: a
     issue: toIssueReferenceShape(issueOverride || story.issue),
     parent: includeParent ? toIssueParentStoryShape(story.parent) : null,
     reprintOf: story.reprint ? toIssueStoryReferenceShape(story.reprint) : null,
-    reprints: Array.isArray(story.reprintedBy) ? story.reprintedBy.map(toIssueStoryReferenceShape) : [],
-    children: Array.isArray(story.children) ? story.children.map(toIssueStoryReferenceShape) : [],
+    reprints: sortStoryIssueReferencesByReleaseDate(story.reprintedBy).map(toIssueStoryReferenceShape),
+    children: sortStoryIssueReferencesByReleaseDate(story.children).map(toIssueStoryReferenceShape),
     individuals: Array.isArray(story.individuals)
       ? story.individuals.map((entry: any) => ({
           id: serializeIssueId(entry.individual.id),
@@ -753,8 +779,8 @@ function toIssueParentStoryShape(story: any) {
     collectedmultipletimes: story.collectedMultipleTimes,
     issue: toIssueReferenceShape(story.issue),
     reprintOf: story.reprint ? toIssueStoryReferenceShape(story.reprint) : null,
-    reprints: Array.isArray(story.reprintedBy) ? story.reprintedBy.map(toIssueStoryReferenceShape) : [],
-    children: Array.isArray(story.children) ? story.children.map(toIssueStoryReferenceShape) : [],
+    reprints: sortStoryIssueReferencesByReleaseDate(story.reprintedBy).map(toIssueStoryReferenceShape),
+    children: sortStoryIssueReferencesByReleaseDate(story.children).map(toIssueStoryReferenceShape),
     individuals: Array.isArray(story.individuals)
       ? story.individuals.map((entry: any) => ({
           id: serializeIssueId(entry.individual.id),

@@ -226,6 +226,115 @@ describe("readIssueDetailsQuery", () => {
     expect(selectedIssueCall?.include).not.toHaveProperty("_count");
   });
 
+  it("should_sort_us_story_issue_relations_by_release_date", async () => {
+    findUnique.mockResolvedValue(
+      createIssueRecord({
+        stories: [
+          {
+            id: BigInt(701),
+            number: BigInt(1),
+            title: "Main Story",
+            addInfo: null,
+            part: null,
+            onlyApp: false,
+            firstApp: false,
+            onlyTb: false,
+            otherOnlyTb: false,
+            onlyOnePrint: false,
+            collected: false,
+            collectedMultipleTimes: false,
+            issue: createIssueRecord({
+              id: BigInt(101),
+              releaseDate: new Date("2020-01-01T00:00:00.000Z"),
+            }),
+            parent: null,
+            reprint: null,
+            reprintedBy: [
+              {
+                id: BigInt(703),
+                number: BigInt(3),
+                title: null,
+                addInfo: null,
+                part: null,
+                issue: createIssueRecord({
+                  id: BigInt(203),
+                  number: "7",
+                  releaseDate: new Date("2021-03-01T00:00:00.000Z"),
+                }),
+                parent: null,
+                individuals: [],
+                appearances: [],
+              },
+              {
+                id: BigInt(702),
+                number: BigInt(2),
+                title: null,
+                addInfo: null,
+                part: null,
+                issue: createIssueRecord({
+                  id: BigInt(202),
+                  number: "5",
+                  releaseDate: new Date("2020-02-01T00:00:00.000Z"),
+                }),
+                parent: null,
+                individuals: [],
+                appearances: [],
+              },
+            ],
+            children: [
+              {
+                id: BigInt(705),
+                number: BigInt(5),
+                title: null,
+                addInfo: null,
+                part: null,
+                issue: createIssueRecord({
+                  id: BigInt(205),
+                  number: "9",
+                  releaseDate: new Date("2022-01-01T00:00:00.000Z"),
+                }),
+                parent: null,
+                individuals: [],
+                appearances: [],
+              },
+              {
+                id: BigInt(704),
+                number: BigInt(4),
+                title: null,
+                addInfo: null,
+                part: null,
+                issue: createIssueRecord({
+                  id: BigInt(204),
+                  number: "8",
+                  releaseDate: new Date("2021-01-01T00:00:00.000Z"),
+                }),
+                parent: null,
+                individuals: [],
+                appearances: [],
+              },
+            ],
+            individuals: [],
+            appearances: [],
+          },
+        ],
+      })
+    );
+
+    const stories = await readIssueDetailStories({
+      selectedIssueId: "101",
+      storyOwnerId: "101",
+    });
+
+    expect(stories[0]?.reprints?.map((entry: { issue?: { number?: string } }) => entry.issue?.number)).toEqual([
+      "5",
+      "7",
+    ]);
+    expect(stories[0]?.children?.map((entry: { issue?: { number?: string } }) => entry.issue?.number)).toEqual([
+      "8",
+      "9",
+    ]);
+  });
+
   it("should_not_require_exact_variant_text_matches_before_slug_equivalence_is_checked", async () => {
     findMany
       .mockResolvedValueOnce([

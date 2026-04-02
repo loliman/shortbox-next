@@ -117,6 +117,18 @@ function naturalCompare(left: string, right: string) {
   return left.localeCompare(right, undefined, { numeric: true, sensitivity: "base" });
 }
 
+function getIssueFormatPriority(value: unknown): number {
+  const normalized = normalizeText(value).toLowerCase();
+
+  if (normalized === "heft" || normalized === "mini heft") return 0;
+  if (normalized === "softcover" || normalized === "sc") return 1;
+  if (normalized === "hardcover" || normalized === "hc") return 2;
+  if (normalized === "taschenbuch" || normalized === "tb") return 3;
+  if (normalized === "album" || normalized === "album hardcover") return 4;
+  if (normalized === "") return 6;
+  return 5;
+}
+
 function getIssueNumberSortBucket(value: string): 0 | 1 | 2 | 3 {
   if (value !== "" && ROMAN_NUMBER_PATTERN.test(value)) return 0;
   if (value !== "" && ALPHA_ONLY_PATTERN.test(value)) return 1;
@@ -170,13 +182,14 @@ export function compareIssueVariants(
   const leftVariant = normalizeText(left.variant);
   const rightVariant = normalizeText(right.variant);
 
-  if (leftFormat === "" && rightFormat !== "") return -1;
-  if (leftFormat !== "" && rightFormat === "") return 1;
-  if (leftVariant === "" && rightVariant !== "") return -1;
-  if (leftVariant !== "" && rightVariant === "") return 1;
+  const formatPriorityCompare = getIssueFormatPriority(leftFormat) - getIssueFormatPriority(rightFormat);
+  if (formatPriorityCompare !== 0) return formatPriorityCompare;
 
   const formatCompare = naturalCompare(leftFormat, rightFormat);
   if (formatCompare !== 0) return formatCompare;
+
+  if (leftVariant === "" && rightVariant !== "") return -1;
+  if (leftVariant !== "" && rightVariant === "") return 1;
 
   const variantCompare = naturalCompare(leftVariant, rightVariant);
   if (variantCompare !== 0) return variantCompare;
