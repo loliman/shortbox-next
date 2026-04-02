@@ -38,7 +38,6 @@ type IssuesBranchProps = {
   session?: unknown;
   pushSelection: (event: unknown, item: SelectedRoot, closeOnPhone?: boolean) => void;
   navScrollContainerRef: React.RefObject<HTMLDivElement | null>;
-  suppressAutoScrollRef: React.MutableRefObject<boolean>;
   navigationPending?: boolean;
   pendingNavigationKey?: string | null;
   loading?: boolean;

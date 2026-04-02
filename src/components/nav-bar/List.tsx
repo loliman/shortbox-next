@@ -79,7 +79,6 @@ export default function List(props: Readonly<ListProps>) {
   const phonePortrait = props.phonePortrait;
   const listRef = React.useRef<HTMLUListElement | null>(null);
   const navScrollContainerRef = React.useRef<HTMLDivElement | null>(null);
-  const suppressIssueAutoScrollRef = React.useRef(false);
   const storeScrollTop = React.useCallback(() => {
     const container = navScrollContainerRef.current;
     if (container) {
@@ -96,7 +95,6 @@ export default function List(props: Readonly<ListProps>) {
   const selectedSeriesKey = getSelectedSeriesKey(props.selected);
   const selectedRowKey = React.useMemo(() => buildPendingNavigationKey(props.selected) || null, [props.selected]);
   const selectedIssue = props.selected?.issue;
-  const isIssueLevelSelected = Boolean(props.selected?.issue);
   const visiblePublisherNodes = React.useMemo(
     () => props.initialPublisherNodes || [],
     [props.initialPublisherNodes]
@@ -122,7 +120,6 @@ export default function List(props: Readonly<ListProps>) {
     publisherName: string;
   } | null>(null);
   const initialViewportAppliedKeyRef = React.useRef<string | null>(null);
-  const contentReady = true;
   const [seriesNodesByPublisher, setSeriesNodesByPublisher] = React.useState<Record<string, SeriesNode[]>>(
     () => {
       const nextState: Record<string, SeriesNode[]> = { ...(props.initialSeriesNodesByPublisher || {}) };
@@ -502,11 +499,6 @@ export default function List(props: Readonly<ListProps>) {
     };
   }, [storeScrollTop]);
 
-  React.useEffect(() => {
-    if (selectedIssue?.number) return;
-    suppressIssueAutoScrollRef.current = false;
-  }, [selectedIssue?.number]);
-
   const tryResolveInitialPublisherViewport = React.useCallback(() => {
     if (isAwaitingIssueViewport) return;
     if (canUseInitialViewportModel) return;
@@ -868,12 +860,11 @@ export default function List(props: Readonly<ListProps>) {
             selectedIssue={selectedIssue}
             session={props.session}
             pushSelection={pushSelection}
-            ensureIssueNodesLoaded={ensureIssueNodesLoaded}
-            navScrollContainerRef={navScrollContainerRef}
-            suppressAutoScrollRef={suppressIssueAutoScrollRef}
-            navigationPending={isPending}
-            pendingNavigationKey={pendingNavigationKey}
-            pendingPublisherKey={pendingPublisherKey}
+                ensureIssueNodesLoaded={ensureIssueNodesLoaded}
+                navScrollContainerRef={navScrollContainerRef}
+                navigationPending={isPending}
+                pendingNavigationKey={pendingNavigationKey}
+                pendingPublisherKey={pendingPublisherKey}
             navAction={navAction}
             selectedRowKey={selectedRowKey}
             deferNonPriorityInitialization={!selectedPathReady}
@@ -941,7 +932,6 @@ export default function List(props: Readonly<ListProps>) {
       drawerOpen={drawerOpen}
       toggleDrawer={toggleDrawer}
       navStateKey={navStateKey}
-      contentReady={contentReady}
       navScrollContainerRef={navScrollContainerRef}
       listRef={listRef}
       onScrollToSelected={handleScrollToSelected}

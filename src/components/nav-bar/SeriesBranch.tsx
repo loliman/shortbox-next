@@ -41,7 +41,6 @@ type SeriesBranchProps = {
   pushSelection: (event: unknown, item: SelectedRoot, closeOnPhone?: boolean) => void;
   ensureIssueNodesLoaded: (seriesNode: SeriesNode) => Promise<boolean>;
   navScrollContainerRef: React.RefObject<HTMLDivElement | null>;
-  suppressAutoScrollRef: React.MutableRefObject<boolean>;
   navigationPending?: boolean;
   pendingNavigationKey?: string | null;
   pendingPublisherKey?: string | null;
@@ -72,7 +71,6 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
     selectedRowKey,
     selectedIssue,
     session,
-    suppressAutoScrollRef,
     us,
     deferNonPriorityInitialization,
     deferProgressiveWindowing,
@@ -394,13 +392,12 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
             us={us}
             series={seriesNode}
             initialIssueNodes={initialIssueNodesBySeriesKey?.[seriesKey]}
-            selectedIssue={selectedIssue}
-            session={session}
-            pushSelection={pushSelection}
-            navScrollContainerRef={navScrollContainerRef}
-            suppressAutoScrollRef={suppressAutoScrollRef}
-            navigationPending={navigationPending}
-            pendingNavigationKey={pendingNavigationKey}
+                selectedIssue={selectedIssue}
+                session={session}
+                pushSelection={pushSelection}
+                navScrollContainerRef={navScrollContainerRef}
+                navigationPending={navigationPending}
+                pendingNavigationKey={pendingNavigationKey}
             loading={pendingPublisherKey === `series:${publisherName}:${seriesKey}`}
             scrollRequestId={navAction?.type === "scrollToSelected" ? navAction.token : 0}
             selectedRowKey={selectedRowKey}
