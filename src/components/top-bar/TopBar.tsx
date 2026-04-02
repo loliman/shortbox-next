@@ -4,7 +4,6 @@ import Toolbar from "@mui/material/Toolbar";
 import Switch from "@mui/material/Switch";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
-import CircularProgress from "@mui/material/CircularProgress";
 import React from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -238,6 +237,60 @@ export default function TopBar(ownProps: TopBarProps) {
 
   const navigate = React.useCallback((href: string) => pushNavigation(href), [pushNavigation]);
 
+  const focusQuickSearchInput = React.useCallback(() => {
+    let attempts = 0;
+    const maxAttempts = 6;
+
+    const tryFocus = () => {
+      const inputs = Array.from(
+        document.querySelectorAll<HTMLInputElement>('input[data-shortbox-search-input="true"]')
+      );
+      const activeInput = inputs.find(
+        (input) => input.offsetParent !== null && !input.disabled && input.tabIndex !== -1
+      );
+
+      if (activeInput) {
+        activeInput.focus();
+        activeInput.select();
+        return;
+      }
+
+      attempts += 1;
+      if (attempts > maxAttempts) return;
+      window.setTimeout(tryFocus, 48);
+    };
+
+    tryFocus();
+  }, []);
+
+  React.useEffect(() => {
+    const isEditableTarget = (target: EventTarget | null) => {
+      if (!(target instanceof HTMLElement)) return false;
+      if (target.isContentEditable) return true;
+      return Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
+    };
+
+    const handleShortcut = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== "k") return;
+      if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
+      if (isEditableTarget(event.target)) return;
+
+      event.preventDefault();
+      if (compactLayout) {
+        setMobileSearchOpen(true);
+        window.requestAnimationFrame(() => {
+          focusQuickSearchInput();
+        });
+        return;
+      }
+
+      focusQuickSearchInput();
+    };
+
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  }, [compactLayout, focusQuickSearchInput]);
+
   return (
     <AppBar
       position="sticky"
@@ -289,7 +342,6 @@ export default function TopBar(ownProps: TopBarProps) {
           initialFilterCount={ownProps.initialFilterCount}
           query={query}
           session={ownProps.session}
-          navigationPending={navigationPending}
         />
 
         {compactLayout ? null : (
@@ -434,7 +486,6 @@ function TopBarSearchCenter(props: {
   initialFilterCount?: number | null;
   query?: { filter?: string | null; order?: string | null; direction?: string | null } | null;
   session?: { loggedIn?: boolean } | null;
-  navigationPending?: boolean;
 }) {
   return (
     <Box
@@ -454,18 +505,6 @@ function TopBarSearchCenter(props: {
           us={props.us}
           compactLayout={false}
         />
-        {props.navigationPending ? (
-          <CircularProgress
-            size={16}
-            sx={{
-              position: "absolute",
-              right: 14,
-              top: "50%",
-              transform: "translateY(-50%)",
-              zIndex: 1,
-            }}
-          />
-        ) : null}
       </Box>
       <TopBarFilterMenu
         us={props.us}
@@ -580,32 +619,27 @@ function GlobalNavigationIndicator() {
         left: 0,
         right: 0,
         bottom: -1,
-        height: 2,
+        height: 3,
         overflow: "hidden",
         pointerEvents: "none",
-        "&::before": {
-          content: '""',
-          position: "absolute",
-          inset: 0,
-          opacity: 0.22,
-          background:
-            "linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.6), rgba(255,255,255,0))",
-        },
+        backgroundColor: (theme) =>
+          theme.palette.mode === "dark" ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.28)",
         "&::after": {
           content: '""',
           position: "absolute",
           top: 0,
           bottom: 0,
-          width: "28%",
-          minWidth: 84,
+          width: "32%",
+          minWidth: 120,
           borderRadius: 999,
           background:
-            "linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.95), rgba(255,255,255,0))",
-          animation: "shortboxNavigationIndicator 920ms ease-in-out infinite",
+            "linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,1), rgba(255,255,255,0))",
+          boxShadow: "0 0 14px rgba(255,255,255,0.45)",
+          animation: "shortboxNavigationIndicator 820ms linear infinite",
         },
         "@keyframes shortboxNavigationIndicator": {
-          "0%": { transform: "translateX(-115%)" },
-          "100%": { transform: "translateX(430%)" },
+          "0%": { transform: "translateX(-125%)" },
+          "100%": { transform: "translateX(410%)" },
         },
       }}
     />

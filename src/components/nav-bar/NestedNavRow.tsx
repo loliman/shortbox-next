@@ -6,7 +6,7 @@ import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import IconButton from "@mui/material/IconButton";
-import CircularProgress from "@mui/material/CircularProgress";
+import Box from "@mui/material/Box";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { getDepthPadding } from "./listTreeUtils";
@@ -78,11 +78,23 @@ const ExpandToggle = React.memo(function ExpandToggle(props: Readonly<ExpandTogg
   if (props.pending) {
     return (
       <ListItemIcon sx={{ minWidth: 32, justifyContent: "center" }}>
-        <CircularProgress
-          size={16}
+        <Box
           aria-hidden="true"
           role="presentation"
-          sx={{ ml: 1 }}
+          sx={{
+            ml: 1,
+            width: 12,
+            height: 12,
+            borderRadius: "50%",
+            bgcolor: "action.active",
+            opacity: 0.72,
+            animation: "shortboxSidebarPendingPulse 920ms ease-in-out infinite",
+            "@keyframes shortboxSidebarPendingPulse": {
+              "0%": { opacity: 0.36, transform: "scale(0.92)" },
+              "50%": { opacity: 0.82, transform: "scale(1)" },
+              "100%": { opacity: 0.36, transform: "scale(0.92)" },
+            },
+          }}
         />
       </ListItemIcon>
     );
@@ -122,7 +134,7 @@ export function NestedEmptyRow({
 
 export function NestedLoadingRow({
   depth,
-  message = "Wird geladen...",
+  message,
 }: {
   depth: number;
   message?: string;
@@ -130,13 +142,20 @@ export function NestedLoadingRow({
   return (
     <ListItem component="div" sx={{ pl: getDepthPadding(depth) }}>
       <ListItemIcon sx={{ minWidth: 28 }}>
-        <CircularProgress
-          size={14}
+        <Box
           aria-hidden="true"
           role="presentation"
+          sx={{
+            width: 12,
+            height: 12,
+            borderRadius: "50%",
+            bgcolor: "action.active",
+            opacity: 0.72,
+            animation: "shortboxSidebarPendingPulse 920ms ease-in-out infinite",
+          }}
         />
       </ListItemIcon>
-      <ListItemText primary={message} />
+      {message ? <ListItemText primary={message} /> : null}
     </ListItem>
   );
 }

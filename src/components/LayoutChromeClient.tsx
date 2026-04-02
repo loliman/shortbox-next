@@ -2,8 +2,6 @@
 
 import React from "react";
 import dynamic from "next/dynamic";
-import Box from "@mui/material/Box";
-import CircularProgress from "@mui/material/CircularProgress";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import type { IssueNode, PublisherNode, SeriesNode } from "./nav-bar/listTreeUtils";
@@ -12,6 +10,7 @@ import { useInitialResponsiveGuess } from "../app/responsiveGuessContext";
 import type { LayoutRouteData, RouteQuery } from "../types/route-ui";
 import TopBar from "./top-bar/TopBar";
 import NavDrawer from "./nav-bar/NavDrawer";
+import NavLoadingPlaceholder from "./nav-bar/NavLoadingPlaceholder";
 import { useThemeModeContext } from "./generic/AppContext";
 import { useSnackbarBridge } from "./generic/useSnackbarBridge";
 import { useLayoutChromeState } from "./useLayoutChromeState";
@@ -191,36 +190,7 @@ function NavListLoadingFallback() {
       listRef={listRef}
       disableScrollToSelected={true}
     >
-      <Box
-        role="status"
-        aria-live="polite"
-        aria-label="Navigation wird geladen"
-        sx={{
-          px: 2,
-          py: 2,
-          minHeight: 108,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Box
-          sx={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 1,
-            px: 1.5,
-            py: 1,
-            borderRadius: 999,
-            border: "1px solid",
-            borderColor: "divider",
-            bgcolor: "background.paper",
-            color: "text.secondary",
-          }}
-        >
-          <CircularProgress size={16} />
-        </Box>
-      </Box>
+      <NavLoadingPlaceholder compact />
     </NavDrawer>
   );
 }

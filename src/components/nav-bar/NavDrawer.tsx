@@ -62,51 +62,43 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
       <Box
         sx={{
           position: "absolute",
-          top: 10,
-          right: 10,
+          bottom: temporary ? `calc(${COMPACT_BOTTOM_BAR_CLEARANCE}px + 14px)` : 14,
+          right: 14,
           zIndex: 2,
-          pointerEvents: "none",
+          pointerEvents: "auto",
         }}
       >
-        <Box
-          sx={{
-            pointerEvents: "auto",
-            backgroundColor: "background.paper",
-            border: "1px solid",
-            borderColor: "divider",
-            borderRadius: 1,
-            display: "flex",
-            alignItems: "center",
-            overflow: "hidden",
-          }}
-        >
-          <Tooltip describeChild title="Zur Auswahl springen">
-            <span>
-              <IconButton
-                aria-label="Zur Auswahl"
-                onClick={onScrollToSelected}
-                disabled={disableScrollToSelected}
-                size="small"
-                sx={{
-                  width: 34,
-                  height: 34,
-                  color: "text.primary",
-                  borderRadius: 0,
-                  backgroundColor: "background.paper",
-                  "&:hover": {
-                    backgroundColor: "action.hover",
-                  },
-                  "&.Mui-disabled": {
-                    backgroundColor: "background.paper",
-                    opacity: 0.72,
-                  },
-                }}
-              >
-                <MyLocationIcon sx={{ fontSize: 18 }} />
-              </IconButton>
-            </span>
-          </Tooltip>
-        </Box>
+        <Tooltip describeChild title="Zur Auswahl springen">
+          <span>
+            <IconButton
+              aria-label="Zur Auswahl"
+              onClick={onScrollToSelected}
+              disabled={disableScrollToSelected}
+              size="small"
+              sx={{
+                width: 40,
+                height: 40,
+                color: "common.white",
+                borderRadius: "50%",
+                border: "1px solid",
+                borderColor: "rgba(255,255,255,0.22)",
+                backgroundColor: "primary.main",
+                boxShadow: 4,
+                "&:hover": {
+                  backgroundColor: "primary.dark",
+                },
+                "&.Mui-disabled": {
+                  color: "text.disabled",
+                  borderColor: "divider",
+                  backgroundColor: "action.disabledBackground",
+                  boxShadow: 0,
+                },
+              }}
+            >
+              <MyLocationIcon sx={{ fontSize: 20 }} />
+            </IconButton>
+          </span>
+        </Tooltip>
       </Box>
       <Box
         ref={navScrollContainerRef}

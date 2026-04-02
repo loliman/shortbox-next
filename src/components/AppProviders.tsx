@@ -27,7 +27,8 @@ function ThemeModeBridge(props: Readonly<AppProvidersProps>) {
   const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
   const [navigationPending, setNavigationPending] = useState(false);
-  const [chromeLoading, setChromeLoadingState] = useState(false);
+  const [navigationPayloadLoading, setNavigationPayloadLoadingState] = useState(false);
+  const [navigationUiLoading, setNavigationUiLoadingState] = useState(false);
   const navigationStartedAtRef = useRef<number | null>(null);
   const themeMode: AppThemeMode = colorScheme === "dark" ? "dark" : "light";
   const themeReady = mounted && (colorScheme === "light" || colorScheme === "dark");
@@ -61,9 +62,15 @@ function ThemeModeBridge(props: Readonly<AppProvidersProps>) {
     setNavigationPending(true);
   }, []);
 
-  const setChromeLoading = useCallback((loading: boolean) => {
-    setChromeLoadingState(loading);
+  const setNavigationPayloadLoading = useCallback((loading: boolean) => {
+    setNavigationPayloadLoadingState(loading);
   }, []);
+
+  const setNavigationUiLoading = useCallback((loading: boolean) => {
+    setNavigationUiLoadingState(loading);
+  }, []);
+
+  const chromeLoading = navigationPayloadLoading || navigationUiLoading;
 
   useEffect(() => {
     if (!navigationPending) return;
@@ -100,10 +107,21 @@ function ThemeModeBridge(props: Readonly<AppProvidersProps>) {
     () => ({
       navigationPending,
       chromeLoading,
+      navigationPayloadLoading,
+      navigationUiLoading,
       beginNavigation,
-      setChromeLoading,
+      setNavigationPayloadLoading,
+      setNavigationUiLoading,
     }),
-    [beginNavigation, chromeLoading, navigationPending, setChromeLoading]
+    [
+      beginNavigation,
+      chromeLoading,
+      navigationPayloadLoading,
+      navigationPending,
+      navigationUiLoading,
+      setNavigationPayloadLoading,
+      setNavigationUiLoading,
+    ]
   );
 
   return (

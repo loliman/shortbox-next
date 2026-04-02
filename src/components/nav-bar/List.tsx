@@ -3,7 +3,6 @@
 import React from "react";
 import Collapse from "@mui/material/Collapse";
 import Box from "@mui/material/Box";
-import CircularProgress from "@mui/material/CircularProgress";
 import { generateSeoUrl } from "../../lib/routes/hierarchy";
 import { buildRouteHref } from "../generic/routeHref";
 import type { SelectedRoot } from "../../types/domain";
@@ -29,6 +28,7 @@ import NavDrawer from "./NavDrawer";
 import SeriesBranch from "./SeriesBranch";
 import { NestedEmptyRow, NestedRow } from "./NestedNavRow";
 import { usePendingNavigation } from "../generic/usePendingNavigation";
+import { useNavigationFeedbackContext } from "../generic/AppContext";
 import {
   hasNavExpansionState,
   readNavExpansionState,
@@ -37,6 +37,7 @@ import {
   writeNavScrollTop,
 } from "./navStateStorage";
 import { readCachedIssues, readCachedSeries, writeCachedIssues, writeCachedSeries } from "./navDataCache";
+import NavLoadingPlaceholder from "./NavLoadingPlaceholder";
 
 interface ListProps {
   initialPublisherNodes?: PublisherNode[];
@@ -63,6 +64,7 @@ interface ListProps {
 
 export default function List(props: Readonly<ListProps>) {
   const { isPending, push } = usePendingNavigation();
+  const navigationFeedback = useNavigationFeedbackContext();
   const { drawerOpen, toggleDrawer } = props;
   const temporaryDrawer = props.temporaryDrawer;
   const filterQuery = props.query?.filter ?? null;
@@ -245,6 +247,7 @@ export default function List(props: Readonly<ListProps>) {
     !canUseInitialViewportModel && !isAwaitingIssueViewport
       ? true
       : isIssueViewportMiss;
+  const navigationUiLoading = loading;
 
   React.useEffect(() => {
     setSelectedPathReady(!selectedPublisherName);
@@ -432,6 +435,13 @@ export default function List(props: Readonly<ListProps>) {
     setPendingPublisherKey(null);
     setPendingNavigationKey(null);
   }, [isPending]);
+
+  React.useEffect(() => {
+    navigationFeedback.setNavigationUiLoading(navigationUiLoading);
+    return () => {
+      navigationFeedback.setNavigationUiLoading(false);
+    };
+  }, [navigationFeedback, navigationUiLoading]);
 
   const scrollRowIntoView = React.useCallback(
     (rowKey: string, force = false, behavior?: ScrollBehavior) => {
@@ -760,6 +770,9 @@ export default function List(props: Readonly<ListProps>) {
       seriesKey: null,
     };
   }, [props.selected.issue, props.selected.publisher, props.selected.series, selectedPublisherName, selectedSeriesKey]);
+  const publisherRouteSelected = Boolean(
+    props.selected.publisher && !props.selected.series && !props.selected.issue
+  );
 
   const getNextNavActionToken = React.useCallback(() => {
     navActionTokenRef.current += 1;
@@ -804,37 +817,7 @@ export default function List(props: Readonly<ListProps>) {
 
   const content =
     loading && visiblePublisherNodes.length === 0 ? (
-      <Box
-        component="li"
-        role="status"
-        aria-live="polite"
-        aria-label="Navigation wird geladen"
-        sx={{
-          listStyle: "none",
-          m: 0,
-          p: 2,
-          display: "flex",
-          justifyContent: "center",
-        }}
-      >
-        <Box
-          aria-hidden
-          sx={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 1,
-            px: 1.5,
-            py: 1,
-            borderRadius: 999,
-            border: "1px solid",
-            borderColor: "divider",
-            bgcolor: "background.paper",
-            color: "text.secondary",
-          }}
-        >
-          <CircularProgress size={16} />
-        </Box>
-      </Box>
+      <NavLoadingPlaceholder />
     ) : visiblePublisherNodes.length === 0 ? (
       <NestedEmptyRow depth={0} message="Keine Einträge vorhanden" />
     ) : (
@@ -872,6 +855,7 @@ export default function List(props: Readonly<ListProps>) {
             restoreStoredExpansion={
               selectedPathReady || !isSameEntityName(publisherName, canonicalSelectedPublisherName)
             }
+            collapseStoredExpansion={selected && publisherRouteSelected}
             allowAutoRevealFallback={allowAutoRevealFallback}
             bypassInitialIssueCollapseAnimation={bypassSeriesCollapse}
             onPriorityPathReady={

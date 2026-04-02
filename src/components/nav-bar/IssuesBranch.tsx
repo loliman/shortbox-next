@@ -6,7 +6,6 @@ import MuiList from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
 import Typography from "@mui/material/Typography";
-import CircularProgress from "@mui/material/CircularProgress";
 import type { Issue, SelectedRoot } from "../../types/domain";
 import CoverTooltip from "./CoverTooltip";
 import { NestedEmptyRow, NestedLoadingRow } from "./NestedNavRow";
@@ -238,7 +237,7 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
   }, [scheduleIssueAutoReveal, scrollRequestId, selectedRowKey]);
 
   if (props.loading) {
-    return <NestedLoadingRow depth={2} message="Ausgaben werden geladen..." />;
+    return <NestedLoadingRow depth={2} />;
   }
 
   if (issueNodes.length === 0) return <NestedEmptyRow depth={2} message="Keine Ausgaben vorhanden" />;
@@ -350,11 +349,23 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
                           </Box>
                         </Typography>
                         {issueIsPending ? (
-                          <CircularProgress
-                            size={14}
+                          <Box
                             aria-hidden="true"
                             role="presentation"
-                            sx={{ flexShrink: 0 }}
+                            sx={{
+                              flexShrink: 0,
+                              width: 8,
+                              height: 8,
+                              borderRadius: "50%",
+                              bgcolor: "action.active",
+                              opacity: 0.72,
+                              animation: "shortboxIssuePendingPulse 920ms ease-in-out infinite",
+                              "@keyframes shortboxIssuePendingPulse": {
+                                "0%": { opacity: 0.36, transform: "scale(0.92)" },
+                                "50%": { opacity: 0.82, transform: "scale(1)" },
+                                "100%": { opacity: 0.36, transform: "scale(0.92)" },
+                              },
+                            }}
                           />
                         ) : null}
                         {hasVariants ? (

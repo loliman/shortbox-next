@@ -27,6 +27,7 @@ import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
 import type { IssueDetailsSlotComponent } from "./issue-details/slotTypes";
 import DetailsHeaderActionBar from "./DetailsHeaderActionBar";
 import { buildIssueBreadcrumbStructuredData, buildIssueComicStructuredData } from "@/src/lib/routes/structured-data";
+import FilterSummaryBar from "../filter/FilterSummaryBar";
 
 interface IssueDetailsProps {
   initialIssue?: unknown;
@@ -207,6 +208,16 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
           />
         }
       />
+
+      {props.query?.filter ? (
+        <Box sx={{ px: 2, pb: 0.5 }}>
+          <FilterSummaryBar
+            query={props.query}
+            us={props.us}
+            selected={props.selected}
+          />
+        </Box>
+      ) : null}
 
       <CardContent
         sx={{

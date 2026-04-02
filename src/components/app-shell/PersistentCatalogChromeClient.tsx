@@ -102,7 +102,7 @@ export default function PersistentCatalogChromeClient(
   }, [pathname, props.us, routeFilter?.kind, routeFilter?.slug, routeKey]);
 
   React.useEffect(() => {
-    navigationFeedback.setChromeLoading(navigationLoading);
+    navigationFeedback.setNavigationPayloadLoading(navigationLoading);
     if (!navigationLoading) {
       markNavPerf("chrome:ready");
       measureNavPerf("chrome:init-to-ready", "chrome:init", "chrome:ready");
@@ -111,7 +111,7 @@ export default function PersistentCatalogChromeClient(
 
   React.useEffect(() => {
     return () => {
-      navigationFeedback.setChromeLoading(false);
+      navigationFeedback.setNavigationPayloadLoading(false);
     };
   }, [navigationFeedback]);
 

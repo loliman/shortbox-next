@@ -39,6 +39,11 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
   const [debouncedPattern, setDebouncedPattern] = useState("");
   const [focused, setFocused] = useState(false);
   const [hintDotCount, setHintDotCount] = useState(0);
+  const shortcutHint = React.useMemo(() => {
+    if (typeof navigator === "undefined") return "⌘K";
+    const platform = navigator.userAgentData?.platform || navigator.platform || "";
+    return /Mac|iPhone|iPad|iPod/i.test(platform) ? "⌘K" : "⌃K";
+  }, []);
   const queryPattern = debouncedPattern;
   const us = Boolean(ownProps.us);
   const compactLayout = Boolean(ownProps.compactLayout);
@@ -253,10 +258,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                 noWrap
                 sx={{ minWidth: 0, flexShrink: 0, fontSize: "1rem", color: "text.primary" }}
               >
-                Shortbox durchsuchen
-              </Typography>
-              <Typography component="span" noWrap sx={{ minWidth: "1.2em", textAlign: "left" }}>
-                {".".repeat(hintDotCount)}
+                Tippe, um zu suchen…
               </Typography>
             </Box>
           ) : resolvedError ? (
@@ -318,6 +320,9 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
           );
         }}
         sx={(theme) => ({
+          "--shortbox-search-bg": "var(--mui-palette-background-paper)",
+          "--shortbox-search-placeholder":
+            theme.palette.mode === "dark" ? "rgba(255,255,255,0.72)" : "rgba(17,17,17,0.46)",
           width: "100%",
           position: "relative",
           zIndex: theme.zIndex.appBar + 2,
@@ -325,21 +330,21 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
           transformOrigin: "center",
           transition: "transform 220ms ease",
           "& .MuiOutlinedInput-root": {
-            backgroundColor: "#ffffff",
+            backgroundColor: "var(--shortbox-search-bg)",
             borderRadius: 2.5,
-            color: "#111111",
+            color: theme.palette.mode === "dark" ? theme.palette.common.white : "#111111",
             opacity: 1,
             transition:
               "box-shadow 180ms ease, border-color 180ms ease, background-color 180ms ease",
             "& input": {
-              color: "#111111 !important",
-              WebkitTextFillColor: "#111111 !important",
+              color: `${theme.palette.mode === "dark" ? theme.palette.common.white : "#111111"} !important`,
+              WebkitTextFillColor: `${theme.palette.mode === "dark" ? theme.palette.common.white : "#111111"} !important`,
               opacity: "1 !important",
               fontWeight: 500,
             },
             "& input::placeholder": {
-              color: "#111111 !important",
-              WebkitTextFillColor: "#111111 !important",
+              color: `${theme.palette.mode === "dark" ? "rgba(255,255,255,0.72)" : "rgba(17,17,17,0.46)"} !important`,
+              WebkitTextFillColor: `${theme.palette.mode === "dark" ? "rgba(255,255,255,0.72)" : "rgba(17,17,17,0.46)"} !important`,
               opacity: "1 !important",
             },
             "& fieldset": {
@@ -356,10 +361,10 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                 theme.palette.common.black,
                 0.35
               )}`,
-              backgroundColor: "#ffffff",
+              backgroundColor: "var(--shortbox-search-bg)",
             },
             ...theme.applyStyles("dark", {
-              backgroundColor: "#2a2f36",
+              backgroundColor: "var(--shortbox-search-bg)",
               color: theme.palette.common.white,
               "& input": {
                 color: `${theme.palette.common.white} !important`,
@@ -368,8 +373,8 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                 fontWeight: 500,
               },
               "& input::placeholder": {
-                color: `${theme.palette.common.white} !important`,
-                WebkitTextFillColor: `${theme.palette.common.white} !important`,
+                color: "rgba(255,255,255,0.72) !important",
+                WebkitTextFillColor: "rgba(255,255,255,0.72) !important",
                 opacity: "1 !important",
               },
               "& fieldset": {
@@ -382,7 +387,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                 borderColor: theme.palette.primary.light,
               },
               "&.Mui-focused": {
-                backgroundColor: "#313740",
+                backgroundColor: "var(--mui-palette-background-paper)",
                 boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.28)}, 0 10px 26px ${alpha(
                   theme.palette.common.black,
                   0.35
@@ -402,13 +407,9 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
             backgroundColor: getResultsSurfaceColor,
           },
           "& .MuiInputBase-input::placeholder": {
-            color: "#111111 !important",
-            WebkitTextFillColor: "#111111 !important",
+            color: `${theme.palette.mode === "dark" ? "rgba(255,255,255,0.72)" : "rgba(17,17,17,0.46)"} !important`,
+            WebkitTextFillColor: `${theme.palette.mode === "dark" ? "rgba(255,255,255,0.72)" : "rgba(17,17,17,0.46)"} !important`,
             opacity: "1 !important",
-            ...theme.applyStyles("dark", {
-              color: `${theme.palette.common.white} !important`,
-              WebkitTextFillColor: `${theme.palette.common.white} !important`,
-            }),
           },
         })}
         renderInput={(params) => (
@@ -418,25 +419,25 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
             autoFocus={Boolean(ownProps.autoFocus)}
             sx={(theme) => ({
               "& .MuiOutlinedInput-root": {
-                backgroundColor: "#ffffff",
-                color: "#111111",
+                backgroundColor: "var(--shortbox-search-bg)",
+                color: theme.palette.mode === "dark" ? theme.palette.common.white : "#111111",
               },
               "& .MuiOutlinedInput-input": {
                 fontSize: "0.95rem",
                 lineHeight: 1.2,
-                color: "#111111 !important",
-                WebkitTextFillColor: "#111111 !important",
+                color: `${theme.palette.mode === "dark" ? theme.palette.common.white : "#111111"} !important`,
+                WebkitTextFillColor: `${theme.palette.mode === "dark" ? theme.palette.common.white : "#111111"} !important`,
                 fontWeight: 500,
                 opacity: "1 !important",
               },
               "& .MuiOutlinedInput-input::placeholder": {
-                color: "#111111 !important",
-                WebkitTextFillColor: "#111111 !important",
+                color: `${theme.palette.mode === "dark" ? "rgba(255,255,255,0.72)" : "rgba(17,17,17,0.46)"} !important`,
+                WebkitTextFillColor: `${theme.palette.mode === "dark" ? "rgba(255,255,255,0.72)" : "rgba(17,17,17,0.46)"} !important`,
                 opacity: "1 !important",
               },
               ...theme.applyStyles("dark", {
                 "& .MuiOutlinedInput-root": {
-                  backgroundColor: "#2a2f36",
+                  backgroundColor: "var(--mui-palette-background-paper)",
                   color: theme.palette.common.white,
                 },
                 "& .MuiOutlinedInput-input": {
@@ -444,15 +445,16 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                   WebkitTextFillColor: `${theme.palette.common.white} !important`,
                 },
                 "& .MuiOutlinedInput-input::placeholder": {
-                  color: `${theme.palette.common.white} !important`,
-                  WebkitTextFillColor: `${theme.palette.common.white} !important`,
+                  color: "rgba(255,255,255,0.72) !important",
+                  WebkitTextFillColor: "rgba(255,255,255,0.72) !important",
                 },
               }),
             })}
             inputProps={{
               ...params.inputProps,
               "aria-label": "Shortbox durchsuchen",
-              placeholder: "Shortbox durchsuchen",
+              "data-shortbox-search-input": "true",
+              placeholder: `Shortbox durchsuchen · ${shortcutHint}`,
             }}
             InputProps={{
               ...params.InputProps,

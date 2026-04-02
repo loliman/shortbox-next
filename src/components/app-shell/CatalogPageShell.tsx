@@ -3,7 +3,6 @@ import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import FooterLinks from "../footer/FooterLinks";
 import LayoutChromeClient from "../LayoutChromeClient";
-import CatalogMainLoadingOverlay from "./CatalogMainLoadingOverlay";
 import AddFab from "../fab/AddFab";
 import ErrorFab from "../fab/ErrorFab";
 import { COMPACT_BOTTOM_BAR_CLEARANCE, getNavDrawerWidth } from "../layoutMetrics";
@@ -206,7 +205,6 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
               >
                 {props.children}
               </Box>
-              <CatalogMainLoadingOverlay />
             </Box>
 
             <Box

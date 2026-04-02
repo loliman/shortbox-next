@@ -104,26 +104,6 @@ function SeriesHeaderAction(
   );
 }
 
-function GenreLinksBlock(props: Readonly<{ genreLinks: string[]; us: boolean }>) {
-  if (props.genreLinks.length === 0) return null;
-
-  return (
-    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-      Genres: {props.genreLinks.map((genre, index) => (
-        <React.Fragment key={`genre-link-${genre}`}>
-          {index > 0 ? ", " : null}
-          <NextLink
-            href={buildGenreFilterUrl(props.us ? "us" : "de", genre)}
-            style={{ color: "inherit", textDecoration: "underline" }}
-          >
-            {genre}
-          </NextLink>
-        </React.Fragment>
-      ))}
-    </Typography>
-  );
-}
-
 export default function SeriesDetails(props: Readonly<SeriesDetailsProps>) {
   const us = Boolean(props.us);
   const details = props.initialData?.details || null;
@@ -182,7 +162,6 @@ export default function SeriesDetails(props: Readonly<SeriesDetailsProps>) {
 
       <CardContent sx={{ pt: 1 }}>
         <DetailsAddInfo addinfo={details.addinfo ?? undefined} />
-        <GenreLinksBlock genreLinks={genreLinks} us={us} />
 
         <IssueHistoryList
           query={props.query}

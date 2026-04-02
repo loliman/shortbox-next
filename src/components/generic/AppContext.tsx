@@ -19,8 +19,11 @@ export interface ThemeContextValue {
 export interface NavigationFeedbackContextValue {
   navigationPending: boolean;
   chromeLoading: boolean;
+  navigationPayloadLoading: boolean;
+  navigationUiLoading: boolean;
   beginNavigation: () => void;
-  setChromeLoading: (loading: boolean) => void;
+  setNavigationPayloadLoading: (loading: boolean) => void;
+  setNavigationUiLoading: (loading: boolean) => void;
 }
 
 const defaultThemeContextValue: ThemeContextValue = {
@@ -32,8 +35,11 @@ const defaultThemeContextValue: ThemeContextValue = {
 const defaultNavigationFeedbackContextValue: NavigationFeedbackContextValue = {
   navigationPending: false,
   chromeLoading: false,
+  navigationPayloadLoading: false,
+  navigationUiLoading: false,
   beginNavigation: () => {},
-  setChromeLoading: () => {},
+  setNavigationPayloadLoading: () => {},
+  setNavigationUiLoading: () => {},
 };
 
 export const ThemeModeContext = React.createContext<ThemeContextValue>(defaultThemeContextValue);

@@ -48,6 +48,7 @@ type SeriesBranchProps = {
   deferNonPriorityInitialization?: boolean;
   deferProgressiveWindowing?: boolean;
   restoreStoredExpansion?: boolean;
+  collapseStoredExpansion?: boolean;
   allowAutoRevealFallback?: boolean;
   bypassInitialIssueCollapseAnimation?: boolean;
   onPriorityPathReady?: () => void;
@@ -74,6 +75,7 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
     deferNonPriorityInitialization,
     deferProgressiveWindowing,
     restoreStoredExpansion,
+    collapseStoredExpansion,
     allowAutoRevealFallback,
     bypassInitialIssueCollapseAnimation,
     onPriorityPathReady,
@@ -104,8 +106,9 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
     const storedExpansion = readNavExpansionState(seriesStateKey);
     const hasStoredExpansion = hasNavExpansionState(seriesStateKey);
     const requiredExpansion = buildExpandedSeries(seriesNodes, activeSeriesKey, selectedIssue);
+    const shouldCollapseStoredExpansion = Boolean(collapseStoredExpansion) && !activeSeriesKey;
     deferredExpandedSeriesRef.current = storedExpansion;
-    if (hasStoredExpansion) {
+    if (hasStoredExpansion && !shouldCollapseStoredExpansion) {
       setExpandedSeries(
         activeSeriesKey ? requiredExpansion : { ...storedExpansion, ...requiredExpansion }
       );
@@ -115,7 +118,7 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
 
     setExpandedSeries(requiredExpansion);
     setSeriesExpansionReady(true);
-  }, [seriesStateKey, seriesNodes, activeSeriesKey, selectedIssue]);
+  }, [seriesStateKey, seriesNodes, activeSeriesKey, selectedIssue, collapseStoredExpansion]);
 
   React.useLayoutEffect(() => {
     if (!restoreStoredExpansion) return;
