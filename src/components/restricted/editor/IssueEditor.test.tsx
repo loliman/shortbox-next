@@ -47,7 +47,7 @@ jest.mock("@apollo/client", () => ({
   },
 }));
 
-jest.mock("../../../util/hierarchy", () => ({
+jest.mock("../../../lib/routes/hierarchy", () => ({
   generateLabel: mocks.generateLabelMock,
   generateSeoUrl: mocks.generateUrlMock,
 }));

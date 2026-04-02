@@ -235,7 +235,7 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
   React.useEffect(() => {
     if (!scrollRequestId) return;
     return scheduleIssueAutoReveal(`force|${scrollRequestId}|${selectedRowKey || ""}`, true);
-  }, [scheduleIssueAutoReveal, scrollRequestId]);
+  }, [scheduleIssueAutoReveal, scrollRequestId, selectedRowKey]);
 
   if (props.loading) {
     return <NestedLoadingRow depth={2} message="Ausgaben werden geladen..." />;

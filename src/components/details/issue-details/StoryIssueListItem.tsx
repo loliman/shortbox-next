@@ -11,7 +11,7 @@ import Chip from "@mui/material/Chip";
 import SearchIcon from "@mui/icons-material/Search";
 import CoverTooltip from "../../nav-bar/CoverTooltip";
 import type { StoryIssue } from "./utils/storyIssueUtils";
-import { getIssueLabel, getIssueUrl, getSeriesLabel } from "../../../util/issuePresentation";
+import { getIssueLabel, getIssueUrl, getSeriesLabel } from "../../../lib/routes/issue-presentation";
 import { IssueReferenceInline } from "../../generic/IssueNumberInline";
 import { buildRouteHref } from "../../generic/routeHref";
 import { usePendingNavigation } from "../../generic/usePendingNavigation";

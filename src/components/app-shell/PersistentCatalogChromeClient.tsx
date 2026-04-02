@@ -4,8 +4,8 @@ import React from "react";
 import dynamic from "next/dynamic";
 import { usePathname, useSearchParams } from "next/navigation";
 import LayoutChromeClient from "../LayoutChromeClient";
-import { getHierarchyLevel, getSelected, HierarchyLevel } from "../../util/hierarchy";
-import type { SessionData } from "../../app/session";
+import { getHierarchyLevel, getSelected, HierarchyLevel } from "../../lib/routes/hierarchy";
+import type { SessionData } from "../../types/session";
 import { parseSeoFilterRoutePathname } from "../../lib/routes/seo-filter-route";
 import type { IssueNode, PublisherNode, SeriesNode } from "../nav-bar/listTreeUtils";
 import { useNavigationFeedbackContext } from "../generic/AppContext";
@@ -172,7 +172,7 @@ export default function PersistentCatalogChromeClient(
       });
 
     return () => controller.abort();
-  }, [pathname, props.us, routeFilter, searchParams]);
+  }, [pathname, props.us, routeFilter, routeKey, searchParams]);
 
   return (
     <>

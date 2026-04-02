@@ -1,7 +1,7 @@
 import IssueDetails from "./IssueDetails";
 import { IssueDetailsDEBottom } from "./issue-details/de/IssueDetailsDEBottom";
 import { IssueDetailsDEDetails } from "./issue-details/de/IssueDetailsDEDetails";
-import type { SessionData } from "../../app/session";
+import type { SessionData } from "../../types/session";
 import type { LayoutRouteData } from "../../types/route-ui";
 
 interface IssueDetailsDEProps {

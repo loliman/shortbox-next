@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { IssueSchema } from "../../../util/yupSchema";
 import { Form, Formik } from "formik";
 import React from "react";
-import { generateLabel, generateSeoUrl } from "../../../util/hierarchy";
+import { generateLabel, generateSeoUrl } from "../../../lib/routes/hierarchy";
 import { createEmptyIssueValues } from "./issue-editor/constants";
 import { buildIssueMutationVariables } from "./issue-editor/payload";
 import { buildIssueEditorState } from "./issue-editor/state";

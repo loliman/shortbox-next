@@ -11,9 +11,9 @@ import BookIcon from "@mui/icons-material/Book";
 import ListIcon from "@mui/icons-material/List";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import { generateSeoUrl, HierarchyLevel } from "../../util/hierarchy";
+import { generateSeoUrl, HierarchyLevel } from "../../lib/routes/hierarchy";
 import type { SelectedRoot } from "../../types/domain";
-import type { SessionData } from "../../app/session";
+import type { SessionData } from "../../types/session";
 
 interface AddFabProps {
   session?: SessionData | null;

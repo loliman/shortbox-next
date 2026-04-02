@@ -1,5 +1,3 @@
-import test from "node:test";
-import assert from "node:assert/strict";
 import { shouldHandlePreviewNavigation } from "./previewNavigation";
 
 function createEvent(overrides: Partial<React.MouseEvent<HTMLElement>> = {}) {
@@ -14,12 +12,14 @@ function createEvent(overrides: Partial<React.MouseEvent<HTMLElement>> = {}) {
   } as React.MouseEvent<HTMLElement>;
 }
 
-test("handles plain primary clicks", () => {
-  assert.equal(shouldHandlePreviewNavigation(createEvent()), true);
-});
+describe("previewNavigation", () => {
+  it("handles plain primary clicks", () => {
+    expect(shouldHandlePreviewNavigation(createEvent())).toBe(true);
+  });
 
-test("ignores modified clicks and non-primary buttons", () => {
-  assert.equal(shouldHandlePreviewNavigation(createEvent({ metaKey: true })), false);
-  assert.equal(shouldHandlePreviewNavigation(createEvent({ ctrlKey: true })), false);
-  assert.equal(shouldHandlePreviewNavigation(createEvent({ button: 1 })), false);
+  it("ignores modified clicks and non-primary buttons", () => {
+    expect(shouldHandlePreviewNavigation(createEvent({ metaKey: true }))).toBe(false);
+    expect(shouldHandlePreviewNavigation(createEvent({ ctrlKey: true }))).toBe(false);
+    expect(shouldHandlePreviewNavigation(createEvent({ button: 1 }))).toBe(false);
+  });
 });

@@ -6,7 +6,7 @@ import { TextField } from "../../../generic/FormikTextField";
 import AutocompleteBase from "../../../generic/AutocompleteBase";
 import { useAutocompleteQuery } from "../../../generic/useAutocompleteQuery";
 import type { IssueEditorFormValues } from "./types";
-import { getSeriesLabel } from "../../../../util/issuePresentation";
+import { getSeriesLabel } from "../../../../lib/routes/issue-presentation";
 import { getNextPublisherSelection, getNextSeriesSelection } from "./seriesSelection";
 import {
   getPublisherOptionKey,

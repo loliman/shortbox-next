@@ -1,6 +1,6 @@
 import React from "react";
 import Box from "@mui/material/Box";
-import { getLegacyNumberLabel } from "../../util/issuePresentation";
+import { getLegacyNumberLabel } from "../../lib/routes/issue-presentation";
 
 type IssueNumberInlineProps = {
   number?: string | number | null;

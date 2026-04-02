@@ -15,10 +15,10 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { JsonDiffComponent } from "json-diff-react";
 import type { JsonValue } from "json-diff-react";
-import {generateLabel} from "../../util/hierarchy";
+import {generateLabel} from "../../lib/routes/hierarchy";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import { mutationRequest } from "../../lib/client/mutation-request";
-import type { SessionData } from "../../app/session";
+import type { SessionData } from "../../types/session";
 import type { SelectedRoot } from "../../types/domain";
 import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
 import FormPageShell from "../form-shell/FormPageShell";

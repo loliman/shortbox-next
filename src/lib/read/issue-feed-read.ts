@@ -45,8 +45,6 @@ type FeedAnchorRow = {
   updatedAt: Date;
 };
 
-const FEED_CHUNK_SIZE = 200;
-
 function getFeedCursorField(field?: string | null): FeedCursorField | null {
   const normalized = normalizeSortField(field);
   if (normalized === "updatedat" || normalized === "createdat" || normalized === "id") {

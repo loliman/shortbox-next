@@ -7,7 +7,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import type { IssueNode, PublisherNode, SeriesNode } from "./nav-bar/listTreeUtils";
-import type { SessionData } from "../app/session";
+import type { SessionData } from "../types/session";
 import { useInitialResponsiveGuess } from "../app/responsiveGuessContext";
 import type { LayoutRouteData, RouteQuery } from "../types/route-ui";
 import TopBar from "./top-bar/TopBar";

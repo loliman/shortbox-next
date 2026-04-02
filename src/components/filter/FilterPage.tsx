@@ -7,7 +7,7 @@ import { parseFilterValues } from "./defaults";
 import FilterFormClient from "./FilterFormClient";
 import type { FilterPageProps } from "./types";
 import { buildRouteHref } from "../generic/routeHref";
-import { generateSeoUrl } from "../../util/hierarchy";
+import { generateSeoUrl } from "../../lib/routes/hierarchy";
 import FormPageShell from "../form-shell/FormPageShell";
 
 const FILTER_TABS = [

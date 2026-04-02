@@ -33,7 +33,7 @@ jest.mock("../../generic/useAutocompleteQuery", () => ({
   }),
 }));
 
-jest.mock("../../../util/hierarchy", () => ({
+jest.mock("../../../lib/routes/hierarchy", () => ({
   generateLabel: mocks.generateLabelMock,
   generateSeoUrl: mocks.generateUrlMock,
 }));

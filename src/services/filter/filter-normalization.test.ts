@@ -1,7 +1,7 @@
 import {
   normalizeLegacyFilterPayload,
   parseAndNormalizeLegacyFilter,
-} from "./filter-normalization";
+} from "../../util/filter-normalization";
 
 describe("filter-normalization", () => {
   it("parses safely and returns undefined for invalid payloads", () => {

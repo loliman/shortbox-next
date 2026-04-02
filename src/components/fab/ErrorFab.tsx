@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Fab from "@mui/material/Fab";
 import BugReportIcon from "@mui/icons-material/BugReport";
-import { generateSeoUrl, HierarchyLevel } from "../../util/hierarchy";
+import { generateSeoUrl, HierarchyLevel } from "../../lib/routes/hierarchy";
 import type { SelectedRoot } from "../../types/domain";
 
 interface ErrorFabProps {

@@ -1,6 +1,6 @@
 import { stripItem } from "../../../../util/util";
 import type { IssueEditorFormValues } from "./types";
-import { normalizeIssueCopyBatch, shouldGenerateVariantBatch } from "@/src/services/issue-copy-service";
+import { normalizeIssueCopyBatch, shouldGenerateVariantBatch } from "@/src/util/issue-copy";
 
 interface NamedTypeEntry {
   name?: string;

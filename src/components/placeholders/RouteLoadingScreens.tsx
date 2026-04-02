@@ -5,7 +5,7 @@ import Stack from "@mui/material/Stack";
 import CatalogPageShell from "../app-shell/CatalogPageShell";
 import WorkspacePageShell from "../app-shell/WorkspacePageShell";
 import FormPageShell from "../form-shell/FormPageShell";
-import { HierarchyLevel } from "../../util/hierarchy";
+import { HierarchyLevel } from "../../lib/routes/hierarchy";
 import { IssueDetailsPreview } from "../details/issue-details/preview/IssueDetailsPreview";
 import { DetailsPagePlaceholder } from "./DetailsPagePlaceholder";
 import { HomeListingPlaceholder } from "./HomeListingPlaceholder";

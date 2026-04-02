@@ -1,7 +1,7 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { RateLimiterMemory, type RateLimiterRes } from "rate-limiter-flexible";
-import { readUserByName } from "../lib/read/user-read";
-import { clearUserSession, updateUserLoginSession } from "../lib/server/user-write";
+import { readUserByName } from "../read/user-read";
+import { clearUserSession, updateUserLoginSession } from "./user-write";
 
 type LoginInput = {
   name?: string | null;

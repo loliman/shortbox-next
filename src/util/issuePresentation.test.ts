@@ -1,4 +1,4 @@
-import { getIssueLabel, getIssueUrl, getSeriesLabel } from "./issuePresentation";
+import { getIssueLabel, getIssueUrl, getSeriesLabel } from "../lib/routes/issue-presentation";
 
 describe("issuePresentation util", () => {
   it("creates series labels with optional volume and year", () => {

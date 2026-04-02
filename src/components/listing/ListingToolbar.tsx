@@ -4,7 +4,7 @@ import Stack from "@mui/material/Stack";
 import SortContainer from "../SortContainer";
 import FilterSummaryBar from "../filter/FilterSummaryBar";
 import type { ListingQuery } from "../../util/listingQuery";
-import type { SessionData } from "../../app/session";
+import type { SessionData } from "../../types/session";
 import type { SelectedRoot } from "../../types/domain";
 import type { RouteQuery } from "../../types/route-ui";
 

@@ -5,7 +5,7 @@ import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import PublisherEditor from "../editor/PublisherEditor";
 import { useSnackbarBridge } from "../../generic/useSnackbarBridge";
-import type { SessionData } from "../../../app/session";
+import type { SessionData } from "../../../types/session";
 import { useInitialResponsiveGuess } from "../../../app/responsiveGuessContext";
 import type { LayoutRouteData, RouteQuery } from "../../../types/route-ui";
 import type { SelectedRoot } from "../../../types/domain";

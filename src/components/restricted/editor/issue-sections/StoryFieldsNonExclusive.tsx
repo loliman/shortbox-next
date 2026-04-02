@@ -6,7 +6,7 @@ import { useAutocompleteQuery } from "../../../generic/useAutocompleteQuery";
 import { TextField } from "../../../generic/FormikTextField";
 import type { ContainsProps, FieldItem } from "./types";
 import TypedRoleAutocomplete from "./TypedRoleAutocomplete";
-import { getSeriesLabel } from "../../../../util/issuePresentation";
+import { getSeriesLabel } from "../../../../lib/routes/issue-presentation";
 import { getNextStoryParentSeriesSelection } from "./storySeriesSelection";
 import { getSeriesOptionKey } from "../../../generic/autocompleteOptionKeys";
 

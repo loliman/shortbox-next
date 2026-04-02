@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import {
   generateSeoFilterPageMetadata,
   renderSeoFilterHomePage,
-} from "@/src/lib/routes/seo-filter-page";
+} from "@/src/components/pages/seo-filter-page";
 
 export const dynamic = "force-dynamic";
 

@@ -2,7 +2,7 @@
 import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
-import { getSelected } from "../../util/hierarchy";
+import { getSelected } from "../../lib/routes/hierarchy";
 
 const mockUseQueryMock = jest.fn();
 const mockPushMock = jest.fn();
@@ -31,7 +31,7 @@ jest.mock("../generic/usePendingNavigation", () => ({
 }));
 
 import List from "./List";
-import { parseNavOpenState } from "./navOpenState";
+import { parseNavOpenState } from "../../lib/routes/nav-open-state";
 
 function toRect(top: number, height: number): DOMRect {
   return {

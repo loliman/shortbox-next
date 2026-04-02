@@ -6,7 +6,7 @@ import {
   parseNavOpenState,
   readNavOpenStateFromQuery,
   serializeNavOpenState,
-} from "./navOpenState";
+} from "../../lib/routes/nav-open-state";
 
 describe("navOpenState", () => {
   it("merges legacy query params into navOpen state", () => {

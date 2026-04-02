@@ -127,7 +127,7 @@ export function useAutocompleteQuery<TOption>({
     return () => {
       cancelled = true;
     };
-  }, [debouncedInputKey, loadPage, skip]);
+  }, [debouncedInputKey, loadPage, skip, source]);
 
   const onListboxScroll = (e: React.UIEvent<HTMLElement>) => {
     const element = e.target as HTMLElement | null;

@@ -6,7 +6,7 @@ import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
 import Badge from "@mui/material/Badge";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import { generateSeoUrl } from "../../util/hierarchy";
+import { generateSeoUrl } from "../../lib/routes/hierarchy";
 import type { SelectedRoot } from "../../types/domain";
 import { CONTRIBUTOR_FIELDS, TRANSLATOR_FIELD } from "../filter/constants";
 import { buildRouteHref } from "../generic/routeHref";

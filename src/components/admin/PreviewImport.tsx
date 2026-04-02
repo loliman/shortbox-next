@@ -13,7 +13,7 @@ import { IssueSchema } from "../../util/yupSchema";
 import { mutationRequest } from "../../lib/client/mutation-request";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import type { ActivePreviewImportQueue } from "../../types/preview-import";
-import type { SessionData } from "../../app/session";
+import type { SessionData } from "../../types/session";
 import IssueEditorFormContent from "../restricted/editor/issue-editor/IssueEditorFormContent";
 import { buildIssueMutationVariables } from "../restricted/editor/issue-editor/payload";
 import type { IssueEditorFormValues } from "../restricted/editor/issue-editor/types";

@@ -8,7 +8,7 @@ import IssueEditor from "../editor/IssueEditor";
 import { mapIssueToEditorDefaultValues } from "../editor/issue-editor/defaultValues";
 import { EditorPagePlaceholder } from "../../placeholders/EditorPagePlaceholder";
 import { useSnackbarBridge } from "../../generic/useSnackbarBridge";
-import type { SessionData } from "../../../app/session";
+import type { SessionData } from "../../../types/session";
 import { useInitialResponsiveGuess } from "../../../app/responsiveGuessContext";
 import type { LayoutRouteData, RouteQuery } from "../../../types/route-ui";
 import type { SelectedRoot } from "../../../types/domain";

@@ -7,7 +7,7 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import type { SxProps, Theme } from "@mui/material/styles";
-import { generateLabel, generateSeoUrl, HierarchyLevel } from "../../util/hierarchy";
+import { generateLabel, generateSeoUrl, HierarchyLevel } from "../../lib/routes/hierarchy";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";

@@ -2,10 +2,10 @@ import type { PrismaClient, Prisma } from "@prisma/client";
 import "server-only";
 
 import { prisma } from "../prisma/client";
-import { updateStoryFilterFlagsForIssue } from "../../util/filter-updater";
-import { MarvelCrawlerService } from "../../services/marvel-crawler-service";
+import { updateStoryFilterFlagsForIssue } from "./story-filter-write";
+import { MarvelCrawlerService } from "./marvel-crawler";
 import { Result, success, failure } from "@/src/types/result";
-import { buildVariantBatchLabels, type IssueCopyBatchInput } from "@/src/services/issue-copy-service";
+import { buildVariantBatchLabels, type IssueCopyBatchInput } from "@/src/util/issue-copy";
 
 type PrismaExecutor = Prisma.TransactionClient | PrismaClient;
 

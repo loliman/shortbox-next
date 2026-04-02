@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type React from "react";
-import type { SessionData } from "../../../app/session";
+import type { SessionData } from "../../../types/session";
 import type { RouteQuery } from "../../../types/route-ui";
 import type { QueryParams } from "./contains/expanded";
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSelected } from "@/src/util/hierarchy";
+import { getSelected } from "@/src/lib/routes/hierarchy";
 import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
 import { resolveNavigationFilterQuery } from "@/src/lib/routes/seo-filter-navigation";
 import { isSeoFilterKind } from "@/src/lib/routes/seo-filter-route";

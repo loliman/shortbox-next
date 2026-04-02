@@ -17,7 +17,7 @@ import { useAutocompleteQuery } from "../../../generic/useAutocompleteQuery";
 import { currencies, formats } from "./constants";
 import type { IssueEditorFormValues } from "./types";
 import type { AutocompleteSource } from "../../../../lib/read/autocomplete-read";
-import { buildVariantBatchLabels } from "@/src/services/issue-copy-service";
+import { buildVariantBatchLabels } from "@/src/util/issue-copy";
 
 const MIN_QUERY_LENGTH = 2;
 const DEBOUNCE_MS = 250;

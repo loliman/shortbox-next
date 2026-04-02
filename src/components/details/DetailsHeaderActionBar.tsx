@@ -9,7 +9,7 @@ import SortContainer from "../SortContainer";
 import { usePendingNavigation } from "../generic/usePendingNavigation";
 import type { SelectedRoot } from "../../types/domain";
 import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
-import type { SessionData } from "../../app/session";
+import type { SessionData } from "../../types/session";
 import type { ListingQuery } from "../../util/listingQuery";
 
 type DetailsHeaderActionBarProps = {

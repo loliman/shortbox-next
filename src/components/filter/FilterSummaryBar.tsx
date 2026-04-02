@@ -6,7 +6,7 @@ import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
-import { generateSeoUrl } from "../../util/hierarchy";
+import { generateSeoUrl } from "../../lib/routes/hierarchy";
 import type { SelectedRoot } from "../../types/domain";
 import { CONTRIBUTOR_FIELDS, TRANSLATOR_FIELD } from "./constants";
 import { buildRouteHref } from "../generic/routeHref";

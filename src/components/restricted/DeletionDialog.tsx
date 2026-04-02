@@ -14,7 +14,7 @@ import {
   generateLabel,
   generateSeoUrl,
   HierarchyLevel,
-} from "../../util/hierarchy";
+} from "../../lib/routes/hierarchy";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import { mutationRequest } from "../../lib/client/mutation-request";
 import type { SelectedRoot } from "../../types/domain";

@@ -7,7 +7,7 @@ import PersistentCatalogChromeClient from "./PersistentCatalogChromeClient";
 import CatalogMainLoadingOverlay from "./CatalogMainLoadingOverlay";
 import { COMPACT_BOTTOM_BAR_CLEARANCE, getNavDrawerWidth } from "../layoutMetrics";
 import { getInitialResponsiveGuess } from "../../app/responsiveGuess";
-import type { SessionData } from "../../app/session";
+import type { SessionData } from "../../types/session";
 
 type PersistentCatalogShellProps = {
   children: React.ReactNode;

@@ -1,4 +1,4 @@
-import { HierarchyLevel } from "../../../../util/hierarchy";
+import { HierarchyLevel } from "../../../../lib/routes/hierarchy";
 import { buildIssueCreateDefaultValues, mapIssueToEditorDefaultValues } from "./defaultValues";
 
 describe("issue-editor default values", () => {

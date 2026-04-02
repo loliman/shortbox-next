@@ -9,7 +9,7 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { useRouter } from "next/navigation";
 import { IssueCover } from "./IssueCover";
-import { getIssueUrl } from "../../../util/issuePresentation";
+import { getIssueUrl } from "../../../lib/routes/issue-presentation";
 import { buildRouteHref } from "../../generic/routeHref";
 import type { PreviewIssue } from "../../issue-preview/utils/issuePreviewUtils";
 import { buildIssueVariantKey } from "./utils/issueDetailsUtils";

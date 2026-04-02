@@ -8,7 +8,7 @@ import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import SearchIcon from "@mui/icons-material/Search";
 import CoverTooltip from "../../../nav-bar/CoverTooltip";
-import { generateLabel, generateSeoUrl } from "../../../../util/hierarchy";
+import { generateLabel, generateSeoUrl } from "../../../../lib/routes/hierarchy";
 import type { SelectedRoot } from "../../../../types/domain";
 import { IssueReferenceInline } from "../../../generic/IssueNumberInline";
 import { buildRouteHref } from "../../../generic/routeHref";

@@ -1,4 +1,4 @@
-import { getLegacyNumberLabel, getSeriesLabel } from "../../util/issuePresentation";
+import { getLegacyNumberLabel, getSeriesLabel } from "../../lib/routes/issue-presentation";
 import { slugify } from "../../lib/slug-builder";
 import type { Issue, SelectedRoot, Series } from "../../types/domain";
 

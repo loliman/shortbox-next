@@ -4,7 +4,7 @@ import { readInitialNavigationData } from "../read/navigation-read";
 import { buildHierarchyLevel, buildSelectedRoot, normalizePageQuery } from "./page-state";
 import { requirePageAdminSession, requirePageSession, requirePageWriteSession } from "../server/guards";
 import { readServerSession } from "../server/session";
-import type { SessionData } from "../../app/session";
+import type { SessionData } from "../../types/session";
 import type { InitialNavigationData } from "../read/navigation-read";
 import type { LayoutRouteData } from "../../types/route-ui";
 

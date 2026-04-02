@@ -1,7 +1,7 @@
-import { HierarchyLevel, type HierarchyLevelType } from "../../util/hierarchy";
-import type { Connection, QueryCollection } from "../../types/query-data";
+import { HierarchyLevel, type HierarchyLevelType } from "../../lib/routes/hierarchy";
+import type { Connection } from "../../types/query-data";
 import type { SelectedRoot } from "../../types/domain";
-import { parseAndNormalizeLegacyFilter } from "../../services/filter/filter-normalization";
+import { parseAndNormalizeLegacyFilter } from "../../util/filter-normalization";
 import { scrollNavElementIntoView } from "./listTreeUtils";
 
 type ListNode = Record<string, unknown> & {

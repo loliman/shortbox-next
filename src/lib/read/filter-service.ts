@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
-import { readFilterIssues } from "../lib/read/filter-service-read";
-import type { Filter, NumberFilter } from "../types/query-data";
+import { readFilterIssues } from "./filter-service-read";
+import type { Filter, NumberFilter } from "../../types/query-data";
 
 const MULTI_FILTER_SEPARATOR_REGEX = /\s*\|\|\s*/g;
 const TRANSLATOR_STORY_INDIVIDUAL_TYPE = "TRANSLATOR";

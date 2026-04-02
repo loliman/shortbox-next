@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { prisma } from "../prisma/client";
-import type { SessionData } from "../../app/session";
+import type { SessionData } from "../../types/session";
 
 export const SESSION_COOKIE_NAME = "shortbox_session";
 

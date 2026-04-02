@@ -2,7 +2,7 @@ import React from "react";
 import ErrorIcon from "@mui/icons-material/Error";
 import SearchIcon from "@mui/icons-material/Search";
 import Typography from "@mui/material/Typography";
-import { generateLabel } from "../../util/hierarchy";
+import { generateLabel } from "../../lib/routes/hierarchy";
 import Box from "@mui/material/Box";
 import type { SelectedRoot } from "../../types/domain";
 import { AppInlineLoader, AppPageLoader } from "./loading";

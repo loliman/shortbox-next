@@ -1,4 +1,4 @@
-import { parseAndNormalizeLegacyFilter } from "../services/filter/filter-normalization";
+import { parseAndNormalizeLegacyFilter } from "./filter-normalization";
 
 export type ListingQuery =
   | {

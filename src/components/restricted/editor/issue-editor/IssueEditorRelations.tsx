@@ -3,7 +3,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { Stories } from "../IssueEditorSections";
 import type { IssueEditorFormValues } from "./types";
-import type { SessionData } from "../../../../app/session";
+import type { SessionData } from "../../../../types/session";
 
 interface IssueEditorRelationsProps {
   values: IssueEditorFormValues;

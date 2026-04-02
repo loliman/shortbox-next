@@ -1,5 +1,5 @@
 import { describe, it, expect } from "@jest/globals";
-import { generateSeoUrl } from "@/src/util/hierarchy";
+import { generateSeoUrl } from "@/src/lib/routes/hierarchy";
 import type { SelectedRoot } from "@/src/types/domain";
 
 describe("generateSeoUrl", () => {

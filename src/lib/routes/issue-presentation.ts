@@ -1,5 +1,5 @@
-import { romanize } from "./util";
-import { buildDetailPageUrl } from "../lib/url-builder";
+import { romanize } from "../../util/util";
+import { buildDetailPageUrl } from "../url-builder";
 
 type PublisherLike = {
   name?: string | null;

@@ -8,14 +8,21 @@ const eslintConfig = [
   {
     ignores: [
       ".next/**",
+      "dist/**",
       "node_modules/**",
       "next-env.d.ts",
-      "src/services/MarvelCrawlerService.ts",
+      "src/lib/server/marvel-crawler.ts",
     ],
   },
   {
     plugins: { boundaries },
     settings: {
+      "import/resolver": {
+        typescript: {
+          alwaysTryTypes: true,
+          project: "./tsconfig.json",
+        },
+      },
       "boundaries/elements": [
         { type: "app", pattern: "app/**" },
         { type: "components", pattern: "src/components/**" },
@@ -28,29 +35,22 @@ const eslintConfig = [
     }
   },
   {
-    ignores: [
-      "src/lib/read/filter-read.ts",
-      "src/lib/read/navigation-read.ts",
-      "src/lib/routes/app-page.ts",
-      "src/lib/routes/seo-filter-page.tsx",
-      "src/lib/server/auth-write.ts",
-      "src/lib/server/guards.ts",
-      "src/lib/server/issues-write.ts",
-      "src/lib/server/session.ts",
-      "src/services/filter/filter-conflict-resolution-regression.test.ts",
-      "src/services/filter/filter-normalization-parity.test.ts",
-      "src/util/filter-updater.ts",
-      "src/util/hierarchy.ts",
-      "src/util/issuePresentation.ts",
-      "src/util/listingQuery.ts"
-    ],
     rules: {
       "boundaries/dependencies": [2, {
-        default: "allow", 
+        default: "allow",
         rules: [
-          { from: "services", disallow: ["app", "components"] },
-          { from: "lib", disallow: ["app", "components", "services"] },
-          { from: "util", disallow: ["app", "components", "services", "lib"] },
+          {
+            from: { type: "services" },
+            disallow: { to: { type: ["app", "components"] } },
+          },
+          {
+            from: { type: "lib" },
+            disallow: { to: { type: ["app", "components", "services"] } },
+          },
+          {
+            from: { type: "util" },
+            disallow: { to: { type: ["app", "components", "services", "lib"] } },
+          },
         ]
       }]
     }

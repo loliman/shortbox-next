@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma/client";
-import { updateStoryFilterFlagsForIssue } from "../util/filter-updater";
+import { updateStoryFilterFlagsForIssue } from "../lib/server/story-filter-write";
 
 const DEFAULT_BATCH_SIZE = 250;
 

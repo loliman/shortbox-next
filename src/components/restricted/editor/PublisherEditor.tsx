@@ -5,7 +5,7 @@ import { PublisherSchema } from "../../../util/yupSchema";
 import { FastField, Form, Formik } from "formik";
 import { TextField } from "../../generic/FormikTextField";
 import React from "react";
-import { generateLabel, generateSeoUrl } from "../../../util/hierarchy";
+import { generateLabel, generateSeoUrl } from "../../../lib/routes/hierarchy";
 import Button from "@mui/material/Button";
 import { stripItem } from "../../../util/util";
 import Box from "@mui/material/Box";

@@ -1,7 +1,7 @@
 import IssueDetails from "./IssueDetails";
 import { IssueDetailsUSBottom } from "./issue-details/us/IssueDetailsUSBottom";
 import { IssueDetailsUSDetails } from "./issue-details/us/IssueDetailsUSDetails";
-import type { SessionData } from "../../app/session";
+import type { SessionData } from "../../types/session";
 import type { LayoutRouteData } from "../../types/route-ui";
 
 interface IssueDetailsUSProps {

@@ -1,11 +1,15 @@
 import { romanize } from "./util";
-import { generateLabel } from "./hierarchy";
-import type { SelectedRoot } from "../types/domain";
 
 type ItemTitleIssueLike = {
   number?: string | number;
+  legacy_number?: string | null;
   stories?: unknown[];
-  series?: unknown;
+  series?: {
+    title?: string | null;
+    volume?: string | number | null;
+    startyear?: string | number | null;
+    publisher?: unknown;
+  } | null;
   format?: string;
   variant?: string;
 };
@@ -27,13 +31,51 @@ type ItemTitleLike = {
   variant?: string;
 };
 
+function safeValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  return String(value);
+}
+
+function generateSeriesLabel(series: ItemTitleIssueLike["series"]): string {
+  if (!series?.title) return "";
+
+  let year = "";
+  if (series.startyear) year = " (" + series.startyear + ")";
+  const volume = series.volume;
+  const hasVolume = volume !== undefined && volume !== null;
+
+  return (
+    safeValue(series.title) +
+    (series.publisher && hasVolume ? " (Vol. " + romanize(volume) + ")" + year : "")
+  );
+}
+
+function generateSelectionLabel(input: {
+  series?: ItemTitleIssueLike["series"];
+  issue?: ItemTitleIssueLike | null;
+}): string {
+  if (input.issue) {
+    const title = generateSeriesLabel(input.issue.series);
+    const legacyNumber = safeValue(input.issue.legacy_number).trim();
+
+    return (
+      title +
+      " #" +
+      safeValue(input.issue.number) +
+      (legacyNumber ? " LGY #" + legacyNumber : "")
+    );
+  }
+
+  return generateSeriesLabel(input.series);
+}
+
 export function generateItemTitle(item: ItemTitleLike, us: boolean) {
   let titleFromStory = "";
   if (item.title) titleFromStory = " - " + item.title;
 
   if (item.parent?.issue) {
     let title =
-      generateLabel({ series: item.parent.issue.series } as unknown as SelectedRoot) +
+      generateSelectionLabel({ series: item.parent.issue.series as ItemTitleIssueLike["series"] }) +
       " #" +
       String(item.parent.issue.number || "");
     title +=
@@ -45,9 +87,8 @@ export function generateItemTitle(item: ItemTitleLike, us: boolean) {
     title += item.parent.variant ? " [" + item.parent.format + "/" + item.parent.variant + "]" : "";
     return title + titleFromStory;
   } else if (item.series) {
-    return generateLabel({ series: item.series } as unknown as SelectedRoot) + " #" + item.number;
-  }
-  else if (titleFromStory === "") {
+    return generateSelectionLabel({ series: item.series as ItemTitleIssueLike["series"] }) + " #" + item.number;
+  } else if (titleFromStory === "") {
     return us ? "Untitled" : "Exklusiv hier erschienen";
   } else {
     return titleFromStory.substring(3);

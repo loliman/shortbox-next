@@ -2,7 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 import { Prisma } from "@prisma/client";
-import { FilterService } from "../../services/filter-service";
+import { FilterService } from "./filter-service";
 import type { Filter, NumberFilter } from "../../types/query-data";
 
 type RuntimeFilter = Filter & {

@@ -15,7 +15,7 @@ import FilterSwitch from "../FilterSwitch";
 import { FORMAT_OPTIONS } from "../constants";
 import { FilterValues } from "../types";
 import type { FieldItem } from "../../../util/filterFieldHelpers";
-import { getSeriesLabel } from "../../../util/issuePresentation";
+import { getSeriesLabel } from "../../../lib/routes/issue-presentation";
 
 const MIN_QUERY_LENGTH = 2;
 const GENRE_MIN_QUERY_LENGTH = 0;

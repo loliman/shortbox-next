@@ -4,14 +4,14 @@ import NextLink from "next/link";
 import CardHeader from "@mui/material/CardHeader";
 import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
-import { generateLabel } from "../../util/hierarchy";
+import { generateLabel } from "../../lib/routes/hierarchy";
 import TitleLine from "../generic/TitleLine";
 import { IssueHistoryList } from "./DetailsListingSections";
 import { DetailsAddInfo } from "./DetailsAddInfo";
 import DetailsHeaderActionBar from "./DetailsHeaderActionBar";
 import type { SelectedRoot } from "../../types/domain";
 import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
-import type { SessionData } from "../../app/session";
+import type { SessionData } from "../../types/session";
 import { buildGenreFilterUrl } from "../../lib/url-builder";
 import type { PreviewIssue } from "../issue-preview/utils/issuePreviewUtils";
 

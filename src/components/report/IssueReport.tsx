@@ -8,7 +8,7 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import { Form, Formik } from "formik";
 import QueryResult from "../generic/QueryResult";
-import { generateSeoUrl } from "../../util/hierarchy";
+import { generateSeoUrl } from "../../lib/routes/hierarchy";
 import { mapIssueToEditorDefaultValues } from "../restricted/editor/issue-editor/defaultValues";
 import { buildIssueMutationVariables } from "../restricted/editor/issue-editor/payload";
 import IssueEditorFormContent from "../restricted/editor/issue-editor/IssueEditorFormContent";
@@ -17,7 +17,7 @@ import type { IssueEditorFormValues } from "../restricted/editor/issue-editor/ty
 import { EditorPagePlaceholder } from "../placeholders/EditorPagePlaceholder";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import { mutationRequest } from "../../lib/client/mutation-request";
-import type { SessionData } from "../../app/session";
+import type { SessionData } from "../../types/session";
 import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
 
 const REPORT_NOTICE =

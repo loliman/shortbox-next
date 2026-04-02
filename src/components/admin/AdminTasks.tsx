@@ -24,7 +24,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import { PlayArrowOutlined } from "@mui/icons-material";
 import { mutationRequest } from "../../lib/client/mutation-request";
-import type { SessionData } from "../../app/session";
+import type { SessionData } from "../../types/session";
 import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
 
 type SnackbarVariant = "success" | "error" | "warning" | "info";

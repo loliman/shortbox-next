@@ -8,7 +8,7 @@ import type { LayoutRouteData } from "../../types/route-ui";
 import { NAVIGATION_CACHE_TAG } from "../cache-tags";
 import { resolveFilterState } from "./filter-read";
 import { compareIssueNumber, compareIssueVariants } from "./issue-read-shared";
-import { readNavOpenStateFromQuery } from "../../components/nav-bar/navOpenState";
+import { readNavOpenStateFromQuery } from "../routes/nav-open-state";
 import { matchesSeriesSelectionBySlug } from "./series-selection";
 import { slugify } from "../slug-builder";
 import {

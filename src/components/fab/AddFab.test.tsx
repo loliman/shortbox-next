@@ -6,7 +6,7 @@ const mocks = ({
   generateUrlMock: jest.fn(() => "/selected-path"),
 });
 
-jest.mock("../../util/hierarchy", () => ({
+jest.mock("../../lib/routes/hierarchy", () => ({
   HierarchyLevel: {
     PUBLISHER: "PUBLISHER",
     SERIES: "SERIES",

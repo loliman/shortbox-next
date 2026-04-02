@@ -13,7 +13,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import { useResolvedImageUrl } from "../generic/useResolvedImageUrl";
 import { useNearViewport } from "../generic/useNearViewport";
 import { buildRouteHref } from "../generic/routeHref";
-import { getIssueLabel, getIssueUrl } from "../../util/issuePresentation";
+import { getIssueLabel, getIssueUrl } from "../../lib/routes/issue-presentation";
 import {
   getIssuePreviewCover,
   getIssuePreviewFlags,

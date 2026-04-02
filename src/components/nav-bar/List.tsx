@@ -4,8 +4,7 @@ import React from "react";
 import Collapse from "@mui/material/Collapse";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
-import Typography from "@mui/material/Typography";
-import { generateSeoUrl } from "../../util/hierarchy";
+import { generateSeoUrl } from "../../lib/routes/hierarchy";
 import { buildRouteHref } from "../generic/routeHref";
 import type { SelectedRoot } from "../../types/domain";
 import {
@@ -29,7 +28,6 @@ import { markNavPerf, measureNavPerf, printNavPerfSummary } from "./navPerfDebug
 import NavDrawer from "./NavDrawer";
 import SeriesBranch from "./SeriesBranch";
 import { NestedEmptyRow, NestedRow } from "./NestedNavRow";
-import { TypeListEntryPlaceholder } from "./ListPlaceholders";
 import { usePendingNavigation } from "../generic/usePendingNavigation";
 import {
   hasNavExpansionState,

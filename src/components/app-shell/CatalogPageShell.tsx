@@ -12,7 +12,7 @@ import { countChangeRequests } from "../../lib/read/issue-read";
 import { readHasActivePreviewImportQueue } from "../../lib/read/preview-import-read";
 import { readServerSession } from "../../lib/server/session";
 import type { IssueNode, PublisherNode, SeriesNode } from "../nav-bar/listTreeUtils";
-import type { SessionData } from "../../app/session";
+import type { SessionData } from "../../types/session";
 import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
 
 export interface CatalogPageShellProps {

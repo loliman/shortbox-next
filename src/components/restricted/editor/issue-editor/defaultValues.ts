@@ -1,4 +1,4 @@
-import { HierarchyLevel } from "../../../../util/hierarchy";
+import { HierarchyLevel } from "../../../../lib/routes/hierarchy";
 import { stripItem } from "../../../../util/util";
 import { createEmptyIssueValues } from "./constants";
 import type { IssueEditorFormValues } from "./types";

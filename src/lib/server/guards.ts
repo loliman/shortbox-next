@@ -3,7 +3,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { redirect } from "next/navigation";
 import { readServerSession } from "./session";
-import type { SessionData } from "../../app/session";
+import type { SessionData } from "../../types/session";
 
 export async function requireServerSession() {
   const session = await readServerSession();

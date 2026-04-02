@@ -5,8 +5,8 @@ import Stack from "@mui/material/Stack";
 import HomeFeedClient from "./HomeFeedClient";
 import SortContainer from "./SortContainer";
 import type { PreviewIssue } from "./issue-preview/utils/issuePreviewUtils";
-import { getIssueLabel, getIssueUrl } from "../util/issuePresentation";
-import type { SessionData } from "../app/session";
+import { getIssueLabel, getIssueUrl } from "../lib/routes/issue-presentation";
+import type { SessionData } from "../types/session";
 import type { LayoutRouteData, RouteQuery } from "../types/route-ui";
 import type { ListingQuery } from "../util/listingQuery";
 

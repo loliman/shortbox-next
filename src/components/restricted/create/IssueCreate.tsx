@@ -6,7 +6,7 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 import IssueEditor from "../editor/IssueEditor";
 import { buildIssueCreateDefaultValues } from "../editor/issue-editor/defaultValues";
 import { useSnackbarBridge } from "../../generic/useSnackbarBridge";
-import type { SessionData } from "../../../app/session";
+import type { SessionData } from "../../../types/session";
 import { useInitialResponsiveGuess } from "../../../app/responsiveGuessContext";
 import type { LayoutRouteData, RouteQuery } from "../../../types/route-ui";
 import type { SelectedRoot } from "../../../types/domain";

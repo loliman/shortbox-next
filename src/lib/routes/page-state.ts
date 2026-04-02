@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getHierarchyLevel, getSelected } from "../../util/hierarchy";
+import { getHierarchyLevel, getSelected } from "./hierarchy";
 import type { RouteParams, SelectedRoot } from "../../types/domain";
 import type { RouteQuery } from "../../types/route-ui";
 

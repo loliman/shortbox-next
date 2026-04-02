@@ -1,4 +1,4 @@
-import { generateLabel } from "../../../../util/hierarchy";
+import { generateLabel } from "../../../../lib/routes/hierarchy";
 import type { SelectedRoot } from "../../../../types/domain";
 import type { IssueEditorProps, IssueEditorState, IssueEditorFormValues } from "./types";
 

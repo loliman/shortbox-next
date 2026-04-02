@@ -6,7 +6,7 @@ import Dialog from "@mui/material/Dialog";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import type { PreviewIssue } from "../../issue-preview/utils/issuePreviewUtils";
-import { getIssueLabel } from "../../../util/issuePresentation";
+import { getIssueLabel } from "../../../lib/routes/issue-presentation";
 import { getPreferredCoverUrl } from "../../generic/coverUrl";
 
 type IssueCoverProps = {

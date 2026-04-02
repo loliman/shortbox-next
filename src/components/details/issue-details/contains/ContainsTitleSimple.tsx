@@ -4,7 +4,7 @@ import React from "react";
 import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
 import Box from "@mui/material/Box";
-import { generateLabel } from "../../../../util/hierarchy";
+import { generateLabel } from "../../../../lib/routes/hierarchy";
 import { IssueReferenceInline } from "../../../generic/IssueNumberInline";
 import type { SelectedRoot } from "../../../../types/domain";
 

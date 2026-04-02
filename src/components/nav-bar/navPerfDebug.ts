@@ -118,11 +118,8 @@ export function printNavPerfSummary(label = "sidebar") {
     detail: event.detail,
   }));
 
-  // eslint-disable-next-line no-console
   console.groupCollapsed(`[nav-perf] ${label} (${store.sessionKey})`);
-  // eslint-disable-next-line no-console
   console.table(rows);
-  // eslint-disable-next-line no-console
   console.groupEnd();
 }
 
@@ -142,7 +139,6 @@ function pushNavPerfEvent(name: string, detail?: NavPerfDetail) {
     store.events.splice(0, store.events.length - EVENT_LIMIT);
   }
 
-  // eslint-disable-next-line no-console
   console.info(`[nav-perf] ${name}`, detail ?? "");
 }
 

@@ -1,4 +1,4 @@
-import { prisma } from "../lib/prisma/client";
+import { prisma } from "../prisma/client";
 
 type StoryWithIssue = {
   id: bigint;
@@ -360,4 +360,3 @@ export async function updateStoryFilterFlagsForIssue(issueId: number): Promise<v
 
   await updateStoryFilterFlagsForParents(parentIds);
 }
-

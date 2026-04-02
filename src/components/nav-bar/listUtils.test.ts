@@ -17,7 +17,7 @@ jest.mock("../../graphql/queriesTyped", () => ({
   })),
 }));
 
-import { HierarchyLevel } from "../../util/hierarchy";
+import { HierarchyLevel } from "../../lib/routes/hierarchy";
 import {
   getItemKey,
   getQueryName,

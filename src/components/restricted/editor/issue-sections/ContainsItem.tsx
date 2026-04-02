@@ -11,14 +11,9 @@ import RemoveContainsButton from "./RemoveContainsButton";
 import type { ContainsProps, FieldItem } from "./types";
 import { IssueReferenceInline } from "../../../generic/IssueNumberInline";
 import { editorSurfaceSx } from "../editorLayout";
-import { getSeriesLabel } from "../../../../util/issuePresentation";
+import { getSeriesLabel } from "../../../../lib/routes/issue-presentation";
 
 type StorySeriesLike = { title?: string };
-
-type StoryItemLike = {
-  part?: string | null | unknown;
-  addinfo?: string | null | unknown;
-};
 
 interface ContainsItemProps extends ContainsProps {
   item: FieldItem;

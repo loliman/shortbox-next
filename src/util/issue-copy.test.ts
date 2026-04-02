@@ -2,7 +2,7 @@ import {
   buildVariantBatchLabels,
   normalizeIssueCopyBatch,
   shouldGenerateVariantBatch,
-} from "./issue-copy-service";
+} from "./issue-copy";
 
 describe("issue-copy-service", () => {
   it("should_build_variant_labels_with_prefix_when_batch_prefix_is_given", () => {

@@ -8,7 +8,7 @@ import Chip from "@mui/material/Chip";
 import ButtonBase from "@mui/material/ButtonBase";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
 import type { Theme } from "@mui/material/styles";
-import { getIssueUrl } from "../../../../util/issuePresentation";
+import { getIssueUrl } from "../../../../lib/routes/issue-presentation";
 import type { VariantIssue } from "./types";
 import { getPreferredCoverUrl } from "../../../generic/coverUrl";
 

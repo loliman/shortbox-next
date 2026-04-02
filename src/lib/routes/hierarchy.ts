@@ -1,12 +1,12 @@
-import { romanize, wrapItem } from "./util";
-import type { Issue, Publisher, RouteParams, SelectedRoot, Series } from "../types/domain";
+import { romanize, wrapItem } from "../../util/util";
+import type { Issue, Publisher, RouteParams, SelectedRoot, Series } from "../../types/domain";
 import {
   generatePublisherSlug,
   generateSeriesSlug,
   generateFormatSlug,
   generateVariantSlug,
-} from "../lib/slug-builder";
-import { parseIssueUrl, parsePublisherSlug, parseSeriesSlug } from "../lib/slug-parser";
+} from "../slug-builder";
+import { parseIssueUrl, parsePublisherSlug, parseSeriesSlug } from "../slug-parser";
 
 export const HierarchyLevel = Object.freeze({
   ROOT: "ROOT",

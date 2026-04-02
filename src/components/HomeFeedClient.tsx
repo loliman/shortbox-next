@@ -17,7 +17,7 @@ import {
   getListingView,
   parseListingFilter,
 } from "../util/listingQuery";
-import type { SessionData } from "../app/session";
+import type { SessionData } from "../types/session";
 import { useInitialResponsiveGuess } from "../app/responsiveGuessContext";
 import type { LayoutRouteData, RouteQuery } from "../types/route-ui";
 

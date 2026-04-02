@@ -10,7 +10,7 @@ import {
 } from "@/src/lib/routes/structured-data";
 import { createPageMetadata, createRouteMetadata } from "@/src/lib/routes/metadata";
 import { readServerSession } from "@/src/lib/server/session";
-import { generateSeoUrl } from "@/src/util/hierarchy";
+import { generateSeoUrl } from "@/src/lib/routes/hierarchy";
 
 export async function generateMetadata({
   params,

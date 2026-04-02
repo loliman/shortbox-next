@@ -5,7 +5,7 @@ import ListItemText from "@mui/material/ListItemText";
 import Typography from "@mui/material/Typography";
 import Tooltip from "@mui/material/Tooltip";
 import Box from "@mui/material/Box";
-import { generateLabel, generateSeoUrl, HierarchyLevel } from "../../util/hierarchy";
+import { generateLabel, generateSeoUrl, HierarchyLevel } from "../../lib/routes/hierarchy";
 import CoverTooltip from "./CoverTooltip";
 import type { SelectedRoot } from "../../types/domain";
 import { buildRouteHref } from "../generic/routeHref";

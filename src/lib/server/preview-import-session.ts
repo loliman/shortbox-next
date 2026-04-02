@@ -3,7 +3,7 @@ import "server-only";
 import { prisma } from "../prisma/client";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE_NAME } from "./session";
-import type { ActivePreviewImportQueue, PreviewImportDraft, PreviewImportQueue } from "../../types/preview-import";
+import type { ActivePreviewImportQueue, PreviewImportQueue } from "../../types/preview-import";
 import { findCurrentDraft, findPreviousSkippedDraftIndex } from "./preview-import-session-shared";
 
 type SessionPayload = {

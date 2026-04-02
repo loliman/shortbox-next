@@ -1,6 +1,6 @@
 import type { SelectedRoot } from "../../../../types/domain";
 import type { MouseEvent, ReactNode } from "react";
-import type { SessionData } from "../../../../app/session";
+import type { SessionData } from "../../../../types/session";
 
 export interface IssueEditorFormValues {
   title: string;
