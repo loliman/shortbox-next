@@ -19,15 +19,15 @@ interface IssueDetailsUSDetailsProps {
 }
 
 export function IssueDetailsUSDetails(props: Readonly<IssueDetailsUSDetailsProps>) {
-  const issue = props.issue || {};
+  const issue = props.issue ?? {};
   const us = Boolean(props.us);
   const releaseDate = issue.releasedate
     ? toShortboxDate(dateFormat(new Date(issue.releasedate), "dd.mm.yyyy"))
     : "";
-  const coverArtists = (issue.cover?.individuals || []).filter((item) =>
-    (item.type || "").includes("ARTIST")
+  const coverArtists = (issue.cover?.individuals ?? []).filter((item) =>
+    (item.type ?? "").includes("ARTIST")
   );
-  const editors = (issue.individuals || []).filter((item) => (item.type || "").includes("EDITOR"));
+  const editors = (issue.individuals ?? []).filter((item) => (item.type ?? "").includes("EDITOR"));
 
   return (
     <React.Fragment>

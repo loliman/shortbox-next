@@ -19,7 +19,7 @@ type StoryArcChipsProps = {
 
 export function StoryArcChips(props: Readonly<StoryArcChipsProps>) {
   const { push } = usePendingNavigation();
-  const arcs = (props.arcs || []).filter((arc) => Boolean(arc?.title));
+  const arcs = (props.arcs ?? []).filter((arc) => Boolean(arc?.title));
   if (arcs.length === 0) return null;
 
   return (
@@ -35,11 +35,11 @@ export function StoryArcChips(props: Readonly<StoryArcChipsProps>) {
     >
       <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-start", gap: 1 }}>
         {arcs.map((arc) => {
-          const arcTitle = arc.title || "";
-          const { color, type } = toArcMeta(arc.type || "");
+          const arcTitle = arc.title ?? "";
+          const { color, type } = toArcMeta(arc.type ?? "");
           return (
             <Chip
-              key={`${arc.type || "ARC"}|${arcTitle}`}
+              key={`${arc.type ?? "ARC"}|${arcTitle}`}
               variant="outlined"
               label={arcTitle + " (" + type + ")"}
               color={color}

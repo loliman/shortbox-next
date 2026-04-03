@@ -45,7 +45,7 @@ function IssueReportView(props: Readonly<IssueReportProps>) {
   const { selected, enqueueSnackbar } = props;
   const loading = false;
   const error = null;
-  const issueDetails = props.initialIssue || null;
+  const issueDetails = props.initialIssue ?? null;
 
   return (
     (() => {

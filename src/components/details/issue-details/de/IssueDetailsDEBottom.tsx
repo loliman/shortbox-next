@@ -21,7 +21,7 @@ interface IssueDetailsDEBottomProps {
 }
 
 export async function IssueDetailsDEBottom(props: Readonly<IssueDetailsDEBottomProps>) {
-  const issue = props.issue || {};
+  const issue = props.issue ?? {};
   const rawStories =
     issue.id && issue.storyOwnerId
       ? await readIssueDetailStories({

@@ -18,7 +18,7 @@ interface IssueDetailsUSBottomProps {
 }
 
 export async function IssueDetailsUSBottom(props: Readonly<IssueDetailsUSBottomProps>) {
-  const issue = props.issue || {};
+  const issue = props.issue ?? {};
   const rawStories =
     issue.id && issue.storyOwnerId
       ? await readIssueDetailStories({

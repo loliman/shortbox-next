@@ -17,7 +17,7 @@ interface IssueDetailsDEDetailsProps {
 }
 
 export function IssueDetailsDEDetails(props: Readonly<IssueDetailsDEDetailsProps>) {
-  const issue = props.issue || {};
+  const issue = props.issue ?? {};
   const priceValue = Number(issue.price);
   const limitation = formatLimitation(issue.limitation);
   const releaseDate = issue.releasedate
@@ -36,7 +36,7 @@ export function IssueDetailsDEDetails(props: Readonly<IssueDetailsDEDetailsProps
       <DetailsRow key="releasedate" label="Erscheinungsdatum" value={releaseDate} />
 
       {!Number.isNaN(priceValue) && priceValue > 0 ? (
-        <DetailsRow key="price" label="Preis" value={String(issue.price) + " " + issue.currency} />
+        <DetailsRow key="price" label="Preis" value={String(issue.price) + " " + (issue.currency ?? "")} />
       ) : null}
 
       {issue.isbn && issue.isbn !== "" ? (
