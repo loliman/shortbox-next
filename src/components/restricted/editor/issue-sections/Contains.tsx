@@ -1,6 +1,5 @@
 import React from "react";
 import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
 import ContainsItem from "./ContainsItem";
 import { getContainsKey } from "./containsKey";
 import type { ContainsProps } from "./types";

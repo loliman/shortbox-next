@@ -27,7 +27,7 @@ Filter logic is split into layers:
 - `src/lib/read/filter-read.ts`
     - technical query construction
     - Prisma where generation
-- `src/services/filter-service.ts`
+- `src/lib/read/filter-service.ts`
     - business filter semantics and matching
 
 ## Consequences

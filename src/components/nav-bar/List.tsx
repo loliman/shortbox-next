@@ -7,7 +7,6 @@ import { generateSeoUrl } from "../../lib/routes/hierarchy";
 import { buildRouteHref } from "../generic/routeHref";
 import type { SelectedRoot } from "../../types/domain";
 import {
-  doesIssueNodeMatchSelectedIssueRoute,
   getSeriesKey,
   type NavListAction,
   getSelectedPublisherName,
@@ -15,7 +14,6 @@ import {
   isElementVisibleInContainer,
   isSameEntityName,
   scrollNavElementIntoView,
-  type IssueNode,
   type PublisherNode,
   type SeriesNode,
 } from "./listTreeUtils";
@@ -23,6 +21,17 @@ import {
   getInitialViewportScrollTop,
   type InitialViewportSelection,
 } from "./branchWindowing";
+import {
+  buildExpandedPublishers,
+  buildNavStateKey,
+  buildPendingNavigationKey,
+  getInitialViewportSelection,
+  getInitialViewportSelectionSignature,
+  getSelectedContext,
+  getSelectedIssueIndex,
+  getSelectedSeriesIndex,
+  resolveCanonicalPublisherName,
+} from "./listState";
 import { markNavPerf, measureNavPerf, printNavPerfSummary } from "./navPerfDebug";
 import NavDrawer from "./NavDrawer";
 import SeriesBranch from "./SeriesBranch";
@@ -73,7 +82,7 @@ export default function List(props: Readonly<ListProps>) {
   const us = Boolean(props.us);
   const loading = Boolean(props.loading);
   const navStateKey = React.useMemo(
-    () => `${us}|${filterQuery || ""}|${routeFilterKind || ""}|${routeFilterSlug || ""}`,
+    () => buildNavStateKey({ us, filterQuery, routeFilterKind, routeFilterSlug }),
     [us, filterQuery, routeFilterKind, routeFilterSlug]
   );
   const phonePortrait = props.phonePortrait;
@@ -150,13 +159,10 @@ export default function List(props: Readonly<ListProps>) {
       return nextState;
     }
   );
-  const canonicalSelectedPublisherName = React.useMemo(() => {
-    if (!selectedPublisherName) return null;
-    return (
-      visiblePublisherNodes.find((node) => isSameEntityName(node.name, selectedPublisherName))?.name
-        || selectedPublisherName
-    );
-  }, [selectedPublisherName, visiblePublisherNodes]);
+  const canonicalSelectedPublisherName = React.useMemo(
+    () => resolveCanonicalPublisherName(visiblePublisherNodes, selectedPublisherName),
+    [selectedPublisherName, visiblePublisherNodes]
+  );
   const selectedPublisherIndex = React.useMemo(() => {
     if (!canonicalSelectedPublisherName) return -1;
     return visiblePublisherNodes.findIndex((node) =>
@@ -167,21 +173,18 @@ export default function List(props: Readonly<ListProps>) {
     if (!canonicalSelectedPublisherName) return null;
     return seriesNodesByPublisher[canonicalSelectedPublisherName] || null;
   }, [canonicalSelectedPublisherName, seriesNodesByPublisher]);
-  const selectedSeriesIndex = React.useMemo(() => {
-    if (!selectedSeriesKey || !selectedSeriesNodes) return -1;
-    return selectedSeriesNodes.findIndex((seriesNode) => getSeriesKey(seriesNode) === selectedSeriesKey);
-  }, [selectedSeriesKey, selectedSeriesNodes]);
+  const selectedSeriesIndex = React.useMemo(
+    () => getSelectedSeriesIndex(selectedSeriesKey, selectedSeriesNodes),
+    [selectedSeriesKey, selectedSeriesNodes]
+  );
   const selectedIssueNodes = React.useMemo(() => {
     if (!selectedSeriesKey) return null;
     return issueNodesBySeriesKey[selectedSeriesKey] ?? null;
   }, [issueNodesBySeriesKey, selectedSeriesKey]);
-  const selectedIssueIndex = React.useMemo(() => {
-    if (!selectedIssue || !selectedSeriesKey) return -1;
-    const issueNodes = selectedIssueNodes || [];
-    return issueNodes.findIndex((issueNode) =>
-      doesIssueNodeMatchSelectedIssueRoute(issueNode, selectedIssue)
-    );
-  }, [selectedIssue, selectedIssueNodes, selectedSeriesKey]);
+  const selectedIssueIndex = React.useMemo(
+    () => getSelectedIssueIndex({ selectedIssue, selectedSeriesKey, selectedIssueNodes }),
+    [selectedIssue, selectedIssueNodes, selectedSeriesKey]
+  );
   const isAwaitingIssueViewport = Boolean(
     selectedIssue &&
       selectedSeriesKey &&
@@ -195,53 +198,27 @@ export default function List(props: Readonly<ListProps>) {
       selectedIssueNodes &&
       selectedIssueIndex < 0
   );
-  const initialViewportSelection = React.useMemo<InitialViewportSelection | null>(() => {
-    if (selectedPublisherIndex < 0) return null;
-
-    if (selectedIssue && selectedSeriesNodes && selectedSeriesIndex >= 0 && selectedSeriesKey) {
-      const issueNodes = selectedIssueNodes;
-      if (!issueNodes) return null;
-      if (selectedIssueIndex >= 0) {
-        return {
-          publisherIndex: selectedPublisherIndex,
-          series: {
-            totalCount: selectedSeriesNodes.length,
-            selectedIndex: selectedSeriesIndex,
-          },
-          issue: {
-            totalCount: issueNodes.length,
-            selectedIndex: selectedIssueIndex,
-          },
-        };
-      }
-    }
-
-    if (selectedSeriesNodes && selectedSeriesIndex >= 0) {
-      return {
-        publisherIndex: selectedPublisherIndex,
-        series: {
-          totalCount: selectedSeriesNodes.length,
-          selectedIndex: selectedSeriesIndex,
-        },
-      };
-    }
-
-    if (selectedPublisherIndex >= 0) {
-      return {
-        publisherIndex: selectedPublisherIndex,
-      };
-    }
-
-    return null;
-  }, [
-    selectedIssue,
-    selectedIssueIndex,
-    selectedIssueNodes,
-    selectedPublisherIndex,
-    selectedSeriesIndex,
-    selectedSeriesKey,
-    selectedSeriesNodes,
-  ]);
+  const initialViewportSelection = React.useMemo<InitialViewportSelection | null>(
+    () =>
+      getInitialViewportSelection({
+        selectedPublisherIndex,
+        selectedIssue,
+        selectedSeriesNodes,
+        selectedSeriesIndex,
+        selectedSeriesKey,
+        selectedIssueNodes,
+        selectedIssueIndex,
+      }),
+    [
+      selectedIssue,
+      selectedIssueIndex,
+      selectedIssueNodes,
+      selectedPublisherIndex,
+      selectedSeriesIndex,
+      selectedSeriesKey,
+      selectedSeriesNodes,
+    ]
+  );
   const canUseInitialViewportModel = Boolean(selectedRowKey && initialViewportSelection);
   const allowAutoRevealFallback =
     !canUseInitialViewportModel && !isAwaitingIssueViewport
@@ -739,37 +716,10 @@ export default function List(props: Readonly<ListProps>) {
     [pushSelection, us, updateNavOpenState]
   );
 
-  const selectedContext = React.useMemo(() => {
-    if (props.selected.issue && selectedPublisherName && selectedSeriesKey) {
-      return {
-        scope: "series" as const,
-        publisherName: selectedPublisherName,
-        seriesKey: selectedSeriesKey,
-      };
-    }
-
-    if (props.selected.series && selectedPublisherName) {
-      return {
-        scope: "publisher" as const,
-        publisherName: selectedPublisherName,
-        seriesKey: selectedSeriesKey,
-      };
-    }
-
-    if (props.selected.publisher) {
-      return {
-        scope: "publisher" as const,
-        publisherName: selectedPublisherName,
-        seriesKey: null,
-      };
-    }
-
-    return {
-      scope: "root" as const,
-      publisherName: null,
-      seriesKey: null,
-    };
-  }, [props.selected.issue, props.selected.publisher, props.selected.series, selectedPublisherName, selectedSeriesKey]);
+  const selectedContext = React.useMemo(
+    () => getSelectedContext(props.selected, selectedPublisherName, selectedSeriesKey),
+    [props.selected, selectedPublisherName, selectedSeriesKey]
+  );
   const publisherRouteSelected = Boolean(
     props.selected.publisher && !props.selected.series && !props.selected.issue
   );
@@ -922,60 +872,4 @@ export default function List(props: Readonly<ListProps>) {
       {content}
     </NavDrawer>
   );
-}
-
-function buildExpandedPublishers(openPublisherNames: string[]) {
-  const nextExpandedPublishers: Record<string, boolean> = {};
-  for (const publisherName of openPublisherNames) {
-    nextExpandedPublishers[publisherName] = true;
-  }
-  return nextExpandedPublishers;
-}
-
-function buildPendingNavigationKey(item: SelectedRoot) {
-  if (item.issue) {
-    return [
-      item.issue.series.publisher.name,
-      item.issue.series.title,
-      item.issue.series.volume,
-      item.issue.series.startyear || "",
-      item.issue.number,
-      item.issue.format || "",
-      item.issue.variant || "",
-    ].join("|");
-  }
-
-  if (item.series) {
-    return [
-      item.series.publisher.name,
-      item.series.title,
-      item.series.volume,
-      item.series.startyear || "",
-    ].join("|");
-  }
-
-  if (item.publisher) {
-    return item.publisher.name || "";
-  }
-
-  return "";
-}
-
-function getInitialViewportSelectionSignature(selection: InitialViewportSelection) {
-  if (!("series" in selection)) {
-    return `publisher:${selection.publisherIndex}`;
-  }
-
-  if (!("issue" in selection)) {
-    return `series:${selection.publisherIndex}:${selection.series.selectedIndex}:${selection.series.totalCount}`;
-  }
-
-  return [
-    "issue",
-    selection.publisherIndex,
-    selection.series.selectedIndex,
-    selection.series.totalCount,
-    selection.issue.selectedIndex,
-    selection.issue.totalCount,
-  ].join(":");
 }

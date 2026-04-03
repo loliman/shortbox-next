@@ -1,9 +1,7 @@
 import React from "react";
 import { notFound } from "next/navigation";
-import NextLink from "next/link";
 import CardHeader from "@mui/material/CardHeader";
 import CardContent from "@mui/material/CardContent";
-import Typography from "@mui/material/Typography";
 import { generateLabel } from "../../lib/routes/hierarchy";
 import TitleLine from "../generic/TitleLine";
 import { IssueHistoryList } from "./DetailsListingSections";
@@ -12,7 +10,6 @@ import DetailsHeaderActionBar from "./DetailsHeaderActionBar";
 import type { SelectedRoot } from "../../types/domain";
 import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
 import type { SessionData } from "../../types/session";
-import { buildGenreFilterUrl } from "../../lib/url-builder";
 import type { PreviewIssue } from "../issue-preview/utils/issuePreviewUtils";
 
 interface SeriesDetailsData {
@@ -72,15 +69,6 @@ function buildSubheaderLabel(yearLabel: string, genreLabel: string): string | un
   return undefined;
 }
 
-function buildGenreLinks(genreLabel: string): string[] {
-  if (!genreLabel) return [];
-
-  return genreLabel
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-}
-
 function SeriesHeaderAction(
   props: Readonly<{
     details: SeriesDetailsData;
@@ -123,7 +111,6 @@ export default function SeriesDetails(props: Readonly<SeriesDetailsProps>) {
   };
   const endYearLabel = readEndYearLabel(details);
   const genreLabel = readTextValue(details.genre);
-  const genreLinks = buildGenreLinks(genreLabel);
   const yearLabel = buildYearLabel(details.startyear, endYearLabel);
   const subheaderLabel = buildSubheaderLabel(yearLabel, genreLabel);
   const previewProps = {

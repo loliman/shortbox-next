@@ -10,7 +10,7 @@ The current official automated test command is:
 npm test
 ```
 
-This runs Jest via [`package.json`](/Users/christian.riese/Documents/shortbox/shortbox-next/package.json).
+This runs Jest via [`package.json`](../../package.json).
 
 Current Jest baseline:
 
@@ -19,7 +19,7 @@ Current Jest baseline:
 - environment: `node`
 - discovery scope: `src/**/*.test.ts` and `src/**/*.test.tsx`
 
-The configuration lives in [`jest.config.ts`](/Users/christian.riese/Documents/shortbox/shortbox-next/jest.config.ts).
+The configuration lives in [`jest.config.ts`](../../jest.config.ts).
 
 ## What Runs Reliably Today
 
@@ -47,22 +47,21 @@ Most important mismatch:
 - multiple existing tests import `vitest` or use `vi`
 - Jest still discovers those files because they match `*.test.ts` or `*.test.tsx`
 
-There are also tests that appear to expect browser-style or UI test support, for example imports from:
+There are also tests that use browser-style or UI test support, for example imports from:
 
 - `@testing-library/react`
 - `@testing-library/user-event`
 - `@apollo/client/testing`
 
-Those tests are not part of the safe default baseline today because the current Jest config is `node`-based and the repository does not currently provide a complete browser-oriented Jest setup.
+Those tests are part of the repository's current Jest suite when they either stay node-friendly or opt into `jsdom` explicitly.
 
-Observed repository state on March 26, 2026:
+Observed repository state on April 3, 2026:
 
-- `npm test -- --listTests` discovers all matching test files under `src/`
-- `npm test -- --runInBand` currently reports many passing pure tests
-- that same command also fails on mixed-runner and UI-oriented tests that Jest cannot execute under the current baseline
-- the same run also exposed an ordinary assertion failure in [`src/util/issues.test.ts`](/Users/christian.riese/Documents/shortbox/shortbox-next/src/util/issues.test.ts)
+- `npm test -- --runInBand` passes for the current repository test suite
+- the suite includes pure logic tests and selected `jsdom`-based component tests
+- Jest remains the official runner and source of truth for automated local validation
 
-Today, "discovered by Jest" does not mean "supported by the default test setup".
+Today, the main constraint is not test discovery but keeping new tests aligned with the current Jest-based setup.
 
 ## How Agents Should Add Tests Right Now
 
@@ -80,8 +79,8 @@ For new tests under the current baseline:
 - use Jest as the runner
 - do not import from `vitest`
 - do not use `vi`
-- avoid assuming `jsdom` or browser globals
-- avoid adding new React Testing Library coverage unless the task explicitly includes adding the missing support for that style
+- add `jsdom` only when the test truly needs browser APIs
+- keep new UI-heavy tests deliberate and scoped so the default Jest run stays reliable
 
 If you need coverage for UI-heavy behavior right now, prefer one of these incremental options instead of guessing:
 
@@ -95,15 +94,15 @@ The repository currently has these test categories:
 
 - pure unit tests: widely supported by the default Jest setup
 - regression and parity tests: supported when they stay node-friendly
-- React/component tests with browser-style helpers: present in the repo, but not reliably runnable via the default setup today
-- mixed-runner tests: present in the repo, but not part of the safe baseline while Jest remains the official command
+- React/component tests with browser-style helpers: supported when configured for Jest and `jsdom`
+- mixed-runner tests: avoid reintroducing them while Jest remains the official command
 
 ## What This Document Does Not Claim
 
 This document does not define a migration plan.
 
 For the intended future testing direction, see
-[ADR 004: Testing Target Model](/Users/christian.riese/Documents/shortbox/shortbox-next/docs/adr/004-testing-target-model.md).
+[ADR 004: Testing Target Model](../adr/004-testing-target-model.md).
 
 It only records the current baseline so agents can make safe choices now:
 

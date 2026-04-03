@@ -4,6 +4,22 @@ import "server-only";
 import { prisma } from "../prisma/client";
 import { updateStoryFilterFlagsForIssue } from "./story-filter-write";
 import { MarvelCrawlerService } from "./marvel-crawler";
+import {
+  linkCoverIndividuals,
+  linkIssueArcs,
+  linkIssueIndividuals,
+  linkStoryAppearances,
+  linkStoryIndividuals,
+} from "./issues-write-links";
+import {
+  coerceReleaseDateForDb,
+  normalizeBigInt,
+  normalizeDbIds,
+  normalizeFloat,
+  normalizeOptionalText,
+  normalizeStoryTitleKey,
+  normalizeText,
+} from "./issues-write-shared";
 import { Result, success, failure } from "@/src/types/result";
 import { buildVariantBatchLabels, type IssueCopyBatchInput } from "@/src/util/issue-copy";
 
@@ -806,252 +822,6 @@ async function resolveIssueIdsFromStoryIds(storyIds: readonly number[], executor
   );
 }
 
-async function linkStoryIndividuals(
-  storyId: number,
-  individuals: StoryIndividualInput[],
-  executor: PrismaExecutor
-) {
-  for (const entry of individuals) {
-    const name = normalizeText(entry?.name);
-    if (!name) continue;
-
-    let individual = await executor.individual.findFirst({ where: { name } });
-    if (!individual) {
-      individual = await executor.individual.create({
-        data: {
-          name,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      });
-    }
-
-    const types = normalizeTypeList(entry?.type);
-    for (const type of types) {
-      await executor.storyIndividual.create({
-        data: {
-          fkStory: BigInt(storyId),
-          fkIndividual: individual.id,
-          type,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      });
-    }
-  }
-}
-
-async function linkStoryAppearances(
-  storyId: number,
-  appearances: StoryAppearanceInput[],
-  executor: PrismaExecutor
-) {
-  for (const entry of appearances) {
-    const name = normalizeText(entry?.name);
-    const type = normalizeText(entry?.type);
-    const role = normalizeText(entry?.role);
-    if (!name || !type) continue;
-
-    let appearance = await executor.appearance.findFirst({
-      where: {
-        name,
-        type,
-      },
-    });
-    if (!appearance) {
-      appearance = await executor.appearance.create({
-        data: {
-          name,
-          type,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      });
-    }
-
-    await executor.storyAppearance.create({
-      data: {
-        fkStory: BigInt(storyId),
-        fkAppearance: appearance.id,
-        role,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
-  }
-}
-
-async function linkIssueIndividuals(
-  issueId: bigint,
-  individuals: CrawledNamedType[],
-  executor: PrismaExecutor
-) {
-  for (const entry of individuals) {
-    const name = normalizeText(entry?.name);
-    if (!name) continue;
-
-    let individual = await executor.individual.findFirst({ where: { name } });
-    if (!individual) {
-      individual = await executor.individual.create({
-        data: {
-          name,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      });
-    }
-
-    for (const type of normalizeTypeList(entry?.type)) {
-      const existingLink = await executor.issueIndividual.findFirst({
-        where: {
-          fkIssue: issueId,
-          fkIndividual: individual.id,
-          type,
-        },
-      });
-
-      if (existingLink) {
-        await executor.issueIndividual.updateMany({
-          where: {
-            fkIssue: issueId,
-            fkIndividual: individual.id,
-            type,
-          },
-          data: {
-            updatedAt: new Date(),
-          },
-        });
-        continue;
-      }
-
-      await executor.issueIndividual.create({
-        data: {
-          fkIssue: issueId,
-          fkIndividual: individual.id,
-          type,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      });
-    }
-  }
-}
-
-async function linkCoverIndividuals(
-  coverId: bigint,
-  individuals: CrawledNamedType[],
-  executor: PrismaExecutor
-) {
-  for (const entry of individuals) {
-    const name = normalizeText(entry?.name);
-    if (!name) continue;
-
-    let individual = await executor.individual.findFirst({ where: { name } });
-    if (!individual) {
-      individual = await executor.individual.create({
-        data: {
-          name,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      });
-    }
-
-    for (const type of normalizeTypeList(entry?.type)) {
-      const existingLink = await executor.coverIndividual.findFirst({
-        where: {
-          fkCover: coverId,
-          fkIndividual: individual.id,
-          type,
-        },
-      });
-
-      if (existingLink) {
-        await executor.coverIndividual.updateMany({
-          where: {
-            fkCover: coverId,
-            fkIndividual: individual.id,
-            type,
-          },
-          data: {
-            updatedAt: new Date(),
-          },
-        });
-        continue;
-      }
-
-      await executor.coverIndividual.create({
-        data: {
-          fkCover: coverId,
-          fkIndividual: individual.id,
-          type,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      });
-    }
-  }
-}
-
-async function linkIssueArcs(
-  issueId: bigint,
-  arcs: CrawledArcLike[],
-  executor: PrismaExecutor
-) {
-  for (const rawArc of arcs) {
-    const title = normalizeText(rawArc?.title);
-    const type = normalizeText(rawArc?.type);
-    if (!title || !type) continue;
-
-    let arc = await executor.arc.findFirst({
-      where: {
-        title,
-        type,
-      },
-    });
-
-    if (!arc) {
-      arc = await executor.arc.create({
-        data: {
-          title,
-          type,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      });
-    }
-
-    const existingLink = await executor.issueArc.findFirst({
-      where: {
-        fkIssue: issueId,
-        fkArc: arc.id,
-      },
-    });
-
-    if (existingLink) {
-      await executor.issueArc.updateMany({
-        where: {
-          fkIssue: issueId,
-          fkArc: arc.id,
-        },
-        data: {
-          updatedAt: new Date(),
-        },
-      });
-      continue;
-    }
-
-    await executor.issueArc.create({
-      data: {
-        fkIssue: issueId,
-        fkArc: arc.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
-  }
-}
-
 async function findOrCrawlParentIssueRefs(
   parent: { title: string; volume: number; number: string },
   executor: PrismaExecutor
@@ -1459,10 +1229,6 @@ function toIssuePayload(issue: {
   };
 }
 
-function normalizeText(value: unknown) {
-  return String(value || "").trim();
-}
-
 async function findIssueBySeriesIdentity(
   input: {
     fkSeries: bigint;
@@ -1527,56 +1293,4 @@ async function issueInheritsStories(issueId: bigint, executor: PrismaExecutor) {
   });
 
   return Boolean(siblingWithStories);
-}
-
-function normalizeOptionalText(value: unknown) {
-  const normalized = normalizeText(value);
-  return normalized === "" ? null : normalized;
-}
-
-function normalizeBigInt(value: unknown) {
-  if (value === null || value === undefined || value === "") return null;
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return null;
-  return BigInt(Math.trunc(numeric));
-}
-
-function normalizeFloat(value: unknown) {
-  if (value === null || value === undefined || value === "") return null;
-  const numeric = typeof value === "number" ? value : Number(String(value).replace(",", ".").trim());
-  return Number.isFinite(numeric) ? numeric : null;
-}
-
-function normalizeTypeList(raw: unknown): string[] {
-  if (Array.isArray(raw)) {
-    return raw.map((entry) => normalizeText(entry)).filter((entry) => entry.length > 0);
-  }
-  const normalized = normalizeText(raw);
-  return normalized ? [normalized] : [];
-}
-
-function normalizeDbIds(values: readonly number[]) {
-  return Array.from(new Set(values.filter((id) => Number.isFinite(id) && Math.trunc(id) > 0))).map((id) =>
-    Math.trunc(id)
-  );
-}
-
-function normalizeStoryTitleKey(value: unknown): string {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[_:;,.!?'"()\-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function coerceReleaseDateForDb(value: unknown) {
-  const normalized = normalizeText(value);
-  if (!normalized) return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
-    return new Date(`${normalized}T00:00:00.000Z`);
-  }
-
-  const parsed = new Date(normalized);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }

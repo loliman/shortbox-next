@@ -103,7 +103,7 @@ describe("util helpers", () => {
 
   it("formats today as dd.mm.yyyy", () => {
     jest.useFakeTimers();
-    jest.setSystemTime(new Date("2026-02-14T12:00:00.000Z"));
+    jest.setSystemTime(Date.parse("2026-02-14T12:00:00.000Z"));
 
     expect(today()).toBe("14.02.2026");
 

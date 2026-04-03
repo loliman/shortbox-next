@@ -2,7 +2,7 @@
 
 This document lists areas that deserve extra caution during incremental AI-assisted changes.
 
-Use it together with [AGENTS.md](/Users/christian.riese/Documents/shortbox/shortbox-next/AGENTS.md) and the workflow docs when a change touches legacy, normalization, or write-path code.
+Use it together with [AGENTS.md](../../AGENTS.md) and the workflow docs when a change touches legacy, normalization, or write-path code.
 
 ## Hotspots
 
@@ -29,4 +29,3 @@ Stop and document the change first if the edit would:
 - move data access outside `src/lib/`
 - change legacy normalization without a test
 - touch more than one hotspot family in a single small task
-

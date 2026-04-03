@@ -12,8 +12,8 @@ Non-trivial feature work should create and pair two documents before product cod
 
 Use the repository templates:
 
-- `docs/specs/feature-spec-template.md`
-- `docs/plans/implementation-plan-template.md`
+- use an existing spec in `docs/specs/` as the closest template
+- use the paired plan in `docs/plans/` as the closest template
 
 ## Naming Convention
 
@@ -36,7 +36,7 @@ Rules:
 ## Workflow
 
 ### 1. Specification
-Create a feature spec in `docs/specs/` using `docs/specs/feature-spec-template.md`.
+Create a feature spec in `docs/specs/` using the closest existing spec as a template.
 
 Example:
 - `docs/specs/creator-bibliography-spec.md`
@@ -59,7 +59,7 @@ The spec is the source of truth for:
 - which architectural boundaries the implementation must respect
 
 ### 2. Implementation Plan
-Create a plan in `docs/plans/` using `docs/plans/implementation-plan-template.md`.
+Create a plan in `docs/plans/` using the closest existing plan as a template.
 
 Example:
 - `docs/plans/creator-bibliography-plan.md`
@@ -108,7 +108,7 @@ Review against:
 - architectural boundaries
 - tests
 - SEO/canonical rules
-- [High-risk hotspots](/Users/christian.riese/Documents/shortbox/shortbox-next/docs/architecture/high-risk-hotspots.md) when legacy write or normalization paths are touched
+- [High-risk hotspots](../architecture/high-risk-hotspots.md) when legacy write or normalization paths are touched
 
 ## Agent Roles
 A single agent may be used in different roles sequentially:

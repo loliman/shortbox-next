@@ -59,5 +59,5 @@ Migration should be incremental:
 
 Until migration is complete, treat:
 
-- [docs/workflows/testing-baseline.md](/Users/christian.riese/Documents/shortbox/shortbox-next/docs/workflows/testing-baseline.md) as the description of current execution reality
+- [docs/workflows/testing-baseline.md](../workflows/testing-baseline.md) as the description of current execution reality
 - this ADR as the description of the intended future testing model

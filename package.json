@@ -19,6 +19,7 @@
     "test:seo:unlighthouse": "node scripts/run-unlighthouse-audit.mjs",
     "test:seo:unlighthouse:mobile": "AUDIT_DEVICE=mobile node scripts/run-unlighthouse-audit.mjs",
     "lint": "eslint .",
+    "sonar": "npx sonarqube-scanner",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate"
   },

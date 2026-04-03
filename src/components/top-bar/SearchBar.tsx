@@ -38,7 +38,6 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
   const [pattern, setPattern] = useState("");
   const [debouncedPattern, setDebouncedPattern] = useState("");
   const [focused, setFocused] = useState(false);
-  const [hintDotCount, setHintDotCount] = useState(0);
   const shortcutHint = React.useMemo(() => {
     if (typeof navigator === "undefined") return "⌘K";
     const platform = navigator.userAgentData?.platform || navigator.platform || "";
@@ -57,16 +56,6 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
       window.clearTimeout(handle);
     };
   }, [pattern]);
-
-  useEffect(() => {
-    const handle = window.setInterval(() => {
-      setHintDotCount((prev) => (prev + 1) % 4);
-    }, 520);
-
-    return () => {
-      window.clearInterval(handle);
-    };
-  }, []);
 
   const [options, setOptions] = useState<SearchNode[]>([]);
   const [loading, setLoading] = useState(false);

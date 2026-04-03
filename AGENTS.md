@@ -10,7 +10,7 @@ This repository is **AI-first**: code should be structured so that automated age
 
 # Project Overview
 
-Shortbox is a Next.js 15 App Router application written in TypeScript.
+Shortbox is a Next.js App Router application written in TypeScript.
 
 It is a comic publication database with:
 - server-rendered detail pages for publishers, series, issues, and variants
@@ -63,7 +63,7 @@ Contains:
 - No Prisma access in `app/`.
 - Use `notFound()` when required data is missing.
 - Always use metadata helpers from `src/lib/routes/metadata.ts`.
-- Always `await params` and `await searchParams` (Next.js 15 requirement).
+- Always `await params` and `await searchParams` to match the current App Router conventions used in this repo.
 
 **Thin page pattern:**
 1. Parse params / query

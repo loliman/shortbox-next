@@ -1,7 +1,7 @@
-import { getIssueLabel, getIssueUrl, getSeriesLabel } from "../lib/routes/issue-presentation";
+import { getIssueLabel, getIssueUrl, getSeriesLabel } from "./issue-presentation";
 
-describe("issuePresentation util", () => {
-  it("creates series labels with optional volume and year", () => {
+describe("issue-presentation", () => {
+  it("should_create_series_labels_with_optional_volume_and_year", () => {
     expect(getSeriesLabel()).toBe("");
     expect(
       getSeriesLabel({
@@ -12,7 +12,7 @@ describe("issuePresentation util", () => {
     ).toBe("Spider-Man (Vol. IV) (2015)");
   });
 
-  it("creates issue labels with and without series context", () => {
+  it("should_create_issue_labels_with_and_without_series_context", () => {
     expect(getIssueLabel(null)).toBe("");
     expect(getIssueLabel({ number: "7" })).toBe("#7");
     expect(
@@ -23,12 +23,12 @@ describe("issuePresentation util", () => {
     ).toBe("Spider-Man (Vol. I) (1963) #7");
   });
 
-  it("builds fallback issue URLs when required parts are missing", () => {
+  it("should_build_fallback_issue_urls_when_required_parts_are_missing", () => {
     expect(getIssueUrl(undefined, true)).toBe("/us");
     expect(getIssueUrl({ number: "1" }, false)).toBe("/de");
   });
 
-  it("builds issue URLs with format and variant handling", () => {
+  it("should_build_issue_urls_with_format_and_variant_handling", () => {
     const baseIssue = {
       number: "1",
       series: {
@@ -63,7 +63,7 @@ describe("issuePresentation util", () => {
     ).toBe("/de/marvel/spider-man-vol1/1/hc/b");
   });
 
-  it("escapes percent characters safely in URL segments", () => {
+  it("should_escape_percent_characters_safely_in_url_segments", () => {
     const url = getIssueUrl(
       {
         number: "1%",

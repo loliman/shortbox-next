@@ -21,10 +21,10 @@ This repository is designed for both human contributors and coding agents. For a
 
 Start here:
 
-- [AGENTS.md](/Users/christian.riese/Documents/shortbox/shortbox-next/AGENTS.md) for repository-wide architecture, layering rules, and agent working style
-- [AI feature workflow](/Users/christian.riese/Documents/shortbox/shortbox-next/docs/workflows/ai-feature-development.md) for the expected delivery sequence for non-trivial changes
-- [Feature spec template](/Users/christian.riese/Documents/shortbox/shortbox-next/docs/specs/feature-spec-template.md) to define scope, business rules, risks, and acceptance criteria
-- [Implementation plan template](/Users/christian.riese/Documents/shortbox/shortbox-next/docs/plans/implementation-plan-template.md) to map the spec into file changes, layer placement, and verification
+- [AGENTS.md](AGENTS.md) for repository-wide architecture, layering rules, and agent working style
+- [AI feature workflow](docs/workflows/ai-feature-development.md) for the expected delivery sequence for non-trivial changes
+- Existing specs in `docs/specs/` as examples for scope, business rules, risks, and acceptance criteria
+- Existing plans in `docs/plans/` as examples for file changes, layer placement, and verification
 
 For non-trivial work:
 
@@ -38,13 +38,14 @@ Keep the README as the entry point and use the linked docs as the source of trut
 
 ## Main Rules and Docs
 
-- [Architecture overview](/Users/christian.riese/Documents/shortbox/shortbox-next/docs/architecture/overview.md)
-- [Module boundaries](/Users/christian.riese/Documents/shortbox/shortbox-next/docs/architecture/module-boundaries.md)
-- [Domain overview](/Users/christian.riese/Documents/shortbox/shortbox-next/docs/domain/overview.md)
-- [Domain entities](/Users/christian.riese/Documents/shortbox/shortbox-next/docs/domain/entities.md)
-- [ADR: layered architecture](/Users/christian.riese/Documents/shortbox/shortbox-next/docs/adr/001-layered-architecture.md)
-- [ADR: filter architecture](/Users/christian.riese/Documents/shortbox/shortbox-next/docs/adr/002-filter-architecture.md)
-- [ADR: URL and slug system](/Users/christian.riese/Documents/shortbox/shortbox-next/docs/adr/003-url-and-slug-system.md)
+- [AGENTS.md](AGENTS.md) for repository-wide architecture, layering rules, and agent working style
+- [Architecture overview](docs/architecture/overview.md)
+- [Module boundaries](docs/architecture/module-boundaries.md)
+- [Domain overview](docs/domain/overview.md)
+- [Domain entities](docs/domain/entities.md)
+- [ADR: layered architecture](docs/adr/001-layered-architecture.md)
+- [ADR: filter architecture](docs/adr/002-filter-architecture.md)
+- [ADR: URL and slug system](docs/adr/003-url-and-slug-system.md)
 
 In practice:
 
@@ -64,7 +65,7 @@ npm run lint
 npm test
 ```
 
-For the current automated test baseline and its limitations, see [Testing baseline](/Users/christian.riese/Documents/shortbox/shortbox-next/docs/workflows/testing-baseline.md).
+For the current automated test baseline and its limitations, see [Testing baseline](docs/workflows/testing-baseline.md).
 
 SEO-specific checks against a running app:
 
@@ -77,4 +78,4 @@ The SEO scripts default to `http://localhost:3000` and support overrides such as
 
 ## Scope of This README
 
-This README is intentionally lightweight. It points to the authoritative architecture, domain, and workflow docs instead of restating them. If you are starting feature work, read the workflow doc and the paired templates before changing product code.
+This README is intentionally lightweight. It points to the authoritative architecture, domain, and workflow docs instead of restating them. If you are starting feature work, read the workflow doc and the closest paired spec/plan examples before changing product code.

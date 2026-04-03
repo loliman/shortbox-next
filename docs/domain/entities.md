@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document complements [docs/domain/overview.md](/Users/christian.riese/Documents/shortbox/shortbox-next/docs/domain/overview.md).
+This document complements [docs/domain/overview.md](overview.md).
 
 The overview explains the system at a high level: scopes, core relationships, browsing, and major domain rules.
 This file is the implementation-facing reference for the most important entities. It is intended to help humans and
@@ -10,9 +10,9 @@ coding agents make safe changes to read logic, write logic, filters, routes, and
 ownership, scope, or invariants.
 
 Use this document together with:
-- [AGENTS.md](/Users/christian.riese/Documents/shortbox/shortbox-next/AGENTS.md)
-- [docs/architecture/overview.md](/Users/christian.riese/Documents/shortbox/shortbox-next/docs/architecture/overview.md)
-- [docs/architecture/module-boundaries.md](/Users/christian.riese/Documents/shortbox/shortbox-next/docs/architecture/module-boundaries.md)
+- [AGENTS.md](../../AGENTS.md)
+- [docs/architecture/overview.md](../architecture/overview.md)
+- [docs/architecture/module-boundaries.md](../architecture/module-boundaries.md)
 
 ## How To Read This File
 
