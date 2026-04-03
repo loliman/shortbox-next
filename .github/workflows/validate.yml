@@ -92,7 +92,7 @@ jobs:
         run: npm ci
 
       - name: Sync Prisma schema
-        run: npx prisma db push --skip-generate
+        run: npx prisma db push
 
       - name: Seed CI fixtures
         run: node scripts/seed-ci-fixtures.mjs
@@ -151,7 +151,7 @@ jobs:
         run: npm ci
 
       - name: Sync Prisma schema
-        run: npx prisma db push --skip-generate
+        run: npx prisma db push
 
       - name: Seed CI fixtures
         run: node scripts/seed-ci-fixtures.mjs
