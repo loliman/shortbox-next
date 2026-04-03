@@ -79,6 +79,114 @@ function readNames(value: unknown): string[] {
   return [];
 }
 
+function parseExpandedFilter(filter: string): ExpandedFilter | null {
+  try {
+    const parsed = JSON.parse(filter) as ExpandedFilter;
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function resolveExpandedComparisonItem(item: ItemLike): ItemLike {
+  return item.parent ?? item;
+}
+
+function matchesFlagFilters(item: ItemLike, filter: ExpandedFilter): boolean {
+  return Boolean(
+    (filter.onlyPrint && item.onlyapp) ||
+      (filter.firstPrint && item.firstapp) ||
+      (filter.otherOnlyTb && item.otheronlytb) ||
+      (filter.onlyTb && item.onlytb) ||
+      (filter.onlyOnePrint && item.onlyoneprint) ||
+      (filter.exclusive && item.exclusive) ||
+      (filter.noPrint && toArray(item.children).length === 0)
+  );
+}
+
+function matchesSeriesFilters(compareIssue: IssueLike, filter: ExpandedFilter): boolean {
+  if (!compareIssue.series) return false;
+
+  const filterSeries = toArray<SeriesLike>(filter.series);
+  if (
+    filterSeries.some((series) => {
+      return (
+        compareIssue.series?.title === series.title &&
+        String(compareIssue.series?.volume) === String(series.volume) &&
+        compareIssue.series?.publisher?.name === series.publisher?.name
+      );
+    })
+  ) {
+    return true;
+  }
+
+  const filterPublishers = toArray<{ name?: string }>(filter.publishers);
+  if (filterPublishers.some((publisher) => compareIssue.series?.publisher?.name === publisher?.name)) {
+    return true;
+  }
+
+  return Boolean(
+    filter.publisher?.name && compareIssue.series?.publisher?.name === filter.publisher.name
+  );
+}
+
+function matchesNumberFilters(compareIssue: IssueLike, filter: ExpandedFilter): boolean {
+  if (compareIssue.number === undefined) return false;
+
+  const filterNumbers = toArray(filter.numbers);
+  return filterNumbers.some((number) => {
+    if (!number || number.number === undefined || !number.compare) return false;
+
+    const comparison = compareIssueNumbers(String(compareIssue.number), String(number.number));
+    return (
+      (number.compare === "=" && comparison === 0) ||
+      (number.compare === ">" && comparison > 0) ||
+      (number.compare === "<" && comparison < 0) ||
+      (number.compare === ">=" && comparison >= 0) ||
+      (number.compare === "<=" && comparison <= 0)
+    );
+  });
+}
+
+function matchesStoryFilters(
+  item: ItemLike,
+  filter: ExpandedFilter,
+  compareIndividuals: PersonLike[],
+  compareAppearances: AppearanceLike[],
+  compareArcs: Array<{ title?: string | null }>
+): boolean {
+  if (item.__typename !== "Story") return false;
+
+  const selectedArcs = readTitles(filter.arcs);
+  if (
+    selectedArcs.length > 0 &&
+    compareArcs.some((arc) => selectedArcs.includes(readTextValue(arc?.title)))
+  ) {
+    return true;
+  }
+
+  const filterIndividuals = toArray<PersonLike>(filter.individuals);
+  if (hasMatchingIndividual(filterIndividuals, compareIndividuals)) {
+    return true;
+  }
+
+  const selectedAppearances = readNames(filter.appearances);
+  return (
+    selectedAppearances.length > 0 &&
+    compareAppearances.some((appearance) =>
+      selectedAppearances.includes(readTextValue(appearance?.name))
+    )
+  );
+}
+
+function matchesCoverFilters(item: ItemLike, filter: ExpandedFilter): boolean {
+  if (item.__typename !== "Cover") return false;
+
+  const itemIndividuals = toArray<PersonLike>(item.individuals);
+  const filterIndividuals = toArray<PersonLike>(filter.individuals);
+  return hasMatchingIndividual(filterIndividuals, itemIndividuals);
+}
+
 export function expanded(item: ItemLike, query?: QueryParams): boolean {
   if (hasExpandNumberMatch(item, query)) {
     return true;
@@ -87,128 +195,35 @@ export function expanded(item: ItemLike, query?: QueryParams): boolean {
   const filter = query?.filter;
   if (!filter) return false;
 
-  let currentFilter: ExpandedFilter | null = null;
-  try {
-    const parsed = JSON.parse(filter) as ExpandedFilter;
-    currentFilter = parsed && typeof parsed === "object" ? parsed : null;
-  } catch {
-    return false;
-  }
+  const currentFilter = parseExpandedFilter(filter);
   if (!currentFilter) return false;
 
-  const compare = item?.parent ? item.parent : item;
+  const compare = resolveExpandedComparisonItem(item);
   const compareIssue = resolveIssue(compare);
   const compareIndividuals = toArray<PersonLike>(compare?.individuals);
   const compareAppearances = toArray<AppearanceLike>(compare?.appearances);
   const compareArcs = toArray<{ title?: string | null }>(compareIssue?.arcs);
-  const itemIndividuals = toArray<PersonLike>(item?.individuals);
-  const filterIndividuals = toArray<PersonLike>(currentFilter.individuals);
 
-  let isExpanded = false;
-  isExpanded = (currentFilter.onlyPrint && Boolean(item?.onlyapp)) || isExpanded;
-  isExpanded = (currentFilter.firstPrint && Boolean(item?.firstapp)) || isExpanded;
-  isExpanded = (currentFilter.otherOnlyTb && Boolean(item?.otheronlytb)) || isExpanded;
-  isExpanded = (currentFilter.onlyTb && Boolean(item?.onlytb)) || isExpanded;
-  isExpanded = (currentFilter.onlyOnePrint && Boolean(item?.onlyoneprint)) || isExpanded;
-  isExpanded = (currentFilter.exclusive && Boolean(item?.exclusive)) || isExpanded;
-  isExpanded = (currentFilter.noPrint && toArray(item?.children).length === 0) || isExpanded;
-
-  if (compareIssue?.series) {
-    const filterSeries = toArray<SeriesLike>(currentFilter.series);
-    if (
-      filterSeries.some((series) => {
-        return (
-          compareIssue.series?.title === series.title &&
-          String(compareIssue.series?.volume) === String(series.volume) &&
-          compareIssue.series?.publisher?.name === series.publisher?.name
-        );
-      })
-    ) {
-      isExpanded = true;
-    }
-
-    const filterPublishers = toArray<{ name?: string }>(currentFilter.publishers);
-    if (
-      filterPublishers.some((publisher) => compareIssue.series?.publisher?.name === publisher?.name)
-    ) {
-      isExpanded = true;
-    }
-
-    if (
-      currentFilter.publisher?.name &&
-      compareIssue.series?.publisher?.name === currentFilter.publisher.name
-    ) {
-      isExpanded = true;
-    }
-  }
-
-  if (compareIssue?.number !== undefined) {
-    const filterNumbers = toArray(currentFilter.numbers);
-    for (const number of filterNumbers) {
-      if (!number || number.number === undefined || !number.compare) continue;
-
-      const comparison = compareIssueNumbers(String(compareIssue.number), String(number.number));
-
-      if (
-        (number.compare === "=" && comparison === 0) ||
-        (number.compare === ">" && comparison > 0) ||
-        (number.compare === "<" && comparison < 0) ||
-        (number.compare === ">=" && comparison >= 0) ||
-        (number.compare === "<=" && comparison <= 0)
-      ) {
-        isExpanded = true;
-      }
-    }
-  }
-
-  if (item?.__typename === "Story") {
-    const selectedArcs = readTitles((currentFilter as { arcs?: unknown }).arcs);
-    if (
-      selectedArcs.length > 0 &&
-      compareArcs.some((arc) => selectedArcs.includes(readTextValue(arc?.title)))
-    ) {
-      isExpanded = true;
-    }
-
-    if (hasMatchingIndividual(filterIndividuals, compareIndividuals)) {
-      isExpanded = true;
-    }
-
-    const selectedAppearances = readNames((currentFilter as { appearances?: unknown }).appearances);
-    if (
-      selectedAppearances.length > 0 &&
-      compareAppearances.some((appearance) =>
-        selectedAppearances.includes(readTextValue(appearance?.name))
-      )
-    ) {
-      isExpanded = true;
-    }
-  } else if (item?.__typename === "Cover") {
-    if (hasMatchingIndividual(filterIndividuals, itemIndividuals)) {
-      isExpanded = true;
-    }
-  }
-
-  return isExpanded;
+  return (
+    matchesFlagFilters(item, currentFilter) ||
+    (compareIssue ? matchesSeriesFilters(compareIssue, currentFilter) : false) ||
+    (compareIssue ? matchesNumberFilters(compareIssue, currentFilter) : false) ||
+    matchesStoryFilters(item, currentFilter, compareIndividuals, compareAppearances, compareArcs) ||
+    matchesCoverFilters(item, currentFilter)
+  );
 }
 
 export function hasExpandNumberMatch(item: ItemLike, query?: QueryParams): boolean {
-  const expandValue = readExpandedText(query?.expand);
+  const expandValue = readTextValue(query?.expand);
   if (!expandValue) return false;
 
-  const itemNumber = readExpandedText(item?.number);
+  const itemNumber = readTextValue(item?.number);
   if (itemNumber) {
     return itemNumber === expandValue;
   }
 
-  const parentNumber = readExpandedText(item?.parent?.number);
+  const parentNumber = readTextValue(item?.parent?.number);
   return parentNumber !== "" && parentNumber === expandValue;
-}
-
-function readExpandedText(value: unknown): string {
-  if (typeof value === "string") return value.trim();
-  if (typeof value === "number") return String(value).trim();
-  return "";
 }
 
 function resolveIssue(item: ItemLike | null | undefined): IssueLike | null {

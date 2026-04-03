@@ -163,7 +163,7 @@ function getQualifyingMultipartTotals(
 }
 
 function getFirstPublicationLabel(item: ContainsItemLike): string {
-  const siblingChildren = item.parent?.children || [];
+  const siblingChildren = item.parent?.children ?? [];
   return getQualifyingMultipartTotals(siblingChildren).size > 0
     ? "Erste vollständige Veröffentlichung"
     : "Erstveröffentlichung";
@@ -173,8 +173,268 @@ function shouldShowPartialPublicationLabel(item: ContainsItemLike): boolean {
   const parsedPart = parseStoryPart(item.part);
   if (!parsedPart || parsedPart.total <= 1) return false;
 
-  const siblingChildren = item.parent?.children || [];
+  const siblingChildren = item.parent?.children ?? [];
   return getQualifyingMultipartTotals(siblingChildren).has(parsedPart.total);
+}
+
+function getContainsTitleLayoutSx(stackActions: boolean) {
+  return stackActions
+    ? {
+        width: "100%",
+        display: "grid",
+        gridTemplateColumns: "minmax(0, 1fr) auto",
+        alignItems: "start",
+        columnGap: 1,
+      }
+    : {
+        width: "100%",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        gap: 1,
+      };
+}
+
+function getContainsSeriesLabel(issue: ContainsIssueLike | undefined, hasIssueReference: boolean) {
+  if (!hasIssueReference || !issue?.series) return undefined;
+  return generateLabel({ series: issue.series as SelectedRoot["series"] });
+}
+
+function buildDetailButton({
+  allowInteractiveActions,
+  exclusive,
+  issue,
+  issueSelection,
+  us,
+  query,
+  storyExpandNumber,
+  push,
+}: {
+  allowInteractiveActions: boolean;
+  exclusive: boolean;
+  issue: ContainsIssueLike | undefined;
+  issueSelection: SelectedRoot | null;
+  us: boolean | undefined;
+  query: Record<string, unknown> | null | undefined;
+  storyExpandNumber: string;
+  push: (href: string) => void;
+}): React.ReactNode {
+  if (!allowInteractiveActions || exclusive || !issue || !issueSelection) return null;
+
+  return (
+    <CoverTooltip issue={issue} us={us}>
+      <IconButton
+        component="span"
+        onClick={(e) => {
+          e.stopPropagation();
+          push(
+            buildRouteHref(generateSeoUrl(issueSelection, !us), query, {
+              filter: null,
+              expand: storyExpandNumber || undefined,
+            })
+          );
+        }}
+        aria-label="Details"
+      >
+        <SearchIcon fontSize="small" />
+      </IconButton>
+    </CoverTooltip>
+  );
+}
+
+function ContainsTitleDetailedMainText(props: Readonly<{
+  storyTitleLabel: string;
+  storyNumberLabel: string;
+  hasIssueReference: boolean;
+  issue: ContainsIssueLike | undefined;
+  showParentTitle: boolean;
+  parentTitle: string | undefined;
+  variant: string;
+}>) {
+  const seriesLabel = getContainsSeriesLabel(props.issue, props.hasIssueReference);
+
+  return (
+    <Box
+      sx={{
+        display: "grid",
+        rowGap: 0.3,
+      }}
+    >
+      <Box sx={{ display: "flex", alignItems: "baseline", gap: 1, flexWrap: "wrap" }}>
+        <Typography
+          variant="overline"
+          sx={{
+            fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif',
+            fontWeight: 500,
+            fontSize: "0.7rem",
+            lineHeight: 1.5,
+            textTransform: "uppercase",
+            letterSpacing: "0.16em",
+            color: "text.primary",
+            opacity: 1,
+          }}
+        >
+          {props.storyTitleLabel}
+        </Typography>
+        {props.storyNumberLabel ? (
+          <Chip
+            size="small"
+            label={`Story ${props.storyNumberLabel}`}
+            sx={{ fontWeight: 600, height: 20 }}
+          />
+        ) : null}
+      </Box>
+      <Typography
+        variant="subtitle1"
+        component="div"
+        sx={{
+          fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif',
+          fontSize: "1rem",
+          lineHeight: 1.75,
+          fontWeight: 700,
+          color: "text.primary",
+          letterSpacing: "0.01em",
+          opacity: 1,
+        }}
+      >
+        <IssueReferenceInline
+          seriesLabel={seriesLabel}
+          number={props.hasIssueReference ? props.issue?.number : undefined}
+          legacy_number={props.issue?.legacy_number}
+        />
+      </Typography>
+      {props.showParentTitle ? (
+        <Typography
+          sx={{
+            fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif',
+            fontSize: "0.9rem",
+            lineHeight: 1.55,
+            fontWeight: 500,
+            color: "text.primary",
+            opacity: 1,
+          }}
+        >
+          {props.parentTitle}
+        </Typography>
+      ) : null}
+      {props.variant ? (
+        <Typography
+          sx={{
+            fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif',
+            fontSize: "0.85rem",
+            lineHeight: 1.5,
+            fontWeight: 500,
+            color: "text.primary",
+            opacity: 1,
+          }}
+        >
+          {props.variant} Variant
+        </Typography>
+      ) : null}
+    </Box>
+  );
+}
+
+function ContainsTitleDetailedReprintBlock(props: Readonly<{
+  reprintIssue: ContainsIssueLike | undefined;
+  reprintNumber: string | number | undefined;
+  reprintSelection: SelectedRoot | null;
+  reprintLabel: string;
+  allowInteractiveActions: boolean;
+  us: boolean | undefined;
+  query: Record<string, unknown> | null | undefined;
+  push: (href: string) => void;
+}>) {
+  if (!props.reprintIssue) return null;
+
+  const content = props.allowInteractiveActions ? (
+    <Link
+      component="button"
+      type="button"
+      variant="body2"
+      underline="hover"
+      color="text.primary"
+      sx={{
+        mt: 0.25,
+        p: 0,
+        textAlign: "left",
+        lineHeight: 1.43,
+        fontWeight: 600,
+      }}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!props.reprintSelection) return;
+        push(
+          buildRouteHref(generateSeoUrl(props.reprintSelection, true), props.query, {
+            expand: props.reprintNumber,
+            filter: null,
+          })
+        );
+      }}
+    >
+      {props.reprintLabel}
+    </Link>
+  ) : (
+    <Typography
+      variant="body2"
+      color="text.primary"
+      sx={{
+        mt: 0.25,
+        lineHeight: 1.43,
+        fontWeight: 600,
+      }}
+    >
+      {props.reprintLabel}
+    </Typography>
+  );
+
+  return (
+    <Box
+      sx={{
+        mt: 1,
+        p: 1.25,
+        borderRadius: 1.5,
+        border: "1px solid",
+        borderColor: "divider",
+        backgroundColor: (theme) =>
+          theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)",
+      }}
+    >
+      <Typography variant="caption" color="text.secondary" sx={{ letterSpacing: "0.08em" }}>
+        US-Original
+      </Typography>
+      <CoverTooltip issue={props.reprintIssue} us={props.us} number={props.reprintNumber}>
+        {content}
+      </CoverTooltip>
+    </Box>
+  );
+}
+
+function ContainsTitleDetailedActionArea(props: Readonly<{
+  stackActions: boolean;
+  actionChips: React.ReactElement[];
+  detailButton: React.ReactNode;
+}>) {
+  if (props.stackActions) {
+    return <Box sx={{ justifySelf: "end", alignSelf: "center" }}>{props.detailButton}</Box>;
+  }
+
+  return (
+    <Box
+      sx={{
+        ml: "auto",
+        alignSelf: "center",
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 0.6,
+        justifyContent: "flex-end",
+        alignItems: "center",
+      }}
+    >
+      {props.actionChips}
+      {props.detailButton}
+    </Box>
+  );
 }
 
 export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps>) {
@@ -195,12 +455,13 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
   const parentTitle =
     !itemTitle && item.parent?.title ? normalizeDisplayStoryTitle(item.parent.title) : undefined;
   const storyTitle = itemTitle || parentTitle || "";
-  const storyTitleLabel = storyTitle !== "" ? storyTitle : "Story";
+  const storyTitleLabel = storyTitle || "Story";
   const showParentTitle = Boolean(parentTitle && itemTitle && parentTitle !== itemTitle);
   const addinfoText = buildAddinfoText(item);
-  const reprintSelection = item.parent?.reprintOf?.issue
-    ? toIssueSelection(item.parent.reprintOf.issue)
-    : null;
+  const reprintIssue = item.parent?.reprintOf?.issue;
+  const reprintNumber = item.parent?.reprintOf?.number;
+  const reprintSelection = reprintIssue ? toIssueSelection(reprintIssue) : null;
+  const reprintLabel = reprintSelection ? generateLabel(reprintSelection) : "";
   const hasIssueReference = Boolean(issue?.series);
   const actionChips = buildDetailedActionChips({
     item,
@@ -208,195 +469,40 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
     exclusive,
     hasSession: Boolean(props.session),
   });
-  const detailButton =
-    allowInteractiveActions && !exclusive && issue && issueSelection ? (
-      <CoverTooltip issue={issue} us={props.us}>
-        <IconButton
-          component="span"
-          onClick={(e) => {
-            e.stopPropagation();
-            push(
-              buildRouteHref(generateSeoUrl(issueSelection, !props.us), props.query, {
-                filter: null,
-                expand: storyExpandNumber || undefined,
-              })
-            );
-          }}
-          aria-label="Details"
-        >
-          <SearchIcon fontSize="small" />
-        </IconButton>
-      </CoverTooltip>
-    ) : null;
+  const detailButton = buildDetailButton({
+    allowInteractiveActions,
+    exclusive,
+    issue,
+    issueSelection,
+    us: props.us,
+    query: props.query,
+    storyExpandNumber,
+    push,
+  });
 
   return (
-    <Box
-      data-testid="story-header"
-      sx={
-        stackActions
-          ? {
-              width: "100%",
-              display: "grid",
-              gridTemplateColumns: "minmax(0, 1fr) auto",
-              alignItems: "start",
-              columnGap: 1,
-            }
-          : {
-              width: "100%",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-              gap: 1,
-            }
-      }
-    >
+    <Box data-testid="story-header" sx={getContainsTitleLayoutSx(stackActions)}>
       <Box sx={{ minWidth: 0 }}>
-        <Box
-          sx={{
-            display: "grid",
-            rowGap: 0.3,
-          }}
-        >
-          <Box sx={{ display: "flex", alignItems: "baseline", gap: 1, flexWrap: "wrap" }}>
-            <Typography
-              variant="overline"
-              sx={{
-                fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif',
-                fontWeight: 500,
-                fontSize: "0.7rem",
-                lineHeight: 1.5,
-                textTransform: "uppercase",
-                letterSpacing: "0.16em",
-                color: "text.primary",
-                opacity: 1,
-              }}
-            >
-              {storyTitleLabel}
-            </Typography>
-            {storyNumberLabel ? (
-              <Chip
-                size="small"
-                label={`Story ${storyNumberLabel}`}
-                sx={{ fontWeight: 600, height: 20 }}
-              />
-            ) : null}
-          </Box>
-          <Typography
-            variant="subtitle1"
-            component="div"
-            sx={{
-              fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif',
-              fontSize: "1rem",
-              lineHeight: 1.75,
-              fontWeight: 700,
-              color: "text.primary",
-              letterSpacing: "0.01em",
-              opacity: 1,
-            }}
-          >
-            <IssueReferenceInline
-              seriesLabel={
-                hasIssueReference
-                  ? generateLabel({ series: issue?.series as SelectedRoot["series"] })
-                  : undefined
-              }
-              number={hasIssueReference ? issue?.number : undefined}
-              legacy_number={issue?.legacy_number}
-            />
-          </Typography>
-          {showParentTitle ? (
-            <Typography
-              sx={{
-                fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif',
-                fontSize: "0.9rem",
-                lineHeight: 1.55,
-                fontWeight: 500,
-                color: "text.primary",
-                opacity: 1,
-              }}
-            >
-              {parentTitle}
-            </Typography>
-          ) : null}
-          {variant ? (
-            <Typography
-              sx={{
-                fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif',
-                fontSize: "0.85rem",
-                lineHeight: 1.5,
-                fontWeight: 500,
-                color: "text.primary",
-                opacity: 1,
-              }}
-            >
-              {variant} Variant
-            </Typography>
-          ) : null}
-        </Box>
+        <ContainsTitleDetailedMainText
+          storyTitleLabel={storyTitleLabel}
+          storyNumberLabel={storyNumberLabel}
+          hasIssueReference={hasIssueReference}
+          issue={issue}
+          showParentTitle={showParentTitle}
+          parentTitle={parentTitle}
+          variant={variant}
+        />
 
-        {item.parent?.reprintOf?.issue ? (
-          <Box
-            sx={{
-              mt: 1,
-              p: 1.25,
-              borderRadius: 1.5,
-              border: "1px solid",
-              borderColor: "divider",
-              backgroundColor: (theme) =>
-                theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)",
-            }}
-          >
-            <Typography variant="caption" color="text.secondary" sx={{ letterSpacing: "0.08em" }}>
-              US-Original
-            </Typography>
-            <CoverTooltip
-              issue={item.parent.reprintOf.issue}
-              us={props.us}
-              number={item.parent.reprintOf.number}
-            >
-              {allowInteractiveActions ? (
-                <Link
-                  component="button"
-                  type="button"
-                  variant="body2"
-                  underline="hover"
-                  color="text.primary"
-                  sx={{
-                    mt: 0.25,
-                    p: 0,
-                    textAlign: "left",
-                    lineHeight: 1.43,
-                    fontWeight: 600,
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!reprintSelection) return;
-                    push(
-                      buildRouteHref(generateSeoUrl(reprintSelection, true), props.query, {
-                        expand: item.parent?.reprintOf?.number,
-                        filter: null,
-                      })
-                    );
-                  }}
-                >
-                  {reprintSelection ? generateLabel(reprintSelection) : ""}
-                </Link>
-              ) : (
-                <Typography
-                  variant="body2"
-                  color="text.primary"
-                  sx={{
-                    mt: 0.25,
-                    lineHeight: 1.43,
-                    fontWeight: 600,
-                  }}
-                >
-                  {reprintSelection ? generateLabel(reprintSelection) : ""}
-                </Typography>
-              )}
-            </CoverTooltip>
-          </Box>
-        ) : null}
+        <ContainsTitleDetailedReprintBlock
+          reprintIssue={reprintIssue}
+          reprintNumber={reprintNumber}
+          reprintSelection={reprintSelection}
+          reprintLabel={reprintLabel}
+          allowInteractiveActions={allowInteractiveActions}
+          us={props.us}
+          query={props.query}
+          push={push}
+        />
 
         <Typography
           sx={{
@@ -427,24 +533,11 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
         ) : null}
       </Box>
 
-      {stackActions ? (
-        <Box sx={{ justifySelf: "end", alignSelf: "center" }}>{detailButton}</Box>
-      ) : (
-        <Box
-          sx={{
-            ml: "auto",
-            alignSelf: "center",
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 0.6,
-            justifyContent: "flex-end",
-            alignItems: "center",
-          }}
-        >
-          {actionChips}
-          {detailButton}
-        </Box>
-      )}
+      <ContainsTitleDetailedActionArea
+        stackActions={stackActions}
+        actionChips={actionChips}
+        detailButton={detailButton}
+      />
     </Box>
   );
 }
@@ -531,7 +624,7 @@ export function ContainsTitleDetailedNavigation(
 
 function buildAddinfoText(item: ContainsItemLike): string {
   let addinfoText = "";
-  if (item.part && item.part.indexOf("/x") === -1) {
+  if (item.part?.includes("/x") === false) {
     addinfoText += "Teil " + item.part.replace("/", " von ");
   }
   if (addinfoText !== "" && item.addinfo) {
@@ -544,8 +637,8 @@ function buildAddinfoText(item: ContainsItemLike): string {
 }
 
 function resolveIssueForDetails(item: ContainsItemLike): ContainsIssueLike | undefined {
-  const baseIssue = item.parent?.issue ? item.parent.issue : item;
-  if (baseIssue && baseIssue.issue) {
+  const baseIssue = item.parent?.issue ?? item;
+  if (baseIssue?.issue) {
     return {
       ...baseIssue,
       number: baseIssue.issue.number,
