@@ -184,7 +184,7 @@ const Android12Switch = styled(Switch)(({ theme }) => ({
   },
 }));
 
-export default function TopBar(ownProps: TopBarProps) {
+export default function TopBar(ownProps: Readonly<TopBarProps>) {
   const navigationFeedback = useNavigationFeedbackContext();
   const {
     navigationPending,
@@ -369,7 +369,6 @@ export default function TopBar(ownProps: TopBarProps) {
       {compactLayout && mobileSearchOpen ? (
         <MobileSearchOverlay
           us={us}
-          compactLayout={compactLayout}
           onClose={() => setMobileSearchOpen(false)}
         />
       ) : null}
@@ -405,7 +404,7 @@ export default function TopBar(ownProps: TopBarProps) {
   );
 }
 
-function TopBarStart(props: {
+function TopBarStart(props: Readonly<{
   compactLayout: boolean;
   showNavigation: boolean;
   drawerOpen?: boolean;
@@ -414,7 +413,7 @@ function TopBarStart(props: {
   query?: RouteQuery | null;
   resetNavigationState?: () => void;
   onNavigate: (href: string) => void;
-}) {
+}>) {
   const homeHref = buildRouteHref(props.us ? "/us" : "/de", props.query);
 
   return (
@@ -469,10 +468,10 @@ function TopBarStart(props: {
   );
 }
 
-function TopBarCompactActions(props: {
+function TopBarCompactActions(props: Readonly<{
   compactLayout: boolean;
   toggleTheme?: () => void;
-}) {
+}>) {
   if (!props.compactLayout) return null;
 
   return (
@@ -482,7 +481,7 @@ function TopBarCompactActions(props: {
   );
 }
 
-function TopBarSearchCenter(props: {
+function TopBarSearchCenter(props: Readonly<{
   compactLayout: boolean;
   us: boolean;
   selected: SelectedRoot;
@@ -490,7 +489,7 @@ function TopBarSearchCenter(props: {
   initialFilterCount?: number | null;
   query?: { filter?: string | null; order?: string | null; direction?: string | null } | null;
   session?: { loggedIn?: boolean } | null;
-}) {
+}>) {
   return (
     <Box
       sx={{
@@ -522,11 +521,10 @@ function TopBarSearchCenter(props: {
   );
 }
 
-function MobileSearchOverlay(props: {
+function MobileSearchOverlay(props: Readonly<{
   us: boolean;
-  compactLayout: boolean;
   onClose: () => void;
-}) {
+}>) {
   return (
     <Box
       sx={{
@@ -650,7 +648,7 @@ function GlobalNavigationIndicator() {
   );
 }
 
-function HamburgerIcon(props: { open: boolean }) {
+function HamburgerIcon(props: Readonly<{ open: boolean }>) {
   const barSx = {
     position: "absolute" as const,
     left: 0,

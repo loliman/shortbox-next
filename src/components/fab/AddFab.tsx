@@ -51,7 +51,7 @@ class AddFabBase extends React.Component<AddFabProps, AddFabState> {
     this.updateBottomBarHeight();
     this.addViewportListeners();
 
-    if (typeof globalThis.window !== "undefined") {
+    if (globalThis.window !== undefined) {
       this.rafId = globalThis.requestAnimationFrame(() => {
         this.observeBottomBar();
         this.updateBottomBarHeight();
@@ -62,7 +62,7 @@ class AddFabBase extends React.Component<AddFabProps, AddFabState> {
   componentWillUnmount(): void {
     this.removeViewportListeners();
     this.resizeObserver?.disconnect();
-    if (typeof globalThis.window !== "undefined" && this.rafId !== undefined) {
+    if (globalThis.window !== undefined && this.rafId !== undefined) {
       globalThis.cancelAnimationFrame(this.rafId);
     }
   }
@@ -96,7 +96,7 @@ class AddFabBase extends React.Component<AddFabProps, AddFabState> {
           <SpeedDialAction
             key="publisher"
             icon={<AccountBalanceIcon />}
-            tooltipTitle="Verlag"
+            slotProps={{ tooltip: { title: "Verlag" } }}
             onClick={() => {
               this.props.onNavigate?.("/create/publisher");
               this.handleClose();
@@ -105,7 +105,7 @@ class AddFabBase extends React.Component<AddFabProps, AddFabState> {
           <SpeedDialAction
             key="series"
             icon={<ListIcon />}
-            tooltipTitle="Serie"
+            slotProps={{ tooltip: { title: "Serie" } }}
             onClick={() => {
               this.props.onNavigate?.("/create/series");
               this.handleClose();
@@ -114,7 +114,7 @@ class AddFabBase extends React.Component<AddFabProps, AddFabState> {
           <SpeedDialAction
             key="issue"
             icon={<BookIcon />}
-            tooltipTitle="Ausgabe"
+            slotProps={{ tooltip: { title: "Ausgabe" } }}
             onClick={() => {
               this.props.onNavigate?.(getIssueCreatePath(this.props.level, selected, us));
               this.handleClose();
@@ -124,7 +124,7 @@ class AddFabBase extends React.Component<AddFabProps, AddFabState> {
             <SpeedDialAction
               key="variant"
               icon={<FileCopyIcon />}
-              tooltipTitle="Variant"
+              slotProps={{ tooltip: { title: "Variant" } }}
               onClick={() => {
                 const selectedCopy: SelectedRoot = {
                   ...selected,
@@ -147,11 +147,13 @@ class AddFabBase extends React.Component<AddFabProps, AddFabState> {
             <SpeedDialAction
               key="preview-import"
               icon={<UploadFileIcon color={this.props.previewImportActive ? "secondary" : "inherit"} />}
-              tooltipTitle={
-                this.props.previewImportActive
-                  ? "Vorschau-Import fortsetzen"
-                  : "Vorschau-Import"
-              }
+              slotProps={{
+                tooltip: {
+                  title: this.props.previewImportActive
+                    ? "Vorschau-Import fortsetzen"
+                    : "Vorschau-Import",
+                },
+              }}
               onClick={() => {
                 this.props.onNavigate?.("/admin/preview-import");
                 this.handleClose();
@@ -191,25 +193,25 @@ class AddFabBase extends React.Component<AddFabProps, AddFabState> {
     return Math.ceil(bottomBar.getBoundingClientRect().height || bottomBar.offsetHeight || 0);
   }
 
-  private updateBottomBarHeight = () => {
+  private readonly updateBottomBarHeight = () => {
     const nextHeight = this.getBottomBarHeight();
     if (nextHeight === this.state.mobileBottomBarHeight) return;
     this.setState({ mobileBottomBarHeight: nextHeight });
   };
 
   private addViewportListeners() {
-    if (typeof globalThis.window === "undefined") return;
+    if (globalThis.window === undefined) return;
     globalThis.addEventListener("resize", this.handleViewportChange);
     globalThis.addEventListener("orientationchange", this.handleViewportChange);
   }
 
   private removeViewportListeners() {
-    if (typeof globalThis.window === "undefined") return;
+    if (globalThis.window === undefined) return;
     globalThis.removeEventListener("resize", this.handleViewportChange);
     globalThis.removeEventListener("orientationchange", this.handleViewportChange);
   }
 
-  private handleViewportChange = () => {
+  private readonly handleViewportChange = () => {
     this.observeBottomBar();
     this.updateBottomBarHeight();
   };
@@ -224,11 +226,9 @@ class AddFabBase extends React.Component<AddFabProps, AddFabState> {
     this.observedBottomBar = bottomBar;
 
     if (!bottomBar) return;
-    if (!this.resizeObserver) {
-      this.resizeObserver = new ResizeObserver(() => {
-        this.updateBottomBarHeight();
-      });
-    }
+    this.resizeObserver ??= new ResizeObserver(() => {
+      this.updateBottomBarHeight();
+    });
     this.resizeObserver.observe(bottomBar);
   }
 }

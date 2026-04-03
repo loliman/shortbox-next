@@ -26,7 +26,7 @@ const EVENT_LIMIT = 300;
 const MARK_PREFIX = "shortbox-nav:";
 
 export function isNavPerfDebugEnabled() {
-  if (typeof globalThis.window === "undefined") return false;
+  if (globalThis.window === undefined) return false;
 
   try {
     const params = new URLSearchParams(globalThis.location.search);
@@ -43,7 +43,7 @@ export function isNavPerfDebugEnabled() {
 }
 
 export function resetNavPerfSession(sessionKey: string, detail?: NavPerfDetail) {
-  if (!isNavPerfDebugEnabled() || typeof globalThis.window === "undefined") return;
+  if (!isNavPerfDebugEnabled() || globalThis.window === undefined) return;
 
   globalThis.__SHORTBOX_NAV_DEBUG__ = {
     sessionKey,
@@ -55,7 +55,7 @@ export function resetNavPerfSession(sessionKey: string, detail?: NavPerfDetail) 
 }
 
 export function markNavPerf(name: string, detail?: NavPerfDetail) {
-  if (!isNavPerfDebugEnabled() || typeof globalThis.window === "undefined") return;
+  if (!isNavPerfDebugEnabled() || globalThis.window === undefined) return;
 
   const markName = `${MARK_PREFIX}${name}`;
   try {
@@ -68,7 +68,7 @@ export function markNavPerf(name: string, detail?: NavPerfDetail) {
 }
 
 export function measureNavPerf(name: string, start: string, end: string, detail?: NavPerfDetail) {
-  if (!isNavPerfDebugEnabled() || typeof globalThis.window === "undefined") return null;
+  if (!isNavPerfDebugEnabled() || globalThis.window === undefined) return null;
 
   const measureName = `${MARK_PREFIX}${name}`;
   try {
@@ -83,7 +83,7 @@ export function measureNavPerf(name: string, start: string, end: string, detail?
 }
 
 export function observeNavLongTasks() {
-  if (!isNavPerfDebugEnabled() || typeof globalThis.window === "undefined") return () => {};
+  if (!isNavPerfDebugEnabled() || globalThis.window === undefined) return () => {};
   if (typeof PerformanceObserver === "undefined") return () => {};
 
   try {
@@ -105,7 +105,7 @@ export function observeNavLongTasks() {
 }
 
 export function printNavPerfSummary(label = "sidebar") {
-  if (!isNavPerfDebugEnabled() || typeof globalThis.window === "undefined") return;
+  if (!isNavPerfDebugEnabled() || globalThis.window === undefined) return;
 
   const store = globalThis.__SHORTBOX_NAV_DEBUG__;
   if (!store) return;
@@ -124,14 +124,12 @@ export function printNavPerfSummary(label = "sidebar") {
 }
 
 function pushNavPerfEvent(name: string, detail?: NavPerfDetail) {
-  if (typeof globalThis.window === "undefined") return;
+  if (globalThis.window === undefined) return;
 
-  const store =
-    globalThis.__SHORTBOX_NAV_DEBUG__ ??
-    (globalThis.__SHORTBOX_NAV_DEBUG__ = {
-      sessionKey: "unknown",
-      events: [],
-    });
+  const store = globalThis.__SHORTBOX_NAV_DEBUG__ ??= {
+    sessionKey: "unknown",
+    events: [],
+  };
 
   const at = typeof performance !== "undefined" ? performance.now() : Date.now();
   store.events.push({ name, at, detail });
