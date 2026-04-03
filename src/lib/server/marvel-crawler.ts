@@ -337,7 +337,8 @@ function buildIssuePageTitle(seriesTitle: string, volume: number, issueNumber: s
 
 function parseIssuePageTitle(pageTitle: string): { seriesTitle: string; volume: number; issueNumber: string } | null {
   const raw = ws(pageTitle);
-  const match = raw.match(/^(.*?)(?:_|\s)Vol(?:_|\s)(\d+)(?:_|\s)(.+)$/i);
+  const issuePageTitlePattern = /^(.*?)(?:_|\s)Vol(?:_|\s)(\d+)(?:_|\s)(.+)$/i;
+  const match = issuePageTitlePattern.exec(raw);
   if (!match) return null;
   return {
     seriesTitle: ws(match[1].replaceAll("_", " ")),
@@ -348,7 +349,8 @@ function parseIssuePageTitle(pageTitle: string): { seriesTitle: string; volume: 
 
 function parseSeriesPageTitle(pageTitle: string): { seriesTitle: string; volume: number } | null {
   const raw = ws(pageTitle);
-  const match = raw.match(/^(.*?)(?:_|\s)Vol(?:_|\s)(\d+)$/i);
+  const seriesPageTitlePattern = /^(.*?)(?:_|\s)Vol(?:_|\s)(\d+)$/i;
+  const match = seriesPageTitlePattern.exec(raw);
   if (!match) return null;
   return {
     seriesTitle: ws(match[1].replaceAll("_", " ")),
@@ -605,9 +607,10 @@ function cleanAppearanceName(raw: string): string {
     "first full appearance",
     "unnamed",
   ]);
+  const removableSuffixPattern = /\s*\(([^()]+)\)\s*$/;
 
   while (true) {
-    const match = value.match(/\s*\(([^()]+)\)\s*$/);
+    const match = removableSuffixPattern.exec(value);
     if (!match) break;
     const normalized = normalizeHeader(match[1]);
     if (!removableSuffixes.has(normalized)) break;
@@ -658,7 +661,8 @@ function cleanAppearanceName(raw: string): string {
 
 function parsePrice(raw: string | null): { price: number; currency: string } {
   if (!raw) return { price: 0, currency: "" };
-  const symbolMatch = raw.match(/([€$£])\s*([0-9]+(?:\.[0-9]+)?)/);
+  const symbolPricePattern = /([€$£])\s*([0-9]+(?:\.[0-9]+)?)/;
+  const symbolMatch = symbolPricePattern.exec(raw);
   if (symbolMatch) {
     const currencyBySymbol: Record<string, string> = {
       "$": "USD",
@@ -671,7 +675,8 @@ function parsePrice(raw: string | null): { price: number; currency: string } {
     };
   }
 
-  const codeMatch = raw.match(/\b([A-Z]{3})\b\s*([0-9]+(?:\.[0-9]+)?)/i);
+  const currencyCodePattern = /\b([A-Z]{3})\b\s*([0-9]+(?:\.[0-9]+)?)/i;
+  const codeMatch = currencyCodePattern.exec(raw);
   if (codeMatch) {
     return { currency: codeMatch[1].toUpperCase(), price: Number(codeMatch[2]) };
   }
@@ -683,10 +688,12 @@ function formatReleaseDate(raw: string | null): string {
   const value = ws(raw || "");
   if (!value) return "";
 
-  const isoMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const isoDatePattern = /^(\d{4})-(\d{2})-(\d{2})$/;
+  const isoMatch = isoDatePattern.exec(value);
   if (isoMatch) return `${isoMatch[3]}.${isoMatch[2]}.${isoMatch[1]}`;
 
-  const monthMatch = value.match(/^([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})$/);
+  const monthDatePattern = /^([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})$/;
+  const monthMatch = monthDatePattern.exec(value);
   if (monthMatch) {
     const monthByName: Record<string, string> = {
       january: "01",
@@ -715,10 +722,12 @@ function normalizeLegacyNumber(raw: string | null): string | null {
   const value = ws(raw || "").replace(/^LGY:\s*/i, "");
   if (!value) return null;
 
-  const hashMatch = value.match(/#\s*([A-Za-z0-9./-]+)/);
+  const hashNumberPattern = /#\s*([A-Za-z0-9./-]+)/;
+  const hashMatch = hashNumberPattern.exec(value);
   if (hashMatch) return ws(hashMatch[1]);
 
-  const directMatch = value.match(/^([A-Za-z0-9./-]+)$/);
+  const directNumberPattern = /^([A-Za-z0-9./-]+)$/;
+  const directMatch = directNumberPattern.exec(value);
   if (directMatch) return ws(directMatch[1]);
 
   return null;
@@ -875,7 +884,8 @@ function cleanStoryTitle(raw: string): string {
   ) {
     value = ws(value.slice(1, -1));
   }
-  const quotedWithSuffix = value.match(/^["“](.+?)["”](\s*(?:•|\().*)?$/);
+  const quotedTitlePattern = /^["“](.+?)["”](\s*(?:•|\().*)?$/;
+  const quotedWithSuffix = quotedTitlePattern.exec(value);
   if (quotedWithSuffix) {
     value = ws(`${quotedWithSuffix[1]}${quotedWithSuffix[2] || ''}`);
   }
@@ -892,14 +902,16 @@ function findStories($: cheerio.CheerioAPI): StoryKey[] {
     const t = ws($(el).text());
 
     // A) 1. "Story Title"
-    const mA = t.match(/^(\d+)\.\s*["“](.+?)["”]\s*$/);
+    const numberedTitlePattern = /^(\d+)\.\s*["“](.+?)["”]\s*$/;
+    const mA = numberedTitlePattern.exec(t);
     if (mA) {
       out.push({ number: Number(mA[1]), headingText: t, title: cleanStoryTitle(mA[2]), h2El: el });
       return;
     }
 
     // B) 1st story / 2nd story / ... or 1st profile / 2nd profile / ...
-    const mB = t.match(/^(\d+)(st|nd|rd|th)\s+(story|profile)$/i);
+    const ordinalStoryPattern = /^(\d+)(st|nd|rd|th)\s+(story|profile)$/i;
+    const mB = ordinalStoryPattern.exec(t);
     if (mB) {
       out.push({ number: Number(mB[1]), headingText: t, title: cleanStoryTitle(t), h2El: el });
       return;
@@ -957,7 +969,8 @@ function parseStoryReprintOfFromBlock(htmlFragment: string): CrawledStoryReferen
   if (!reprintNode.length) return undefined;
 
   const text = ws(reprintNode.text());
-  const storyMatch = text.match(/Reprint of the\s+(\d+)(st|nd|rd|th)\s+story\s+from/i);
+  const reprintStoryPattern = /Reprint of the\s+(\d+)(st|nd|rd|th)\s+story\s+from/i;
+  const storyMatch = reprintStoryPattern.exec(text);
   const anchor = reprintNode.find("a[href^='/wiki/']").first();
   const href = anchor.attr("href") || "";
   const pageTitle = ws(href.replace(/^\/wiki\//, ""));
@@ -1095,11 +1108,12 @@ function parseArcsFromPartOf($: cheerio.CheerioAPI): CrawledArc[] {
     .filter(({ value }) => /part of the/i.test(value) && value.length <= 320);
 
   const arcs: CrawledArc[] = [];
+  const trailingArcMetadataPattern = /\s+\(([^()]+)\)\s*$/;
   const stripTrailingArcMetadata = (value: string): string => {
     let cleaned = value;
 
     while (true) {
-      const match = cleaned.match(/\s+\(([^()]+)\)\s*$/);
+      const match = trailingArcMetadataPattern.exec(cleaned);
       if (!match) break;
 
       const meta = normalizeHeader(match[1]);
@@ -1153,7 +1167,8 @@ function parseArcsFromPartOf($: cheerio.CheerioAPI): CrawledArc[] {
       const segmentText = ws(root.text());
       if (!/part of the/i.test(segmentText)) continue;
 
-      const segmentTypeMatch = segmentText.match(/\b(event|events|arc|arcs|storyline|storylines)\b/i);
+      const segmentTypePattern = /\b(event|events|arc|arcs|storyline|storylines)\b/i;
+      const segmentTypeMatch = segmentTypePattern.exec(segmentText);
       const segmentType = segmentTypeMatch ? segmentTypeMatch[1] : "";
       const linkedArcs = collectNormalizedEntityNamesFromLinks($$, root);
 
@@ -1385,7 +1400,8 @@ function shouldExcludeVariant(fileTitle: string, variantLabel: string): boolean 
 }
 
 function extractArtistsFromText(raw: string): string[] {
-  const match = ws(raw).match(/art by:\s*([^\n]+)/i);
+  const artistPattern = /art by:\s*([^\n]+)/i;
+  const match = artistPattern.exec(ws(raw));
   if (!match) return [];
   return splitListNames(match[1]).filter((name) => !isPlaceholderArtistName(name));
 }
