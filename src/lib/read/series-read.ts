@@ -16,12 +16,13 @@ const readSeriesDetailsCached = cache(
 );
 
 export async function readSeriesDetails(options: SeriesSelectionInput) {
+  const startyear = Number(options.startyear ?? 0) || undefined;
   return readSeriesDetailsCached(
     options.us,
     options.publisher,
     options.series,
     options.volume,
-    Number(options.startyear || 0) || undefined
+    startyear
   );
 }
 
@@ -35,5 +36,5 @@ export async function readSeriesEditData(
     volume: options.volume,
   });
 
-  return (result?.details as Record<string, unknown> | null) || null;
+  return (result?.details as Record<string, unknown> | null) ?? null;
 }

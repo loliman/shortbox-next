@@ -22,5 +22,5 @@ export async function readPublisherEditData(
     publisher: options.publisher,
   });
 
-  return (result?.details as Record<string, unknown> | null) || null;
+  return (result?.details as Record<string, unknown> | null) ?? null;
 }

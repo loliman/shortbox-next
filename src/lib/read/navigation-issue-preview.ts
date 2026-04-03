@@ -16,6 +16,5 @@ function hasNavigationPreviewSource(issue: NavigationIssueCandidate): boolean {
 }
 
 export function pickNavigationIssuePreviewSource<T extends NavigationIssueCandidate>(issues: T[]): T | null {
-  return issues.find(hasNavigationPreviewSource) || issues[0] || null;
+  return issues.find(hasNavigationPreviewSource) ?? issues[0] ?? null;
 }
-

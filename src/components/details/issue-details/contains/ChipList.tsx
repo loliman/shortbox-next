@@ -28,7 +28,7 @@ export function ChipList(props: Readonly<ChipListProps>) {
   const sourceItems = Array.isArray(props.items) ? props.items : [];
   const hasLabel = Boolean(props.label);
   const filteredItems = sourceItems
-    .map((item) => (item || {}) as ChipListItem)
+    .map((item) => (item ?? {}) as ChipListItem)
     .filter((item) => {
       const itemType = normalizeToken(item.type);
       const itemRole = normalizeToken(item.role);

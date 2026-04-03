@@ -49,18 +49,18 @@ export function toChipList(
         const wantedType = normalizeToken(type);
         const isAppearanceFallback =
           !item.__typename && (APPEARANCE_TYPES.has(itemType) || APPEARANCE_TYPES.has(wantedType));
-        const typename = item.__typename || (isAppearanceFallback ? "Appearance" : "Individual");
-        const label = item.name || item.title || "Unbekannt";
+        const typename = item.__typename ?? (isAppearanceFallback ? "Appearance" : "Individual");
+        const label = item.name ?? item.title ?? "Unbekannt";
         const locale = props.us ? "us" : "de";
         let targetHref: string;
         if (typename === "Appearance") {
-          targetHref = buildAppearanceFilterUrl(locale, item.name || "");
+          targetHref = buildAppearanceFilterUrl(locale, item.name ?? "");
         } else if (typename === "Arc") {
-          targetHref = buildArcFilterUrl(locale, item.title || item.name || "");
+          targetHref = buildArcFilterUrl(locale, item.title ?? item.name ?? "");
         } else if (typename === "Genre") {
-          targetHref = buildGenreFilterUrl(locale, item.name || item.title || "");
+          targetHref = buildGenreFilterUrl(locale, item.name ?? item.title ?? "");
         } else {
-          targetHref = buildPersonFilterUrl(locale, item.name || "");
+          targetHref = buildPersonFilterUrl(locale, item.name ?? "");
         }
 
         return (

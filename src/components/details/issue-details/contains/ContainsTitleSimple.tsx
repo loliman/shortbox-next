@@ -54,7 +54,7 @@ export function ContainsTitleSimple(props: Readonly<ContainsTitleSimpleProps>) {
     childrenCount: children.length,
     us: Boolean(props.us),
   });
-  const subtitleText = props.us ? publicationFallback : item.addinfo || "";
+  const subtitleText = props.us ? publicationFallback : (item.addinfo ?? "");
   const actionChips = buildSimpleActionChips({
     item,
     reprintsCount: reprints.length,
