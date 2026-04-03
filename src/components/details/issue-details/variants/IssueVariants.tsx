@@ -135,7 +135,7 @@ export function IssueVariants(props: Readonly<IssueVariantsProps>) {
   }, [updateScrollControls, variants.length]);
 
   React.useEffect(() => {
-    if (typeof globalThis.window === "undefined" || typeof globalThis.matchMedia !== "function") return;
+    if (globalThis.window === undefined || typeof globalThis.matchMedia !== "function") return;
     const media = globalThis.matchMedia("(hover: hover) and (pointer: fine)");
     const apply = () => setIsHoverCapable(media.matches);
     apply();

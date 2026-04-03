@@ -245,7 +245,7 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
   );
 }
 
-export function IssuePreviewPlaceholderSmall(props: { idx?: number; isLast?: boolean }) {
+export function IssuePreviewPlaceholderSmall(props: Readonly<{ idx?: number; isLast?: boolean }>) {
   const widths = ["84%", "72%", "68%", "78%", "62%"] as const;
   const width = widths[(props.idx ?? 0) % widths.length];
 

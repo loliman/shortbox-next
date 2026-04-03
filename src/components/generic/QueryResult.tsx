@@ -61,7 +61,7 @@ export default function QueryResult(props: Readonly<QueryResultProps>) {
 
   // `undefined` means "not resolved yet" (e.g. query transition/race), while
   // explicit `null` means "resolved, but not found".
-  if (typeof data === "undefined") {
+  if (data === undefined) {
     const placeholder = renderPlaceholder();
     if (placeholder) return placeholder;
 

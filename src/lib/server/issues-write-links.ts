@@ -29,15 +29,13 @@ type CrawledArcLike = {
 
 async function findOrCreateIndividual(name: string, executor: PrismaExecutor) {
   let individual = await executor.individual.findFirst({ where: { name } });
-  if (!individual) {
-    individual = await executor.individual.create({
-      data: {
-        name,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
-  }
+  individual ??= await executor.individual.create({
+    data: {
+      name,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  });
 
   return individual;
 }
@@ -84,16 +82,14 @@ export async function linkStoryAppearances(
         type,
       },
     });
-    if (!appearance) {
-      appearance = await executor.appearance.create({
-        data: {
-          name,
-          type,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      });
-    }
+    appearance ??= await executor.appearance.create({
+      data: {
+        name,
+        type,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
 
     await executor.storyAppearance.create({
       data: {
@@ -218,16 +214,14 @@ export async function linkIssueArcs(
       },
     });
 
-    if (!arc) {
-      arc = await executor.arc.create({
-        data: {
-          title,
-          type,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      });
-    }
+    arc ??= await executor.arc.create({
+      data: {
+        title,
+        type,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
 
     const existingLink = await executor.issueArc.findFirst({
       where: {

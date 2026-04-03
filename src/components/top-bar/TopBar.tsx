@@ -195,7 +195,7 @@ export default function TopBar(ownProps: Readonly<TopBarProps>) {
   const toggleDrawer = ownProps.toggleDrawer;
   const drawerOpen = ownProps.drawerOpen;
   const us = Boolean(ownProps.us);
-  const selected = ownProps.selected || { us };
+  const selected = ownProps.selected ?? { us };
   const query = ownProps.query as
     | { filter?: string | null; order?: string | null; direction?: string | null }
     | null

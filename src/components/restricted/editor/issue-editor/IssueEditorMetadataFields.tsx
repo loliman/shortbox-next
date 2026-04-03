@@ -63,7 +63,7 @@ function IssueEditorMetadataFields({
   batchEnabled,
   setFieldValue,
   lockedFields,
-}: IssueEditorMetadataFieldsProps) {
+}: Readonly<IssueEditorMetadataFieldsProps>) {
   const us = values.series.publisher.us;
   const formatLocked = Boolean(lockedFields?.format);
   const variantLocked = Boolean(lockedFields?.variant);
@@ -320,7 +320,7 @@ function TypedMetadataAutocomplete({
   values,
   setFieldValue,
   variables = {},
-}: TypedMetadataAutocompleteProps) {
+}: Readonly<TypedMetadataAutocompleteProps>) {
   const pattern = getPattern(values, entryKey);
 
   const queryResult = useAutocompleteQuery<MetadataEntry>({

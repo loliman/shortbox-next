@@ -854,19 +854,17 @@ async function findOrCrawlParentIssueRefs(
     },
   });
 
-  if (!publisher) {
-    publisher = await executor.publisher.create({
-      data: {
-        name: normalizeText(crawledSeries.publisherName) || "Marvel Comics",
-        original: true,
-        addInfo: "",
-        startYear: BigInt(0),
-        endYear: BigInt(0),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
-  }
+  publisher ??= await executor.publisher.create({
+    data: {
+      name: normalizeText(crawledSeries.publisherName) || "Marvel Comics",
+      original: true,
+      addInfo: "",
+      startYear: BigInt(0),
+      endYear: BigInt(0),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  });
 
   let series = await executor.series.findFirst({
     where: {
@@ -876,20 +874,18 @@ async function findOrCrawlParentIssueRefs(
     },
   });
 
-  if (!series) {
-    series = await executor.series.create({
-      data: {
-        title: crawledSeries.title,
-        volume: BigInt(crawledSeries.volume),
-        startYear: BigInt(crawledSeries.startyear || 0),
-        endYear: BigInt(crawledSeries.endyear || 0),
-        addInfo: "",
-        fkPublisher: publisher.id,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
-  }
+  series ??= await executor.series.create({
+    data: {
+      title: crawledSeries.title,
+      volume: BigInt(crawledSeries.volume),
+      startYear: BigInt(crawledSeries.startyear || 0),
+      endYear: BigInt(crawledSeries.endyear || 0),
+      addInfo: "",
+      fkPublisher: publisher.id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  });
 
   const issue = await executor.issue.findFirst({
     where: {

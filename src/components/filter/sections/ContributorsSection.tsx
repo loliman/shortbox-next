@@ -21,7 +21,7 @@ interface ContributorsSectionProps {
   setFieldValue: (field: string, value: unknown) => void;
 }
 
-function ContributorsSection({ values, us, setFieldValue }: ContributorsSectionProps) {
+function ContributorsSection({ values, us, setFieldValue }: Readonly<ContributorsSectionProps>) {
   return (
     <Stack spacing={2}>
       <Typography variant="h6">Mitwirkende</Typography>

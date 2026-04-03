@@ -3,7 +3,7 @@
 const STORAGE_PREFIX = "shortbox.nav";
 
 function readStorage(key: string) {
-  if (typeof globalThis.window === "undefined") return null;
+  if (globalThis.window === undefined) return null;
 
   try {
     return globalThis.sessionStorage.getItem(`${STORAGE_PREFIX}.${key}`);
@@ -13,7 +13,7 @@ function readStorage(key: string) {
 }
 
 function writeStorage(key: string, value: string) {
-  if (typeof globalThis.window === "undefined") return;
+  if (globalThis.window === undefined) return;
 
   try {
     globalThis.sessionStorage.setItem(`${STORAGE_PREFIX}.${key}`, value);
@@ -23,7 +23,7 @@ function writeStorage(key: string, value: string) {
 }
 
 export function clearAllNavState() {
-  if (typeof globalThis.window === "undefined") return;
+  if (globalThis.window === undefined) return;
 
   try {
     const keysToDelete: string[] = [];

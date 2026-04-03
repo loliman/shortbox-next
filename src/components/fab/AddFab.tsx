@@ -74,7 +74,7 @@ class AddFabBase extends React.Component<AddFabProps, AddFabState> {
 
   render() {
     const { session } = this.props;
-    const selected = this.props.selected || { us: Boolean(this.props.us) };
+    const selected = this.props.selected ?? { us: Boolean(this.props.us) };
     const us = Boolean(this.props.us);
     const mobileBottomOffset = this.getMobileBottomOffsetExpression();
 
@@ -219,7 +219,7 @@ class AddFabBase extends React.Component<AddFabProps, AddFabState> {
   private observeBottomBar() {
     if (typeof ResizeObserver === "undefined" || typeof document === "undefined") return;
 
-    const bottomBar = document.querySelector<HTMLElement>(MOBILE_BOTTOM_BAR_SELECTOR) || undefined;
+    const bottomBar = document.querySelector<HTMLElement>(MOBILE_BOTTOM_BAR_SELECTOR) ?? undefined;
     if (bottomBar === this.observedBottomBar) return;
 
     this.resizeObserver?.disconnect();

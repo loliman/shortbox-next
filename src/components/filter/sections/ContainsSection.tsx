@@ -25,7 +25,7 @@ function ContainsSection({
   values,
   us,
   setFieldValue,
-}: ContainsSectionProps) {
+}: Readonly<ContainsSectionProps>) {
   const switchGridSx = {
     display: "grid",
     gap: 1,

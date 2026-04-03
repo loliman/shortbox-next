@@ -37,14 +37,14 @@ const appearanceFields: TypedField[] = [
   { type: "LOCATION", label: "Orte", queryType: "LOCATION" },
 ];
 
-function StoryFieldsExclusive(props: StoryFieldsExclusiveProps) {
+function StoryFieldsExclusive(props: Readonly<StoryFieldsExclusiveProps>) {
   const index = Number.isInteger(props.index) ? (props.index as number) : 0;
-  const values = props.values || {};
-  const setFieldValue = props.setFieldValue || (() => undefined);
-  const stories = values.stories || [];
-  const item = stories[index] || {};
-  const storyIndividuals = (item.individuals as FieldItem[]) || [];
-  const storyAppearances = (item.appearances as FieldItem[]) || [];
+  const values = props.values ?? {};
+  const setFieldValue = props.setFieldValue ?? (() => undefined);
+  const stories = values.stories ?? [];
+  const item = stories[index] ?? {};
+  const storyIndividuals = (item.individuals as FieldItem[]) ?? [];
+  const storyAppearances = (item.appearances as FieldItem[]) ?? [];
 
   return (
     <Grid container spacing={2}>
@@ -83,7 +83,7 @@ function StoryFieldsExclusive(props: StoryFieldsExclusiveProps) {
             setFieldValue={setFieldValue}
             disabled={props.disabled}
             variables={{
-              type: field.queryType || field.type,
+              type: field.queryType ?? field.type,
             }}
           />
         </Grid>

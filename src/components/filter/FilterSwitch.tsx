@@ -13,7 +13,7 @@ interface FilterSwitchProps {
   sx?: SxProps<Theme>;
 }
 
-function FilterSwitch({ checked, label, onToggle, disabled = false, sx }: FilterSwitchProps) {
+function FilterSwitch({ checked, label, onToggle, disabled = false, sx }: Readonly<FilterSwitchProps>) {
   return (
     <Box sx={sx}>
       <Box

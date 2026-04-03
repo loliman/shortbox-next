@@ -121,10 +121,10 @@ const ExpandToggle = React.memo(function ExpandToggle(props: Readonly<ExpandTogg
 export function NestedEmptyRow({
   depth,
   message = "Keine Einträge vorhanden",
-}: {
+}: Readonly<{
   depth: number;
   message?: string;
-}) {
+}>) {
   return (
     <ListItem component="div" sx={{ pl: getDepthPadding(depth) }}>
       <ListItemText primary={message} />
@@ -135,10 +135,10 @@ export function NestedEmptyRow({
 export function NestedLoadingRow({
   depth,
   message,
-}: {
+}: Readonly<{
   depth: number;
   message?: string;
-}) {
+}>) {
   return (
     <ListItem component="div" sx={{ pl: getDepthPadding(depth) }}>
       <ListItemIcon sx={{ minWidth: 28 }}>

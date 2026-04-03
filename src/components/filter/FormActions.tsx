@@ -10,7 +10,7 @@ interface FormActionsProps {
   onSubmit: () => void;
 }
 
-function FormActions({ isSubmitting, onReset, onCancel, onSubmit }: FormActionsProps) {
+function FormActions({ isSubmitting, onReset, onCancel, onSubmit }: Readonly<FormActionsProps>) {
   return (
     <Stack
       direction={{ xs: "column", md: "row" }}

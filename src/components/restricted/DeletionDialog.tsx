@@ -123,7 +123,7 @@ function toParent(
   item: DeletionDialogItem
 ): Record<string, unknown> {
   if (level === HierarchyLevel.ISSUE) {
-    const series = structuredClone(item.series || { publisher: {} }) as Record<string, unknown> & {
+    const series = structuredClone(item.series ?? { publisher: {} }) as Record<string, unknown> & {
       publisher?: { us?: boolean };
     };
     if (!series.publisher) series.publisher = {};
@@ -133,7 +133,7 @@ function toParent(
   }
 
   if (level === HierarchyLevel.SERIES) {
-    const publisher = structuredClone(item.publisher || {}) as Record<string, unknown> & {
+    const publisher = structuredClone(item.publisher ?? {}) as Record<string, unknown> & {
       us?: boolean;
     };
     publisher.us = undefined;

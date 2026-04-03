@@ -29,8 +29,8 @@ function FormikTextField({ field, form, helperText, ...props }: Readonly<FormikT
       value={field.value !== undefined && field.value !== null ? field.value : ""}
       error={showError}
       helperText={showError ? error : helperText}
-      onChange={props.onChange || field.onChange}
-      onBlur={props.onBlur || field.onBlur}
+      onChange={props.onChange ?? field.onChange}
+      onBlur={props.onBlur ?? field.onBlur}
     />
   );
 }

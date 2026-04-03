@@ -32,7 +32,7 @@ function DetailsSection({
   us,
   setFieldValue,
   hasSession,
-}: DetailsSectionProps) {
+}: Readonly<DetailsSectionProps>) {
   const [activeDatePreset, setActiveDatePreset] = React.useState("");
   const [publisherInput, setPublisherInput] = React.useState("");
   const [seriesInput, setSeriesInput] = React.useState("");

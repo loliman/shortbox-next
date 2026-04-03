@@ -17,18 +17,18 @@ interface StoryFieldsNonExclusiveProps extends ContainsProps {
   values?: Record<string, unknown> & { stories?: FieldItem[] };
 }
 
-function StoryFieldsNonExclusive(props: StoryFieldsNonExclusiveProps) {
+function StoryFieldsNonExclusive(props: Readonly<StoryFieldsNonExclusiveProps>) {
   const formik = useFormikContext<Record<string, unknown>>();
   const index = Number.isInteger(props.index) ? (props.index as number) : 0;
-  const values = props.values || {};
-  const setFieldValue = props.setFieldValue || (() => undefined);
-  const stories = values.stories || [];
-  const item = stories[index] || {};
-  const parent = (item.parent || {}) as {
+  const values = props.values ?? {};
+  const setFieldValue = props.setFieldValue ?? (() => undefined);
+  const stories = values.stories ?? [];
+  const item = stories[index] ?? {};
+  const parent = (item.parent ?? {}) as {
     issue?: { series?: { title?: string; volume?: number; startyear?: number } };
   };
-  const parentIssue = parent.issue || {};
-  const parentSeries = parentIssue.series || {};
+  const parentIssue = parent.issue ?? {};
+  const parentSeries = parentIssue.series ?? {};
   const seriesPattern = readTextValue(parentSeries.title);
 
   const seriesQuery = useAutocompleteQuery<FieldItem>({
@@ -48,7 +48,7 @@ function StoryFieldsNonExclusive(props: StoryFieldsNonExclusiveProps) {
         normalizeText(entry.title) === normalizeText(parentSeries.title) &&
         normalizeText(readTextValue(entry.volume)) ===
           normalizeText(readTextValue(parentSeries.volume))
-    ) ||
+        ) ??
     (seriesPattern.trim().length > 0
       ? {
           title: parentSeries.title,
@@ -86,14 +86,14 @@ function StoryFieldsNonExclusive(props: StoryFieldsNonExclusiveProps) {
             setFieldValue(`stories[${index}].parent.issue.series.title`, inputValue);
           }}
           onChange={(_, option) => {
-            const selectedOption = Array.isArray(option) ? option[0] || null : option;
+            const selectedOption = Array.isArray(option) ? (option[0] ?? null) : option;
             let selected;
             if (isOptionLike(selectedOption)) {
-              selected = { ...selectedOption, volume: selectedOption.volume || 0 };
+              selected = { ...selectedOption, volume: selectedOption.volume ?? 0 };
             } else {
               selected = getNextStoryParentSeriesSelection(
                 typeof selectedOption === "string" ? selectedOption : null,
-                Number(parentSeries.volume || 1)
+                Number(parentSeries.volume ?? 1)
               );
             }
 
