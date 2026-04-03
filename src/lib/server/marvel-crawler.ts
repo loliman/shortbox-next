@@ -137,20 +137,20 @@ const RETRYABLE_HTTP_ERROR_CODES = new Set([
  * ========= */
 
 function ws(s: string) {
-  return s.replace(/\s+/g, " ").trim();
+  return s.replaceAll(/\s+/g, " ").trim();
 }
 
 function normalizeCrawlerEntityValue(raw: string): string {
   const normalized = ws(
     String(raw || "")
-      .replace(/[\u00A0\u2007\u202F]/g, " ")
-      .replace(/[\u200B-\u200D\uFEFF]/g, "")
-      .replace(/[‘’`´]/g, "'")
-      .replace(/[“”]/g, '"')
-      .replace(/[‐‑–—]/g, "-")
-      .replace(/\s+([,.;:!?])/g, "$1")
-      .replace(/\(\s+/g, "(")
-      .replace(/\s+\)/g, ")"),
+      .replaceAll(/[\u00A0\u2007\u202F]/g, " ")
+      .replaceAll(/[\u200B-\u200D\uFEFF]/g, "")
+      .replaceAll(/[‘’`´]/g, "'")
+      .replaceAll(/[“”]/g, '"')
+      .replaceAll(/[‐‑–—]/g, "-")
+      .replaceAll(/\s+([,.;:!?])/g, "$1")
+      .replaceAll(/\(\s+/g, "(")
+      .replaceAll(/\s+\)/g, ")"),
   );
   if (!normalized) return "";
 
@@ -225,11 +225,11 @@ function extractWikiTitleFromHref(value: string | null | undefined): string {
   const withoutQuery = withoutFragment.split("?")[0];
   if (!withoutQuery) return "";
 
-  let decoded = withoutQuery.replace(/_/g, " ");
+  let decoded = withoutQuery.replaceAll("_", " ");
   try {
     decoded = decodeURIComponent(decoded);
   } catch {
-    decoded = withoutQuery.replace(/_/g, " ");
+    decoded = withoutQuery.replaceAll("_", " ");
   }
   return ws(decoded);
 }
@@ -276,9 +276,9 @@ function normalizeHeader(s: string) {
   // "Writer(s)" => "writer", "Original Price" => "original price"
   return ws(s)
     .toLowerCase()
-    .replace(/\(s\)/g, "") // writer(s) -> writer
-    .replace(/[:\[\]]/g, "")
-    .replace(/\s+/g, " ")
+    .replaceAll(/\(s\)/g, "") // writer(s) -> writer
+    .replaceAll(/[:\[\]]/g, "")
+    .replaceAll(/\s+/g, " ")
     .trim();
 }
 
@@ -290,7 +290,7 @@ function normalizeIndividualType(type: string) {
   const normalized = normalizeHeader(type);
   if (normalized === "coverartist") return "ARTIST";
   if (normalized === "editorinchief") return "EDITOR";
-  return normalized.replace(/\s+/g, "").toUpperCase();
+  return normalized.replaceAll(/\s+/g, "").toUpperCase();
 }
 
 function normalizeAppearanceType(typeRaw: string): string {
@@ -324,7 +324,7 @@ function normalizeAppearanceRole(roleRaw: string): string | undefined {
 }
 
 function toUnderscoreTitle(s: string) {
-  return s.trim().replace(/ /g, "_");
+  return s.trim().replaceAll(" ", "_");
 }
 
 function buildSeriesPageTitle(seriesTitle: string, volume: number) {
@@ -340,9 +340,9 @@ function parseIssuePageTitle(pageTitle: string): { seriesTitle: string; volume: 
   const match = raw.match(/^(.*?)(?:_|\s)Vol(?:_|\s)(\d+)(?:_|\s)(.+)$/i);
   if (!match) return null;
   return {
-    seriesTitle: ws(match[1].replace(/_/g, " ")),
+    seriesTitle: ws(match[1].replaceAll("_", " ")),
     volume: Number(match[2]),
-    issueNumber: ws(match[3].replace(/_/g, " ")),
+    issueNumber: ws(match[3].replaceAll("_", " ")),
   };
 }
 
@@ -351,7 +351,7 @@ function parseSeriesPageTitle(pageTitle: string): { seriesTitle: string; volume:
   const match = raw.match(/^(.*?)(?:_|\s)Vol(?:_|\s)(\d+)$/i);
   if (!match) return null;
   return {
-    seriesTitle: ws(match[1].replace(/_/g, " ")),
+    seriesTitle: ws(match[1].replaceAll("_", " ")),
     volume: Number(match[2]),
   };
 }
@@ -359,15 +359,15 @@ function parseSeriesPageTitle(pageTitle: string): { seriesTitle: string; volume:
 function normalizeTitleKey(value: string): string {
   return ws(value)
     .toLowerCase()
-    .replace(/_/g, " ")
-    .replace(/[^a-z0-9]+/g, "");
+    .replaceAll("_", " ")
+    .replaceAll(/[^a-z0-9]+/g, "");
 }
 
 function canonicalSeriesTitle(value: string): string {
   const normalized = ws(value)
-    .replace(/_/g, " ")
-    .replace(/\s*\/\s*/g, " and ")
-    .replace(/\s*&\s*/g, " and ")
+    .replaceAll("_", " ")
+    .replaceAll(/\s*\/\s*/g, " and ")
+    .replaceAll(/\s*&\s*/g, " and ")
     .replace(/\s+(HC|TPB|SC|GN|OGN)$/i, "");
   if (normalizeTitleKey(normalized) === "marvelpointone") return "Point One";
   if (normalizeTitleKey(normalized) === "allnewalldifferentmarvelpointone") {
@@ -378,16 +378,16 @@ function canonicalSeriesTitle(value: string): string {
 }
 
 function normalizeWikiTitleForComparison(value: string): string {
-  return ws(value).replace(/_/g, " ").toLowerCase();
+  return ws(value).replaceAll("_", " ").toLowerCase();
 }
 
 function normalizeIssueNumberKey(value: string): string {
   const normalized = ws(value)
     .replace(/^([0-9]+[a-z.]*)\s*:\s+.*$/i, "$1")
     .toLowerCase()
-    .replace(/_/g, " ")
-    .replace(/a\.i\./g, "ai")
-    .replace(/\s+/g, "");
+    .replaceAll("_", " ")
+    .replaceAll(/a\.i\./g, "ai")
+    .replaceAll(/\s+/g, "");
   return normalized;
 }
 
@@ -1186,10 +1186,10 @@ async function getImageOriginalUrls(fileTitles: string[]): Promise<Map<string, s
     const url = normalizeImageUrl(page?.imageinfo?.[0]?.url);
     if (!title || !url) continue;
 
-    const normalizedTitle = title.replace(/_/g, " ");
+    const normalizedTitle = title.replaceAll("_", " ");
     result.set(title, String(url));
     result.set(normalizedTitle, String(url));
-    result.set(normalizedTitle.replace(/ /g, "_"), String(url));
+    result.set(normalizedTitle.replaceAll(" ", "_"), String(url));
   }
   return result;
 }
@@ -1253,7 +1253,7 @@ async function parseAlternateCoversFromImageCategory(
   });
 
   const variantFileTitles = coverFileTitles.filter((fileTitle) => {
-    const label = cleanVariantLabel(buildVariantLabelFromFileTitle(pageTitle, fileTitle).replace(/_/g, " "));
+    const label = cleanVariantLabel(buildVariantLabelFromFileTitle(pageTitle, fileTitle).replaceAll("_", " "));
     return label.length > 0 && !shouldExcludeVariant(fileTitle, label);
   });
 
@@ -1265,7 +1265,7 @@ async function parseAlternateCoversFromImageCategory(
   for (const fileTitle of variantFileTitles) {
     const originalUrl = imageUrlMap.get(fileTitle);
     if (!originalUrl) continue;
-    const variant = cleanVariantLabel(buildVariantLabelFromFileTitle(pageTitle, fileTitle).replace(/_/g, " "));
+    const variant = cleanVariantLabel(buildVariantLabelFromFileTitle(pageTitle, fileTitle).replaceAll("_", " "));
     if (!variant) continue;
 
     variants.push({
@@ -1367,11 +1367,11 @@ function parseContainedIssuesFromGallery($: cheerio.CheerioAPI): CrawledIssueRef
 
 
 function isExcludedVariantValue(value: string): boolean {
-  const normalized = normalizeLower(value).replace(/[_-]+/g, " ");
+  const normalized = normalizeLower(value).replaceAll(/[_-]+/g, " ");
   if (/\btextless\b/.test(normalized) || /\bvirgin\b/.test(normalized) || /\bvirigin\b/.test(normalized)) {
     return true;
   }
-  const compact = normalized.replace(/[^a-z0-9]+/g, "");
+  const compact = normalized.replaceAll(/[^a-z0-9]+/g, "");
   return compact.includes("textless") || compact.includes("virgin") || compact.includes("virigin");
 }
 
