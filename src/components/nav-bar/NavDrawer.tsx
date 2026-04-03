@@ -78,7 +78,6 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
               sx={{
                 width: 40,
                 height: 40,
-                color: (theme) => theme.palette.mode === "dark" ? "common.black" : "common.white",
                 borderRadius: "50%",
                 border: "1px solid",
                 borderColor: "rgba(255,255,255,0.22)",
@@ -95,7 +94,7 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
                 },
               }}
             >
-              <MyLocationIcon sx={{ fontSize: 20, color: (theme) => theme.palette.mode === "dark" ? "common.black" : "inherit" }} />
+              <MyLocationIcon sx={{ fontSize: 20 }} />
             </IconButton>
           </span>
         </Tooltip>
