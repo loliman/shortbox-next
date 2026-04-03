@@ -1,7 +1,7 @@
 import "server-only";
 
 import { resolveSeoFilterLanding } from "./seo-filter-landing";
-import { isSeoFilterKind, type SeoFilterKind } from "./seo-filter-route";
+import { isSeoFilterKind } from "./seo-filter-route";
 
 export async function resolveNavigationFilterQuery(input: {
   us: boolean;
@@ -18,10 +18,9 @@ export async function resolveNavigationFilterQuery(input: {
 
   const resolved = await resolveSeoFilterLanding({
     us: input.us,
-    kind: kind as SeoFilterKind,
+    kind,
     slug,
   });
 
   return resolved?.filterQuery ?? null;
 }
-

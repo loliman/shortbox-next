@@ -69,13 +69,18 @@ function generateSelectionLabel(input: {
   return generateSeriesLabel(input.series);
 }
 
+function readIssueSeries(series: unknown): ItemTitleIssueLike["series"] {
+  if (!series || typeof series !== "object" || Array.isArray(series)) return null;
+  return series as ItemTitleIssueLike["series"];
+}
+
 export function generateItemTitle(item: ItemTitleLike, us: boolean) {
   let titleFromStory = "";
   if (item.title) titleFromStory = " - " + item.title;
 
   if (item.parent?.issue) {
     let title =
-      generateSelectionLabel({ series: item.parent.issue.series as ItemTitleIssueLike["series"] }) +
+      generateSelectionLabel({ series: readIssueSeries(item.parent.issue.series) }) +
       " #" +
       safeValue(item.parent.issue.number);
     title +=
@@ -87,7 +92,7 @@ export function generateItemTitle(item: ItemTitleLike, us: boolean) {
     title += item.parent.variant ? " [" + item.parent.format + "/" + item.parent.variant + "]" : "";
     return title + titleFromStory;
   } else if (item.series) {
-    return generateSelectionLabel({ series: item.series as ItemTitleIssueLike["series"] }) + " #" + item.number;
+    return generateSelectionLabel({ series: readIssueSeries(item.series) }) + " #" + item.number;
   } else if (titleFromStory === "") {
     return us ? "Untitled" : "Exklusiv hier erschienen";
   } else {

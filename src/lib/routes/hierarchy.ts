@@ -329,7 +329,7 @@ export function generateLabel(item?: SelectedRoot | null): string {
     const volume = item.issue.series.volume;
     const hasVolume = volume !== undefined && volume !== null;
 
-    const legacyNumber = safeValue((item.issue as Issue).legacy_number).trim();
+    const legacyNumber = safeValue(item.issue.legacy_number).trim();
 
     return (
       title +

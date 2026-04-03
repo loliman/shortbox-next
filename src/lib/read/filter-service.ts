@@ -283,7 +283,7 @@ function hasAppearanceTerms(filter: RuntimeFilter): boolean {
 function hasRealityTerms(filter: RuntimeFilter): boolean {
   const realityTerms = Array.isArray(filter.realities)
     ? filter.realities
-    : splitFilterTerms(filter.realities as string | null | undefined);
+    : splitFilterTerms(typeof filter.realities === "string" ? filter.realities : undefined);
   return Array.isArray(realityTerms) ? realityTerms.length > 0 : false;
 }
 

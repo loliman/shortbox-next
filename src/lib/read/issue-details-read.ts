@@ -762,7 +762,7 @@ export async function readIssueDetailStories(input: {
 
   if (!storyOwnerIssue || !Array.isArray(storyOwnerIssue.stories)) return [];
 
-  const issueOverride = selectedIssue || storyOwnerIssue;
+  const issueOverride = selectedIssue ?? storyOwnerIssue;
   return storyOwnerIssue.stories.map((story: any) => toIssueStoryShape(story, true, issueOverride));
 }
 
