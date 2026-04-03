@@ -33,11 +33,10 @@ interface SearchBarProps {
   us?: boolean;
   autoFocus?: boolean;
   compactLayout?: boolean;
-  onFocus?: (
-    event: React.FocusEvent<HTMLElement> | React.MouseEvent<HTMLElement> | null,
-    focus: boolean
-  ) => void;
+  onFocus?: (event: SearchFocusEvent, focus: boolean) => void;
 }
+
+type SearchFocusEvent = React.FocusEvent<HTMLElement> | React.MouseEvent<HTMLElement> | null;
 
 export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
   const { navigationPending, push } = usePendingNavigation();
@@ -48,7 +47,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
     if (typeof navigator === "undefined") return "⌘K";
     const platform =
       (navigator as NavigatorWithUserAgentData).userAgentData?.platform ??
-      navigator.platform ??
+      navigator.userAgent ??
       "";
     return /Mac|iPhone|iPad|iPod/i.test(platform) ? "⌘K" : "⌃K";
   }, []);
@@ -125,14 +124,14 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
     theme.vars?.palette.background.paper ?? theme.palette.background.paper;
 
   const handleFocus = (
-    e: React.FocusEvent<HTMLElement> | React.MouseEvent<HTMLElement> | null,
+    e: SearchFocusEvent,
     focus: boolean
   ) => {
     setFocused(focus);
     ownProps.onFocus?.(e, focus);
   };
 
-  const closeSearch = (e: React.FocusEvent<HTMLElement> | React.MouseEvent<HTMLElement> | null) => {
+  const closeSearch = (e: SearchFocusEvent) => {
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
@@ -407,9 +406,12 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
             opacity: "1 !important",
           },
         })}
-        renderInput={(params) => (
+        renderInput={(params) => {
+          const { inputProps, InputProps, ...restParams } = params;
+
+          return (
           <TextField
-            {...params}
+            {...restParams}
             variant="outlined"
             autoFocus={Boolean(ownProps.autoFocus)}
             sx={(theme) => ({
@@ -445,34 +447,37 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                 },
               }),
             })}
-            inputProps={{
-              ...params.inputProps,
-              "aria-label": "Shortbox durchsuchen",
-              "data-shortbox-search-input": "true",
-              placeholder: `Shortbox durchsuchen · ${shortcutHint}`,
-            }}
-            InputProps={{
-              ...params.InputProps,
-              endAdornment: (
-                <>
-                  {loading || navigationPending ? <CircularProgress color="inherit" size={18} /> : null}
-                  <InputAdornment position="end">
-                    <SearchIcon
-                      sx={(theme) => ({
-                        fontSize: 20,
-                        color: "#111111",
-                        ...theme.applyStyles("dark", {
-                          color: theme.palette.common.white,
-                        }),
-                      })}
-                    />
-                  </InputAdornment>
-                  {params.InputProps.endAdornment}
-                </>
-              ),
+            slotProps={{
+              htmlInput: {
+                ...inputProps,
+                "aria-label": "Shortbox durchsuchen",
+                "data-shortbox-search-input": "true",
+                placeholder: `Shortbox durchsuchen · ${shortcutHint}`,
+              },
+              input: {
+                ...InputProps,
+                endAdornment: (
+                  <>
+                    {loading || navigationPending ? <CircularProgress color="inherit" size={18} /> : null}
+                    <InputAdornment position="end">
+                      <SearchIcon
+                        sx={(theme) => ({
+                          fontSize: 20,
+                          color: "#111111",
+                          ...theme.applyStyles("dark", {
+                            color: theme.palette.common.white,
+                          }),
+                        })}
+                      />
+                    </InputAdornment>
+                    {InputProps.endAdornment}
+                  </>
+                ),
+              },
             }}
           />
-        )}
+          );
+        }}
       />
     </Box>
   );

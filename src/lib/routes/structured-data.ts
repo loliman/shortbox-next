@@ -22,6 +22,8 @@ type IssueLike = {
   } | null;
 };
 
+type OptionalNumberish = number | string | null | undefined;
+
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://shortbox.de";
 
 export function buildWebsiteStructuredData() {
@@ -41,7 +43,7 @@ function toStringValue(value: unknown): string {
   return "";
 }
 
-function toPositiveNumber(value: unknown): number | undefined {
+function toPositiveNumber(value: OptionalNumberish): number | undefined {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) return undefined;
   return parsed;

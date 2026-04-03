@@ -10,7 +10,7 @@ import StoryFields from "./StoryFields";
 import { storyDefault } from "./defaults";
 import type { ContainsProps } from "./types";
 
-function Stories(props: ContainsProps) {
+function Stories(props: Readonly<ContainsProps>) {
   const [expandedStoryIndex, setExpandedStoryIndex] = React.useState<number | null>(null);
   const [draggedStoryIndex, setDraggedStoryIndex] = React.useState<number | null>(null);
   const [dragOverStoryIndex, setDragOverStoryIndex] = React.useState<number | null>(null);

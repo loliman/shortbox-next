@@ -1,5 +1,12 @@
 import { slugify } from "../slug-builder";
 
+type NavigationSeriesKeyInput = {
+  publisher?: string | null;
+  title?: string | null;
+  volume?: number | string | null;
+  startyear?: number | string | null;
+};
+
 function normalizeNavigationVolume(value: unknown): string {
   const numericVolume = Number(value ?? 0);
   return Number.isFinite(numericVolume) ? String(numericVolume) : "";
@@ -10,12 +17,7 @@ function normalizeNavigationStartYear(value: unknown): string {
   return Number.isFinite(numericStartYear) && numericStartYear > 0 ? String(numericStartYear) : "";
 }
 
-export function getNavigationSeriesKey(input: {
-  publisher?: string | null;
-  title?: string | null;
-  volume?: number | string | null;
-  startyear?: number | string | null;
-}) {
+export function getNavigationSeriesKey(input: NavigationSeriesKeyInput) {
   const parts = [
     slugify(readTextValue(input.publisher)),
     slugify(readTextValue(input.title)),
@@ -63,12 +65,7 @@ export function parseNavigationSeriesKey(seriesKey: string) {
 
 export function matchesNavigationSeriesKey(
   seriesKey: string,
-  candidate: {
-    publisher?: string | null;
-    title?: string | null;
-    volume?: number | string | null;
-    startyear?: number | string | null;
-  }
+  candidate: NavigationSeriesKeyInput
 ) {
   const parsed = parseNavigationSeriesKey(seriesKey);
   if (!parsed) return false;

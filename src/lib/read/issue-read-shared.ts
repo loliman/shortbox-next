@@ -174,9 +174,15 @@ export function compareIssueNumber(leftRaw: unknown, rightRaw: unknown): number 
   return naturalCompare(left, right);
 }
 
+type IssueVariantComparable = {
+  format?: string | null;
+  variant?: string | null;
+  id?: bigint | number | string | null;
+};
+
 export function compareIssueVariants(
-  left: { format?: string | null; variant?: string | null; id?: bigint | number | string | null },
-  right: { format?: string | null; variant?: string | null; id?: bigint | number | string | null }
+  left: IssueVariantComparable,
+  right: IssueVariantComparable
 ) {
   const leftFormat = normalizeText(left.format);
   const rightFormat = normalizeText(right.format);
@@ -441,9 +447,7 @@ export function serializeIssueDate(value: Date | null | undefined) {
   return value ? value.toISOString() : null;
 }
 
-export function serializeIssueId(value: bigint | number | string) {
-  return String(value);
-}
+export const serializeIssueId: (value: bigint | number | string) => string = String;
 
 export function serializeNullableIssueId(value: bigint | number | string | null | undefined) {
   if (value === null || value === undefined) return null;

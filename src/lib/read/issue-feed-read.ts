@@ -199,18 +199,19 @@ export async function readLastEditedIssues(
   const filterState = await resolveFilterState(filter);
   const directFilterWhere = filterState.directIssueWhere;
   const filteredIssueIds = filterState.filteredIssueIds;
+  const filteredIssueWhere = filteredIssueIds
+    ? {
+        id: {
+          in: filteredIssueIds.map(BigInt),
+        },
+      }
+    : undefined;
   const where: Prisma.IssueWhereInput = {
     fkSeries: {
       not: null,
     },
-    ...(directFilterWhere || {}),
-    ...(filteredIssueIds
-      ? {
-          id: {
-            in: filteredIssueIds.map(BigInt),
-          },
-        }
-      : {}),
+    ...directFilterWhere,
+    ...filteredIssueWhere,
   };
 
   if (cursorField) {
@@ -267,16 +268,17 @@ export async function readIssueNavigationNodes(
   const filterState = await resolveFilterState(filter);
   const directFilterWhere = filterState.directIssueWhere;
   const filteredIssueIds = filterState.filteredIssueIds;
+  const filteredIssueWhere = filteredIssueIds
+    ? {
+        id: {
+          in: filteredIssueIds.map(BigInt),
+        },
+      }
+    : undefined;
   const rows = await prisma.issue.findMany({
     where: {
-      ...(directFilterWhere || {}),
-      ...(filteredIssueIds
-        ? {
-            id: {
-              in: filteredIssueIds.map(BigInt),
-            },
-          }
-        : {}),
+      ...directFilterWhere,
+      ...filteredIssueWhere,
       series: {
         title: normalizeText(series.title),
         volume: BigInt(Number(series.volume ?? 0)),

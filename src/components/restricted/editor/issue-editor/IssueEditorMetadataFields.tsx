@@ -11,7 +11,7 @@ import type {
   AutocompleteInputChangeReason,
 } from "@mui/material/Autocomplete";
 import { FastField } from "formik";
-import type { FieldInputProps } from "formik";
+import type { FieldProps } from "formik";
 import AutocompleteBase from "../../../generic/AutocompleteBase";
 import { TextField } from "../../../generic/FormikTextField";
 import { useAutocompleteQuery } from "../../../generic/useAutocompleteQuery";
@@ -37,10 +37,8 @@ interface MetadataEntry {
 
 interface IssueEditorMetadataFieldsProps {
   values: IssueEditorFormValues;
-  copy?: boolean;
   showBatchCreate?: boolean;
   batchEnabled?: boolean;
-  isDesktop?: boolean;
   setFieldValue: (field: string, value: unknown, shouldValidate?: boolean) => void;
   lockedFields?: {
     format?: boolean;
@@ -59,6 +57,8 @@ interface TypedMetadataAutocompleteProps {
   variables?: Record<string, unknown>;
 }
 
+type CopyBatchCountFieldProps = FieldProps<string | number>;
+
 function IssueEditorMetadataFields({
   values,
   showBatchCreate = false,
@@ -67,8 +67,10 @@ function IssueEditorMetadataFields({
   lockedFields,
 }: Readonly<IssueEditorMetadataFieldsProps>) {
   const us = values.series.publisher.us;
+  const isDePublisher = us !== true;
   const formatLocked = Boolean(lockedFields?.format);
   const variantLocked = Boolean(lockedFields?.variant);
+  const isSingleIssueVariant = !(showBatchCreate && batchEnabled);
   const previewLabels =
     showBatchCreate && batchEnabled
       ? buildVariantBatchLabels({
@@ -135,24 +137,13 @@ function IssueEditorMetadataFields({
                     {({
                       field,
                       form,
-                    }: {
-                      field: FieldInputProps<unknown>;
-                      form: {
-                        touched: Record<string, unknown>;
-                        errors: Record<string, unknown>;
-                        setFieldValue: (
-                          field: string,
-                          value: unknown,
-                          shouldValidate?: boolean
-                        ) => void;
-                      };
-                    }) => (
+                    }: CopyBatchCountFieldProps) => (
                       <TextField
                         field={field}
                         form={form}
                         label="Anzahl"
                         type="number"
-                        inputProps={{ min: 1, max: 26 }}
+                        slotProps={{ htmlInput: { min: 1, max: 26 } }}
                         fullWidth
                         onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
                           const nextValue = event.target.value;
@@ -183,7 +174,7 @@ function IssueEditorMetadataFields({
         </Grid>
       ) : null}
 
-      {!us ? (
+      {isDePublisher ? (
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <FastField
             disabled={formatLocked}
@@ -204,7 +195,7 @@ function IssueEditorMetadataFields({
         </Grid>
       ) : null}
 
-      {!(showBatchCreate && batchEnabled) ? (
+      {isSingleIssueVariant ? (
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <FastField
             disabled={variantLocked}
@@ -217,7 +208,7 @@ function IssueEditorMetadataFields({
         </Grid>
       ) : null}
 
-      {!us ? (
+      {isDePublisher ? (
         <React.Fragment>
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <FastField
@@ -439,7 +430,7 @@ function applyTypedChange(values: MetadataEntry[], params: TypedChangeParams) {
       if (previous) {
         appendType(previous, params.type);
       } else {
-        const nextEntry = { ...(params.option || {}) };
+        const nextEntry = params.option ? { ...params.option } : {};
         nextEntry[params.entryKey] = getEntryValue(params.option, params.entryKey).trim();
         nextEntry.type = [params.type];
         nextEntry.role = [params.type];

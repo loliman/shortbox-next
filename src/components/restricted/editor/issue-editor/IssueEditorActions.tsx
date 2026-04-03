@@ -20,7 +20,7 @@ function IssueEditorActions({
   resetForm,
   onCancel,
   onSubmitMode,
-}: IssueEditorActionsProps) {
+}: Readonly<IssueEditorActionsProps>) {
   return (
     <Stack
       direction={{ xs: "column", md: "row" }}

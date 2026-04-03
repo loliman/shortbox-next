@@ -15,11 +15,9 @@ function resolveConnectionString() {
 let workerUtilsPromise: Promise<WorkerUtils> | null = null;
 
 export async function getWorkerUtils(): Promise<WorkerUtils> {
-  if (!workerUtilsPromise) {
-    workerUtilsPromise = makeWorkerUtils({
-      connectionString: resolveConnectionString(),
-    });
-  }
+  workerUtilsPromise ??= makeWorkerUtils({
+    connectionString: resolveConnectionString(),
+  });
 
   return workerUtilsPromise;
 }

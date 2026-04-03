@@ -31,6 +31,9 @@ export interface StoryParent {
   [key: string]: unknown;
 }
 
+type NullableNodeList<T> = Array<T | null> | null;
+type SelectedRootTypeName = "Publisher" | "Series" | "Issue";
+
 export interface Story {
   number?: number | string | null;
   title?: string | null;
@@ -38,8 +41,8 @@ export interface Story {
   addinfo?: string | null;
   parent?: StoryParent | null;
   issue?: Issue | null;
-  children?: Array<Story | null> | null;
-  reprints?: Array<Story | null> | null;
+  children?: NullableNodeList<Story>;
+  reprints?: NullableNodeList<Story>;
   reprintOf?: Story | null;
   __typename?: "Story";
   [key: string]: unknown;
@@ -86,9 +89,9 @@ export interface Issue {
   currency?: string | null;
   limitation?: string | null;
   cover?: Cover | null;
-  arcs?: Array<Arc | null> | null;
-  stories?: Array<Story | null> | null;
-  variants?: Array<Issue | null> | null;
+  arcs?: NullableNodeList<Arc>;
+  stories?: NullableNodeList<Story>;
+  variants?: NullableNodeList<Issue>;
   createdat?: string | null;
   updatedat?: string | null;
   series: Series;
@@ -101,5 +104,5 @@ export interface SelectedRoot {
   publisher?: Publisher;
   series?: Series;
   issue?: Issue;
-  __typename?: "Publisher" | "Series" | "Issue";
+  __typename?: SelectedRootTypeName;
 }

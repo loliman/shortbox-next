@@ -13,11 +13,12 @@ interface StoryFieldsProps extends ContainsProps {
   items?: FieldItem[];
 }
 
-function StoryFields(props: StoryFieldsProps) {
-  const index = Number.isInteger(props.index) ? (props.index as number) : 0;
+function StoryFields(props: Readonly<StoryFieldsProps>) {
+  const index = Number.isInteger(props.index) ? Number(props.index) : 0;
   const stories = props.items || [];
   const item = stories[index] || {};
   const isExclusive = Boolean(item.exclusive) || Boolean(props.us);
+  const canToggleExclusive = props.us !== true;
 
   return (
     <Grid container spacing={2}>
@@ -62,7 +63,7 @@ function StoryFields(props: StoryFieldsProps) {
         />
       </Grid>
 
-      {!props.us ? (
+      {canToggleExclusive ? (
         <Grid size={12}>
           <ExclusiveToggle {...props} type="stories" index={index} />
         </Grid>

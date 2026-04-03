@@ -18,7 +18,7 @@ export interface ParsePreviewImportOptions {
 
 const PRODUCT_CODE_PATTERN = /\b([A-Z]{4,}\d{3,}[A-Z]?)\b/;
 const DATE_PATTERN = /\b(\d{2}\.\d{2}\.\d{4})\b/;
-const PRICE_PATTERN = /€\s*([0-9]+(?:,[0-9]{1,2})?|-?[0-9]+),?-/;
+const PRICE_PATTERN = /€\s*(\d+(?:,\d{1,2})?|-?\d+),?-/;
 const KNOWN_FORMATS = [
   "Heft",
   "Mini Heft",
@@ -669,7 +669,7 @@ function deriveVariantLabel(line: string) {
 }
 
 function escapeRegExp(value: string) {
-  return value.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 }
 
 function createId(prefix: string) {

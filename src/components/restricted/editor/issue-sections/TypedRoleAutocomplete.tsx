@@ -33,7 +33,7 @@ function TypedRoleAutocomplete({
   setFieldValue,
   variables = {},
   disabled,
-}: TypedRoleAutocompleteProps) {
+}: Readonly<TypedRoleAutocompleteProps>) {
   const selectedValues = sanitizeEntries(values);
   const pattern = readTextValue(getPattern(selectedValues, "name", type));
 

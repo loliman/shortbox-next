@@ -8,7 +8,7 @@ interface ExclusiveToggleProps extends ContainsProps {
   index?: number;
 }
 
-function ExclusiveToggle(props: ExclusiveToggleProps) {
+function ExclusiveToggle(props: Readonly<ExclusiveToggleProps>) {
   const index = Number.isInteger(props.index) ? (props.index as number) : 0;
   const item = (props.items || [])[index] || {};
 

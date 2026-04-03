@@ -12,11 +12,10 @@ import { ContrastSwitch } from "../../../generic/ContrastSwitch";
 import FormPageShell from "../../../form-shell/FormPageShell";
 import FormSection from "../../../form-shell/FormSection";
 
-function IssueEditorFormContent(props: IssueEditorFormContentProps) {
+function IssueEditorFormContent(props: Readonly<IssueEditorFormContentProps>) {
   const {
     values,
     edit,
-    copy,
     showBatchCreate = false,
     isDesktop,
     id,
@@ -86,7 +85,6 @@ function IssueEditorFormContent(props: IssueEditorFormContentProps) {
       <IssueEditorSection title="Basisdaten">
         <IssueEditorSeriesFields
           values={values}
-          isDesktop={isDesktop}
           setFieldValue={setFieldValue}
           showHints={showHints}
           lockedFields={lockedFields}
@@ -96,17 +94,15 @@ function IssueEditorFormContent(props: IssueEditorFormContentProps) {
       <IssueEditorSection title="Metadaten">
         <IssueEditorMetadataFields
           values={values}
-          copy={copy}
           showBatchCreate={showBatchCreate}
           batchEnabled={Boolean(values.copyBatch.enabled)}
-          isDesktop={isDesktop}
           setFieldValue={setFieldValue}
           lockedFields={lockedFields}
         />
       </IssueEditorSection>
 
       <IssueEditorSection title="Kennungen und Beschreibung">
-        <IssueEditorIdentifiersFields values={values} isDesktop={isDesktop} />
+        <IssueEditorIdentifiersFields values={values} />
       </IssueEditorSection>
 
       <IssueEditorSection title="Geschichten">

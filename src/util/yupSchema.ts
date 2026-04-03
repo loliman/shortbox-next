@@ -79,7 +79,7 @@ export const IssueSchema = Yup.object().shape({
     .max(255, "Maximal 255 Zeichen")
     .test("limitation-number", "Bitte geben Sie eine Zahl ein", (value) => {
       if (!value || value.trim() === "") return true;
-      return /^[0-9]+$/.test(value.trim());
+      return /^\d+$/.test(value.trim());
     }),
   pages: Yup.number()
     .typeError("Bitte geben Sie eine Zahl ein")

@@ -46,15 +46,16 @@ export function findFirstErrorPath(errors: unknown, prefix = ""): string {
 }
 
 export function focusEditorErrorField(errorPath: string) {
-  if (!errorPath || typeof globalThis.window === "undefined") return;
+  if (!errorPath || typeof globalThis.document === "undefined") return;
 
   globalThis.requestAnimationFrame(() => {
     revealStoryErrorPanel(errorPath);
 
     globalThis.requestAnimationFrame(() => {
-      const escapedId = typeof CSS !== "undefined" && typeof CSS.escape === "function"
-        ? CSS.escape(errorPath)
-        : errorPath.replaceAll(/[ !"#$%&'()*+,./:;<=>?@[\\\]^`{|}~]/g, "\\$&");
+      const escapedId =
+        typeof CSS !== "undefined" && typeof CSS.escape === "function"
+          ? CSS.escape(errorPath)
+          : errorPath.replaceAll(/[ !"#$%&'()*+,./:;<=>?@[\\\]^`{|}~]/g, String.raw`\$&`);
 
       const target = document.getElementById(errorPath)
         || document.querySelector<HTMLElement>(`#${escapedId}`)

@@ -25,7 +25,7 @@ function IssueEditorRelations({
   setFieldValue,
   showHints = true,
   lockedFields,
-}: IssueEditorRelationsProps) {
+}: Readonly<IssueEditorRelationsProps>) {
   const storiesLocked = Boolean(lockedFields?.stories);
   const canUseStoryImport = Boolean(session?.loggedIn && session?.canAdmin);
 

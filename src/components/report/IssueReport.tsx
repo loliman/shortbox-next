@@ -171,7 +171,7 @@ function IssueReportActions({
   resetForm,
   onCancel,
   onSubmit,
-}: IssueReportActionsProps) {
+}: Readonly<IssueReportActionsProps>) {
   return (
     <Stack
       direction={{ xs: "column", md: "row" }}
@@ -208,7 +208,7 @@ function sanitizeReportValues(
   issueDetails: Record<string, unknown>
 ): IssueEditorFormValues {
   const next = { ...values } as IssueEditorFormValues;
-  const original = issueDetails || {};
+  const original = issueDetails;
 
   if (original.releasedate == null && next.releasedate === "1900-01-01") {
     next.releasedate = "";

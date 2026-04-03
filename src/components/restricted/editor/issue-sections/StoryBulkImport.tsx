@@ -13,7 +13,7 @@ import { parseStoryReferences } from "../../../../services/story-reference-parse
 import { cloneFieldItem, ensureFieldItemClientId, storyDefault } from "./defaults";
 import type { ContainsProps, FieldItem } from "./types";
 
-function StoryBulkImport(props: ContainsProps) {
+function StoryBulkImport(props: Readonly<ContainsProps>) {
   const [value, setValue] = React.useState("");
   const [message, setMessage] = React.useState<string | null>(null);
   const [messageTone, setMessageTone] = React.useState<"error" | "success">("success");

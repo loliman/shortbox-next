@@ -14,6 +14,10 @@ import { editorSurfaceSx } from "../editorLayout";
 import { getSeriesLabel } from "../../../../lib/routes/issue-presentation";
 
 type StorySeriesLike = { title?: string };
+type StoryParentLike = {
+  title?: string;
+  issue?: { number?: string | number; legacy_number?: string; series?: StorySeriesLike };
+};
 
 interface ContainsItemProps extends ContainsProps {
   item: FieldItem;
@@ -41,14 +45,10 @@ class ContainsItem extends React.Component<ContainsItemProps> {
       : 0;
     const isDisabled = childCount > 0;
     const isExpanded = Boolean(this.props.expanded);
-
-      const parent = (this.props.item.parent || {}) as { title? : string;
-          issue?: { number?: string | number; legacy_number?: string ; series?: { title?: string }};
-      };
+    const parent = readStoryParent(this.props.item.parent);
 
     const itemTitle = normalizeDisplayStoryTitle(this.props.item.title);
-    const parentTitle =
-        itemTitle || !parent.title ? undefined : normalizeDisplayStoryTitle(parent.title);
+    const parentTitle = itemTitle ? undefined : normalizeDisplayStoryTitle(parent.title);
     const storyTitle = itemTitle || parentTitle || "";
     const storyTitleLabel = storyTitle !== "" ? storyTitle : "Story";
 
@@ -231,7 +231,7 @@ function buildAddinfoText(item: unknown): string {
       typeof (item as { addinfo?: unknown } | null)?.addinfo === "string"
         ? (item as { addinfo: string }).addinfo
         : "";
-    if (part && part.indexOf("/x") === -1) {
+    if (part && !part.includes("/x")) {
         addinfoText += "Teil " + part.replace("/", " von ");
     }
     if (addinfoText !== "" && addinfo) {
@@ -241,6 +241,11 @@ function buildAddinfoText(item: unknown): string {
         addinfoText += addinfo;
     }
     return addinfoText;
+}
+
+function readStoryParent(value: unknown): StoryParentLike {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as StoryParentLike;
 }
 
 export default ContainsItem;

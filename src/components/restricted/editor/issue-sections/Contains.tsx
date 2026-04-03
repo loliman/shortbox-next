@@ -9,7 +9,7 @@ interface ContainsListProps extends ContainsProps {
   fields: React.ReactElement;
 }
 
-function Contains(props: ContainsListProps) {
+function Contains(props: Readonly<ContainsListProps>) {
   if (!props.items || props.items.length === 0)
     return null;
 

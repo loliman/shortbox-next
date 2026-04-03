@@ -43,7 +43,7 @@ function focusAndScrollToStory(index: number) {
   globalThis.requestAnimationFrame(tryFocus);
 }
 
-function AddContainsButton(props: AddContainsButtonProps) {
+function AddContainsButton(props: Readonly<AddContainsButtonProps>) {
   return (
     <Button
       disabled={props.disabled}

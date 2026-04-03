@@ -15,7 +15,6 @@ import {
 
 interface IssueEditorSeriesFieldsProps {
   values: IssueEditorFormValues;
-  isDesktop?: boolean;
   setFieldValue: (field: string, value: unknown, shouldValidate?: boolean) => void;
   showHints?: boolean;
   lockedFields?: {
@@ -48,7 +47,7 @@ function IssueEditorSeriesFields({
   setFieldValue,
   showHints = true,
   lockedFields,
-}: IssueEditorSeriesFieldsProps) {
+}: Readonly<IssueEditorSeriesFieldsProps>) {
   const formik = useFormikContext<IssueEditorFormValues>();
   const publisherPattern = values.series.publisher.name ?? "";
   const seriesPattern = values.series.title ?? "";

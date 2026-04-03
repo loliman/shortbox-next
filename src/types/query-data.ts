@@ -83,4 +83,4 @@ export interface LastEditedQueryData {
   lastEdited: QueryCollection<Issue>;
 }
 
-export type { Issue, Publisher, Series };
+export type { Issue, Publisher, Series } from "./domain";

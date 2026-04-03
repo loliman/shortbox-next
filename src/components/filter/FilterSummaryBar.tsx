@@ -21,12 +21,15 @@ type FilterSummaryBarProps = {
   compactLayout?: boolean;
 };
 
-function toSelectedRoot(selected: FilterSummaryBarProps["selected"]): SelectedRoot | null {
-  if (!selected || "us" in selected && !("publisher" in selected) && !("series" in selected) && !("issue" in selected)) {
-    return null;
-  }
+function isSelectedRoot(selected: FilterSummaryBarProps["selected"]): selected is SelectedRoot {
+  return Boolean(
+    selected &&
+      ("publisher" in selected || "series" in selected || "issue" in selected)
+  );
+}
 
-  return selected as SelectedRoot;
+function toSelectedRoot(selected: FilterSummaryBarProps["selected"]): SelectedRoot | null {
+  return isSelectedRoot(selected) ? selected : null;
 }
 
 export default function FilterSummaryBar(props: Readonly<FilterSummaryBarProps>) {

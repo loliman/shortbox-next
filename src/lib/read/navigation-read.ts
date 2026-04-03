@@ -250,7 +250,7 @@ export async function readNavigationIssues(scope: NavigationIssuesScope) {
     .map(([, rawGroup]) => {
     const group = [...rawGroup].sort(compareIssueVariants);
     const primary = group[0];
-    const previewSource = pickNavigationIssuePreviewSource(group) || primary;
+    const previewSource = pickNavigationIssuePreviewSource(group) ?? primary;
     const variants = group.map((variant) => ({
       id: String(variant.id),
       collected: variant.collected ?? null,

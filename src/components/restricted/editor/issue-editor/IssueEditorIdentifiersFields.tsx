@@ -6,15 +6,16 @@ import type { IssueEditorFormValues } from "./types";
 
 interface IssueEditorIdentifiersFieldsProps {
   values: IssueEditorFormValues;
-  isDesktop?: boolean;
 }
 
 function IssueEditorIdentifiersFields({
   values,
-}: IssueEditorIdentifiersFieldsProps) {
+}: Readonly<IssueEditorIdentifiersFieldsProps>) {
+  const isDePublisher = values.series.publisher.us !== true;
+
   return (
     <Grid container spacing={2}>
-      {!values.series.publisher.us ? (
+      {isDePublisher ? (
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <FastField
             name="comicguideid"
@@ -26,7 +27,7 @@ function IssueEditorIdentifiersFields({
         </Grid>
       ) : null}
 
-      {!values.series.publisher.us ? (
+      {isDePublisher ? (
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <FastField name="isbn" label="ISBN" type="string" component={TextField} fullWidth />
         </Grid>

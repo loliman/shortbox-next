@@ -11,8 +11,9 @@
  * yields the same output.
  */
 
-import { buildIssueUrlPath, buildIssueUrlSegments } from "./slug-builder";
 import {
+  buildIssueUrlPath,
+  buildIssueUrlSegments,
   generateAppearanceSlug,
   generateArcSlug,
   generateGenreSlug,
@@ -162,4 +163,3 @@ export function buildAppearanceFilterUrl(
 export function buildGenreFilterUrl(locale: Locale, genre: string): string {
   return buildSeoFilterLandingUrl(locale, "genre", generateGenreSlug(genre));
 }
-

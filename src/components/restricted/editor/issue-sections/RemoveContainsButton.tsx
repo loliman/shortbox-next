@@ -9,7 +9,7 @@ interface RemoveContainsButtonProps extends ContainsProps {
   index: number;
 }
 
-function RemoveContainsButton(props: RemoveContainsButtonProps) {
+function RemoveContainsButton(props: Readonly<RemoveContainsButtonProps>) {
   return (
     <Tooltip title="Geschichte entfernen">
       <span>

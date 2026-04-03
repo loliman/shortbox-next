@@ -228,23 +228,36 @@ interface ActionMenuItemProps {
   enqueueSnackbar?: DropdownProps["enqueueSnackbar"];
 }
 
+function readDropdownId(value: unknown): string | number | undefined {
+  return typeof value === "string" || typeof value === "number" ? value : undefined;
+}
+
+function readDropdownDate(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function readDropdownSeries(value: unknown): DropdownItem["series"] | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  return value as DropdownItem["series"];
+}
+
 function buildIssueMutationInput(item: DropdownItem): IssueMutationInput {
   const stripped = stripItem(structuredClone(item));
   const readDropdownText = (value: unknown) =>
     typeof value === "string" || typeof value === "number" ? String(value) : "";
   const input: IssueMutationInput = {
-    id: stripped.id as string | number | undefined,
+    id: readDropdownId(stripped.id),
     title: readDropdownText(stripped.title),
     number: readDropdownText(stripped.number),
     format: readDropdownText(stripped.format),
-    releasedate: (stripped.releasedate as string) || "",
+    releasedate: readDropdownDate(stripped.releasedate),
     pages: Number(stripped.pages || 0),
     price: Number(stripped.price || 0),
     currency: readDropdownText(stripped.currency),
     isbn: readDropdownText(stripped.isbn),
     limitation: readDropdownText(stripped.limitation),
     addinfo: readDropdownText(stripped.addinfo),
-    series: (stripped.series as DropdownItem["series"]) || undefined,
+    series: readDropdownSeries(stripped.series),
     verified: Boolean(stripped.verified),
     collected: Boolean(stripped.collected),
   };
@@ -260,10 +273,10 @@ function buildIssueLookupInput(item: DropdownItem): IssueMutationInput {
   const readDropdownText = (value: unknown) =>
     typeof value === "string" || typeof value === "number" ? String(value) : "";
   const input: IssueMutationInput = {
-    id: stripped.id as string | number | undefined,
+    id: readDropdownId(stripped.id),
     number: readDropdownText(stripped.number),
     format: readDropdownText(stripped.format),
-    series: (stripped.series as DropdownItem["series"]) || undefined,
+    series: readDropdownSeries(stripped.series),
   };
 
   const variant = readDropdownText(stripped.variant);

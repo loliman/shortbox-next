@@ -9,7 +9,7 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 }
 
 function hasOwn(value: Record<string, unknown>, key: string) {
-  return Object.prototype.hasOwnProperty.call(value, key);
+  return Object.hasOwn(value, key);
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

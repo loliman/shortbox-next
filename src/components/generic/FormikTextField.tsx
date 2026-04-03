@@ -19,14 +19,14 @@ function FormikTextField({ field, form, helperText, ...props }: Readonly<FormikT
   const touched = getIn(form.touched, field.name);
   const error = getIn(form.errors, field.name);
   const showError = Boolean(touched && error);
-  const inputId = props.id || field.name;
+  const inputId = props.id ?? field.name;
 
   return (
     <TextField
       {...field}
       {...props}
       id={inputId}
-      value={field.value !== undefined && field.value !== null ? field.value : ""}
+      value={field.value ?? ""}
       error={showError}
       helperText={showError ? error : helperText}
       onChange={props.onChange ?? field.onChange}

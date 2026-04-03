@@ -327,12 +327,12 @@ function hasStructuredQualifier(parsed: ParsedSearchPattern): boolean {
 }
 
 function looksLikeIssueNumberToken(token: string): boolean {
-  return /^[0-9]+(?:[A-Za-z]|\/[0-9]+)?$/.test(token);
+  return /^\d+(?:[A-Za-z]|\/\d+)?$/.test(token);
 }
 
 function parsePositiveInt(value: string | undefined): number | null {
   if (!value) return null;
-  if (!/^[0-9]+$/.test(value)) return null;
+  if (!/^\d+$/.test(value)) return null;
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) return null;
   return parsed;
