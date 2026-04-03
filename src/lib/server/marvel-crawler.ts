@@ -1313,8 +1313,10 @@ function getFileTitleFromLink($: cheerio.CheerioAPI, link: cheerio.Cheerio<any>)
   if (/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(href)) return `File:${href.replace(/^File:/i, "")}`;
 
   const image = link.find("img").first();
+  const imageDataName = image.attr("data-image-name");
+  const imageDataKey = image.attr("data-image-key");
   const imageName = ws(
-    String(image.attr("data-image-name") || image.attr("data-image-key") || "").replace(/^File:/i, ""),
+    (typeof imageDataName === "string" ? imageDataName : imageDataKey || "").replace(/^File:/i, ""),
   );
   if (imageName) return `File:${imageName}`;
 

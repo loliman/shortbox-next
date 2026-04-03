@@ -426,11 +426,17 @@ function getIssueIdentityKey(
   issue: Pick<VariantIssue, "number" | "legacy_number" | "format" | "variant">
 ): string {
   return [
-    String(issue.number || "").trim(),
-    String(issue.legacy_number || "").trim(),
-    String(issue.format || "").trim(),
-    String(issue.variant || "").trim(),
+    readVariantIdentityPart(issue.number),
+    readVariantIdentityPart(issue.legacy_number),
+    readVariantIdentityPart(issue.format),
+    readVariantIdentityPart(issue.variant),
   ].join("|");
+}
+
+function readVariantIdentityPart(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }
 
 function resolveVariantAccordionOverlay(

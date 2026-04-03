@@ -381,7 +381,7 @@ export async function readInitialNavigationData(
     filteredIssueIdsJson
   );
   const resolvedSelectedPublisherName = selectedPublisherName
-    ? publishers.find((publisherNode) => slugify(String(publisherNode.name || "")) === slugify(selectedPublisherName))
+    ? publishers.find((publisherNode) => slugify(publisherNode.name || "") === slugify(selectedPublisherName))
         ?.name || selectedPublisherName
     : "";
 
@@ -471,7 +471,7 @@ export async function readInitialNavigationData(
 
     if (publisherSlug && volume > 0) {
       const matchingPublisher = publishers.find(
-        (publisherNode) => slugify(String(publisherNode.name || "")) === publisherSlug
+        (publisherNode) => slugify(publisherNode.name || "") === publisherSlug
       );
       const publisherName = matchingPublisher?.name || "";
       if (!publisherName) continue;
