@@ -2,6 +2,9 @@
 
 This document records the repository's current test execution model as it exists today.
 
+For the GitHub Actions job layout, blocking rules, and dependency automation policy, see
+[CI and dependency automation](./ci-and-dependency-automation.md).
+
 ## Official Command
 
 The current official automated test command is:
