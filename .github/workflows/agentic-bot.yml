@@ -19,16 +19,16 @@ jobs:
       pull-requests: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
 
       - run: npm ci
 
-      - uses: loliman/agentic-shortbox@v6.5.8
+      - uses: loliman/agentic-shortbox@v6.5.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CODEX_SANDBOX_MODE: danger-full-access
