@@ -5,18 +5,18 @@
   },
   {
     "name": "de-publisher",
-    "path": "/de/panini-dc-vertigo-wildstorm"
+    "path": "/de/panini-marvel-icon"
   },
   {
     "name": "de-series",
-    "path": "/de/panini-dc-vertigo-wildstorm/dc-marvel-klassiker-1979-superman-gegen-spider-man-2026-vol1"
+    "path": "/de/panini-marvel-icon/marvel-horror-classic-collection-2022-vol1"
   },
   {
     "name": "de-issue-light",
-    "path": "/de/panini-dc-vertigo-wildstorm/dc-marvel-klassiker-1979-superman-gegen-spider-man-2026-vol1/1"
+    "path": "/de/panini-marvel-icon/marvel-horror-classic-collection-2022-vol1/1"
   },
   {
     "name": "de-issue-heavy",
-    "path": "/de/Panini%20-%20Marvel%20%26%20Icon/Die%20Gruft%20von%20Dracula%20Classic%20Collection_Vol_1/3/Hardcover"
+    "path": "/de/panini-marvel-icon/marvel-horror-classic-collection-2022-vol1/1/hardcover"
   }
 ]

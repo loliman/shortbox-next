@@ -18,15 +18,6 @@ function toAbsoluteUrl(path: string): string {
   return `${SITE_URL}${path.startsWith("/") ? "" : "/"}${path}`;
 }
 
-function isDatabaseUnavailable(error: unknown): boolean {
-  if (typeof error !== "object" || error === null) return false;
-  if ("code" in error && error.code === "P1001") return true;
-  if ("message" in error && typeof error.message === "string") {
-    return error.message.includes("Can't reach database server");
-  }
-  return false;
-}
-
 function mergeEntries(list: SitemapEntry[]): MetadataRoute.Sitemap {
   const byUrl = new Map<string, { url: string; lastModified?: Date }>();
 
@@ -48,24 +39,8 @@ function mergeEntries(list: SitemapEntry[]): MetadataRoute.Sitemap {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  let publisherEntries: SitemapEntry[];
-  let seriesEntries: SitemapEntry[];
-  let issueEntries: SitemapEntry[];
-  let personEntries: SitemapEntry[];
-  let arcEntries: SitemapEntry[];
-  let appearanceEntries: SitemapEntry[];
-  let genreEntries: SitemapEntry[];
-
-  try {
-    [
-      publisherEntries,
-      seriesEntries,
-      issueEntries,
-      personEntries,
-      arcEntries,
-      appearanceEntries,
-      genreEntries,
-    ] = await Promise.all([
+  const [publisherEntries, seriesEntries, issueEntries, personEntries, arcEntries, appearanceEntries, genreEntries] =
+    await Promise.all([
       readPublisherSitemapEntries(),
       readSeriesSitemapEntries(),
       readCanonicalIssueSitemapEntries(),
@@ -74,11 +49,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       readAppearanceLandingSitemapEntries(),
       readGenreLandingSitemapEntries(),
     ]);
-  } catch (error) {
-    if (!isDatabaseUnavailable(error)) throw error;
-    console.warn("sitemap build fallback: database unavailable, returning home entries only");
-    return mergeEntries(readHomeSitemapEntries());
-  }
 
   return mergeEntries([
     ...readHomeSitemapEntries(),
