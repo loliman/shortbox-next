@@ -17,6 +17,7 @@ The repository already has:
 - a stable Jest-based unit and regression baseline
 - blocking CI for quality, accessibility, and SEO
 - non-blocking performance observability
+- a checked-in DB snapshot fixture for realistic route-level `a11y` and `seo` checks
 
 What is still missing is a complete testing shape that covers:
 
@@ -110,6 +111,13 @@ Purpose:
 
 These checks are already partially in place and should remain part of the long-term testing picture.
 
+Current fixture model for this layer:
+
+- `a11y` and `seo` now run against a disposable CI Postgres database
+- that database is populated from a checked-in snapshot, not from ad hoc synthetic rows
+- the current reference snapshot is `Marvel Horror Classic Collection 1`
+- this issue was chosen because it has a rich graph of stories, parents, related source issues, individuals, and appearances
+
 ## What Each Layer Should Own
 
 The repository should converge on this responsibility split:
@@ -166,10 +174,14 @@ The intended CI shape is:
   - `npm run test:unit`
 - `a11y`
   - `npm ci`
+  - `npx prisma db push`
+  - `node scripts/seed-ci-fixtures.mjs`
   - `npm run build`
   - `npm run test:a11y:pa11y`
 - `seo`
   - `npm ci`
+  - `npx prisma db push`
+  - `node scripts/seed-ci-fixtures.mjs`
   - `npm run build`
   - `npm run start`
   - `npm run test:seo:smoke`
@@ -206,12 +218,14 @@ Already largely in place:
 - Jest as the default runner
 - typecheck focused on application code
 - blocking quality, accessibility, and SEO workflows
+- DB-backed snapshot fixtures for route-level `a11y` and `seo`
 
 Success criteria:
 
 - no new `vitest` usage
 - no new mixed-runner tests
 - new pure logic tests default to Jest
+- the checked-in route fixture remains intentional and understandable rather than becoming an accidental data dump
 
 ### Phase 2: Add A Minimal Playwright Smoke Layer
 
@@ -281,6 +295,11 @@ Good first targets for this application:
 - responsive shell behavior on compact layouts
 - one or two representative SEO-safe canonical paths in `de`
 - later, one or two representative `us` flows if they meaningfully differ
+
+Recommended seed baseline for those first flows:
+
+- reuse the existing Marvel Horror snapshot whenever possible before inventing new fixture domains
+- only add further seeded cases when a browser flow cannot be represented well by the current snapshot
 
 Avoid at first:
 

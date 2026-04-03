@@ -23,7 +23,7 @@ There is also a separate SonarCloud workflow:
 
 - [`SonarCloud`](../../.github/workflows/sonarcloud.yml)
 
-All workflows currently use Node `24`.
+All workflows currently use Node `25`.
 
 ## Blocking Workflow: Validate
 
@@ -59,6 +59,8 @@ Purpose:
 Runs:
 
 - `npm ci`
+- `npx prisma db push`
+- `node scripts/seed-ci-fixtures.mjs`
 - `npm run build`
 - `AUDIT_LIMIT=5 PA11Y_WAIT_MS=3000 npm run test:a11y:pa11y`
 
@@ -66,6 +68,13 @@ Why it blocks:
 
 - accessibility regressions on the core route set are worth catching before merge
 - `pa11y` is much less noisy than Lighthouse for PR blocking
+
+Database model:
+
+- this job runs against a disposable Postgres service in GitHub Actions
+- the database is seeded from an exported fixture snapshot, not from live production access
+- the current reference fixture is [`Marvel Horror Classic Collection 1`](../../scripts/fixtures/marvel-horror-classic-collection-1.json)
+- that snapshot intentionally includes the full related issue/story/parent/appearance/individual graph needed for realistic route rendering
 
 ### `seo`
 
@@ -76,6 +85,8 @@ Purpose:
 Runs:
 
 - `npm ci`
+- `npx prisma db push`
+- `node scripts/seed-ci-fixtures.mjs`
 - `npm run build`
 - `npm run start`
 - `npm run test:seo:smoke`
@@ -85,6 +96,12 @@ Why it blocks:
 
 - this application depends heavily on correct canonical routing and indexability
 - SEO breakage here is usually a real product regression, not a cosmetic warning
+
+Database model:
+
+- this job also runs against a disposable Postgres service in GitHub Actions
+- it uses the same checked-in Marvel Horror snapshot as the `a11y` job
+- this keeps sitemap and metadata checks closer to real route behavior than a no-data fallback build
 
 ## Non-Blocking Workflow: Observability
 
@@ -136,6 +153,8 @@ npm run test:unit
 
 ```bash
 npm ci
+npx prisma db push
+node scripts/seed-ci-fixtures.mjs
 npm run build
 AUDIT_LIMIT=5 PA11Y_WAIT_MS=3000 npm run test:a11y:pa11y
 ```
@@ -144,6 +163,8 @@ AUDIT_LIMIT=5 PA11Y_WAIT_MS=3000 npm run test:a11y:pa11y
 
 ```bash
 npm ci
+npx prisma db push
+node scripts/seed-ci-fixtures.mjs
 npm run build
 npm run start
 npm run test:seo:smoke
@@ -154,6 +175,35 @@ Notes:
 
 - the SEO scripts default to `http://127.0.0.1:3000` or `http://localhost:3000`
 - in CI, the workflow explicitly waits for the app before running the SEO smoke scripts
+- locally, the DB-backed smoke path expects a reachable Postgres instance that matches `DATABASE_URL`
+
+## CI Fixture Strategy
+
+The repository currently uses a checked-in database snapshot for CI route realism:
+
+- [`scripts/fixtures/marvel-horror-classic-collection-1.json`](../../scripts/fixtures/marvel-horror-classic-collection-1.json)
+
+This snapshot is seeded by:
+
+- [`scripts/seed-ci-fixtures.mjs`](../../scripts/seed-ci-fixtures.mjs)
+
+The snapshot is intentionally based on a real reference issue:
+
+- `Panini - Marvel & Icon`
+- `Marvel Horror Classic Collection`
+- issue `1`
+
+Why this approach exists:
+
+- `a11y` and `seo` are more trustworthy when they exercise real data shapes
+- the Marvel Horror issue has a rich relationship graph
+- a checked-in snapshot is deterministic in CI and does not require live migration database access
+
+Important maintenance rule:
+
+- the snapshot is manually curated and intentionally checked in
+- CI does not regenerate it automatically
+- if the reference fixture needs to change, update the JSON intentionally and keep the seed script aligned
 
 ## Build Cache Strategy
 

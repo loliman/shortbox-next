@@ -66,6 +66,13 @@ Observed repository state on April 3, 2026:
 - the suite includes pure logic tests and selected `jsdom`-based component tests
 - Jest remains the official runner and source of truth for automated local validation
 
+Observed repository state on April 4, 2026:
+
+- route-level `a11y` and `seo` CI checks now run against a disposable Postgres database
+- that database is seeded from a checked-in fixture snapshot instead of ad hoc synthetic rows
+- the current reference fixture is [`Marvel Horror Classic Collection 1`](../../scripts/fixtures/marvel-horror-classic-collection-1.json)
+- the seed entry point is [`scripts/seed-ci-fixtures.mjs`](../../scripts/seed-ci-fixtures.mjs)
+
 Today, the main constraint is not test discovery but keeping new tests aligned with the current Jest-based setup.
 
 ## How Agents Should Add Tests Right Now
@@ -100,6 +107,7 @@ The repository currently has these test categories:
 - pure unit tests: widely supported by the default Jest setup
 - regression and parity tests: supported when they stay node-friendly
 - React/component tests with browser-style helpers: supported when configured for Jest and `jsdom`
+- DB-backed route smoke checks in CI: currently used by `a11y` and `seo`
 - mixed-runner tests: avoid reintroducing them while Jest remains the official command
 
 ## What This Document Does Not Claim
