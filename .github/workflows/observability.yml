@@ -22,7 +22,6 @@ jobs:
   lighthouse:
     name: Unlighthouse (${{ matrix.device }})
     runs-on: ubuntu-latest
-    continue-on-error: true
     timeout-minutes: 30
     services:
       postgres:
@@ -67,18 +66,32 @@ jobs:
             ${{ runner.os }}-nextjs-observability-${{ matrix.device }}-
 
       - name: Install dependencies
+        id: install
+        continue-on-error: true
         run: npm ci
 
       - name: Sync Prisma schema
+        id: prisma
+        if: ${{ steps.install.outcome == 'success' }}
+        continue-on-error: true
         run: npx prisma db push
 
       - name: Seed CI fixtures
+        id: seed
+        if: ${{ steps.prisma.outcome == 'success' }}
+        continue-on-error: true
         run: node scripts/seed-ci-fixtures.mjs
 
       - name: Build app
+        id: build
+        if: ${{ steps.seed.outcome == 'success' }}
+        continue-on-error: true
         run: npm run build
 
       - name: Run Unlighthouse audit
+        id: audit
+        if: ${{ steps.build.outcome == 'success' }}
+        continue-on-error: true
         env:
           AUDIT_LIMIT: 3
           AUDIT_DEVICE: ${{ matrix.device }}
@@ -86,6 +99,7 @@ jobs:
 
       - name: Upload Unlighthouse report
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v6
         with:
           name: unlighthouse-report-${{ matrix.device }}
@@ -101,4 +115,12 @@ jobs:
             echo "- This workflow is intentionally non-blocking."
             echo "- Use it for trend visibility on main, not as a strict merge gate."
             echo "- Blocking PR protection lives in the Validate workflow."
+            echo
+            echo "## Step outcomes"
+            echo
+            echo "- install: ${{ steps.install.outcome }}"
+            echo "- prisma: ${{ steps.prisma.outcome || 'skipped' }}"
+            echo "- seed: ${{ steps.seed.outcome || 'skipped' }}"
+            echo "- build: ${{ steps.build.outcome || 'skipped' }}"
+            echo "- audit: ${{ steps.audit.outcome || 'skipped' }}"
           } >> "$GITHUB_STEP_SUMMARY"
