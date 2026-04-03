@@ -169,10 +169,6 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
   );
 }
 
-function themePaletteDividerFallback() {
-  return "divider" as const;
-}
-
 export function IssuePreviewPlaceholder() {
   return (
     <Card>
