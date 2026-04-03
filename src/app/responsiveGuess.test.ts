@@ -1,4 +1,4 @@
-import { getInitialResponsiveGuess } from "./responsiveGuess";
+import { getInitialResponsiveGuess, serializeResponsiveGuess } from "./responsiveGuess";
 
 describe("getInitialResponsiveGuess", () => {
   it("should_treat_sec_ch_ua_mobile_hint_as_phone", () => {
@@ -38,5 +38,28 @@ describe("getInitialResponsiveGuess", () => {
       isDesktop: false,
       isLandscape: false,
     });
+  });
+
+  it("should_prefer_stored_viewport_guess_over_desktop_user_agent", () => {
+    expect(
+      getInitialResponsiveGuess({
+        userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0)",
+        storedGuess: "phone-portrait",
+      })
+    ).toEqual({
+      isPhone: true,
+      isDesktop: false,
+      isLandscape: false,
+    });
+  });
+
+  it("should_serialize_tablet_portrait_guess", () => {
+    expect(
+      serializeResponsiveGuess({
+        isPhone: false,
+        isDesktop: false,
+        isLandscape: false,
+      })
+    ).toBe("tablet-portrait");
   });
 });

@@ -1,4 +1,4 @@
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import FooterLinks from "../footer/FooterLinks";
@@ -6,7 +6,7 @@ import LayoutChromeClient from "../LayoutChromeClient";
 import AddFab from "../fab/AddFab";
 import ErrorFab from "../fab/ErrorFab";
 import { COMPACT_BOTTOM_BAR_CLEARANCE, getNavDrawerWidth } from "../layoutMetrics";
-import { getInitialResponsiveGuess } from "../../app/responsiveGuess";
+import { getInitialResponsiveGuess, RESPONSIVE_GUESS_COOKIE_NAME } from "../../app/responsiveGuess";
 import { countChangeRequests } from "../../lib/read/issue-read";
 import { readHasActivePreviewImportQueue } from "../../lib/read/preview-import-read";
 import { readServerSession } from "../../lib/server/session";
@@ -42,9 +42,11 @@ async function readInitialNavLayout(showNavigation: boolean): Promise<InitialNav
   if (!showNavigation) return { offset: "0px", gutter: "0px" };
 
   const headerStore = await headers();
+  const cookieStore = await cookies();
   const initialResponsiveGuess = getInitialResponsiveGuess({
     userAgent: headerStore.get("user-agent"),
     secChUaMobile: headerStore.get("sec-ch-ua-mobile"),
+    storedGuess: cookieStore.get(RESPONSIVE_GUESS_COOKIE_NAME)?.value,
   });
   const initialTablet = !initialResponsiveGuess.isPhone && !initialResponsiveGuess.isDesktop;
   const initialNavWide =

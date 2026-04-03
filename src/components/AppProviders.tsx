@@ -8,13 +8,20 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ThemeModeProvider, { NavigationFeedbackContext } from "./generic/AppContext";
 import { appTheme, type AppThemeMode } from "../app/theme";
-import type { InitialResponsiveGuess } from "../app/responsiveGuess";
+import {
+  RESPONSIVE_GUESS_COOKIE_NAME,
+  serializeResponsiveGuess,
+  type InitialResponsiveGuess,
+} from "../app/responsiveGuess";
 import { ResponsiveGuessProvider } from "../app/responsiveGuessContext";
 
 export const THEME_MODE_STORAGE_KEY = "shortbox_theme_mode";
 const THEME_COLOR_SCHEME_STORAGE_KEY = "shortbox_color_scheme";
 const MIN_NAVIGATION_FEEDBACK_MS = 240;
 const MAX_NAVIGATION_FEEDBACK_MS = 8000;
+const PHONE_MEDIA_QUERY = "(max-width:599.95px)";
+const DESKTOP_MEDIA_QUERY = "(min-width:1200px)";
+const LANDSCAPE_MEDIA_QUERY = "(orientation: landscape)";
 
 type AppProvidersProps = {
   initialResponsiveGuess: InitialResponsiveGuess;
@@ -50,6 +57,39 @@ function ThemeModeBridge(props: Readonly<AppProvidersProps>) {
     if (typeof document === "undefined") return;
     document.body.dataset.theme = themeMode;
   }, [themeMode]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const phoneMediaQuery = window.matchMedia(PHONE_MEDIA_QUERY);
+    const desktopMediaQuery = window.matchMedia(DESKTOP_MEDIA_QUERY);
+    const landscapeMediaQuery = window.matchMedia(LANDSCAPE_MEDIA_QUERY);
+
+    const writeResponsiveGuessCookie = () => {
+      const guess = {
+        isPhone: phoneMediaQuery.matches,
+        isDesktop: desktopMediaQuery.matches,
+        isLandscape: landscapeMediaQuery.matches,
+      };
+      document.cookie = `${RESPONSIVE_GUESS_COOKIE_NAME}=${serializeResponsiveGuess(guess)}; path=/; max-age=2592000; samesite=lax`;
+    };
+
+    writeResponsiveGuessCookie();
+
+    phoneMediaQuery.addEventListener("change", writeResponsiveGuessCookie);
+    desktopMediaQuery.addEventListener("change", writeResponsiveGuessCookie);
+    landscapeMediaQuery.addEventListener("change", writeResponsiveGuessCookie);
+    window.addEventListener("resize", writeResponsiveGuessCookie);
+    window.addEventListener("orientationchange", writeResponsiveGuessCookie);
+
+    return () => {
+      phoneMediaQuery.removeEventListener("change", writeResponsiveGuessCookie);
+      desktopMediaQuery.removeEventListener("change", writeResponsiveGuessCookie);
+      landscapeMediaQuery.removeEventListener("change", writeResponsiveGuessCookie);
+      window.removeEventListener("resize", writeResponsiveGuessCookie);
+      window.removeEventListener("orientationchange", writeResponsiveGuessCookie);
+    };
+  }, []);
 
   const toggleTheme = useCallback(() => {
     const nextMode = themeMode === "dark" ? "light" : "dark";

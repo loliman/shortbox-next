@@ -1,11 +1,11 @@
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import type { CSSProperties } from "react";
 import FooterLinks from "../footer/FooterLinks";
 import PersistentCatalogChromeClient from "./PersistentCatalogChromeClient";
 import { COMPACT_BOTTOM_BAR_CLEARANCE, getNavDrawerWidth } from "../layoutMetrics";
-import { getInitialResponsiveGuess } from "../../app/responsiveGuess";
+import { getInitialResponsiveGuess, RESPONSIVE_GUESS_COOKIE_NAME } from "../../app/responsiveGuess";
 import type { SessionData } from "../../types/session";
 
 type PersistentCatalogShellProps = {
@@ -20,9 +20,11 @@ export default async function PersistentCatalogShell(
   props: Readonly<PersistentCatalogShellProps>
 ) {
   const headerStore = await headers();
+  const cookieStore = await cookies();
   const initialResponsiveGuess = getInitialResponsiveGuess({
     userAgent: headerStore.get("user-agent"),
     secChUaMobile: headerStore.get("sec-ch-ua-mobile"),
+    storedGuess: cookieStore.get(RESPONSIVE_GUESS_COOKIE_NAME)?.value,
   });
   const initialTablet = !initialResponsiveGuess.isPhone && !initialResponsiveGuess.isDesktop;
   const initialNavWide =
