@@ -42,7 +42,7 @@ function PublisherEdit(props: Readonly<PublisherEditProps>) {
   const selected = props.selected;
   const loading = false;
   const error = null;
-  const publisherDetails = props.initialPublisher || null;
+  const publisherDetails = props.initialPublisher ?? null;
 
   return (
     (() => {

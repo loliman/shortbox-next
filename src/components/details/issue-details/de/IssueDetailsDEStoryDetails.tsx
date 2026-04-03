@@ -25,7 +25,7 @@ export function IssueDetailsDEStoryDetails(props: Readonly<IssueDetailsDEStoryDe
           Boolean(arc && typeof arc === "object")
       )
     : [];
-  const item = (props.item || {}) as Record<string, unknown>;
+  const item = (props.item ?? {}) as Record<string, unknown>;
   return (
     <React.Fragment>
       {storyArcs.length > 0 ? (

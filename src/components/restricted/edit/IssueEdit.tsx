@@ -40,7 +40,7 @@ function IssueEdit(props: Readonly<IssueEditProps>) {
   const selected = props.selected;
   const loading = false;
   const error = null;
-  const issueDetails = props.initialIssue || null;
+  const issueDetails = props.initialIssue ?? null;
 
   return (
     (() => {

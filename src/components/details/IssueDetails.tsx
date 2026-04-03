@@ -50,7 +50,7 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
   const us = Boolean(props.us);
   const DetailsComponent = props.details ?? (() => null);
   const BottomComponent = props.bottom;
-  const loadedIssue = (props.initialIssue as Issue | null | undefined) || null;
+  const loadedIssue = (props.initialIssue as Issue | null | undefined) ?? null;
   const loading = false;
   const error = null;
   const issueForVariants = loadedIssue ? toIssueWithMockVariants(loadedIssue) : null;

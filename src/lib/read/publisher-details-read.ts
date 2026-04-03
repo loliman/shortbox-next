@@ -32,13 +32,13 @@ export async function readPublisherDetailsQuery(input: { us: boolean; publisher:
       });
 
   const resolvedPublisher =
-    publisher ||
+    publisher ??
     slugCandidates.find((candidate) =>
       matchesPublisherSelectionBySlug(candidate, {
         us: input.us,
         publisher: input.publisher,
       })
-    ) ||
+    ) ??
     null;
 
   if (!resolvedPublisher) return null;
