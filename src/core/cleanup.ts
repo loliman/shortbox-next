@@ -276,14 +276,12 @@ const findUSIssueIdsWithoutDEReference = ({
 
   const storyById = new Map<number, StoryRow>();
   const usStoryIds = new Set<number>();
-  const nonUSStoryIds = new Set<number>();
 
   stories.forEach((story) => {
     storyById.set(story.id, story);
     const issueId = toInt(story.fkIssue);
     if (issueId == null) return;
     if (usIssueIds.has(issueId)) usStoryIds.add(story.id);
-    else nonUSStoryIds.add(story.id);
   });
 
   const startStoryIds = stories

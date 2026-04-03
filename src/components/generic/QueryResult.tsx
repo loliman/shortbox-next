@@ -22,33 +22,10 @@ interface QueryResultProps {
 export default function QueryResult(props: Readonly<QueryResultProps>) {
   const { appIsLoading: initialAppIsLoading, loading, error, data, selected } = props;
   const appIsLoading = initialAppIsLoading ?? false;
-
-  const renderPlaceholder = () => {
-    if (!props.placeholder) return null;
-
-    const placeholder: React.ReactElement[] = [];
-    const placeholderCount = props.placeholderCount || 1;
-
-    for (let i = 0; i < placeholderCount; i++)
-      placeholder.push(
-        React.cloneElement(props.placeholder, {
-          key: i,
-        })
-      );
-
-    return placeholder;
-  };
+  const placeholder = buildPlaceholders(props.placeholder, props.placeholderCount);
 
   if (appIsLoading || loading) {
-    const placeholder = renderPlaceholder();
-    if (placeholder) return placeholder;
-
-    if (props.loadingVariant === "none") return null;
-    if (props.loadingVariant === "inline") {
-      return <AppInlineLoader label={props.loadingLabel || "Lade..."} centered={false} />;
-    }
-
-    return <AppPageLoader label={props.loadingLabel} />;
+    return renderLoadingState(placeholder, props.loadingVariant, props.loadingLabel);
   }
 
   if (error || data?.errors)
@@ -62,14 +39,7 @@ export default function QueryResult(props: Readonly<QueryResultProps>) {
   // `undefined` means "not resolved yet" (e.g. query transition/race), while
   // explicit `null` means "resolved, but not found".
   if (data === undefined) {
-    const placeholder = renderPlaceholder();
-    if (placeholder) return placeholder;
-
-    if (props.loadingVariant === "none") return null;
-    if (props.loadingVariant === "inline") {
-      return <AppInlineLoader label={props.loadingLabel || "Lade..."} centered={false} />;
-    }
-    return <AppPageLoader label={props.loadingLabel} />;
+    return renderLoadingState(placeholder, props.loadingVariant, props.loadingLabel);
   }
 
   if (data === null)
@@ -83,6 +53,39 @@ export default function QueryResult(props: Readonly<QueryResultProps>) {
     );
 
   return null;
+}
+
+function buildPlaceholders(
+  placeholder: React.ReactElement<{ key?: React.Key }> | undefined,
+  placeholderCount: number | undefined
+) {
+  if (!placeholder) return null;
+
+  const rendered: React.ReactElement[] = [];
+  const count = placeholderCount || 1;
+
+  for (let index = 0; index < count; index += 1) {
+    rendered.push(
+      React.cloneElement(placeholder, {
+        key: index,
+      })
+    );
+  }
+
+  return rendered;
+}
+
+function renderLoadingState(
+  placeholder: React.ReactElement[] | null,
+  loadingVariant: QueryResultProps["loadingVariant"],
+  loadingLabel: string | undefined
+) {
+  if (placeholder) return placeholder;
+  if (loadingVariant === "none") return null;
+  if (loadingVariant === "inline") {
+    return <AppInlineLoader label={loadingLabel || "Lade..."} centered={false} />;
+  }
+  return <AppPageLoader label={loadingLabel} />;
 }
 
 function getNotFoundLabel(selected?: SelectedRoot | null): string {

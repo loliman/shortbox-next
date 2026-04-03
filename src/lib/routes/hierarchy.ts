@@ -137,6 +137,146 @@ export function generateSeoUrl(item: SelectedRoot, us: boolean): string {
   return url;
 }
 
+function buildSelectedIssueFromParsedIssue(
+  parsed: NonNullable<ReturnType<typeof parseIssueUrl>>,
+  us: boolean
+): SelectedRoot {
+  return {
+    us,
+    issue: {
+      number: parsed.issueNumber,
+      format: parsed.format,
+      variant: parsed.variant,
+      series: {
+        title: parsed.seriesTitle,
+        volume: parsed.seriesVolume,
+        startyear: parsed.seriesYear || undefined,
+        publisher: { name: parsed.publisherName },
+      },
+    },
+  };
+}
+
+function readLegacyIssueRouteParams(
+  params: RouteParams,
+  hasFormatParam: boolean,
+  routeFormat: string,
+  routeVariant: string,
+  legacyFormatSegment: string,
+  hasLegacyVariantSeparator: boolean
+) {
+  if (!params.publisher || !params.series || !params.issue) return null;
+
+  const legacyPublisher = decodeURIComponent(params.publisher);
+  const legacySeries = decodeURIComponent(params.series);
+  const legacyIssue = decodeURIComponent(params.issue);
+  const formatSlug = hasFormatParam
+    ? routeFormat || undefined
+    : legacyFormatSegment && !hasLegacyVariantSeparator
+      ? legacyFormatSegment
+      : undefined;
+  const variantSlug = hasFormatParam ? routeVariant || undefined : undefined;
+  const parsed = parseIssueUrl(legacyPublisher, legacySeries, legacyIssue, formatSlug, variantSlug);
+
+  return parsed ? buildSelectedIssueFromParsedIssue(parsed, true) : null;
+}
+
+function readLegacySeriesSelection(params: RouteParams, selected: SelectedRoot) {
+  if (!params.series) return;
+
+  const seriesValue = decodeURIComponent(params.series);
+  const volumeSeparator = "_Vol_";
+  const separatorIndex = seriesValue.lastIndexOf(volumeSeparator);
+  const hasSeparator = separatorIndex > -1;
+  const legacySeparatorIndex = seriesValue.lastIndexOf("_");
+  const hasLegacySeparator = !hasSeparator && legacySeparatorIndex > -1;
+  const title = hasSeparator
+    ? seriesValue.substring(0, separatorIndex)
+    : hasLegacySeparator
+      ? seriesValue.substring(0, legacySeparatorIndex)
+      : seriesValue;
+  const volumeText = hasSeparator
+    ? seriesValue.substring(separatorIndex + volumeSeparator.length)
+    : hasLegacySeparator
+      ? seriesValue.substring(legacySeparatorIndex + 1)
+      : "1";
+  const parsedVolume = Number.parseInt(volumeText, 10);
+
+  selected.series = {
+    title,
+    volume: Number.isFinite(parsedVolume) ? parsedVolume : undefined,
+    publisher: { name: selected.publisher?.name || "" },
+  };
+  selected.publisher = undefined;
+}
+
+function applyLegacyIssueSelection(
+  selected: SelectedRoot,
+  params: RouteParams,
+  hasFormatParam: boolean,
+  routeFormat: string,
+  routeVariant: string,
+  legacyFormatSegment: string
+) {
+  if (params.issue && selected.series) {
+    selected.issue = {
+      number: decodeURIComponent(params.issue),
+      series: {
+        title: selected.series.title,
+        volume: selected.series.volume,
+        publisher: { name: selected.series.publisher.name },
+      },
+    };
+    selected.series = undefined;
+  }
+
+  if (!selected.issue) return;
+
+  if (hasFormatParam) {
+    if (routeFormat) selected.issue.format = routeFormat;
+    if (routeVariant) selected.issue.variant = routeVariant;
+    return;
+  }
+
+  if (!legacyFormatSegment) return;
+
+  const separatorIndex = legacyFormatSegment.indexOf("_");
+  if (separatorIndex > -1) {
+    selected.issue.format = legacyFormatSegment.substring(0, separatorIndex);
+    selected.issue.variant = legacyFormatSegment.substring(separatorIndex + 1);
+    return;
+  }
+
+  selected.issue.format = legacyFormatSegment;
+}
+
+function buildSeriesLabel(item: SelectedRoot["series"]): string {
+  const year = item?.startyear ? " (" + item.startyear + ")" : "";
+  const title = safeValue(item?.title);
+  const volume = item?.volume;
+  const hasVolume = volume !== undefined && volume !== null;
+  return title + (item?.publisher && hasVolume ? " (Vol. " + romanize(volume) + ")" + year : "");
+}
+
+function buildIssueLabel(item: SelectedRoot["issue"]): string {
+  if (!item) return "";
+
+  const year = item.series.startyear ? " (" + item.series.startyear + ")" : "";
+  const title = safeValue(item.series.title);
+  const volume = item.series.volume;
+  const hasVolume = volume !== undefined && volume !== null;
+  const legacyNumber = safeValue(item.legacy_number).trim();
+
+  return (
+    title +
+    (item.series.publisher && hasVolume ? " (Vol. " + romanize(volume) + ")" : "") +
+    year +
+    " #" +
+    safeValue(item.number) +
+    (legacyNumber ? " LGY #" + legacyNumber : "")
+  );
+}
+
 export function getSelected(params: RouteParams, us: boolean): SelectedRoot {
   const selected: SelectedRoot = { us };
 
@@ -151,7 +291,6 @@ export function getSelected(params: RouteParams, us: boolean): SelectedRoot {
 
   // Check if this is a new SEO-friendly URL structure
   if (params.publisherSlug && params.seriesSlug && params.issueNumber) {
-    // Parse new SEO URL structure
     const parsed = parseIssueUrl(
       params.publisherSlug,
       params.seriesSlug,
@@ -160,57 +299,22 @@ export function getSelected(params: RouteParams, us: boolean): SelectedRoot {
       params.variantSlug
     );
 
-    if (parsed) {
-      selected.issue = {
-        number: parsed.issueNumber,
-        format: parsed.format,
-        variant: parsed.variant,
-        series: {
-          title: parsed.seriesTitle,
-          volume: parsed.seriesVolume,
-          startyear: parsed.seriesYear || undefined,
-          publisher: { name: parsed.publisherName },
-        },
-      };
-      return selected;
-    }
+    if (parsed) return buildSelectedIssueFromParsedIssue(parsed, us);
   }
 
   // Also support SEO slugs on existing dynamic param names
   // (/[publisher]/[series]/[issue]/[format]/[variant]) and legacy
   // (/[publisher]/[series]/[issue]/[variant]) so both formats resolve.
   if (legacyPublisher && legacySeries && legacyIssue) {
-    let formatSlug: string | undefined;
-    if (hasFormatParam) {
-      formatSlug = routeFormat || undefined;
-    } else if (legacyFormatSegment && !hasLegacyVariantSeparator) {
-      formatSlug = legacyFormatSegment;
-    } else {
-      formatSlug = undefined;
-    }
-    const variantSlug = hasFormatParam ? routeVariant || undefined : undefined;
-    const parsed = parseIssueUrl(
-      legacyPublisher,
-      legacySeries,
-      legacyIssue,
-      formatSlug,
-      variantSlug
+    const parsedIssueSelection = readLegacyIssueRouteParams(
+      params,
+      hasFormatParam,
+      routeFormat,
+      routeVariant,
+      legacyFormatSegment,
+      hasLegacyVariantSeparator
     );
-
-    if (parsed) {
-      selected.issue = {
-        number: parsed.issueNumber,
-        format: parsed.format,
-        variant: parsed.variant,
-        series: {
-          title: parsed.seriesTitle,
-          volume: parsed.seriesVolume,
-          startyear: parsed.seriesYear || undefined,
-          publisher: { name: parsed.publisherName },
-        },
-      };
-      return selected;
-    }
+    if (parsedIssueSelection) return { ...parsedIssueSelection, us };
   }
 
   if (legacyPublisher && legacySeries && !legacyIssue) {
@@ -240,62 +344,15 @@ export function getSelected(params: RouteParams, us: boolean): SelectedRoot {
     selected.publisher = { name: decodeURIComponent(params.publisher) };
   }
 
-  if (params.series) {
-    const seriesValue = decodeURIComponent(params.series);
-    const volumeSeparator = "_Vol_";
-    const separatorIndex = seriesValue.lastIndexOf(volumeSeparator);
-    const hasSeparator = separatorIndex > -1;
-    const legacySeparatorIndex = seriesValue.lastIndexOf("_");
-    const hasLegacySeparator = !hasSeparator && legacySeparatorIndex > -1;
-    let title = seriesValue;
-    if (hasSeparator) {
-      title = seriesValue.substring(0, separatorIndex);
-    } else if (hasLegacySeparator) {
-      title = seriesValue.substring(0, legacySeparatorIndex);
-    }
-    let volumeText = "1";
-    if (hasSeparator) {
-      volumeText = seriesValue.substring(separatorIndex + volumeSeparator.length);
-    } else if (hasLegacySeparator) {
-      volumeText = seriesValue.substring(legacySeparatorIndex + 1);
-    }
-    const parsedVolume = Number.parseInt(volumeText, 10);
-    const volume = Number.isFinite(parsedVolume) ? parsedVolume : undefined;
-
-    selected.series = {
-      title,
-      volume,
-      publisher: { name: selected.publisher?.name || "" },
-    };
-    selected.publisher = undefined;
-  }
-
-  if (params.issue && selected.series) {
-    selected.issue = {
-      number: decodeURIComponent(params.issue),
-      series: {
-        title: selected.series.title,
-        volume: selected.series.volume,
-        publisher: { name: selected.series.publisher.name },
-      },
-    };
-    selected.series = undefined;
-  }
-
-  if (selected.issue) {
-    if (hasFormatParam) {
-      if (routeFormat) selected.issue.format = routeFormat;
-      if (routeVariant) selected.issue.variant = routeVariant;
-    } else if (legacyFormatSegment) {
-      const separatorIndex = legacyFormatSegment.indexOf("_");
-      if (separatorIndex > -1) {
-        selected.issue.format = legacyFormatSegment.substring(0, separatorIndex);
-        selected.issue.variant = legacyFormatSegment.substring(separatorIndex + 1);
-      } else {
-        selected.issue.format = legacyFormatSegment;
-      }
-    }
-  }
+  readLegacySeriesSelection(params, selected);
+  applyLegacyIssueSelection(
+    selected,
+    params,
+    hasFormatParam,
+    routeFormat,
+    routeVariant,
+    legacyFormatSegment
+  );
 
   return selected;
 }
@@ -311,35 +368,8 @@ export function generateLabel(item?: SelectedRoot | null): string {
 
   if (item.publisher) return safeValue(item.publisher.name);
 
-  if (item.series) {
-    let year = "";
-    if (item.series.startyear) year = " (" + item.series.startyear + ")";
-    const title = safeValue(item.series.title);
-    const volume = item.series.volume;
-    const hasVolume = volume !== undefined && volume !== null;
-    return (
-      title + (item.series.publisher && hasVolume ? " (Vol. " + romanize(volume) + ")" + year : "")
-    );
-  }
-
-  if (item.issue) {
-    let year = "";
-    if (item.issue.series.startyear) year = " (" + item.issue.series.startyear + ")";
-    const title = safeValue(item.issue.series.title);
-    const volume = item.issue.series.volume;
-    const hasVolume = volume !== undefined && volume !== null;
-
-    const legacyNumber = safeValue(item.issue.legacy_number).trim();
-
-    return (
-      title +
-      (item.issue.series.publisher && hasVolume ? " (Vol. " + romanize(volume) + ")" : "") +
-      (year || "") +
-      " #" +
-      safeValue(item.issue.number) +
-      (legacyNumber ? " LGY #" + legacyNumber : "")
-    );
-  }
+  if (item.series) return buildSeriesLabel(item.series);
+  if (item.issue) return buildIssueLabel(item.issue);
 
   return "";
 }

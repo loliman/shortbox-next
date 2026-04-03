@@ -179,83 +179,131 @@ async function runSearchQuery(rawQuery: string, us: boolean) {
   `);
 }
 
+function readCandidateContext(row: SearchIndexRow, parsed: ParsedSearchPattern) {
+  return {
+    seriesTitle: normalizeForSearch(row.series_title || ""),
+    normalizedTitlePattern: normalizeForSearch(parsed.title || parsed.raw),
+    issueNumber: (row.issue_number || "").trim(),
+    issueLegacyNumber: (row.issue_legacy_number || "").trim(),
+    issueVariant: (row.issue_variant || "").trim(),
+  };
+}
+
+function matchesParsedSeries(row: SearchIndexRow, parsed: ParsedSearchPattern): boolean {
+  if (parsed.volume != null && Number(row.series_volume || 0) !== parsed.volume) return false;
+  if (parsed.year != null && !isYearMatch(row.series_startyear, row.series_endyear, parsed.year)) {
+    return false;
+  }
+  return true;
+}
+
+function matchesParsedIssue(
+  row: SearchIndexRow,
+  parsed: ParsedSearchPattern,
+  context: ReturnType<typeof readCandidateContext>
+): boolean {
+  if (
+    parsed.issueNumber &&
+    !normalizeForSearch(context.issueNumber).startsWith(normalizeForSearch(parsed.issueNumber)) &&
+    !normalizeForSearch(context.issueLegacyNumber).startsWith(normalizeForSearch(parsed.issueNumber))
+  ) {
+    return false;
+  }
+
+  if (!matchesParsedSeries(row, parsed)) return false;
+
+  if (
+    hasStructuredQualifier(parsed) &&
+    context.normalizedTitlePattern &&
+    !context.seriesTitle.includes(context.normalizedTitlePattern)
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function scoreSeriesCandidate(
+  row: SearchIndexRow,
+  parsed: ParsedSearchPattern,
+  context: ReturnType<typeof readCandidateContext>,
+  baseRelevance: number
+) {
+  let relevance = baseRelevance;
+
+  if (context.normalizedTitlePattern && context.seriesTitle.includes(context.normalizedTitlePattern)) {
+    relevance += 240;
+  }
+  if (parsed.volume != null && Number(row.series_volume || 0) === parsed.volume) relevance += 200;
+  if (parsed.year != null && isYearMatch(row.series_startyear, row.series_endyear, parsed.year)) {
+    relevance += 180;
+  }
+
+  return (
+    relevance +
+    scoreIdentityBonus(
+      `${row.series_title || ""} vol ${row.series_volume || ""} ${row.series_startyear || ""}`,
+      parsed.raw
+    )
+  );
+}
+
+function scoreIssueCandidate(
+  row: SearchIndexRow,
+  parsed: ParsedSearchPattern,
+  context: ReturnType<typeof readCandidateContext>,
+  baseRelevance: number
+) {
+  let relevance = baseRelevance;
+
+  if (
+    context.normalizedTitlePattern &&
+    (normalizeForSearch(row.issue_title || "").includes(context.normalizedTitlePattern) ||
+      context.seriesTitle.includes(context.normalizedTitlePattern))
+  ) {
+    relevance += 220;
+  }
+  if (parsed.volume != null && Number(row.series_volume || 0) === parsed.volume) relevance += 180;
+  if (parsed.year != null && isYearMatch(row.series_startyear, row.series_endyear, parsed.year)) {
+    relevance += 170;
+  }
+  if (
+    parsed.issueNumber &&
+    (normalizeForSearch(context.issueNumber).startsWith(normalizeForSearch(parsed.issueNumber)) ||
+      normalizeForSearch(context.issueLegacyNumber).startsWith(normalizeForSearch(parsed.issueNumber)))
+  ) {
+    relevance += 210;
+  }
+
+  return (
+    relevance +
+    scoreIdentityBonus(
+      `${row.series_title || ""} vol ${row.series_volume || ""} ${row.series_startyear || ""} ${row.issue_number || ""} ${row.issue_legacy_number || ""} ${row.issue_format || ""} ${row.issue_variant || ""}`,
+      parsed.raw
+    )
+  );
+}
+
 function toCandidate(row: SearchIndexRow, parsed: ParsedSearchPattern): NodeCandidate | null {
   const type = row.node_type;
   if (type !== "publisher" && type !== "series" && type !== "issue") return null;
 
-  const seriesTitle = normalizeForSearch(row.series_title || "");
-  const normalizedTitlePattern = normalizeForSearch(parsed.title || parsed.raw);
-  const issueNumber = (row.issue_number || "").trim();
-  const issueLegacyNumber = (row.issue_legacy_number || "").trim();
-  const issueVariant = (row.issue_variant || "").trim();
+  const context = readCandidateContext(row, parsed);
 
-  if (type === "issue") {
-    if (
-      parsed.issueNumber &&
-      !normalizeForSearch(issueNumber).startsWith(normalizeForSearch(parsed.issueNumber)) &&
-      !normalizeForSearch(issueLegacyNumber).startsWith(normalizeForSearch(parsed.issueNumber))
-    ) {
-      return null;
-    }
-    if (parsed.volume != null && Number(row.series_volume || 0) !== parsed.volume) return null;
-    if (parsed.year != null && !isYearMatch(row.series_startyear, row.series_endyear, parsed.year)) {
-      return null;
-    }
-    if (
-      hasStructuredQualifier(parsed) &&
-      normalizedTitlePattern &&
-      !seriesTitle.includes(normalizedTitlePattern)
-    ) {
-      return null;
-    }
-  }
-
-  if (type === "series") {
-    if (parsed.volume != null && Number(row.series_volume || 0) !== parsed.volume) return null;
-    if (parsed.year != null && !isYearMatch(row.series_startyear, row.series_endyear, parsed.year)) {
-      return null;
-    }
-  }
-
-  let relevance =
+  const baseRelevance =
     Number(row.ts_rank || 0) * 1000 +
     Number(row.trigram_rank || 0) * 300 +
     scoreStringMatch(row.label, parsed.raw);
 
-  if (type === "series") {
-    if (normalizedTitlePattern && seriesTitle.includes(normalizedTitlePattern)) relevance += 240;
-    if (parsed.volume != null && Number(row.series_volume || 0) === parsed.volume) relevance += 200;
-    if (parsed.year != null && isYearMatch(row.series_startyear, row.series_endyear, parsed.year)) {
-      relevance += 180;
-    }
-    relevance += scoreIdentityBonus(
-      `${row.series_title || ""} vol ${row.series_volume || ""} ${row.series_startyear || ""}`,
-      parsed.raw
-    );
-  } else if (type === "issue") {
-    if (
-      normalizedTitlePattern &&
-      (normalizeForSearch(row.issue_title || "").includes(normalizedTitlePattern) ||
-        seriesTitle.includes(normalizedTitlePattern))
-    ) {
-      relevance += 220;
-    }
-    if (parsed.volume != null && Number(row.series_volume || 0) === parsed.volume) relevance += 180;
-    if (parsed.year != null && isYearMatch(row.series_startyear, row.series_endyear, parsed.year)) {
-      relevance += 170;
-    }
-    if (
-      parsed.issueNumber &&
-      (normalizeForSearch(issueNumber).startsWith(normalizeForSearch(parsed.issueNumber)) ||
-        normalizeForSearch(issueLegacyNumber).startsWith(normalizeForSearch(parsed.issueNumber)))
-    ) {
-      relevance += 210;
-    }
-    relevance += scoreIdentityBonus(
-      `${row.series_title || ""} vol ${row.series_volume || ""} ${row.series_startyear || ""} ${row.issue_number || ""} ${row.issue_legacy_number || ""} ${row.issue_format || ""} ${row.issue_variant || ""}`,
-      parsed.raw
-    );
-  }
+  if (type === "issue" && !matchesParsedIssue(row, parsed, context)) return null;
+  if (type === "series" && !matchesParsedSeries(row, parsed)) return null;
+
+  const relevance =
+    type === "series"
+      ? scoreSeriesCandidate(row, parsed, context, baseRelevance)
+      : type === "issue"
+        ? scoreIssueCandidate(row, parsed, context, baseRelevance)
+        : baseRelevance;
 
   return {
     type,
@@ -264,9 +312,9 @@ function toCandidate(row: SearchIndexRow, parsed: ParsedSearchPattern): NodeCand
     relevance,
     seriesTitleSort: row.series_title || "",
     seriesVolumeSort: Number(row.series_volume || 0),
-    issueNumberSort: issueNumber,
+    issueNumberSort: context.issueNumber,
     issueFormatSort: row.issue_format || "",
-    issueVariantSort: issueVariant,
+    issueVariantSort: context.issueVariant,
     seriesKey: `${row.publisher_name || ""}::${row.series_title || ""}::${row.series_volume || ""}::${row.series_startyear || ""}`,
   };
 }
@@ -503,6 +551,81 @@ function dedupeIssuesBySeriesAndNumber(issues: NodeCandidate[]): NodeCandidate[]
   return deduped;
 }
 
+function hasExactSeriesMatch(
+  node: NodeCandidate,
+  normalizedTitleQuery: string,
+  volumeQuery?: number
+): boolean {
+  return (
+    normalizedTitleQuery !== "" &&
+    volumeQuery != null &&
+    normalizeForSearch(node.seriesTitleSort || "") === normalizedTitleQuery &&
+    Number(node.seriesVolumeSort || 0) === Number(volumeQuery)
+  );
+}
+
+function buildIssuesBySeries(issues: NodeCandidate[]) {
+  const issuesBySeries = new Map<string, NodeCandidate[]>();
+  for (const issue of issues) {
+    const key = issue.seriesKey || "";
+    const grouped = issuesBySeries.get(key);
+    if (grouped) grouped.push(issue);
+    else issuesBySeries.set(key, [issue]);
+  }
+  for (const grouped of issuesBySeries.values()) {
+    grouped.sort(sortIssueCandidates);
+  }
+  return issuesBySeries;
+}
+
+function pickBestIssueForSeries(
+  groupedIssues: NodeCandidate[],
+  normalizedIssueNumberQuery: string
+) {
+  if (groupedIssues.length === 0) return undefined;
+
+  return [...groupedIssues].sort((left, right) => {
+    const leftExactNumber =
+      normalizedIssueNumberQuery !== "" &&
+      normalizeForSearch(left.issueNumberSort || "") === normalizedIssueNumberQuery;
+    const rightExactNumber =
+      normalizedIssueNumberQuery !== "" &&
+      normalizeForSearch(right.issueNumberSort || "") === normalizedIssueNumberQuery;
+    if (leftExactNumber !== rightExactNumber) return leftExactNumber ? -1 : 1;
+    if (left.relevance !== right.relevance) return right.relevance - left.relevance;
+    return sortIssueCandidates(left, right);
+  })[0];
+}
+
+function appendSeriesIssues(
+  result: NodeCandidate[],
+  groupedIssues: NodeCandidate[],
+  bestMatch: NodeCandidate | undefined,
+  consumedIssueKeys: Set<string>,
+  counts: { issues: number },
+  limits: { maxIssues: number; maxAdditionalIssuesPerSeries: number }
+) {
+  if (bestMatch && counts.issues < limits.maxIssues) {
+    result.push(bestMatch);
+    counts.issues += 1;
+    consumedIssueKeys.add(`${bestMatch.url}::${bestMatch.label}`);
+  }
+
+  const numericOthers = groupedIssues.filter(
+    (issue) => `${issue.url}::${issue.label}` !== `${bestMatch?.url}::${bestMatch?.label}`
+  );
+
+  let additionalCount = 0;
+  for (const issue of numericOthers) {
+    if (additionalCount >= limits.maxAdditionalIssuesPerSeries) break;
+    if (counts.issues >= limits.maxIssues) break;
+    result.push(issue);
+    counts.issues += 1;
+    additionalCount += 1;
+    consumedIssueKeys.add(`${issue.url}::${issue.label}`);
+  }
+}
+
 function buildSeriesFirstBlocks(
   nodes: NodeCandidate[],
   limits: {
@@ -518,86 +641,43 @@ function buildSeriesFirstBlocks(
   const normalizedTitleQuery = normalizeForSearch(limits.titleQuery || "");
   const normalizedIssueNumberQuery = normalizeForSearch(limits.issueNumberQuery || "");
   const series = nodes.filter((node) => node.type === "series").sort((left, right) => {
-    const leftExactSeries =
-      normalizedTitleQuery !== "" &&
-      limits.volumeQuery != null &&
-      normalizeForSearch(left.seriesTitleSort || "") === normalizedTitleQuery &&
-      Number(left.seriesVolumeSort || 0) === Number(limits.volumeQuery);
-    const rightExactSeries =
-      normalizedTitleQuery !== "" &&
-      limits.volumeQuery != null &&
-      normalizeForSearch(right.seriesTitleSort || "") === normalizedTitleQuery &&
-      Number(right.seriesVolumeSort || 0) === Number(limits.volumeQuery);
+    const leftExactSeries = hasExactSeriesMatch(left, normalizedTitleQuery, limits.volumeQuery);
+    const rightExactSeries = hasExactSeriesMatch(right, normalizedTitleQuery, limits.volumeQuery);
     if (leftExactSeries !== rightExactSeries) return leftExactSeries ? -1 : 1;
     return sortSeriesCandidates(left, right);
   });
   const issues = dedupeIssuesBySeriesAndNumber(nodes.filter((node) => node.type === "issue"));
   const publishers = nodes.filter((node) => node.type === "publisher").sort(sortSeriesCandidates);
-
-  const issuesBySeries = new Map<string, NodeCandidate[]>();
-  for (const issue of issues) {
-    const key = issue.seriesKey || "";
-    const grouped = issuesBySeries.get(key);
-    if (grouped) grouped.push(issue);
-    else issuesBySeries.set(key, [issue]);
-  }
-  for (const grouped of issuesBySeries.values()) {
-    grouped.sort(sortIssueCandidates);
-  }
-
-  const pickBestIssueForSeries = (groupedIssues: NodeCandidate[]) => {
-    if (groupedIssues.length === 0) return undefined;
-    return [...groupedIssues].sort((left, right) => {
-      const leftExactNumber =
-        normalizedIssueNumberQuery !== "" &&
-        normalizeForSearch(left.issueNumberSort || "") === normalizedIssueNumberQuery;
-      const rightExactNumber =
-        normalizedIssueNumberQuery !== "" &&
-        normalizeForSearch(right.issueNumberSort || "") === normalizedIssueNumberQuery;
-      if (leftExactNumber !== rightExactNumber) return leftExactNumber ? -1 : 1;
-
-      if (left.relevance !== right.relevance) return right.relevance - left.relevance;
-      return sortIssueCandidates(left, right);
-    })[0];
-  };
+  const issuesBySeries = buildIssuesBySeries(issues);
 
   const result: NodeCandidate[] = [];
-  let addedSeries = 0;
-  let addedIssues = 0;
+  const counts = { series: 0, issues: 0 };
   const consumedIssueKeys = new Set<string>();
 
   for (const seriesNode of series) {
-    if (addedSeries >= limits.maxSeries) break;
+    if (counts.series >= limits.maxSeries) break;
     result.push(seriesNode);
-    addedSeries += 1;
+    counts.series += 1;
 
-    if (addedIssues >= limits.maxIssues) continue;
+    if (counts.issues >= limits.maxIssues) continue;
     const key = seriesNode.seriesKey || "";
     const groupedIssues = issuesBySeries.get(key) || [];
     if (groupedIssues.length === 0) continue;
 
-    const bestMatch = pickBestIssueForSeries(groupedIssues);
-    if (bestMatch && addedIssues < limits.maxIssues) {
-      result.push(bestMatch);
-      addedIssues += 1;
-      consumedIssueKeys.add(`${bestMatch.url}::${bestMatch.label}`);
-    }
-
-    const numericOthers = groupedIssues.filter(
-      (issue) => `${issue.url}::${issue.label}` !== `${bestMatch?.url}::${bestMatch?.label}`
+    appendSeriesIssues(
+      result,
+      groupedIssues,
+      pickBestIssueForSeries(groupedIssues, normalizedIssueNumberQuery),
+      consumedIssueKeys,
+      counts,
+      {
+        maxIssues: limits.maxIssues,
+        maxAdditionalIssuesPerSeries: limits.maxAdditionalIssuesPerSeries,
+      }
     );
-    let additionalCount = 0;
-    for (const issue of numericOthers) {
-      if (additionalCount >= limits.maxAdditionalIssuesPerSeries) break;
-      if (addedIssues >= limits.maxIssues) break;
-      result.push(issue);
-      addedIssues += 1;
-      additionalCount += 1;
-      consumedIssueKeys.add(`${issue.url}::${issue.label}`);
-    }
   }
 
-  if (addedIssues < limits.maxIssues) {
+  if (counts.issues < limits.maxIssues) {
     const remainingIssues = issues
       .filter((issue) => !consumedIssueKeys.has(`${issue.url}::${issue.label}`))
       .sort((left, right) => {
@@ -605,9 +685,9 @@ function buildSeriesFirstBlocks(
         return sortIssueCandidates(left, right);
       });
     for (const issue of remainingIssues) {
-      if (addedIssues >= limits.maxIssues) break;
+      if (counts.issues >= limits.maxIssues) break;
       result.push(issue);
-      addedIssues += 1;
+      counts.issues += 1;
     }
   }
 

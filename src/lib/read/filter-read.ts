@@ -154,35 +154,7 @@ export function buildDirectIssueFilterWhere(
     .filter((format) => format.length > 0);
   if (formats.length > 0) and.push({ format: { in: formats } });
 
-  for (const entry of runtimeFilter.releasedates || []) {
-    const parsedDate = parseFilterDate(entry?.date);
-    if (!parsedDate) continue;
-    const compare = readTextValue(entry?.compare) || "=";
-
-    if (compare === "=") {
-      and.push({ releaseDate: { gte: startOfDay(parsedDate), lte: endOfDay(parsedDate) } });
-      continue;
-    }
-
-    if (compare === ">=") {
-      and.push({ releaseDate: { gte: startOfDay(parsedDate) } });
-      continue;
-    }
-
-    if (compare === ">") {
-      and.push({ releaseDate: { gt: endOfDay(parsedDate) } });
-      continue;
-    }
-
-    if (compare === "<=") {
-      and.push({ releaseDate: { lte: endOfDay(parsedDate) } });
-      continue;
-    }
-
-    if (compare === "<") {
-      and.push({ releaseDate: { lt: startOfDay(parsedDate) } });
-    }
-  }
+  and.push(...buildReleaseDateWhereClauses(runtimeFilter.releasedates));
 
   if (runtimeFilter.withVariants && !runtimeFilter.onlyCollected) {
     and.push({
@@ -424,6 +396,32 @@ export function buildDirectIssueFilterWhere(
   }
 
   return and.length === 1 ? and[0] : { AND: and };
+}
+
+function buildReleaseDateWhereClauses(
+  releasedates: RuntimeFilter["releasedates"]
+): Prisma.IssueWhereInput[] {
+  const clauses: Prisma.IssueWhereInput[] = [];
+
+  for (const entry of releasedates || []) {
+    const parsedDate = parseFilterDate(entry?.date);
+    if (!parsedDate) continue;
+
+    const compare = readTextValue(entry?.compare) || "=";
+    if (compare === "=") {
+      clauses.push({ releaseDate: { gte: startOfDay(parsedDate), lte: endOfDay(parsedDate) } });
+    } else if (compare === ">=") {
+      clauses.push({ releaseDate: { gte: startOfDay(parsedDate) } });
+    } else if (compare === ">") {
+      clauses.push({ releaseDate: { gt: endOfDay(parsedDate) } });
+    } else if (compare === "<=") {
+      clauses.push({ releaseDate: { lte: endOfDay(parsedDate) } });
+    } else if (compare === "<") {
+      clauses.push({ releaseDate: { lt: startOfDay(parsedDate) } });
+    }
+  }
+
+  return clauses;
 }
 
 export async function readFilteredIssueIds(

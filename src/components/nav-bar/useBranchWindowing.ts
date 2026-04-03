@@ -88,8 +88,9 @@ export function useBranchWindowing(
 
     const run = () => {
       if (cancelled) return;
+      const nextRange = getNextWindowRange(windowRange, totalCount, selectedIndex);
       React.startTransition(() => {
-        setWindowRange((prev) => getNextWindowRange(prev, totalCount, selectedIndex));
+        setWindowRange(nextRange);
       });
     };
 

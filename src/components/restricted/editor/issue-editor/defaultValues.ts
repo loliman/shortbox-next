@@ -114,48 +114,10 @@ export function mapIssueToEditorDefaultValues(
   copyMode: boolean
 ): IssueEditorFormValues {
   const values = deepClone(issueData || {});
-  const defaults = createEmptyIssueValues();
-  const series = normalizeSeries(values.series as Record<string, unknown> | undefined);
-  const usIssue = Boolean(series.publisher.us);
-
-  const merged: IssueEditorFormValues = {
-    ...defaults,
-    ...values,
-    series,
-    cover: values.cover || "",
-    pages: Number(values.pages || 0),
-    comicguideid: Number(values.comicguideid || 0),
-    isbn: readTextValue(values.isbn),
-    limitation: readTextValue(values.limitation),
-    individuals: asArray(values.individuals as Array<Record<string, unknown>>).map(
-      (individual) => ({
-        name: individual.name,
-        type: individual.type,
-      })
-    ),
-    arcs: asArray(values.arcs as Array<Record<string, unknown>>).map((arc) => ({
-      title: arc.title,
-      type: arc.type,
-    })),
-    stories: asArray(values.stories as Array<Record<string, unknown>>).map((story) =>
-      normalizeStory(story, usIssue)
-    ),
-  };
+  const merged = buildMergedIssueEditorValues(values);
 
   if (!copyMode) {
-    const normalized: IssueEditorFormValues = { ...merged };
-    if (values.releasedate == null) normalized.releasedate = "";
-    if (values.price == null) normalized.price = "";
-    if (values.currency == null) normalized.currency = "";
-    if (values.pages == null) normalized.pages = undefined;
-    if (values.comicguideid == null) normalized.comicguideid = undefined;
-    if (values.limitation == null) normalized.limitation = "";
-    if (values.isbn == null) normalized.isbn = "";
-    if (values.addinfo == null) normalized.addinfo = "";
-    if (values.title == null) normalized.title = "";
-    if (values.format == null) normalized.format = "";
-    if (values.variant == null) normalized.variant = "";
-    return normalized;
+    return normalizeEditDefaults(merged, values);
   }
 
   return {
@@ -172,6 +134,53 @@ export function mapIssueToEditorDefaultValues(
       prefix: "",
     },
   };
+}
+
+function buildMergedIssueEditorValues(values: Record<string, unknown>): IssueEditorFormValues {
+  const defaults = createEmptyIssueValues();
+  const series = normalizeSeries(values.series as Record<string, unknown> | undefined);
+  const usIssue = Boolean(series.publisher.us);
+
+  return {
+    ...defaults,
+    ...values,
+    series,
+    cover: values.cover || "",
+    pages: Number(values.pages || 0),
+    comicguideid: Number(values.comicguideid || 0),
+    isbn: readTextValue(values.isbn),
+    limitation: readTextValue(values.limitation),
+    individuals: asArray(values.individuals as Array<Record<string, unknown>>).map((individual) => ({
+      name: individual.name,
+      type: individual.type,
+    })),
+    arcs: asArray(values.arcs as Array<Record<string, unknown>>).map((arc) => ({
+      title: arc.title,
+      type: arc.type,
+    })),
+    stories: asArray(values.stories as Array<Record<string, unknown>>).map((story) =>
+      normalizeStory(story, usIssue)
+    ),
+  };
+}
+
+function normalizeEditDefaults(
+  merged: IssueEditorFormValues,
+  values: Record<string, unknown>
+): IssueEditorFormValues {
+  const normalized: IssueEditorFormValues = { ...merged };
+  if (values.releasedate == null) normalized.releasedate = "";
+  if (values.price == null) normalized.price = "";
+  if (values.currency == null) normalized.currency = "";
+  if (values.pages == null) normalized.pages = undefined;
+  if (values.comicguideid == null) normalized.comicguideid = undefined;
+  if (values.limitation == null) normalized.limitation = "";
+  if (values.isbn == null) normalized.isbn = "";
+  if (values.addinfo == null) normalized.addinfo = "";
+  if (values.title == null) normalized.title = "";
+  if (values.format == null) normalized.format = "";
+  if (values.variant == null) normalized.variant = "";
+  return normalized;
 }
 
 function readTextValue(value: unknown): string {

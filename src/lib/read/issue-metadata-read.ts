@@ -78,10 +78,7 @@ export async function readIssueMetadataQuery(selection: IssueSelectionInput) {
   const normalizedFormat = normalizeIssueOptionalString(selection.format) ?? undefined;
   const normalizedVariant = normalizeIssueOptionalString(selection.variant) ?? undefined;
   const hasExplicitVariantSelection = hasExplicitIssueVariantSelection(selection);
-  const normalizedStartYear =
-    Number.isFinite(Number(selection.startyear)) && Number(selection.startyear) > 0
-      ? BigInt(Number(selection.startyear))
-      : undefined;
+  const normalizedStartYear = normalizeStartYear(selection.startyear);
 
   const exactCandidates = await prisma.issue.findMany({
     where: {
@@ -154,4 +151,10 @@ export async function readIssueMetadataQuery(selection: IssueSelectionInput) {
         }
       : null,
   };
+}
+
+function normalizeStartYear(startyear: IssueSelectionInput["startyear"]) {
+  const numericStartYear = Number(startyear);
+  if (!Number.isFinite(numericStartYear) || numericStartYear <= 0) return undefined;
+  return BigInt(numericStartYear);
 }

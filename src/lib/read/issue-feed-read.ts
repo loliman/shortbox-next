@@ -257,12 +257,10 @@ export async function readIssueNavigationNodes(
   pattern: string | undefined,
   series: SeriesInput,
   first: number | undefined,
-  after: string | undefined,
+  _after: string | undefined,
   loggedIn: boolean,
   filter: Filter | undefined
 ) {
-  void after;
-
   const normalizedPattern = normalizeText(pattern);
   const take = Number.isFinite(first) && first && first > 0 ? Math.floor(first) : undefined;
   const filterState = await resolveFilterState(filter);

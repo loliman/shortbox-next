@@ -83,6 +83,17 @@ function buildSeriesPath(input: {
   )}`;
 }
 
+function splitGenres(value: unknown): string[] {
+  return toSafeString(value)
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function isMissingColumnError(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "code" in error && error.code === "P2022";
+}
+
 export function readHomeSitemapEntries(): SitemapEntry[] {
   return [{ path: "/de" }, { path: "/us" }];
 }
@@ -329,12 +340,7 @@ export async function readGenreLandingSitemapEntries(): Promise<SitemapEntry[]> 
       cursor = rows.at(-1)?.id;
 
       for (const row of rows) {
-        const parts = toSafeString(row.genre)
-          .split(",")
-          .map((entry) => entry.trim())
-          .filter(Boolean);
-
-        for (const genre of parts) {
+        for (const genre of splitGenres(row.genre)) {
           if (!generateGenreSlug(genre)) continue;
 
           mergeEntry(entries, buildGenreFilterUrl("de", genre), row.updatedAt);
@@ -343,12 +349,7 @@ export async function readGenreLandingSitemapEntries(): Promise<SitemapEntry[]> 
       }
     }
   } catch (error) {
-    if (
-      typeof error === "object" &&
-      error !== null &&
-      "code" in error &&
-      error.code === "P2022"
-    ) {
+    if (isMissingColumnError(error)) {
       return [];
     }
     throw error;

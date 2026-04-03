@@ -91,76 +91,81 @@ export function getIssuePreviewBorderRadius(
   return 0;
 }
 
+function readStories(issue: PreviewIssue): StoryLike[] {
+  return (issue.stories || []).filter((story): story is StoryLike => Boolean(story));
+}
+
+function readStoryFlags(stories: StoryLike[], us: boolean) {
+  const hasFirstApp = stories.some((story) => Boolean(story.firstapp));
+  const allAreChildrenReprints =
+    stories.length > 0 && stories.every((story) => (story.parent?.children?.length || 0) > 1);
+
+  return {
+    hasOnlyApp: stories.some((story) => Boolean(story.onlyapp)),
+    hasFirstApp,
+    hasOtherOnlyTb: stories.some((story) => Boolean(story.otheronlytb)),
+    hasExclusive: stories.some((story) => Boolean(story.exclusive)),
+    hasOnlyOnePrintUs: stories.some((story) => Boolean(story.onlyoneprint)),
+    hasOnlyTbUs: stories.some((story) => Boolean(story.onlytb)),
+    hasReprintOfUs: stories.some((story) => Boolean(story.reprintOf)),
+    hasReprintsUs: stories.some((story) => (story.reprints?.length || 0) > 0),
+    isPureReprintDe: !us && allAreChildrenReprints && !hasFirstApp,
+    hasNoStoriesDe: !us && stories.length === 0,
+    notPublishedInDe: us && stories.every((story) => (story.children?.length || 0) === 0),
+  };
+}
+
+function readUsCollectionState(stories: StoryLike[], collected: boolean) {
+  let collectedMultipleTimes = false;
+  let isCollected = collected;
+
+  for (const story of stories) {
+    if (!collectedMultipleTimes && story.collectedmultipletimes === true) {
+      collectedMultipleTimes = true;
+    }
+
+    if (isCollected) continue;
+    for (const child of story.children || []) {
+      if (child?.issue?.collected) {
+        isCollected = true;
+        break;
+      }
+    }
+  }
+
+  return { collected: isCollected, collectedMultipleTimes, sellable: 0 };
+}
+
+function readDeCollectionState(stories: StoryLike[], collected: boolean) {
+  let collectedMultipleTimes = false;
+  let sellable = 0;
+
+  for (const story of stories) {
+    if (story.parent?.collectedmultipletimes !== true) continue;
+    sellable += 1;
+    collectedMultipleTimes = true;
+  }
+
+  return { collected, collectedMultipleTimes, sellable };
+}
+
 export function getIssuePreviewFlags(
   issue: PreviewIssue,
   us: boolean,
   hasSession: boolean
 ): IssuePreviewFlags {
-  const stories = (issue.stories || []).filter((story): story is StoryLike => Boolean(story));
-
-  const hasOnlyApp = stories.some((story) => Boolean(story.onlyapp));
-  const hasFirstApp = stories.some((story) => Boolean(story.firstapp));
-  const hasOtherOnlyTb = stories.some((story) => Boolean(story.otheronlytb));
-  const hasExclusive = stories.some((story) => Boolean(story.exclusive));
-  const hasOnlyOnePrintUs = stories.some((story) => Boolean(story.onlyoneprint));
-  const hasOnlyTbUs = stories.some((story) => Boolean(story.onlytb));
-  const hasReprintOfUs = stories.some((story) => Boolean(story.reprintOf));
-  const hasReprintsUs = stories.some((story) => (story.reprints?.length || 0) > 0);
-
-  const allAreChildrenReprints =
-    stories.length > 0 && stories.every((story) => (story.parent?.children?.length || 0) > 1);
-  const isPureReprintDe = !us && allAreChildrenReprints && !hasFirstApp;
-
-  const hasNoStoriesDe = !us && stories.length === 0;
-  const notPublishedInDe = us && stories.every((story) => (story.children?.length || 0) === 0);
-
-  let collected = Boolean(issue.collected);
-  let collectedMultipleTimes = false;
-  let sellable = 0;
-
-  if (us) {
-    for (const story of stories) {
-      if (!collectedMultipleTimes && story.collectedmultipletimes === true) {
-        collectedMultipleTimes = true;
-      }
-
-      for (const child of story.children || []) {
-        if (!child) continue;
-        if (collected) continue;
-        if (child.issue?.collected) {
-          collected = true;
-        }
-      }
-    }
-  } else {
-    for (const story of stories) {
-      if (story.parent?.collectedmultipletimes === true) {
-        sellable += 1;
-        if (!collectedMultipleTimes) collectedMultipleTimes = true;
-      }
-    }
-  }
-
-  if (!hasSession) {
-    collected = false;
-    collectedMultipleTimes = false;
-    sellable = 0;
-  }
+  const stories = readStories(issue);
+  const flags = readStoryFlags(stories, us);
+  const collectionState = hasSession
+    ? us
+      ? readUsCollectionState(stories, Boolean(issue.collected))
+      : readDeCollectionState(stories, Boolean(issue.collected))
+    : { collected: false, collectedMultipleTimes: false, sellable: 0 };
 
   return {
-    collected,
-    collectedMultipleTimes,
-    sellable,
-    hasOnlyApp,
-    hasFirstApp,
-    hasOtherOnlyTb,
-    hasExclusive,
-    isPureReprintDe,
-    hasNoStoriesDe,
-    hasOnlyOnePrintUs,
-    hasOnlyTbUs,
-    notPublishedInDe,
-    hasReprintOfUs,
-    hasReprintsUs,
+    collected: collectionState.collected,
+    collectedMultipleTimes: collectionState.collectedMultipleTimes,
+    sellable: collectionState.sellable,
+    ...flags,
   };
 }

@@ -26,20 +26,11 @@ export function findFirstErrorPath(errors: unknown, prefix = ""): string {
   if (typeof errors === "string") return prefix;
 
   if (Array.isArray(errors)) {
-    for (let index = 0; index < errors.length; index += 1) {
-      const nextPrefix = prefix ? `${prefix}.${index}` : String(index);
-      const path = findFirstErrorPath(errors[index], nextPrefix);
-      if (path) return path;
-    }
-    return "";
+    return findFirstArrayErrorPath(errors, prefix);
   }
 
   if (errors && typeof errors === "object") {
-    for (const [key, value] of Object.entries(errors)) {
-      const nextPrefix = prefix ? `${prefix}.${key}` : key;
-      const path = findFirstErrorPath(value, nextPrefix);
-      if (path) return path;
-    }
+    return findFirstObjectErrorPath(errors, prefix);
   }
 
   return "";
@@ -71,6 +62,24 @@ export function focusEditorErrorField(errorPath: string) {
 
 function isNestedError(value: unknown) {
   return Boolean(value) && (Array.isArray(value) || typeof value === "object");
+}
+
+function findFirstArrayErrorPath(errors: unknown[], prefix: string) {
+  for (let index = 0; index < errors.length; index += 1) {
+    const nextPrefix = prefix ? `${prefix}.${index}` : String(index);
+    const path = findFirstErrorPath(errors[index], nextPrefix);
+    if (path) return path;
+  }
+  return "";
+}
+
+function findFirstObjectErrorPath(errors: object, prefix: string) {
+  for (const [key, value] of Object.entries(errors)) {
+    const nextPrefix = prefix ? `${prefix}.${key}` : key;
+    const path = findFirstErrorPath(value, nextPrefix);
+    if (path) return path;
+  }
+  return "";
 }
 
 function revealStoryErrorPanel(errorPath: string) {

@@ -103,6 +103,16 @@ function applyCollectionFlags(payload: FilterSubmitValues, values: FilterValues)
   }
 }
 
+function assignMappedValues<TInput, TOutput>(
+  payload: FilterSubmitValues,
+  key: keyof FilterSubmitValues,
+  values: TInput[],
+  mapper: (value: TInput) => TOutput
+) {
+  if (values.length === 0) return;
+  (payload as Record<string, unknown>)[key] = values.map(mapper);
+}
+
 export function serializeFilterValues(
   values: FilterValues,
   us: boolean
@@ -122,13 +132,11 @@ export function serializeFilterValues(
     payload.releasedates = releasedates;
   }
 
-  if (values.publishers.length > 0) {
-    payload.publishers = values.publishers.map((publisher) => {
-      const normalizedPublisher = stripItem(publisher);
-      normalizedPublisher.us = undefined;
-      return normalizedPublisher;
-    });
-  }
+  assignMappedValues(payload, "publishers", values.publishers, (publisher) => {
+    const normalizedPublisher = stripItem(publisher);
+    normalizedPublisher.us = undefined;
+    return normalizedPublisher;
+  });
 
   if (values.series.length > 0) {
     payload.series = readSeriesPayload(values);
@@ -144,29 +152,18 @@ export function serializeFilterValues(
     payload.numbers = numbers;
   }
 
-  if (values.arcs.length > 0) {
-    payload.arcs = values.arcs.map((entry) => ({ title: readTextValue(entry.title) }));
-  }
-
-  if (values.individuals.length > 0) {
-    payload.individuals = values.individuals.map((entry) => {
-      const normalizedIndividual = stripItem(entry);
-      normalizedIndividual.role = undefined;
-      return normalizedIndividual;
-    });
-  }
-
-  if (values.appearances.length > 0) {
-    payload.appearances = values.appearances.map((entry) => ({
-      name: readTextValue(entry.name),
-    }));
-  }
-
-  if (values.realities.length > 0) {
-    payload.realities = values.realities.map((entry) => ({
-      name: readTextValue(entry.name),
-    }));
-  }
+  assignMappedValues(payload, "arcs", values.arcs, (entry) => ({ title: readTextValue(entry.title) }));
+  assignMappedValues(payload, "individuals", values.individuals, (entry) => {
+    const normalizedIndividual = stripItem(entry);
+    normalizedIndividual.role = undefined;
+    return normalizedIndividual;
+  });
+  assignMappedValues(payload, "appearances", values.appearances, (entry) => ({
+    name: readTextValue(entry.name),
+  }));
+  assignMappedValues(payload, "realities", values.realities, (entry) => ({
+    name: readTextValue(entry.name),
+  }));
 
   applyNegatableFlag(
     payload,

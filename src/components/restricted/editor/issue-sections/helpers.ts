@@ -108,6 +108,59 @@ function upsertSelectedEntry(
   selected.push(value);
 }
 
+function applyLiveFieldUpdate(
+  option: string | ChangePayload | null | undefined,
+  values: FieldItem[] | undefined,
+  pattern: string,
+  scope?: string
+) {
+  const nextValues = cloneValues(values).filter((entry) => {
+    if (!entry.pattern) return true;
+    return scope ? !matchesPatternScope(entry, scope) : false;
+  });
+
+  const liveValue = typeof option === "string" ? option : "";
+  if (liveValue.trim() === "") return nextValues;
+
+  const dummy: FieldItem = { pattern: true };
+  dummy[pattern] = liveValue;
+  if (scope) {
+    dummy.type = scope;
+    dummy.role = scope;
+  }
+  nextValues.push(dummy);
+  return nextValues;
+}
+
+function applySelectionAction(
+  selected: FieldItem[],
+  payload: ChangePayload,
+  appearanceMode: boolean
+) {
+  switch (payload.action) {
+    case "deselect-option":
+    case "select-option":
+    case "create-option":
+      upsertSelectedEntry(selected, payload, appearanceMode);
+      return selected;
+    case "remove-value":
+      if (appearanceMode) {
+        return selected.filter(
+          (entry) => `${entry.name}${entry.type}` !== `${payload.removedValue?.name}${payload.type}`
+        );
+      }
+      const previous = selected.find((entry) => entry.name === payload.removedValue?.name);
+      if (previous) removeIndividualType(previous, payload.type);
+      return selected;
+    case "clear":
+      if (appearanceMode) return selected.filter((entry) => entry.type !== payload.type);
+      selected.forEach((entry) => removeIndividualType(entry, payload.type));
+      return selected;
+    default:
+      return null;
+  }
+}
+
 export function updateField(
   option: string | ChangePayload | null | undefined,
   live: boolean,
@@ -118,66 +171,18 @@ export function updateField(
   scope?: string
 ) {
   if (live) {
-    const nextValues = cloneValues(values).filter((entry) => {
-      if (!entry.pattern) return true;
-      return scope ? !matchesPatternScope(entry, scope) : false;
-    });
-
-    const liveValue = typeof option === "string" ? option : "";
-    if (liveValue.trim() !== "") {
-      const dummy: FieldItem = { pattern: true };
-      dummy[pattern] = liveValue;
-      if (scope) {
-        dummy.type = scope;
-        dummy.role = scope;
-      }
-      nextValues.push(dummy);
-    }
-
-    setFieldValue(field, nextValues);
+    setFieldValue(field, applyLiveFieldUpdate(option, values, pattern, scope));
     return;
   }
 
-  if (typeof option !== "string" || option.trim() !== "") {
-    if (!live) {
-      let selected = cloneValues(values);
-      const payload = option as ChangePayload;
-      const appearanceMode = isAppearanceField(payload.name);
+  if (typeof option === "string" && option.trim() === "") return;
 
-      switch (payload.action) {
-        case "deselect-option":
-        case "select-option":
-        case "create-option":
-          upsertSelectedEntry(selected, payload, appearanceMode);
-          break;
-
-        case "remove-value":
-          if (appearanceMode) {
-            selected = selected.filter(
-              (entry) =>
-                `${entry.name}${entry.type}` !== `${payload.removedValue?.name}${payload.type}`
-            );
-          } else {
-            const previous = selected.find((entry) => entry.name === payload.removedValue?.name);
-            if (previous) removeIndividualType(previous, payload.type);
-          }
-          break;
-
-        case "clear":
-          if (appearanceMode) {
-            selected = selected.filter((entry) => entry.type !== payload.type);
-          } else {
-            selected.forEach((entry) => removeIndividualType(entry, payload.type));
-          }
-          break;
-
-        default:
-          return;
-      }
-
-      setFieldValue(field, stripPlaceholderEntries(selected, appearanceMode));
-    }
-  }
+  const selected = cloneValues(values);
+  const payload = option as ChangePayload;
+  const appearanceMode = isAppearanceField(payload.name);
+  const nextSelected = applySelectionAction(selected, payload, appearanceMode);
+  if (!nextSelected) return;
+  setFieldValue(field, stripPlaceholderEntries(nextSelected, appearanceMode));
 }
 
 export function getPattern(

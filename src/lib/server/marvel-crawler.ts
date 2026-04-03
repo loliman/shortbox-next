@@ -277,7 +277,7 @@ function normalizeHeader(s: string) {
   return ws(s)
     .toLowerCase()
     .replaceAll("(s)", "") // writer(s) -> writer
-    .replaceAll(/[:\[\]]/g, "")
+    .replaceAll(/[:[\]]/g, "")
     .replaceAll(/\s+/g, " ")
     .trim();
 }
@@ -884,7 +884,7 @@ function cleanStoryTitle(raw: string): string {
   ) {
     value = ws(value.slice(1, -1));
   }
-  const quotedTitlePattern = /^["“](.+?)["”](\s*(?:•|\().*)?$/;
+  const quotedTitlePattern = /^["“](.+?)["”]([\s•(].*)?$/;
   const quotedWithSuffix = quotedTitlePattern.exec(value);
   if (quotedWithSuffix) {
     value = ws(`${quotedWithSuffix[1]}${quotedWithSuffix[2] || ''}`);

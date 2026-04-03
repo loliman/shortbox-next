@@ -72,6 +72,36 @@ interface ListProps {
   [key: string]: unknown;
 }
 
+function applyInitialViewportSelection(input: {
+  container: HTMLDivElement | null;
+  canUseInitialViewportModel: boolean;
+  initialViewportSelection: InitialViewportSelection | null;
+  navStateKey: string;
+  selectedRowKey: string | null;
+  initialViewportAppliedKeyRef: React.MutableRefObject<string | null>;
+  scrollRowIntoView: (rowKey: string, force?: boolean, behavior?: ScrollBehavior) => boolean;
+}) {
+  if (!input.canUseInitialViewportModel) return false;
+  if (!input.container || !input.initialViewportSelection) return true;
+
+  const initialViewportKey = `${input.navStateKey}|${input.selectedRowKey || ""}|${getInitialViewportSelectionSignature(input.initialViewportSelection)}`;
+  if (input.initialViewportAppliedKeyRef.current === initialViewportKey) return true;
+
+  const resolvedByExactRow = input.selectedRowKey
+    ? input.scrollRowIntoView(input.selectedRowKey, true, "auto")
+    : false;
+
+  if (!resolvedByExactRow) {
+    input.container.scrollTop = getInitialViewportScrollTop(
+      input.initialViewportSelection,
+      input.container.clientHeight
+    );
+  }
+
+  input.initialViewportAppliedKeyRef.current = initialViewportKey;
+  return true;
+}
+
 export default function List(props: Readonly<ListProps>) {
   const { isPending, push } = usePendingNavigation();
   const navigationFeedback = useNavigationFeedbackContext();
@@ -439,24 +469,17 @@ export default function List(props: Readonly<ListProps>) {
   );
 
   React.useLayoutEffect(() => {
-    if (canUseInitialViewportModel) {
-      const container = navScrollContainerRef.current;
-      if (!container || !initialViewportSelection) return;
+    const initialViewportApplied = applyInitialViewportSelection({
+      container: navScrollContainerRef.current,
+      canUseInitialViewportModel,
+      initialViewportSelection,
+      navStateKey,
+      selectedRowKey,
+      initialViewportAppliedKeyRef,
+      scrollRowIntoView,
+    });
 
-      const initialViewportKey = `${navStateKey}|${selectedRowKey || ""}|${getInitialViewportSelectionSignature(initialViewportSelection)}`;
-      if (initialViewportAppliedKeyRef.current !== initialViewportKey) {
-        const resolvedByExactRow =
-          selectedRowKey
-            ? scrollRowIntoView(selectedRowKey, true, "auto")
-            : false;
-        if (!resolvedByExactRow) {
-          container.scrollTop = getInitialViewportScrollTop(
-            initialViewportSelection,
-            container.clientHeight
-          );
-        }
-        initialViewportAppliedKeyRef.current = initialViewportKey;
-      }
+    if (initialViewportApplied) {
       if (!selectedPathReady) {
         setSelectedPathReady(true);
       }

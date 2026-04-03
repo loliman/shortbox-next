@@ -16,7 +16,6 @@ interface StoryReferenceContext {
 
 const DASH_PATTERN = /[‐‑–—]/g;
 const VOLUME_PATTERN = /\s+(?:vol(?:ume)?|v)\.?\s*(\d+)$/i;
-const CONTEXT_ISSUE_PATTERN = /^(?:annual\s+\d+(?:-\d+)?|\d+[A-Z]?(?:-\d+[A-Z]?)?)$/i;
 const ANNUAL_RANGE_PATTERN = /^annual\s+(\d+)(?:-(\d+))?$/i;
 const NUMERIC_RANGE_PATTERN = /^(\d+)([A-Za-z]?)(?:-(\d+)([A-Za-z]?))?$/;
 
@@ -142,7 +141,7 @@ function parseSeriesContext(rawSeriesSpec: string): StoryReferenceContext | null
 function parseContextIssueNumbers(value: string): string[] | null {
   const normalized = stripLeadingHash(stripTrailingPunctuation(value));
   if (!normalized) return null;
-  if (!CONTEXT_ISSUE_PATTERN.test(normalized)) {
+  if (!isContextIssueSpec(normalized)) {
     return null;
   }
 
@@ -245,4 +244,9 @@ function splitSeriesAndIssueSpec(segment: string) {
     rawSeriesSpec: numericMatch[1]?.trim() || "",
     rawIssueSpec: numericMatch[2]?.trim() || "",
   };
+}
+
+function isContextIssueSpec(value: string) {
+  if (/^annual\s+\d+(?:-\d+)?$/i.test(value)) return true;
+  return /^\d+[A-Z]?(?:-\d+[A-Z]?)?$/i.test(value);
 }

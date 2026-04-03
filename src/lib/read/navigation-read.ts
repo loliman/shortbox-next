@@ -325,6 +325,208 @@ export type InitialNavigationData = {
   initialFilterCount?: number;
 };
 
+type ExpandedSeriesInput = {
+  publisher: string;
+  series: string;
+  volume: number;
+  startyear?: number | null;
+};
+
+type SelectedSeriesInput =
+  | NonNullable<LayoutRouteData["selected"]["series"]>
+  | NonNullable<NonNullable<LayoutRouteData["selected"]["issue"]>["series"]>;
+
+function resolveSelectedPublisherName(
+  publishers: Awaited<ReturnType<typeof readNavigationPublishers>>,
+  selectedPublisherName: string
+) {
+  if (!selectedPublisherName) return "";
+  return (
+    publishers.find((publisherNode) => slugify(publisherNode.name || "") === slugify(selectedPublisherName))
+      ?.name || selectedPublisherName
+  );
+}
+
+async function preloadSeriesNodesByPublisher(input: {
+  preloadSeriesNodes: boolean;
+  publishersToExpand: Set<string>;
+  existingSeriesNodesByPublisher: Record<string, Awaited<ReturnType<typeof readNavigationSeries>>>;
+  us: boolean;
+  directIssueWhereJson: string | null;
+  filteredIssueIdsJson: string | null;
+}) {
+  if (!input.preloadSeriesNodes) return input.existingSeriesNodesByPublisher;
+
+  const initialSeriesEntries = await Promise.all(
+    Array.from(input.publishersToExpand).map(async (publisherName) => [
+      publisherName,
+      await readNavigationSeriesCached(
+        input.us,
+        publisherName,
+        input.directIssueWhereJson,
+        input.filteredIssueIdsJson
+      ),
+    ] as const)
+  );
+
+  for (const [publisherName, seriesNodes] of initialSeriesEntries) {
+    input.existingSeriesNodesByPublisher[publisherName] = seriesNodes;
+  }
+
+  return input.existingSeriesNodesByPublisher;
+}
+
+function addSelectedSeriesToExpand(input: {
+  preloadSeriesNodes: boolean;
+  selectedSeries: SelectedSeriesInput | null;
+  resolvedSelectedPublisherName: string;
+  initialSeriesNodesByPublisher: Record<string, Awaited<ReturnType<typeof readNavigationSeries>>>;
+  us: boolean;
+  seriesToExpand: Map<string, ExpandedSeriesInput>;
+}) {
+  const { preloadSeriesNodes, selectedSeries, resolvedSelectedPublisherName } = input;
+  if (!preloadSeriesNodes || !(resolvedSelectedPublisherName || selectedSeries?.publisher?.name) || !selectedSeries?.title) {
+    return;
+  }
+
+  const matchingSelectedSeriesNode = resolveSeriesNode(
+    input.initialSeriesNodesByPublisher[resolvedSelectedPublisherName || selectedSeries?.publisher?.name || ""] || [],
+    {
+      publisher: resolvedSelectedPublisherName || selectedSeries?.publisher?.name,
+      series: selectedSeries.title,
+      volume: Number(selectedSeries.volume || 0),
+      startyear: Number(selectedSeries.startyear || 0) || undefined,
+      us: input.us,
+    }
+  );
+
+  const effectiveSelectedSeries = matchingSelectedSeriesNode
+    ? {
+        publisher:
+          matchingSelectedSeriesNode.publisher?.name ||
+          resolvedSelectedPublisherName ||
+          selectedSeries?.publisher?.name ||
+          "",
+        series: matchingSelectedSeriesNode.title || selectedSeries.title,
+        volume: Number(matchingSelectedSeriesNode.volume || selectedSeries.volume || 0),
+        startyear: Number(matchingSelectedSeriesNode.startyear || selectedSeries.startyear || 0) || undefined,
+      }
+    : {
+        publisher: resolvedSelectedPublisherName || selectedSeries?.publisher?.name || "",
+        series: selectedSeries.title,
+        volume: Number(selectedSeries.volume || 0),
+        startyear: Number(selectedSeries.startyear || 0) || undefined,
+      };
+
+  input.seriesToExpand.set(
+    getNavigationSeriesKey({
+      publisher: effectiveSelectedSeries.publisher,
+      title: effectiveSelectedSeries.series,
+      volume: effectiveSelectedSeries.volume,
+      startyear: effectiveSelectedSeries.startyear,
+    }),
+    effectiveSelectedSeries
+  );
+}
+
+async function addOpenSeriesToExpand(input: {
+  preloadSeriesNodes: boolean;
+  openSeriesKeys: string[];
+  publishers: Awaited<ReturnType<typeof readNavigationPublishers>>;
+  publishersToExpand: Set<string>;
+  initialSeriesNodesByPublisher: Record<string, Awaited<ReturnType<typeof readNavigationSeries>>>;
+  us: boolean;
+  directIssueWhereJson: string | null;
+  filteredIssueIdsJson: string | null;
+  seriesToExpand: Map<string, ExpandedSeriesInput>;
+}) {
+  for (const openSeriesKey of input.preloadSeriesNodes ? input.openSeriesKeys : []) {
+    const parsedSeriesKey = parseNavigationSeriesKey(openSeriesKey);
+    const volume = Number(parsedSeriesKey?.volume || "0");
+    const publisherSlug = parsedSeriesKey?.publisher || "";
+
+    if (!publisherSlug || volume <= 0) continue;
+
+    const matchingPublisher = input.publishers.find(
+      (publisherNode) => slugify(publisherNode.name || "") === publisherSlug
+    );
+    const publisherName = matchingPublisher?.name || "";
+    if (!publisherName) continue;
+
+    input.publishersToExpand.add(publisherName);
+    if (!input.initialSeriesNodesByPublisher[publisherName]) {
+      input.initialSeriesNodesByPublisher[publisherName] = await readNavigationSeriesCached(
+        input.us,
+        publisherName,
+        input.directIssueWhereJson,
+        input.filteredIssueIdsJson
+      );
+    }
+
+    const matchingSeriesNode = (input.initialSeriesNodesByPublisher[publisherName] || []).find(
+      (seriesNode) =>
+        matchesNavigationSeriesKey(openSeriesKey, {
+          publisher: seriesNode.publisher?.name,
+          title: seriesNode.title,
+          volume: seriesNode.volume,
+          startyear: seriesNode.startyear,
+        })
+    );
+    if (!matchingSeriesNode?.title) continue;
+
+    const resolvedSeriesKey = getNavigationSeriesKey({
+      publisher: matchingSeriesNode.publisher?.name,
+      title: matchingSeriesNode.title,
+      volume: matchingSeriesNode.volume,
+      startyear: matchingSeriesNode.startyear,
+    });
+
+    input.seriesToExpand.set(resolvedSeriesKey, {
+      publisher: publisherName,
+      series: matchingSeriesNode.title,
+      volume: Number(matchingSeriesNode.volume || volume),
+      startyear: Number(matchingSeriesNode.startyear || 0) || undefined,
+    });
+  }
+}
+
+async function preloadIssueNodesBySeriesKey(input: {
+  preloadSeriesNodes: boolean;
+  preloadIssueNodes: boolean;
+  seriesToExpand: Map<string, ExpandedSeriesInput>;
+  us: boolean;
+  directIssueWhereJson: string | null;
+  filteredIssueIdsJson: string | null;
+}) {
+  const initialIssueNodesBySeriesKey: Record<
+    string,
+    Awaited<ReturnType<typeof readNavigationIssues>>
+  > = {};
+
+  if (!input.preloadSeriesNodes || !input.preloadIssueNodes) return initialIssueNodesBySeriesKey;
+
+  const initialIssueEntries = await Promise.all(
+    Array.from(input.seriesToExpand.entries()).map(async ([seriesKey, seriesInput]) => [
+      seriesKey,
+      await readNavigationIssuesCached(
+        input.us,
+        seriesInput.publisher,
+        seriesInput.series,
+        seriesInput.volume,
+        seriesInput.startyear ?? null,
+        input.directIssueWhereJson,
+        input.filteredIssueIdsJson
+      ),
+    ] as const)
+  );
+
+  for (const [seriesKey, issueNodes] of initialIssueEntries) {
+    initialIssueNodesBySeriesKey[seriesKey] = issueNodes;
+  }
+
+  return initialIssueNodesBySeriesKey;
+}
+
 export async function readNavigationFilterState(rawFilter: string | null | undefined) {
   const normalizedFilter = typeof rawFilter === "string" ? rawFilter.trim() : "";
   if (!normalizedFilter) {
@@ -380,10 +582,7 @@ export async function readInitialNavigationData(
     directIssueWhereJson,
     filteredIssueIdsJson
   );
-  const resolvedSelectedPublisherName = selectedPublisherName
-    ? publishers.find((publisherNode) => slugify(publisherNode.name || "") === slugify(selectedPublisherName))
-        ?.name || selectedPublisherName
-    : "";
+  const resolvedSelectedPublisherName = resolveSelectedPublisherName(publishers, selectedPublisherName);
 
   const publishersToExpand = new Set<string>();
   if (resolvedSelectedPublisherName) publishersToExpand.add(resolvedSelectedPublisherName);
@@ -392,150 +591,44 @@ export async function readInitialNavigationData(
   }
 
   const initialSeriesNodesByPublisher: Record<string, Awaited<ReturnType<typeof readNavigationSeries>>> = {};
+  await preloadSeriesNodesByPublisher({
+    preloadSeriesNodes,
+    publishersToExpand,
+    existingSeriesNodesByPublisher: initialSeriesNodesByPublisher,
+    us: input.us,
+    directIssueWhereJson,
+    filteredIssueIdsJson,
+  });
 
-  if (preloadSeriesNodes) {
-    const initialSeriesEntries = await Promise.all(
-      Array.from(publishersToExpand).map(async (publisherName) => [
-        publisherName,
-        await readNavigationSeriesCached(
-          input.us,
-          publisherName,
-          directIssueWhereJson,
-          filteredIssueIdsJson
-        ),
-      ] as const)
-    );
-    for (const [publisherName, seriesNodes] of initialSeriesEntries) {
-      initialSeriesNodesByPublisher[publisherName] = seriesNodes;
-    }
-  }
+  const seriesToExpand = new Map<string, ExpandedSeriesInput>();
+  addSelectedSeriesToExpand({
+    preloadSeriesNodes,
+    selectedSeries,
+    resolvedSelectedPublisherName,
+    initialSeriesNodesByPublisher,
+    us: input.us,
+    seriesToExpand,
+  });
+  await addOpenSeriesToExpand({
+    preloadSeriesNodes,
+    openSeriesKeys: navOpenState.series,
+    publishers,
+    publishersToExpand,
+    initialSeriesNodesByPublisher,
+    us: input.us,
+    directIssueWhereJson,
+    filteredIssueIdsJson,
+    seriesToExpand,
+  });
 
-  const seriesToExpand = new Map<
-    string,
-    {
-      publisher: string;
-      series: string;
-      volume: number;
-      startyear?: number | null;
-    }
-  >();
-
-  if (
-    preloadSeriesNodes &&
-    (resolvedSelectedPublisherName || selectedSeries?.publisher?.name) &&
-    selectedSeries?.title
-  ) {
-    const matchingSelectedSeriesNode = resolveSeriesNode(
-      initialSeriesNodesByPublisher[resolvedSelectedPublisherName || selectedSeries?.publisher?.name || ""] || [],
-      {
-        publisher: resolvedSelectedPublisherName || selectedSeries?.publisher?.name,
-        series: selectedSeries.title,
-        volume: Number(selectedSeries.volume || 0),
-        startyear: Number(selectedSeries.startyear || 0) || undefined,
-        us: input.us,
-      }
-    );
-    const effectiveSelectedSeries = matchingSelectedSeriesNode
-      ? {
-          publisher:
-            matchingSelectedSeriesNode.publisher?.name ||
-            resolvedSelectedPublisherName ||
-            selectedSeries?.publisher?.name ||
-            "",
-          series: matchingSelectedSeriesNode.title || selectedSeries.title,
-          volume: Number(matchingSelectedSeriesNode.volume || selectedSeries.volume || 0),
-          startyear:
-            Number(matchingSelectedSeriesNode.startyear || selectedSeries.startyear || 0) || undefined,
-        }
-      : {
-          publisher: resolvedSelectedPublisherName || selectedSeries?.publisher?.name || "",
-          series: selectedSeries.title,
-          volume: Number(selectedSeries.volume || 0),
-          startyear: Number(selectedSeries.startyear || 0) || undefined,
-        };
-    seriesToExpand.set(
-      getNavigationSeriesKey({
-        publisher: effectiveSelectedSeries.publisher,
-        title: effectiveSelectedSeries.series,
-        volume: effectiveSelectedSeries.volume,
-        startyear: effectiveSelectedSeries.startyear,
-      }),
-      effectiveSelectedSeries
-    );
-  }
-
-  for (const openSeriesKey of preloadSeriesNodes ? navOpenState.series : []) {
-    const parsedSeriesKey = parseNavigationSeriesKey(openSeriesKey);
-    const volume = Number(parsedSeriesKey?.volume || "0");
-    const publisherSlug = parsedSeriesKey?.publisher || "";
-
-    if (publisherSlug && volume > 0) {
-      const matchingPublisher = publishers.find(
-        (publisherNode) => slugify(publisherNode.name || "") === publisherSlug
-      );
-      const publisherName = matchingPublisher?.name || "";
-      if (!publisherName) continue;
-
-      publishersToExpand.add(publisherName);
-      if (!initialSeriesNodesByPublisher[publisherName]) {
-        initialSeriesNodesByPublisher[publisherName] = await readNavigationSeriesCached(
-          input.us,
-          publisherName,
-          directIssueWhereJson,
-          filteredIssueIdsJson
-        );
-      }
-      const matchingSeriesNode = (initialSeriesNodesByPublisher[publisherName] || []).find(
-        (seriesNode) =>
-          matchesNavigationSeriesKey(openSeriesKey, {
-            publisher: seriesNode.publisher?.name,
-            title: seriesNode.title,
-            volume: seriesNode.volume,
-            startyear: seriesNode.startyear,
-          })
-      );
-      if (!matchingSeriesNode?.title) continue;
-
-      const resolvedSeriesKey = getNavigationSeriesKey({
-        publisher: matchingSeriesNode.publisher?.name,
-        title: matchingSeriesNode.title,
-        volume: matchingSeriesNode.volume,
-        startyear: matchingSeriesNode.startyear,
-      });
-
-      seriesToExpand.set(resolvedSeriesKey, {
-        publisher: publisherName,
-        series: matchingSeriesNode.title,
-        volume: Number(matchingSeriesNode.volume || volume),
-        startyear: Number(matchingSeriesNode.startyear || 0) || undefined,
-      });
-    }
-  }
-
-  const initialIssueNodesBySeriesKey: Record<
-    string,
-    Awaited<ReturnType<typeof readNavigationIssues>>
-  > = {};
-
-  if (preloadSeriesNodes && preloadIssueNodes) {
-    const initialIssueEntries = await Promise.all(
-      Array.from(seriesToExpand.entries()).map(async ([seriesKey, seriesInput]) => [
-        seriesKey,
-        await readNavigationIssuesCached(
-          input.us,
-          seriesInput.publisher,
-          seriesInput.series,
-          seriesInput.volume,
-          seriesInput.startyear ?? null,
-          directIssueWhereJson,
-          filteredIssueIdsJson
-        ),
-      ] as const)
-    );
-    for (const [seriesKey, issueNodes] of initialIssueEntries) {
-      initialIssueNodesBySeriesKey[seriesKey] = issueNodes;
-    }
-  }
+  const initialIssueNodesBySeriesKey = await preloadIssueNodesBySeriesKey({
+    preloadSeriesNodes,
+    preloadIssueNodes,
+    seriesToExpand,
+    us: input.us,
+    directIssueWhereJson,
+    filteredIssueIdsJson,
+  });
 
   return {
     initialPublisherNodes: publishers,

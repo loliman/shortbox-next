@@ -332,59 +332,55 @@ function buildIssueIncludeForFilter(filter: RuntimeFilter): Prisma.IssueInclude 
     (!isUs && hasArcFilters);
 
   if (isUs && hasArcFilters) {
-    include.arcs = {
-      include: {
-        arc: true,
-      },
-    };
+    include.arcs = { include: { arc: true } };
   }
 
   if (needsStoryGraph) {
-    const includeAppearances = hasAppearanceFilters || hasRealityFilters;
-    const includeParent = !isUs || hasStorySwitchFilters || hasIndividualFilters;
-    const includeParentIssueArcs = !isUs && hasArcFilters;
-    const includeParentAppearances = !isUs && includeAppearances;
-    const includeParentIndividuals = !isUs && hasIndividualFilters;
-
-    include.stories = {
-      include: {
-        appearances: includeAppearances ? { include: { appearance: true } } : false,
-        individuals: hasIndividualFilters ? { include: { individual: true } } : false,
-        parent: includeParent
-          ? {
-              include: {
-                issue: includeParentIssueArcs
-                  ? {
-                      include: {
-                        arcs: {
-                          include: {
-                            arc: true,
-                          },
-                        },
-                      },
-                    }
-                  : false,
-                appearances: includeParentAppearances ? { include: { appearance: true } } : false,
-                individuals: includeParentIndividuals ? { include: { individual: true } } : false,
-              },
-            }
-          : false,
-        children: includeAppearances
-          ? {
-              include: {
-                appearances: {
-                  include: {
-                    appearance: true,
-                  },
-                },
-              },
-            }
-          : false,
-      },
-    };
+    include.stories = buildStoryInclude({
+      isUs,
+      hasArcFilters,
+      hasAppearanceFilters,
+      hasRealityFilters,
+      hasIndividualFilters,
+      hasStorySwitchFilters,
+    });
   }
 
   return include;
+}
+
+function buildStoryInclude(input: {
+  isUs: boolean;
+  hasArcFilters: boolean;
+  hasAppearanceFilters: boolean;
+  hasRealityFilters: boolean;
+  hasIndividualFilters: boolean;
+  hasStorySwitchFilters: boolean;
+}): Prisma.IssueInclude["stories"] {
+  const includeAppearances = input.hasAppearanceFilters || input.hasRealityFilters;
+  const includeParent = !input.isUs || input.hasStorySwitchFilters || input.hasIndividualFilters;
+  const includeParentIssueArcs = !input.isUs && input.hasArcFilters;
+  const includeParentAppearances = !input.isUs && includeAppearances;
+  const includeParentIndividuals = !input.isUs && input.hasIndividualFilters;
+
+  return {
+    include: {
+      appearances: includeAppearances ? { include: { appearance: true } } : false,
+      individuals: input.hasIndividualFilters ? { include: { individual: true } } : false,
+      parent: includeParent
+        ? {
+            include: {
+              issue: includeParentIssueArcs ? { include: { arcs: { include: { arc: true } } } } : false,
+              appearances: includeParentAppearances ? { include: { appearance: true } } : false,
+              individuals: includeParentIndividuals ? { include: { individual: true } } : false,
+            },
+          }
+        : false,
+      children: includeAppearances
+        ? { include: { appearances: { include: { appearance: true } } } }
+        : false,
+    },
+  };
 }
 
 function matchesReleasedates(issue: FilterIssueRecord, releasedates: RuntimeFilter["releasedates"]): boolean {
@@ -513,8 +509,7 @@ function matchesStorySwitches(issue: FilterIssueRecord, filter: RuntimeFilter): 
   }
 
   const storyConditions = collectStorySwitchConditions(stories, filter);
-  if (storyConditions.length === 0) return true;
-  return storyConditions.some(Boolean);
+  return storyConditions.length === 0 || storyConditions.some(Boolean);
 }
 
 function reduceOwnedVariantGroups(issues: FilterIssueRecord[]): FilterIssueRecord[] {
@@ -679,55 +674,54 @@ export class FilterService {
     if (!matchesNumbers(issue, filter.numbers)) return false;
     if (!matchesIndividuals(issue, filter.individuals)) return false;
     if (!matchesStorySwitches(issue, filter)) return false;
-
-    const arcTerms = collectTitleTerms(filter.arcs);
-    if (arcTerms.length > 0) {
-      const arcTitles = getArcTitles(issue, filter.us === true);
-      const matchesArcs = arcTerms.every((term) =>
-        arcTitles.some((title) => containsInsensitive(title, term))
-      );
-      if (!matchesArcs) return false;
-    }
-
-    const appearanceTerms = collectNamedTerms(filter.appearances);
-    const realityTerms = collectNamedTerms(filter.realities);
-    if (appearanceTerms.length > 0 || realityTerms.length > 0) {
-      const appearanceNames = getStoryAppearanceNames(issue, filter.us === true);
-      if (
-        appearanceTerms.some(
-          (term) => !appearanceNames.some((appearanceName) => containsInsensitive(appearanceName, term))
-        )
-      ) {
-        return false;
-      }
-      if (
-        realityTerms.some((term) => {
-          const marker = `(${term})`;
-          return !appearanceNames.some((appearanceName) => containsInsensitive(appearanceName, marker));
-        })
-      ) {
-        return false;
-      }
-    }
-
-    const genreTerms = Array.isArray(filter.genres)
-      ? dedupeTerms(
-          filter.genres
-            .map((genre) => (typeof genre === "string" ? genre.trim() : ""))
-            .filter((genre) => genre.length > 0)
-        )
-      : [];
-    if (genreTerms.length > 0) {
-      const issueGenres = splitGenres(issue.series?.genre);
-      const matchesGenres = genreTerms.every((term) =>
-        issueGenres.some((genre) => matchesGenrePattern(genre, term))
-      );
-      if (!matchesGenres) return false;
-    }
-
-    return true;
+    if (!matchesArcTerms(issue, filter)) return false;
+    if (!matchesAppearanceAndRealityTerms(issue, filter)) return false;
+    return matchesGenreTerms(issue, filter);
   }
 
+}
+
+function matchesArcTerms(issue: FilterIssueRecord, filter: RuntimeFilter) {
+  const arcTerms = collectTitleTerms(filter.arcs);
+  if (arcTerms.length === 0) return true;
+  const arcTitles = getArcTitles(issue, filter.us === true);
+  return arcTerms.every((term) => arcTitles.some((title) => containsInsensitive(title, term)));
+}
+
+function matchesAppearanceAndRealityTerms(issue: FilterIssueRecord, filter: RuntimeFilter) {
+  const appearanceTerms = collectNamedTerms(filter.appearances);
+  const realityTerms = collectNamedTerms(filter.realities);
+  if (appearanceTerms.length === 0 && realityTerms.length === 0) return true;
+
+  const appearanceNames = getStoryAppearanceNames(issue, filter.us === true);
+  if (
+    appearanceTerms.some(
+      (term) => !appearanceNames.some((appearanceName) => containsInsensitive(appearanceName, term))
+    )
+  ) {
+    return false;
+  }
+
+  return realityTerms.every((term) => {
+    const marker = `(${term})`;
+    return appearanceNames.some((appearanceName) => containsInsensitive(appearanceName, marker));
+  });
+}
+
+function matchesGenreTerms(issue: FilterIssueRecord, filter: RuntimeFilter) {
+  const genreTerms = Array.isArray(filter.genres)
+    ? dedupeTerms(
+        filter.genres
+          .map((genre) => (typeof genre === "string" ? genre.trim() : ""))
+          .filter((genre) => genre.length > 0)
+      )
+    : [];
+  if (genreTerms.length === 0) return true;
+
+  const issueGenres = splitGenres(issue.series?.genre);
+  return genreTerms.every((term) =>
+    issueGenres.some((genre) => matchesGenrePattern(genre, term))
+  );
 }
 
 function readTextValue(value: unknown): string {

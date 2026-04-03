@@ -49,9 +49,7 @@ export class UserService {
     blockDuration: UserService.LOGIN_RATE_LIMIT_LOCK_SECONDS,
   });
 
-  constructor(private readonly requestId?: string) {
-    void this.requestId;
-  }
+  constructor(private readonly requestId?: string) {}
 
   private isSha256Hex(value: string): boolean {
     return /^[a-f0-9]{64}$/i.test(value);

@@ -80,6 +80,13 @@ const normalizeText = (value: unknown): string => {
   return "";
 };
 
+function addDiscoveredId(discovered: Set<number>, nextFrontier: Set<number>, value: unknown) {
+  const id = toPositiveInt(value);
+  if (id == null || discovered.has(id)) return;
+  discovered.add(id);
+  nextFrontier.add(id);
+}
+
 async function resolveRecursiveRelatedParentIds(initialParentIds: number[]): Promise<number[]> {
   const discovered = new Set<number>(initialParentIds);
   let frontier = [...initialParentIds];
@@ -99,25 +106,12 @@ async function resolveRecursiveRelatedParentIds(initialParentIds: number[]): Pro
     const nextFrontier = new Set<number>();
 
     for (const story of rowsById) {
-      const fkReprint = toPositiveInt(story.fkReprint);
-      if (fkReprint != null && !discovered.has(fkReprint)) {
-        discovered.add(fkReprint);
-        nextFrontier.add(fkReprint);
-      }
+      addDiscoveredId(discovered, nextFrontier, story.fkReprint);
     }
 
     for (const story of rowsByReprint) {
-      const storyId = toPositiveInt(story.id);
-      if (storyId != null && !discovered.has(storyId)) {
-        discovered.add(storyId);
-        nextFrontier.add(storyId);
-      }
-
-      const fkReprint = toPositiveInt(story.fkReprint);
-      if (fkReprint != null && !discovered.has(fkReprint)) {
-        discovered.add(fkReprint);
-        nextFrontier.add(fkReprint);
-      }
+      addDiscoveredId(discovered, nextFrontier, story.id);
+      addDiscoveredId(discovered, nextFrontier, story.fkReprint);
     }
 
     frontier = Array.from(nextFrontier);
@@ -126,26 +120,55 @@ async function resolveRecursiveRelatedParentIds(initialParentIds: number[]): Pro
   return Array.from(discovered);
 }
 
+function linkParentNodes(adjacency: Map<number, Set<number>>, parentIds: Set<number>, left: number, right: number) {
+  if (!adjacency.has(left)) adjacency.set(left, new Set<number>());
+  if (!adjacency.has(right)) adjacency.set(right, new Set<number>());
+  parentIds.add(left);
+  parentIds.add(right);
+  adjacency.get(left)?.add(right);
+  adjacency.get(right)?.add(left);
+}
+
+function collectConnectedComponent(
+  startId: number,
+  adjacency: Map<number, Set<number>>,
+  visited: Set<number>
+) {
+  const component: number[] = [];
+  const queue = [startId];
+  visited.add(startId);
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (current == null) continue;
+    component.push(current);
+
+    const neighbors = adjacency.get(current);
+    if (!neighbors) continue;
+
+    for (const neighbor of neighbors) {
+      if (visited.has(neighbor)) continue;
+      visited.add(neighbor);
+      queue.push(neighbor);
+    }
+  }
+
+  return component;
+}
+
 function groupConnectedParents(parents: StoryWithRelations[]): number[][] {
   const parentIds = new Set<number>();
   const adjacency = new Map<number, Set<number>>();
 
-  const ensureNode = (id: number) => {
-    if (!adjacency.has(id)) adjacency.set(id, new Set<number>());
-    parentIds.add(id);
-  };
-
   for (const parent of parents) {
     const parentId = toPositiveInt(parent.id);
     if (parentId == null) continue;
-    ensureNode(parentId);
+    parentIds.add(parentId);
+    if (!adjacency.has(parentId)) adjacency.set(parentId, new Set<number>());
 
     const fkReprint = toPositiveInt(parent.fkReprint);
     if (fkReprint == null) continue;
-    ensureNode(fkReprint);
-
-    adjacency.get(parentId)?.add(fkReprint);
-    adjacency.get(fkReprint)?.add(parentId);
+    linkParentNodes(adjacency, parentIds, parentId, fkReprint);
   }
 
   const visited = new Set<number>();
@@ -153,30 +176,122 @@ function groupConnectedParents(parents: StoryWithRelations[]): number[][] {
 
   for (const id of parentIds) {
     if (visited.has(id)) continue;
-
-    const component: number[] = [];
-    const queue = [id];
-    visited.add(id);
-
-    while (queue.length > 0) {
-      const current = queue.shift();
-      if (current == null) continue;
-      component.push(current);
-
-      const neighbors = adjacency.get(current);
-      if (!neighbors) continue;
-
-      for (const neighbor of neighbors) {
-        if (visited.has(neighbor)) continue;
-        visited.add(neighbor);
-        queue.push(neighbor);
-      }
-    }
-
-    components.push(component);
+    components.push(collectConnectedComponent(id, adjacency, visited));
   }
 
   return components;
+}
+
+function buildParentStoryMap(parentStories: StoryWithRelations[]) {
+  const parentStoryById = new Map<number, StoryWithRelations>();
+  for (const parent of parentStories) {
+    const parentId = toPositiveInt(parent.id);
+    if (parentId != null) parentStoryById.set(parentId, parent);
+  }
+  return parentStoryById;
+}
+
+function buildChildrenByParent(childrenRaw: StoryWithIssue[]) {
+  const childrenByParent = new Map<number, StoryWithIssue[]>();
+  for (const child of childrenRaw) {
+    const parentId = toPositiveInt(child.fkParent);
+    if (parentId == null) continue;
+
+    const grouped = childrenByParent.get(parentId) || [];
+    grouped.push(child);
+    childrenByParent.set(parentId, grouped);
+  }
+  return childrenByParent;
+}
+
+function analyzeChildGroup(childrenInGroup: StoryWithIssue[]) {
+  let firstPartialChildId: bigint | null = null;
+  let firstPartialTimestamp = Number.POSITIVE_INFINITY;
+  let firstFullChildId: bigint | null = null;
+  let firstFullTimestamp = Number.POSITIVE_INFINITY;
+  let tbCount = 0;
+  let notTbCount = 0;
+
+  for (const child of childrenInGroup) {
+    const childIssue = child.issue;
+    const isPocketBook = isPocketBookFormat(childIssue?.format);
+    if (isPocketBook) tbCount += 1;
+    else notTbCount += 1;
+
+    const releaseTimestamp = toDateTimestamp(childIssue?.releaseDate);
+    const childId = toPositiveInt(child.id) || Number.MAX_SAFE_INTEGER;
+    if (isPartialPublicationStart(child.part)) {
+      const bestId = firstPartialChildId == null ? Number.MAX_SAFE_INTEGER : Number(firstPartialChildId);
+      if (releaseTimestamp < firstPartialTimestamp) {
+        firstPartialTimestamp = releaseTimestamp;
+        firstPartialChildId = child.id;
+      } else if (releaseTimestamp === firstPartialTimestamp && childId < bestId) {
+        firstPartialChildId = child.id;
+      }
+    }
+
+    if (isCompletePublication(child.part)) {
+      const bestId = firstFullChildId == null ? Number.MAX_SAFE_INTEGER : Number(firstFullChildId);
+      if (releaseTimestamp < firstFullTimestamp) {
+        firstFullTimestamp = releaseTimestamp;
+        firstFullChildId = child.id;
+      } else if (releaseTimestamp === firstFullTimestamp && childId < bestId) {
+        firstFullChildId = child.id;
+      }
+    }
+  }
+
+  return {
+    firstPartialChildId,
+    firstFullChildId,
+    singleRelease: childrenInGroup.length === 1,
+    parentOnlyTb: tbCount > 0 && notTbCount === 0,
+    hasOnlyOneNonTb: tbCount > 0 && notTbCount === 1,
+  };
+}
+
+async function applyParentGroupUpdates(
+  parentsInGroup: StoryWithRelations[],
+  childrenInGroup: StoryWithIssue[]
+) {
+  const analysis = analyzeChildGroup(childrenInGroup);
+
+  for (const parent of parentsInGroup) {
+    if (parent.onlyTb !== analysis.parentOnlyTb || parent.onlyOnePrint !== analysis.singleRelease) {
+      await prisma.story.update({
+        where: { id: parent.id },
+        data: {
+          onlyTb: analysis.parentOnlyTb,
+          onlyOnePrint: analysis.singleRelease,
+        },
+      });
+    }
+  }
+
+  for (const child of childrenInGroup) {
+    const isPocketBook = isPocketBookFormat(child.issue?.format);
+    const nextFirstApp =
+      (analysis.firstPartialChildId != null && child.id === analysis.firstPartialChildId) ||
+      (analysis.firstFullChildId != null && child.id === analysis.firstFullChildId);
+    const nextOtherOnlyTb = analysis.hasOnlyOneNonTb && !isPocketBook;
+
+    if (
+      child.onlyApp !== analysis.singleRelease ||
+      child.firstApp !== nextFirstApp ||
+      child.otherOnlyTb !== nextOtherOnlyTb ||
+      child.onlyTb !== false
+    ) {
+      await prisma.story.update({
+        where: { id: child.id },
+        data: {
+          onlyApp: analysis.singleRelease,
+          firstApp: nextFirstApp,
+          otherOnlyTb: nextOtherOnlyTb,
+          onlyTb: false,
+        },
+      });
+    }
+  }
 }
 
 async function updateStoryFilterFlagsForParents(parentStoryIds: Iterable<number>): Promise<void> {
@@ -199,12 +314,7 @@ async function updateStoryFilterFlagsForParents(parentStoryIds: Iterable<number>
   const parentStories = parentStoriesRaw as StoryWithRelations[];
   if (parentStories.length === 0) return;
 
-  const parentStoryById = new Map<number, StoryWithRelations>();
-  for (const parent of parentStories) {
-    const parentId = toPositiveInt(parent.id);
-    if (parentId != null) parentStoryById.set(parentId, parent);
-  }
-
+  const parentStoryById = buildParentStoryMap(parentStories);
   const parentGroups = groupConnectedParents(parentStories);
   const allParentIds = Array.from(parentStoryById.keys());
 
@@ -219,17 +329,7 @@ async function updateStoryFilterFlagsForParents(parentStoryIds: Iterable<number>
       },
     },
   });
-
-  const childrenByParent = new Map<number, StoryWithIssue[]>();
-  for (const rawChild of childrenRaw) {
-    const child = rawChild as StoryWithIssue;
-    const parentId = toPositiveInt(child.fkParent);
-    if (parentId == null) continue;
-
-    const grouped = childrenByParent.get(parentId) || [];
-    grouped.push(child);
-    childrenByParent.set(parentId, grouped);
-  }
+  const childrenByParent = buildChildrenByParent(childrenRaw as StoryWithIssue[]);
 
   for (const groupParentIds of parentGroups) {
     const parentsInGroup = groupParentIds
@@ -241,86 +341,7 @@ async function updateStoryFilterFlagsForParents(parentStoryIds: Iterable<number>
     const childrenInGroup: StoryWithIssue[] = groupParentIds.flatMap(
       (parentId) => childrenByParent.get(parentId) || []
     );
-
-    let firstPartialChildId: bigint | null = null;
-    let firstPartialTimestamp = Number.POSITIVE_INFINITY;
-    let firstFullChildId: bigint | null = null;
-    let firstFullTimestamp = Number.POSITIVE_INFINITY;
-    let tbCount = 0;
-    let notTbCount = 0;
-
-    for (const child of childrenInGroup) {
-      const childIssue = child.issue;
-      const isPocketBook = isPocketBookFormat(childIssue?.format);
-      if (isPocketBook) tbCount += 1;
-      else notTbCount += 1;
-
-      const releaseTimestamp = toDateTimestamp(childIssue?.releaseDate);
-      const childId = toPositiveInt(child.id) || Number.MAX_SAFE_INTEGER;
-      if (isPartialPublicationStart(child.part)) {
-        const bestId = firstPartialChildId == null ? Number.MAX_SAFE_INTEGER : Number(firstPartialChildId);
-        if (releaseTimestamp < firstPartialTimestamp) {
-          firstPartialTimestamp = releaseTimestamp;
-          firstPartialChildId = child.id;
-        } else if (releaseTimestamp === firstPartialTimestamp && childId < bestId) {
-          firstPartialChildId = child.id;
-        }
-      }
-
-      if (isCompletePublication(child.part)) {
-        const bestId = firstFullChildId == null ? Number.MAX_SAFE_INTEGER : Number(firstFullChildId);
-        if (releaseTimestamp < firstFullTimestamp) {
-          firstFullTimestamp = releaseTimestamp;
-          firstFullChildId = child.id;
-        } else if (releaseTimestamp === firstFullTimestamp && childId < bestId) {
-          firstFullChildId = child.id;
-        }
-      }
-    }
-
-    const singleRelease = childrenInGroup.length === 1;
-    const parentOnlyTb = tbCount > 0 && notTbCount === 0;
-    const hasOnlyOneNonTb = tbCount > 0 && notTbCount === 1;
-
-    for (const parent of parentsInGroup) {
-      if (parent.onlyTb !== parentOnlyTb || parent.onlyOnePrint !== singleRelease) {
-        await prisma.story.update({
-          where: { id: parent.id },
-          data: {
-            onlyTb: parentOnlyTb,
-            onlyOnePrint: singleRelease,
-          },
-        });
-      }
-    }
-
-    for (const child of childrenInGroup) {
-      const childIssue = child.issue;
-      const isPocketBook = isPocketBookFormat(childIssue?.format);
-
-      const nextOnlyApp = singleRelease;
-      const nextFirstApp =
-        (firstPartialChildId != null && child.id === firstPartialChildId) ||
-        (firstFullChildId != null && child.id === firstFullChildId);
-      const nextOtherOnlyTb = hasOnlyOneNonTb && !isPocketBook;
-
-      if (
-        child.onlyApp !== nextOnlyApp ||
-        child.firstApp !== nextFirstApp ||
-        child.otherOnlyTb !== nextOtherOnlyTb ||
-        child.onlyTb !== false
-      ) {
-        await prisma.story.update({
-          where: { id: child.id },
-          data: {
-            onlyApp: nextOnlyApp,
-            firstApp: nextFirstApp,
-            otherOnlyTb: nextOtherOnlyTb,
-            onlyTb: false,
-          },
-        });
-      }
-    }
+    await applyParentGroupUpdates(parentsInGroup, childrenInGroup);
   }
 }
 
