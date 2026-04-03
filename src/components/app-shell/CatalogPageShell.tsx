@@ -42,7 +42,10 @@ async function readInitialNavLayout(showNavigation: boolean): Promise<InitialNav
   if (!showNavigation) return { offset: "0px", gutter: "0px" };
 
   const headerStore = await headers();
-  const initialResponsiveGuess = getInitialResponsiveGuess(headerStore.get("user-agent"));
+  const initialResponsiveGuess = getInitialResponsiveGuess({
+    userAgent: headerStore.get("user-agent"),
+    secChUaMobile: headerStore.get("sec-ch-ua-mobile"),
+  });
   const initialTablet = !initialResponsiveGuess.isPhone && !initialResponsiveGuess.isDesktop;
   const initialNavWide =
     initialResponsiveGuess.isDesktop || (initialTablet && initialResponsiveGuess.isLandscape);

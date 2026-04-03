@@ -42,7 +42,10 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const headerStore = await headers();
-  const initialResponsiveGuess = getInitialResponsiveGuess(headerStore.get("user-agent"));
+  const initialResponsiveGuess = getInitialResponsiveGuess({
+    userAgent: headerStore.get("user-agent"),
+    secChUaMobile: headerStore.get("sec-ch-ua-mobile"),
+  });
   const websiteJsonLd = buildWebsiteStructuredData();
 
   return (

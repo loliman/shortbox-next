@@ -10,31 +10,42 @@ type LayoutChromeStateArgs = {
   temporaryDrawer: boolean;
 };
 
+export function getDefaultDrawerOpen(args: Readonly<LayoutChromeStateArgs> | null): boolean {
+  if (!args) return false;
+  if (typeof args.drawerOpen === "boolean") return args.drawerOpen;
+  if (args.temporaryDrawer) return false;
+  return args.navWide;
+}
+
 export function useLayoutChromeState(args: Readonly<LayoutChromeStateArgs> | null) {
   const navWide = args?.navWide ?? false;
   const temporaryDrawer = args?.temporaryDrawer ?? false;
-  const [localDrawerOpen, setLocalDrawerOpen] = React.useState<boolean>(
-    args?.drawerOpen ?? navWide
-  );
+  const [localDrawerOpen, setLocalDrawerOpen] = React.useState<boolean>(() => getDefaultDrawerOpen(args));
   const previousNavWideRef = React.useRef(navWide);
+  const previousTemporaryDrawerRef = React.useRef(temporaryDrawer);
   const drawerOpen = localDrawerOpen;
 
   React.useEffect(() => {
     if (!args) {
       setLocalDrawerOpen(false);
       previousNavWideRef.current = false;
+      previousTemporaryDrawerRef.current = false;
       return;
     }
     if (typeof args.drawerOpen === "boolean") {
       setLocalDrawerOpen(args.drawerOpen);
       previousNavWideRef.current = navWide;
+      previousTemporaryDrawerRef.current = temporaryDrawer;
       return;
     }
-    if (!previousNavWideRef.current && navWide) {
+    if (!previousTemporaryDrawerRef.current && temporaryDrawer) {
+      setLocalDrawerOpen(false);
+    } else if (!previousNavWideRef.current && navWide && !temporaryDrawer) {
       setLocalDrawerOpen(true);
     }
     previousNavWideRef.current = navWide;
-  }, [args, navWide]);
+    previousTemporaryDrawerRef.current = temporaryDrawer;
+  }, [args, navWide, temporaryDrawer]);
 
   const toggleDrawer = React.useCallback(() => {
     if (!args) return;

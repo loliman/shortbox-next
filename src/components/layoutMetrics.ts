@@ -3,6 +3,8 @@ export const HEADER_HEIGHT_DESKTOP = 64;
 export const NAV_DRAWER_WIDTH = 360;
 export const NAV_DRAWER_WIDTH_COMPACT = 320;
 export const COMPACT_BOTTOM_BAR_CLEARANCE = "calc(64px + env(safe-area-inset-bottom))";
+export const HIDE_IN_COMPACT_LAYOUT_MEDIA_QUERY =
+  "@media (max-width:599.95px), (min-width:600px) and (max-width:1199.95px) and (orientation: portrait)";
 
 export const drawerHeaderTopOffset = {
   xs: `${HEADER_HEIGHT_MOBILE}px`,

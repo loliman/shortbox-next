@@ -4,6 +4,7 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import HomeFeedClient from "./HomeFeedClient";
 import SortContainer from "./SortContainer";
+import { HIDE_IN_COMPACT_LAYOUT_MEDIA_QUERY } from "./layoutMetrics";
 import type { PreviewIssue } from "./issue-preview/utils/issuePreviewUtils";
 import { getIssueLabel, getIssueUrl } from "../lib/routes/issue-presentation";
 import type { SessionData } from "../types/session";
@@ -47,7 +48,10 @@ export default function Home(props: Readonly<HomeProps>) {
             "& .MuiCardHeader-action": {
               m: 0,
               alignSelf: "center",
-              display: { xs: "none", md: "flex" },
+              display: { xs: "none", sm: "flex" },
+              [HIDE_IN_COMPACT_LAYOUT_MEDIA_QUERY]: {
+                display: "none",
+              },
             },
           }}
           title="All-New, All-Different Shortbox"
