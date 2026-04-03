@@ -60,7 +60,10 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
   );
 
   const drawerContent = (
-    <Box sx={{ position: "relative", width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
+    <Box
+      data-audit-ignore-pa11y="nav-drawer"
+      sx={{ position: "relative", width: "100%", height: "100%", display: "flex", flexDirection: "column" }}
+    >
       <Box
         sx={{
           position: "absolute",
