@@ -82,8 +82,8 @@ function normalizeLines(text: string) {
 
 function normalizeLine(line: string) {
   return line
-    .replace(/\s+/g, " ")
-    .replace(/[‐‑–—]/g, "-")
+    .replaceAll(/\s+/g, " ")
+    .replaceAll(/[‐‑–—]/g, "-")
     .trim();
 }
 
@@ -120,9 +120,9 @@ function looksLikeBlockTitle(line: string) {
   if (/^Story:/i.test(line) || /^Zeichnungen:/i.test(line) || /^Inhalt:/i.test(line)) return false;
   if (PRODUCT_CODE_PATTERN.test(line)) return false;
 
-  const letters = line.replace(/[^A-Za-zÄÖÜäöüß]/g, "");
+  const letters = line.replaceAll(/[^A-Za-zÄÖÜäöüß]/g, "");
   if (letters.length === 0) return false;
-  const upperRatio = letters.replace(/[^A-ZÄÖÜ]/g, "").length / letters.length;
+  const upperRatio = letters.replaceAll(/[^A-ZÄÖÜ]/g, "").length / letters.length;
   return upperRatio > 0.6;
 }
 
@@ -339,7 +339,7 @@ function splitTitleAndNumber(sourceTitle: string) {
 }
 
 function normalizeTitle(value: string) {
-  const normalized = value.replace(/\s+/g, " ").trim();
+  const normalized = value.replaceAll(/\s+/g, " ").trim();
   if (!normalized) return "";
   if (!looksMostlyUppercase(normalized)) return normalized;
 
@@ -350,10 +350,10 @@ function normalizeTitle(value: string) {
 }
 
 function looksMostlyUppercase(value: string) {
-  const letters = value.replace(/[^A-Za-zÄÖÜäöüß]/g, "");
+  const letters = value.replaceAll(/[^A-Za-zÄÖÜäöüß]/g, "");
   if (letters.length < 3) return false;
 
-  const upperLetters = letters.replace(/[^A-ZÄÖÜ]/g, "").length;
+  const upperLetters = letters.replaceAll(/[^A-ZÄÖÜ]/g, "").length;
   return upperLetters / letters.length > 0.6;
 }
 
@@ -436,8 +436,10 @@ function deriveLooseFallbackTitle(lines: string[], localCodeIndex: number) {
 
 function scoreFallbackTitle(line: string) {
   const tokens = line.split(/\s+/).filter(Boolean);
-  const letters = line.replace(/[^A-Za-zÄÖÜäöüß]/g, "").length;
-  const shortTokenPenalty = tokens.filter((token) => token.replace(/[^A-Za-zÄÖÜäöüß]/g, "").length <= 2).length;
+  const letters = line.replaceAll(/[^A-Za-zÄÖÜäöüß]/g, "").length;
+  const shortTokenPenalty = tokens.filter(
+    (token) => token.replaceAll(/[^A-Za-zÄÖÜäöüß]/g, "").length <= 2
+  ).length;
   return letters - shortTokenPenalty * 6;
 }
 
@@ -450,13 +452,13 @@ function looksLikeStandaloneTitleLine(line: string) {
 
   const tokens = line.split(/\s+/).filter(Boolean);
   const shortTokenRatio = tokens.length > 0
-    ? tokens.filter((token) => token.replace(/[^A-Za-zÄÖÜäöüß]/g, "").length <= 2).length / tokens.length
+    ? tokens.filter((token) => token.replaceAll(/[^A-Za-zÄÖÜäöüß]/g, "").length <= 2).length / tokens.length
     : 1;
   if (shortTokenRatio > 0.45) return false;
 
-  const letters = line.replace(/[^A-Za-zÄÖÜäöüß]/g, "");
+  const letters = line.replaceAll(/[^A-Za-zÄÖÜäöüß]/g, "");
   if (letters.length < 4) return false;
-  const upperRatio = letters.replace(/[^A-ZÄÖÜ]/g, "").length / letters.length;
+  const upperRatio = letters.replaceAll(/[^A-ZÄÖÜ]/g, "").length / letters.length;
   return upperRatio > 0.55;
 }
 
@@ -481,7 +483,7 @@ function deriveExplicitIssueNumber(lines: string[], localCodeIndex: number) {
 }
 
 function stripTrailingIssueList(value: string) {
-  return normalizeTitle(value.replace(/\s+\d+(?:\s*\+\s*\d+)+\s*$/, ""));
+  return normalizeTitle(value.replaceAll(/\s+\d+(?:\s*\+\s*\d+)+\s*$/, ""));
 }
 
 function deriveBandTitle(lines: string[], localCodeIndex: number) {
@@ -489,7 +491,7 @@ function deriveBandTitle(lines: string[], localCodeIndex: number) {
     const bandMatch = (lines[index] || "").match(/^BAND\s+\d+:\s*(.*)$/i);
     if (!bandMatch) continue;
 
-    const sameLineTitle = normalizeTitle(readTextValue(bandMatch[1]).replace(/\(\d{4}\)/g, ""));
+    const sameLineTitle = normalizeTitle(readTextValue(bandMatch[1]).replaceAll(/\(\d{4}\)/g, ""));
     if (sameLineTitle) {
       const split = splitTitleAndNumber(sameLineTitle);
       return {
@@ -564,8 +566,8 @@ function parseStoryReferenceSegment(segment: string) {
     return [{ seriesTitle, volume: 1, issueNumber: start }];
   }
 
-  const startNumber = Number.parseInt(start.replace(/[^0-9]/g, ""), 10);
-  const endNumber = Number.parseInt(end.replace(/[^0-9]/g, ""), 10);
+  const startNumber = Number.parseInt(start.replaceAll(/[^0-9]/g, ""), 10);
+  const endNumber = Number.parseInt(end.replaceAll(/[^0-9]/g, ""), 10);
   if (!Number.isFinite(startNumber) || !Number.isFinite(endNumber) || endNumber < startNumber) {
     return [{ seriesTitle, volume: 1, issueNumber: start }];
   }
@@ -645,7 +647,7 @@ function parseFormat(line: string) {
 function parsePrice(line: string) {
   const match = line.match(PRICE_PATTERN)?.[1];
   if (!match) return "0";
-  return match.replace(",", ".");
+  return match.replaceAll(",", ".");
 }
 
 function toIsoDate(value: string) {
@@ -661,7 +663,7 @@ function deriveVariantLabel(line: string) {
 }
 
 function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return value.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function createId(prefix: string) {

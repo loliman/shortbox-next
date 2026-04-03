@@ -54,7 +54,7 @@ export function focusEditorErrorField(errorPath: string) {
     globalThis.requestAnimationFrame(() => {
       const escapedId = typeof CSS !== "undefined" && typeof CSS.escape === "function"
         ? CSS.escape(errorPath)
-        : errorPath.replace(/[ !"#$%&'()*+,./:;<=>?@[\\\]^`{|}~]/g, "\\$&");
+        : errorPath.replaceAll(/[ !"#$%&'()*+,./:;<=>?@[\\\]^`{|}~]/g, "\\$&");
 
       const target = document.getElementById(errorPath)
         || document.querySelector<HTMLElement>(`#${escapedId}`)

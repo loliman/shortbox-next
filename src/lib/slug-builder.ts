@@ -19,22 +19,22 @@ export function slugify(text: string | null | undefined): string {
     .trim()
     // German umlauts — must run BEFORE .normalize("NFD") so that ä is replaced with "ae"
     // rather than being decomposed to a+combining-diaeresis and then just yielding "a".
-    .replace(/[äÄ]/g, "ae")
-    .replace(/[öÖ]/g, "oe")
-    .replace(/[üÜ]/g, "ue")
-    .replace(/ß/g, "ss")
+    .replaceAll(/[äÄ]/g, "ae")
+    .replaceAll(/[öÖ]/g, "oe")
+    .replaceAll(/[üÜ]/g, "ue")
+    .replaceAll(/ß/g, "ss")
     // Decompose accented Latin characters (e.g. é → e + ́) then strip the combining marks
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replaceAll(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     // Replace whitespace, underscores and common path separators with hyphens
-    .replace(/[\s_/\\]+/g, "-")
+    .replaceAll(/[\s_/\\]+/g, "-")
     // Drop everything that is not a-z, 0-9 or hyphen
-    .replace(/[^a-z0-9-]/g, "")
+    .replaceAll(/[^a-z0-9-]/g, "")
     // Collapse consecutive hyphens
-    .replace(/-+/g, "-")
+    .replaceAll(/-+/g, "-")
     // Strip leading/trailing hyphens
-    .replace(/^-+|-+$/g, "");
+    .replaceAll(/^-+|-+$/g, "");
 }
 
 /**

@@ -29,7 +29,7 @@ export async function extractTextFromPdfBuffer(buffer: ArrayBuffer) {
   }
 
   const text = pages.join("\n\n");
-  if (text.replace(/\s+/g, "").length < 50) {
+  if (text.replaceAll(/\s+/g, "").length < 50) {
     throw new Error("Die PDF enthält keinen ausreichend extrahierbaren Text");
   }
 
@@ -58,7 +58,7 @@ function toPageLines(items: Array<{ str?: string; transform?: number[] }>) {
         .sort((left, right) => left.x - right.x)
         .map((entry) => entry.text)
         .join(" ")
-        .replace(/\s+/g, " ")
+        .replaceAll(/\s+/g, " ")
         .trim()
     )
     .filter(Boolean);

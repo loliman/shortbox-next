@@ -197,11 +197,11 @@ function isValidRange(start: number, end: number) {
 
 function normalizeInput(input: string) {
   return input
-    .replace(DASH_PATTERN, "-")
-    .replace(/[;\n\r]+/g, ",")
+    .replaceAll(DASH_PATTERN, "-")
+    .replaceAll(/[;\n\r]+/g, ",")
     .trim();
 }
 
 function stripTrailingPunctuation(value: string) {
-  return value.replace(/[.,]+$/g, "").trim();
+  return value.replaceAll(/[.,]+$/g, "").trim();
 }

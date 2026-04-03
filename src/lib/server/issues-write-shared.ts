@@ -17,7 +17,8 @@ export function normalizeBigInt(value: unknown) {
 
 export function normalizeFloat(value: unknown) {
   if (value === null || value === undefined || value === "") return null;
-  const numeric = typeof value === "number" ? value : Number(String(value).replace(",", ".").trim());
+  const numeric =
+    typeof value === "number" ? value : Number(String(value).replaceAll(",", ".").trim());
   return Number.isFinite(numeric) ? numeric : null;
 }
 
@@ -38,8 +39,8 @@ export function normalizeDbIds(values: readonly number[]) {
 export function normalizeStoryTitleKey(value: unknown): string {
   return normalizeText(value)
     .toLowerCase()
-    .replace(/[_:;,.!?'"()\-]+/g, " ")
-    .replace(/\s+/g, " ")
+    .replaceAll(/[_:;,.!?'"()\-]+/g, " ")
+    .replaceAll(/\s+/g, " ")
     .trim();
 }
 

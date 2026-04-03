@@ -77,12 +77,12 @@ function createFeedAnchorCursor(
   direction: "asc" | "desc"
 ) {
   if (!row) return null;
-  const value =
-    field === "updatedat"
-      ? row.updatedAt.toISOString()
-      : field === "createdat"
-        ? row.createdAt.toISOString()
-        : Number(row.id);
+  let value: string | number = Number(row.id);
+  if (field === "updatedat") {
+    value = row.updatedAt.toISOString();
+  } else if (field === "createdat") {
+    value = row.createdAt.toISOString();
+  }
 
   return encodeFeedCursor({
     field,

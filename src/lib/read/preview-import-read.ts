@@ -16,7 +16,7 @@ function normalizeSeriesTitleKey(value: string) {
     .trim()
     .toLowerCase()
     .replace(/^the\s+/i, "")
-    .replace(/\s+/g, " ");
+    .replaceAll(/\s+/g, " ");
 }
 
 export async function readDeSeriesByTitle(title: string) {

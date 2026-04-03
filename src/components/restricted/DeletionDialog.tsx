@@ -78,12 +78,12 @@ function DeletionDialogView(props: Readonly<DeletionDialogProps>) {
           variant="contained"
           onClick={async () => {
             try {
-              const url =
-                level === HierarchyLevel.PUBLISHER
-                  ? "/api/publishers"
-                  : level === HierarchyLevel.SERIES
-                    ? "/api/series"
-                    : "/api/issues";
+              let url = "/api/issues";
+              if (level === HierarchyLevel.PUBLISHER) {
+                url = "/api/publishers";
+              } else if (level === HierarchyLevel.SERIES) {
+                url = "/api/series";
+              }
               const result = await mutationRequest<{ success?: boolean }>({
                 url,
                 method: "DELETE",

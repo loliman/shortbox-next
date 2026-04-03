@@ -10,26 +10,32 @@ export function buildIssueEditorState(
     issue: defaultValues as unknown as SelectedRoot["issue"],
     us: defaultValues.series.publisher.us,
   });
+  let header = "Ausgabe erstellen";
+  if (props.edit) {
+    header = issueLabel + " bearbeiten";
+  } else if (props.copy) {
+    header = issueLabel + " kopieren";
+  }
+  let successMessage = " erfolgreich erstellt";
+  if (props.edit) {
+    successMessage = " erfolgreich gespeichert";
+  } else if (props.copy) {
+    successMessage = " erfolgreich kopiert";
+  }
+  let errorMessage = "Ausgabe konnte nicht erstellt werden";
+  if (props.edit) {
+    errorMessage = issueLabel + " konnte nicht gespeichert werden";
+  } else if (props.copy) {
+    errorMessage = " konnte nicht kopiert werden";
+  }
 
   return {
     defaultValues,
-    header: props.edit
-      ? issueLabel + " bearbeiten"
-      : props.copy
-        ? issueLabel + " kopieren"
-        : "Ausgabe erstellen",
+    header,
     submitLabel: "Fertig",
     submitAndCopyLabel: "Fertig und kopieren",
-    successMessage: props.edit
-      ? " erfolgreich gespeichert"
-      : props.copy
-        ? " erfolgreich kopiert"
-        : " erfolgreich erstellt",
-    errorMessage: props.edit
-      ? issueLabel + " konnte nicht gespeichert werden"
-      : props.copy
-        ? " konnte nicht kopiert werden"
-        : "Ausgabe konnte nicht erstellt werden",
+    successMessage,
+    errorMessage,
     copy: Boolean(props.copy),
   };
 }

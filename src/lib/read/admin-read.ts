@@ -122,7 +122,18 @@ function mapQueuedRowToRun(
   row: JobViewRow,
   dryRun = false
 ): AdminTaskRun {
-  const workerState = row.last_error ? "failed-awaiting-retry" : row.locked_at ? "running" : "queued";
+  let workerState = "queued";
+  if (row.last_error) {
+    workerState = "failed-awaiting-retry";
+  } else if (row.locked_at) {
+    workerState = "running";
+  }
+  let summary = "Job queued";
+  if (row.last_error) {
+    summary = "Job failed and is waiting for retry";
+  } else if (row.locked_at) {
+    summary = "Job running";
+  }
 
   return {
     id: String(row.id),
@@ -132,7 +143,7 @@ function mapQueuedRowToRun(
     finishedAt: null,
     dryRun,
     status: row.last_error ? "FAILED" : "SUCCESS",
-    summary: row.last_error ? "Job failed and is waiting for retry" : row.locked_at ? "Job running" : "Job queued",
+    summary,
     details: JSON.stringify(
       {
         state: workerState,

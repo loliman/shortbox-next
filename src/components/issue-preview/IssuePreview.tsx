@@ -52,26 +52,37 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
   const flags = getIssuePreviewFlags(props.issue, us, hasSession);
   const url = buildRouteHref(getIssueUrl(props.issue, us), props.query);
   const { isNavigating, handleClick } = usePreviewNavigation(url);
-  const accentKey = flags.collected
-    ? "success"
-    : !us && flags.hasFirstApp
-        ? "secondary"
-        : "default";
+  let accentKey: "success" | "secondary" | "default" = "default";
+  if (flags.collected) {
+    accentKey = "success";
+  } else if (!us && flags.hasFirstApp) {
+    accentKey = "secondary";
+  }
   const borderLeftColorByAccent = {
     success: "success.main",
     secondary: "secondary.main",
     default: "divider",
   } as const;
-  const lightBackgroundImage = isCoverLoading
-    ? "linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)), linear-gradient(110deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.14) 50%, rgba(0, 0, 0, 0.04) 75%)"
-    : usesFallbackCover
-      ? `linear-gradient(rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.22)), linear-gradient(to right, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.58) 40%, rgba(255, 255, 255, 0.08) 100%), url(${NO_COVER_URL})`
-      : `linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.3)), linear-gradient(to right, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.62) 40%, rgba(255, 255, 255, 0) 100%), url(${effectiveCoverUrl})`;
-  const darkBackgroundImage = isCoverLoading
-    ? "linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), linear-gradient(110deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.04) 75%)"
-    : usesFallbackCover
-      ? `linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), linear-gradient(to right, rgba(0, 0, 0, 0.84) 0%, rgba(0, 0, 0, 0.54) 40%, rgba(0, 0, 0, 0.08) 100%), url(${NO_COVER_URL})`
-      : `linear-gradient(rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.28)), linear-gradient(to right, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.58) 40%, rgba(0, 0, 0, 0.08) 100%), url(${effectiveCoverUrl})`;
+  let lightBackgroundImage =
+    "linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.3)), linear-gradient(to right, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.62) 40%, rgba(255, 255, 255, 0) 100%), url(" +
+    effectiveCoverUrl +
+    ")";
+  if (isCoverLoading) {
+    lightBackgroundImage =
+      "linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)), linear-gradient(110deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.14) 50%, rgba(0, 0, 0, 0.04) 75%)";
+  } else if (usesFallbackCover) {
+    lightBackgroundImage = `linear-gradient(rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.22)), linear-gradient(to right, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.58) 40%, rgba(255, 255, 255, 0.08) 100%), url(${NO_COVER_URL})`;
+  }
+  let darkBackgroundImage =
+    "linear-gradient(rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.28)), linear-gradient(to right, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.58) 40%, rgba(0, 0, 0, 0.08) 100%), url(" +
+    effectiveCoverUrl +
+    ")";
+  if (isCoverLoading) {
+    darkBackgroundImage =
+      "linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), linear-gradient(110deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.04) 75%)";
+  } else if (usesFallbackCover) {
+    darkBackgroundImage = `linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), linear-gradient(to right, rgba(0, 0, 0, 0.84) 0%, rgba(0, 0, 0, 0.54) 40%, rgba(0, 0, 0, 0.08) 100%), url(${NO_COVER_URL})`;
+  }
 
   return (
     <Box data-audit-ignore-pa11y="issue-preview" ref={setElement}>

@@ -55,14 +55,7 @@ export function IssueVariantTile(props: Readonly<IssueVariantTileProps>) {
   return (
     <Box
       sx={{
-        borderRadius:
-          props.edge === "single"
-            ? "10px"
-            : props.edge === "start"
-              ? "10px 0 0 10px"
-              : props.edge === "end"
-                ? "0 10px 10px 0"
-                : "0",
+        borderRadius: resolveTileBorderRadius(props.edge),
         overflow: "hidden",
         position: "relative",
         height: "100%",
@@ -158,6 +151,13 @@ export function IssueVariantTile(props: Readonly<IssueVariantTileProps>) {
       </ButtonBase>
     </Box>
   );
+}
+
+function resolveTileBorderRadius(edge: IssueVariantTileProps["edge"]): string {
+  if (edge === "single") return "10px";
+  if (edge === "start") return "10px 0 0 10px";
+  if (edge === "end") return "0 10px 10px 0";
+  return "0";
 }
 
 const outlinedStatusIconSx = {

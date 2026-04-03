@@ -275,7 +275,7 @@ function buildSeriesKey(
 function normalizeSearchText(value: string) {
   return value
     .toLowerCase()
-    .replace(/[^0-9a-z]+/g, " ")
-    .replace(/\s+/g, " ")
+    .replaceAll(/[^0-9a-z]+/g, " ")
+    .replaceAll(/\s+/g, " ")
     .trim();
 }

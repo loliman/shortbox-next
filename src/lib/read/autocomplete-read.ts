@@ -55,6 +55,7 @@ async function getPublisherItems(
   const pattern = normalizePattern(variables?.pattern);
   const us = typeof variables?.us === "boolean" ? variables.us : undefined;
   const likePattern = toLikePattern(pattern);
+  const publisherScope = us === undefined ? Prisma.sql`TRUE` : Prisma.sql`original = ${us}`;
 
   try {
     const rows = await prisma.$queryRaw<Array<{ name: string; original: boolean }>>(
@@ -62,7 +63,7 @@ async function getPublisherItems(
         ? Prisma.sql`
             SELECT name, original
             FROM shortbox.publisher
-            WHERE ${us === undefined ? Prisma.sql`TRUE` : Prisma.sql`original = ${us}`}
+            WHERE ${publisherScope}
               AND name ILIKE ${likePattern}
             ORDER BY name ASC, id ASC
             OFFSET ${offset}
@@ -71,7 +72,7 @@ async function getPublisherItems(
         : Prisma.sql`
             SELECT name, original
             FROM shortbox.publisher
-            WHERE ${us === undefined ? Prisma.sql`TRUE` : Prisma.sql`original = ${us}`}
+            WHERE ${publisherScope}
             ORDER BY name ASC, id ASC
             OFFSET ${offset}
             LIMIT ${limit + 1}
@@ -170,7 +171,7 @@ async function getGenreItems(
   limit: number
 ) {
   const pattern = normalizePattern(variables?.pattern);
-  const likePattern = `%${pattern.replace(/\s/g, "%")}%`;
+  const likePattern = `%${pattern.replaceAll(/\s/g, "%")}%`;
 
   try {
     const rows = await prisma.$queryRaw<Array<{ genre: string | null }>>(
@@ -219,6 +220,8 @@ async function getArcItems(
   const pattern = normalizePattern(variables?.pattern);
   const type = normalizePattern(variables?.type).toUpperCase();
   const likePattern = toLikePattern(pattern);
+  const typeFilter = type ? Prisma.sql`type = ${type}` : Prisma.sql`TRUE`;
+  const titleFilter = pattern ? Prisma.sql`title ILIKE ${likePattern}` : Prisma.sql`TRUE`;
 
   try {
     const rows = await prisma.$queryRaw<Array<{ title: string; type: string }>>(
@@ -226,8 +229,8 @@ async function getArcItems(
         ? Prisma.sql`
             SELECT title, type
             FROM shortbox.arc
-            WHERE ${type ? Prisma.sql`type = ${type}` : Prisma.sql`TRUE`}
-              AND ${pattern ? Prisma.sql`title ILIKE ${likePattern}` : Prisma.sql`TRUE`}
+            WHERE ${typeFilter}
+              AND ${titleFilter}
             ORDER BY title ASC, type ASC, id ASC
             OFFSET ${offset}
             LIMIT ${limit + 1}
@@ -300,6 +303,8 @@ async function getAppearanceItems(
   const pattern = normalizePattern(variables?.pattern);
   const type = normalizePattern(variables?.type).toUpperCase();
   const likePattern = toLikePattern(pattern);
+  const typeFilter = type ? Prisma.sql`type ILIKE ${type}` : Prisma.sql`TRUE`;
+  const nameFilter = pattern ? Prisma.sql`name ILIKE ${likePattern}` : Prisma.sql`TRUE`;
 
   try {
     const rows = await prisma.$queryRaw<Array<{ name: string; type: string }>>(
@@ -307,8 +312,8 @@ async function getAppearanceItems(
         ? Prisma.sql`
             SELECT name, type
             FROM shortbox.appearance
-            WHERE ${type ? Prisma.sql`type ILIKE ${type}` : Prisma.sql`TRUE`}
-              AND ${pattern ? Prisma.sql`name ILIKE ${likePattern}` : Prisma.sql`TRUE`}
+            WHERE ${typeFilter}
+              AND ${nameFilter}
             ORDER BY name ASC, id ASC
             OFFSET ${offset}
             LIMIT ${limit + 1}
@@ -438,7 +443,7 @@ function normalizePositiveInt(value: number | undefined, fallback: number) {
 }
 
 function toLikePattern(pattern: string) {
-  return `%${pattern.replace(/\s+/g, "%")}%`;
+  return `%${pattern.replaceAll(/\s+/g, "%")}%`;
 }
 
 function sliceItems<T>(items: T[], offset: number, limit: number) {

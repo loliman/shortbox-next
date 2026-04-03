@@ -38,11 +38,11 @@ export function generateUrl(item: SelectedRoot, us: boolean): string {
   if (!item.publisher && !item.series && !item.issue) return url;
 
   if (item.publisher)
-    return url + encodeURIComponent(safeValue(item.publisher.name).replace(/%/g, "%25"));
+    return url + encodeURIComponent(safeValue(item.publisher.name).replaceAll(/%/g, "%25"));
 
   if (item.series) {
-    const publisherName = safeValue(item.series.publisher?.name).replace(/%/g, "%25");
-    const seriesTitle = safeValue(item.series.title).replace(/%/g, "%25");
+    const publisherName = safeValue(item.series.publisher?.name).replaceAll(/%/g, "%25");
+    const seriesTitle = safeValue(item.series.title).replaceAll(/%/g, "%25");
     const volume = safeValue(item.series.volume);
     return (
       url +
@@ -53,10 +53,10 @@ export function generateUrl(item: SelectedRoot, us: boolean): string {
   }
 
   if (!item.issue?.variant || item.issue.variant === "") {
-    const publisherName = safeValue(item.issue?.series?.publisher?.name).replace(/%/g, "%25");
-    const seriesTitle = safeValue(item.issue?.series?.title).replace(/%/g, "%25");
+    const publisherName = safeValue(item.issue?.series?.publisher?.name).replaceAll(/%/g, "%25");
+    const seriesTitle = safeValue(item.issue?.series?.title).replaceAll(/%/g, "%25");
     const seriesVolume = safeValue(item.issue?.series?.volume);
-    const number = safeValue(item.issue?.number).replace(/%/g, "%25");
+    const number = safeValue(item.issue?.number).replaceAll(/%/g, "%25");
     const format = safeValue(item.issue?.format);
     return (
       url +
@@ -69,10 +69,10 @@ export function generateUrl(item: SelectedRoot, us: boolean): string {
     );
   }
 
-  const publisherName = safeValue(item.issue?.series?.publisher?.name).replace(/%/g, "%25");
-  const seriesTitle = safeValue(item.issue?.series?.title).replace(/%/g, "%25");
+  const publisherName = safeValue(item.issue?.series?.publisher?.name).replaceAll(/%/g, "%25");
+  const seriesTitle = safeValue(item.issue?.series?.title).replaceAll(/%/g, "%25");
   const seriesVolume = safeValue(item.issue?.series?.volume);
-  const number = safeValue(item.issue?.number).replace(/%/g, "%25");
+  const number = safeValue(item.issue?.number).replaceAll(/%/g, "%25");
   const format = safeValue(item.issue?.format);
   const variant = safeValue(item.issue?.variant);
 
@@ -247,16 +247,18 @@ export function getSelected(params: RouteParams, us: boolean): SelectedRoot {
     const hasSeparator = separatorIndex > -1;
     const legacySeparatorIndex = seriesValue.lastIndexOf("_");
     const hasLegacySeparator = !hasSeparator && legacySeparatorIndex > -1;
-    const title = hasSeparator
-      ? seriesValue.substring(0, separatorIndex)
-      : hasLegacySeparator
-        ? seriesValue.substring(0, legacySeparatorIndex)
-        : seriesValue;
-    const volumeText = hasSeparator
-      ? seriesValue.substring(separatorIndex + volumeSeparator.length)
-      : hasLegacySeparator
-        ? seriesValue.substring(legacySeparatorIndex + 1)
-        : "1";
+    let title = seriesValue;
+    if (hasSeparator) {
+      title = seriesValue.substring(0, separatorIndex);
+    } else if (hasLegacySeparator) {
+      title = seriesValue.substring(0, legacySeparatorIndex);
+    }
+    let volumeText = "1";
+    if (hasSeparator) {
+      volumeText = seriesValue.substring(separatorIndex + volumeSeparator.length);
+    } else if (hasLegacySeparator) {
+      volumeText = seriesValue.substring(legacySeparatorIndex + 1);
+    }
     const parsedVolume = Number.parseInt(volumeText, 10);
     const volume = Number.isFinite(parsedVolume) ? parsedVolume : undefined;
 

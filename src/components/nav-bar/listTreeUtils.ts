@@ -213,7 +213,7 @@ export function normalizeIssuePart(value: unknown): string {
 }
 
 export function normalizeIssueNumber(value: unknown): string {
-  return normalizeIssuePart(value).replace(/\s+/g, "").toUpperCase();
+  return normalizeIssuePart(value).replaceAll(/\s+/g, "").toUpperCase();
 }
 
 export function getIssueNumberPrefix(number: string): string {
@@ -272,7 +272,7 @@ export function doesSeriesNodeMatchIssueSeries(
 }
 
 export function normalizeMatchText(value: unknown): string {
-  return normalizeIssuePart(value).replace(/\s+/g, " ").toLowerCase();
+  return normalizeIssuePart(value).replaceAll(/\s+/g, " ").toLowerCase();
 }
 
 export function normalizeSeriesKeyText(value: unknown): string {

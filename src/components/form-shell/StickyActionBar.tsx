@@ -8,7 +8,12 @@ interface StickyActionBarProps {
 }
 
 export default function StickyActionBar({ children, sx }: Readonly<StickyActionBarProps>) {
-  const sxList = Array.isArray(sx) ? sx : sx ? [sx] : [];
+  let sxList: SxProps<Theme>[] = [];
+  if (Array.isArray(sx)) {
+    sxList = sx;
+  } else if (sx) {
+    sxList = [sx];
+  }
 
   return (
     <Paper

@@ -52,34 +52,37 @@ function parseFilteredIssueIds(filteredIssueIdsJson: string | null) {
 }
 
 export async function readNavigationPublishers(scope: NavigationScope) {
+  let publisherScopeFilter: Prisma.PublisherWhereInput = {};
+  if (scope.directIssueWhere) {
+    publisherScopeFilter = {
+      series: {
+        some: {
+          issues: {
+            some: scope.directIssueWhere,
+          },
+        },
+      },
+    };
+  } else if (scope.filteredIssueIds) {
+    publisherScopeFilter = {
+      series: {
+        some: {
+          issues: {
+            some: {
+              id: {
+                in: scope.filteredIssueIds,
+              },
+            },
+          },
+        },
+      },
+    };
+  }
+
   const publishers = await prisma.publisher.findMany({
     where: {
       original: scope.us,
-      ...(scope.directIssueWhere
-        ? {
-            series: {
-              some: {
-                issues: {
-                  some: scope.directIssueWhere,
-                },
-              },
-            },
-          }
-        : scope.filteredIssueIds
-        ? {
-            series: {
-              some: {
-                issues: {
-                  some: {
-                    id: {
-                      in: scope.filteredIssueIds,
-                    },
-                  },
-                },
-              },
-            },
-          }
-        : {}),
+      ...publisherScopeFilter,
     },
     orderBy: [{ name: "asc" }],
   });
@@ -131,29 +134,32 @@ function resolveSeriesNode(
 }
 
 export async function readNavigationSeries(scope: NavigationScope & { publisher: string }) {
+  let seriesScopeFilter: Prisma.SeriesWhereInput = {};
+  if (scope.directIssueWhere) {
+    seriesScopeFilter = {
+      issues: {
+        some: scope.directIssueWhere,
+      },
+    };
+  } else if (scope.filteredIssueIds) {
+    seriesScopeFilter = {
+      issues: {
+        some: {
+          id: {
+            in: scope.filteredIssueIds,
+          },
+        },
+      },
+    };
+  }
+
   const series = await prisma.series.findMany({
     where: {
       publisher: {
         name: scope.publisher,
         original: scope.us,
       },
-      ...(scope.directIssueWhere
-        ? {
-            issues: {
-              some: scope.directIssueWhere,
-            },
-          }
-        : scope.filteredIssueIds
-        ? {
-            issues: {
-              some: {
-                id: {
-                  in: scope.filteredIssueIds,
-                },
-              },
-            },
-          }
-        : {}),
+      ...seriesScopeFilter,
     },
     orderBy: [{ title: "asc" }, { volume: "asc" }, { startYear: "asc" }, { id: "asc" }],
     include: {

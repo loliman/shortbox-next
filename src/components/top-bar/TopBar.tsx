@@ -203,8 +203,12 @@ export default function TopBar(ownProps: TopBarProps) {
   const showNavigation = ownProps.showNavigation ?? true;
   const compactLayout = Boolean(ownProps.compactLayout);
   const [mobileSearchOpen, setMobileSearchOpen] = React.useState(false);
-  const isFilter =
-    typeof query?.filter === "string" ? query.filter : query?.filter ? String(query.filter) : null;
+  let isFilter: string | null = null;
+  if (typeof query?.filter === "string") {
+    isFilter = query.filter;
+  } else if (query?.filter) {
+    isFilter = String(query.filter);
+  }
   const localeSwitchAriaLabel = us ? "Zu Deutsch wechseln" : "Zu US wechseln";
   const changeRequestsCount = ownProps.changeRequestsCount ?? 0;
   const previewImportActive = Boolean(ownProps.previewImportActive);

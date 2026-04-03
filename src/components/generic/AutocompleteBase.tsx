@@ -177,8 +177,8 @@ function buildAutocompleteId(input: {
   return `autocomplete-${preferredText
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")}`;
+    .replaceAll(/[^a-z0-9]+/g, "-")
+    .replaceAll(/^-+|-+$/g, "")}`;
 }
 
 export default AutocompleteBase;

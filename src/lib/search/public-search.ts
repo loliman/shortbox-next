@@ -110,7 +110,7 @@ export async function findPublicSearchNodes(input: {
 }
 
 async function runSearchQuery(rawQuery: string, us: boolean) {
-  const likePattern = `%${normalizeForSearch(rawQuery).replace(/\s+/g, "%")}%`;
+  const likePattern = `%${normalizeForSearch(rawQuery).replaceAll(/\s+/g, "%")}%`;
 
   return prisma.$queryRaw<SearchIndexRow[]>(Prisma.sql`
     WITH ranked AS (
@@ -347,8 +347,8 @@ function parseYear(value: string | undefined): number | null {
 function normalizeForSearch(value: string): string {
   return value
     .toLowerCase()
-    .replace(/[^0-9a-z]+/g, " ")
-    .replace(/\s+/g, " ")
+    .replaceAll(/[^0-9a-z]+/g, " ")
+    .replaceAll(/\s+/g, " ")
     .trim();
 }
 

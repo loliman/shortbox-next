@@ -60,8 +60,8 @@ export function normalizeText(value: unknown) {
 
 function normalizeIssueNumberForSort(value: unknown) {
   return normalizeText(value)
-    .replace(PARENS_PATTERN, "")
-    .replace(/\s+/g, " ")
+    .replaceAll(PARENS_PATTERN, "")
+    .replaceAll(/\s+/g, " ")
     .toUpperCase();
 }
 
