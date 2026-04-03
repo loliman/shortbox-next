@@ -78,6 +78,7 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
               sx={{
                 width: 40,
                 height: 40,
+                color: "primary.contrastText",
                 borderRadius: "50%",
                 border: "1px solid",
                 borderColor: "rgba(255,255,255,0.22)",
