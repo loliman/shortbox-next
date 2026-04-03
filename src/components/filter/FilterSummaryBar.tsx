@@ -262,7 +262,8 @@ function pushIndividualEntries(entries: string[], value: unknown) {
 function toFilterLabel(item: unknown): string {
   if (item === null || item === undefined) return "";
   if (typeof item === "string") return item.trim();
-  if (typeof item !== "object" || Array.isArray(item)) return String(item).trim();
+  if (typeof item === "number") return String(item).trim();
+  if (typeof item !== "object" || Array.isArray(item)) return "";
 
   const objectItem = item as {
     name?: unknown;

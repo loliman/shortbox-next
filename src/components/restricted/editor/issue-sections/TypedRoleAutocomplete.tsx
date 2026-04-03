@@ -83,7 +83,12 @@ function TypedRoleAutocomplete({
         const action = toTypedAction(reason);
         if (!action) return;
 
-        const nextValues = Array.isArray(value) ? value : value ? [value] : [];
+        let nextValues: typeof visibleValues = [];
+        if (Array.isArray(value)) {
+          nextValues = value;
+        } else if (value) {
+          nextValues = [value];
+        }
         const payload: ChangePayload = {
           action,
           name: field,
