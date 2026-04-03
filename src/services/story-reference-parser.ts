@@ -35,20 +35,11 @@ export function parseStoryReferences(input: string): StoryReferenceParseResult {
     const parsed = parseSegment(segment, context);
 
     if (!parsed) {
-      return {
-        references: [],
-        error: `Konnte Segment ${index + 1} nicht lesen: "${segment}". Erwartet wird z.B. "Strange Tales 110-111" oder "Amazing Spider-Man Annual 2".`,
-      };
+      return createSegmentParseError(segment, index);
     }
 
     context = parsed.context;
-
-    parsed.references.forEach((reference) => {
-      const key = [reference.seriesTitle.toLowerCase(), String(reference.volume), reference.issueNumber].join("::");
-      if (seen.has(key)) return;
-      seen.add(key);
-      references.push(reference);
-    });
+    addUniqueReferences(references, seen, parsed.references);
   }
 
   return { references };
@@ -60,14 +51,7 @@ function parseSegment(
 ): { references: StoryIssueReference[]; context: StoryReferenceContext } | null {
   const contextIssueNumbers = parseContextIssueNumbers(segment);
   if (contextIssueNumbers && context) {
-    return {
-      context,
-      references: contextIssueNumbers.map((issueNumber) => ({
-        seriesTitle: context.seriesTitle,
-        volume: context.volume,
-        issueNumber,
-      })),
-    };
+    return createContextReferences(context, contextIssueNumbers);
   }
 
   const issueMatch = segment.match(/((?:annual\s+\d+(?:-\d+)?)|(?:#?[A-Za-z0-9]+(?:-\#?[A-Za-z0-9]+)?))$/i);
@@ -77,13 +61,10 @@ function parseSegment(
   const rawSeriesSpec = segment.slice(0, Math.max(0, segment.length - rawIssueSpec.length)).trim();
   if (!rawSeriesSpec) return null;
 
-  const seriesSpec = stripTrailingPunctuation(rawSeriesSpec);
-  const volumeMatch = seriesSpec.match(VOLUME_PATTERN);
-  const volume = volumeMatch ? Number.parseInt(volumeMatch[1], 10) : 1;
-  const volumeMatchIndex = volumeMatch && typeof volumeMatch.index === "number" ? volumeMatch.index : undefined;
-  const seriesTitle = stripTrailingPunctuation(
-    volumeMatchIndex !== undefined ? seriesSpec.slice(0, Math.max(0, volumeMatchIndex)).trim() : seriesSpec
-  );
+  const parsedSeriesContext = parseSeriesContext(rawSeriesSpec);
+  if (!parsedSeriesContext) return null;
+
+  const { seriesTitle, volume } = parsedSeriesContext;
   if (!seriesTitle || !Number.isFinite(volume) || volume <= 0) return null;
 
   const issueNumbers = parseIssueNumbers(rawIssueSpec);
@@ -98,6 +79,63 @@ function parseSegment(
       issueNumber,
     })),
   };
+}
+
+function createSegmentParseError(
+  segment: string,
+  index: number
+): StoryReferenceParseResult {
+  return {
+    references: [],
+    error: `Konnte Segment ${index + 1} nicht lesen: "${segment}". Erwartet wird z.B. "Strange Tales 110-111" oder "Amazing Spider-Man Annual 2".`,
+  };
+}
+
+function addUniqueReferences(
+  target: StoryIssueReference[],
+  seen: Set<string>,
+  incoming: StoryIssueReference[]
+) {
+  for (const reference of incoming) {
+    const key = [
+      reference.seriesTitle.toLowerCase(),
+      String(reference.volume),
+      reference.issueNumber,
+    ].join("::");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    target.push(reference);
+  }
+}
+
+function createContextReferences(
+  context: StoryReferenceContext,
+  issueNumbers: string[]
+) {
+  return {
+    context,
+    references: issueNumbers.map((issueNumber) => ({
+      seriesTitle: context.seriesTitle,
+      volume: context.volume,
+      issueNumber,
+    })),
+  };
+}
+
+function parseSeriesContext(rawSeriesSpec: string): StoryReferenceContext | null {
+  const seriesSpec = stripTrailingPunctuation(rawSeriesSpec);
+  const volumeMatch = seriesSpec.match(VOLUME_PATTERN);
+  const volume = volumeMatch ? Number.parseInt(volumeMatch[1], 10) : 1;
+  const volumeMatchIndex =
+    volumeMatch && typeof volumeMatch.index === "number" ? volumeMatch.index : undefined;
+  const seriesTitle = stripTrailingPunctuation(
+    volumeMatchIndex !== undefined
+      ? seriesSpec.slice(0, Math.max(0, volumeMatchIndex)).trim()
+      : seriesSpec
+  );
+  if (!seriesTitle || !Number.isFinite(volume) || volume <= 0) return null;
+
+  return { seriesTitle, volume };
 }
 
 function parseContextIssueNumbers(value: string): string[] | null {

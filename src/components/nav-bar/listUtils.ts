@@ -46,7 +46,7 @@ export function scrollToSelectedIssue(
   if (!level || !selected?.issue?.number || !listElement) return;
   if (level !== HierarchyLevel.SERIES && level !== HierarchyLevel.ISSUE) return;
   const selectedIssueNumber = selected.issue.number;
-  const queryName = level === HierarchyLevel.SERIES ? "issueList" : "issueList";
+  const queryName = "issueList";
   const items = toNodeList(data, queryName);
   if (!items) return;
 

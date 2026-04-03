@@ -423,7 +423,7 @@ function parseJsonish(value: unknown): unknown {
   if (isPlainObject(value)) {
     const normalized: Record<string, unknown> = {};
     Object.keys(value)
-      .sort()
+      .sort((left, right) => left.localeCompare(right, "de-DE"))
       .forEach((key) => {
         normalized[key] = parseJsonish((value as Record<string, unknown>)[key]);
       });

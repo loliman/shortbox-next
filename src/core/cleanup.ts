@@ -145,6 +145,91 @@ const distinctOwnerIdsForActiveRefs = async (
   return owners;
 };
 
+const toBigIntIds = (ids: Set<number>) => [...ids].map((id) => BigInt(id));
+
+const mapOwnerRows = <T extends bigint>(rows: Array<T>, key: "fkIndividual" | "fkAppearance" | "fkArc") =>
+  rows.map((row) => ({ ownerId: (row as unknown as Record<string, bigint>)[key] }));
+
+const readLinkedIndividualIdsForIssues = (
+  tx: typeof prisma,
+  activeIssueIds: Set<number>
+) =>
+  distinctOwnerIdsForActiveRefs(
+    () =>
+      tx.issueIndividual
+        .findMany({
+          where: { fkIssue: { in: toBigIntIds(activeIssueIds) } },
+          distinct: ["fkIndividual"],
+          select: { fkIndividual: true },
+        })
+        .then((rows) => mapOwnerRows(rows, "fkIndividual")),
+    activeIssueIds
+  );
+
+const readLinkedIndividualIdsForStories = (
+  tx: typeof prisma,
+  activeStoryIds: Set<number>
+) =>
+  distinctOwnerIdsForActiveRefs(
+    () =>
+      tx.storyIndividual
+        .findMany({
+          where: { fkStory: { in: toBigIntIds(activeStoryIds) } },
+          distinct: ["fkIndividual"],
+          select: { fkIndividual: true },
+        })
+        .then((rows) => mapOwnerRows(rows, "fkIndividual")),
+    activeStoryIds
+  );
+
+const readLinkedIndividualIdsForCovers = (
+  tx: typeof prisma,
+  activeCoverIds: Set<number>
+) =>
+  distinctOwnerIdsForActiveRefs(
+    () =>
+      tx.coverIndividual
+        .findMany({
+          where: { fkCover: { in: toBigIntIds(activeCoverIds) } },
+          distinct: ["fkIndividual"],
+          select: { fkIndividual: true },
+        })
+        .then((rows) => mapOwnerRows(rows, "fkIndividual")),
+    activeCoverIds
+  );
+
+const readLinkedAppearanceIdsForStories = (
+  tx: typeof prisma,
+  activeStoryIds: Set<number>
+) =>
+  distinctOwnerIdsForActiveRefs(
+    () =>
+      tx.storyAppearance
+        .findMany({
+          where: { fkStory: { in: toBigIntIds(activeStoryIds) } },
+          distinct: ["fkAppearance"],
+          select: { fkAppearance: true },
+        })
+        .then((rows) => mapOwnerRows(rows, "fkAppearance")),
+    activeStoryIds
+  );
+
+const readLinkedArcIdsForIssues = (
+  tx: typeof prisma,
+  activeIssueIds: Set<number>
+) =>
+  distinctOwnerIdsForActiveRefs(
+    () =>
+      tx.issueArc
+        .findMany({
+          where: { fkIssue: { in: toBigIntIds(activeIssueIds) } },
+          distinct: ["fkArc"],
+          select: { fkArc: true },
+        })
+        .then((rows) => mapOwnerRows(rows, "fkArc")),
+    activeIssueIds
+  );
+
 const findUSIssueIdsWithoutDEReference = ({
   publishers,
   series,
@@ -526,33 +611,9 @@ export async function runCleanup(
       );
       markDeleted(step6StoryIds, activeStoryIds);
 
-      const issueLinkedIndividualIds = await distinctOwnerIdsForActiveRefs(
-        () =>
-          tx.issueIndividual.findMany({
-            where: { fkIssue: { in: [...activeIssueIds].map((id) => BigInt(id)) } },
-            distinct: ["fkIndividual"],
-            select: { fkIndividual: true },
-          }).then((rows) => rows.map((row) => ({ ownerId: row.fkIndividual }))),
-        activeIssueIds
-      );
-      const storyLinkedIndividualIds = await distinctOwnerIdsForActiveRefs(
-        () =>
-          tx.storyIndividual.findMany({
-            where: { fkStory: { in: [...activeStoryIds].map((id) => BigInt(id)) } },
-            distinct: ["fkIndividual"],
-            select: { fkIndividual: true },
-          }).then((rows) => rows.map((row) => ({ ownerId: row.fkIndividual }))),
-        activeStoryIds
-      );
-      const coverLinkedIndividualIds = await distinctOwnerIdsForActiveRefs(
-        () =>
-          tx.coverIndividual.findMany({
-            where: { fkCover: { in: [...activeCoverIds].map((id) => BigInt(id)) } },
-            distinct: ["fkIndividual"],
-            select: { fkIndividual: true },
-          }).then((rows) => rows.map((row) => ({ ownerId: row.fkIndividual }))),
-        activeCoverIds
-      );
+      const issueLinkedIndividualIds = await readLinkedIndividualIdsForIssues(tx, activeIssueIds);
+      const storyLinkedIndividualIds = await readLinkedIndividualIdsForStories(tx, activeStoryIds);
+      const coverLinkedIndividualIds = await readLinkedIndividualIdsForCovers(tx, activeCoverIds);
 
       const step7IndividualIds = individuals
         .filter((individual) => activeIndividualIds.has(individual.id))
@@ -576,15 +637,7 @@ export async function runCleanup(
       );
       markDeleted(step7IndividualIds, activeIndividualIds);
 
-      const storyLinkedAppearanceIds = await distinctOwnerIdsForActiveRefs(
-        () =>
-          tx.storyAppearance.findMany({
-            where: { fkStory: { in: [...activeStoryIds].map((id) => BigInt(id)) } },
-            distinct: ["fkAppearance"],
-            select: { fkAppearance: true },
-          }).then((rows) => rows.map((row) => ({ ownerId: row.fkAppearance }))),
-        activeStoryIds
-      );
+      const storyLinkedAppearanceIds = await readLinkedAppearanceIdsForStories(tx, activeStoryIds);
       const step8AppearanceIds = appearances
         .filter((appearance) => activeAppearanceIds.has(appearance.id))
         .filter((appearance) => !storyLinkedAppearanceIds.has(appearance.id))
@@ -602,15 +655,7 @@ export async function runCleanup(
       );
       markDeleted(step8AppearanceIds, activeAppearanceIds);
 
-      const issueLinkedArcIds = await distinctOwnerIdsForActiveRefs(
-        () =>
-          tx.issueArc.findMany({
-            where: { fkIssue: { in: [...activeIssueIds].map((id) => BigInt(id)) } },
-            distinct: ["fkArc"],
-            select: { fkArc: true },
-          }).then((rows) => rows.map((row) => ({ ownerId: row.fkArc }))),
-        activeIssueIds
-      );
+      const issueLinkedArcIds = await readLinkedArcIdsForIssues(tx, activeIssueIds);
       const step9ArcIds = arcs
         .filter((arc) => activeArcIds.has(arc.id))
         .filter((arc) => !issueLinkedArcIds.has(arc.id))

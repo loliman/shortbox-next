@@ -7,9 +7,7 @@ import {
 type StoryRow = Awaited<ReturnType<typeof readStoriesByIds>>[number];
 
 export class StoryService {
-  constructor(private requestId?: string) {
-    void this.requestId;
-  }
+  constructor(private readonly requestId?: string) {}
 
   async getStoriesByIds(ids: readonly number[]) {
     if (ids.length === 0) return [];

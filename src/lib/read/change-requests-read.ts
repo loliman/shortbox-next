@@ -29,7 +29,7 @@ function normalizeForDiff(value: unknown): unknown {
   if (value && typeof value === "object") {
     const input = value as Record<string, unknown>;
     const normalized: Record<string, unknown> = {};
-    for (const key of Object.keys(input).sort()) {
+    for (const key of Object.keys(input).sort((left, right) => left.localeCompare(right, "de-DE"))) {
       normalized[key] = normalizeForDiff(input[key]);
     }
     return normalized;
@@ -215,10 +215,7 @@ async function loadIssueForChangeRequest(issueId: number): Promise<Record<string
 export async function readChangeRequests(options?: { order?: string | null; direction?: string | null }) {
   const direction = String(options?.direction || "asc").toLowerCase() === "desc" ? "desc" : "asc";
   const rows = await prisma.changeRequest.findMany({
-    orderBy:
-      String(options?.order || "createdAt") === "createdAt"
-        ? [{ createdAt: direction }, { id: direction }]
-        : [{ createdAt: direction }, { id: direction }],
+    orderBy: [{ createdAt: direction }, { id: direction }],
   });
 
   if (rows.length === 0) return [];

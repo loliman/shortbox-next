@@ -215,7 +215,7 @@ async function parseCodeAnchoredDrafts(
     const windowEnd = Math.min(lines.length, index + 18);
     const windowLines = lines.slice(windowStart, windowEnd);
     const localCodeIndex = index - windowStart;
-    const sourceTitle = deriveCodeAnchoredTitle(windowLines, localCodeIndex) || deriveLooseFallbackTitle(windowLines, localCodeIndex) || code;
+    const sourceTitle = deriveCodeAnchoredSourceTitle(windowLines, localCodeIndex, code);
 
     const metadataLines = collectCodeMetadataWindow(windowLines, localCodeIndex);
     const contentLine = windowLines.find((line) => /^Inhalt:/i.test(line)) || "";
@@ -229,18 +229,7 @@ async function parseCodeAnchoredDrafts(
     });
 
     draft.issueCode = code;
-
-    const explicitNumber = deriveExplicitIssueNumber(windowLines, localCodeIndex);
-    if (explicitNumber) {
-      draft.values.number = explicitNumber;
-      draft.values.series.title = stripTrailingIssueList(draft.values.series.title);
-    }
-
-    const bandTitle = deriveBandTitle(windowLines, localCodeIndex);
-    if (bandTitle) {
-      draft.values.series.title = bandTitle.seriesTitle;
-      draft.values.number = bandTitle.number;
-    }
+    applyDerivedIssueIdentity(draft, windowLines, localCodeIndex);
 
     drafts.push(draft);
   }
@@ -270,7 +259,7 @@ async function buildDraft(input: {
   values.series.title = parsedTitle.seriesTitle;
   values.series.volume = 1;
   values.number = parsedTitle.number;
-  values.title = input.isVariant ? "" : "";
+  values.title = "";
   values.variant = input.isVariant ? deriveVariantLabel(input.metadataLines.join(" | ")) : "";
   values.pages = metadata.pages ?? values.pages;
   values.format = metadata.format ?? values.format;
@@ -417,6 +406,14 @@ function deriveCodeAnchoredTitle(lines: string[], localCodeIndex: number) {
   return normalizeTitle(titleLines.join(" "));
 }
 
+function deriveCodeAnchoredSourceTitle(lines: string[], localCodeIndex: number, fallbackCode: string) {
+  return (
+    deriveCodeAnchoredTitle(lines, localCodeIndex)
+    || deriveLooseFallbackTitle(lines, localCodeIndex)
+    || fallbackCode
+  );
+}
+
 function deriveLooseFallbackTitle(lines: string[], localCodeIndex: number) {
   const candidates = lines
     .slice(Math.max(0, localCodeIndex - 6), localCodeIndex)
@@ -503,6 +500,24 @@ function deriveBandTitle(lines: string[], localCodeIndex: number) {
   }
 
   return null;
+}
+
+function applyDerivedIssueIdentity(
+  draft: PreviewImportDraft,
+  lines: string[],
+  localCodeIndex: number
+) {
+  const explicitNumber = deriveExplicitIssueNumber(lines, localCodeIndex);
+  if (explicitNumber) {
+    draft.values.number = explicitNumber;
+    draft.values.series.title = stripTrailingIssueList(draft.values.series.title);
+  }
+
+  const bandTitle = deriveBandTitle(lines, localCodeIndex);
+  if (!bandTitle) return;
+
+  draft.values.series.title = bandTitle.seriesTitle;
+  draft.values.number = bandTitle.number;
 }
 
 function deriveStandaloneVariant(lines: string[], localCodeIndex: number, code: string) {

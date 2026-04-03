@@ -108,6 +108,75 @@ function splitFilterTerms(value: string | null | undefined): string[] {
   return dedupeTerms(value.split(MULTI_FILTER_SEPARATOR_REGEX));
 }
 
+function collectNamedTerms<T extends { name?: string | null }>(
+  values: Array<T | null> | string | null | undefined
+): string[] {
+  if (Array.isArray(values)) {
+    return dedupeTerms(
+      values
+        .map((value) => String(value?.name || "").trim())
+        .filter((value) => value.length > 0)
+    );
+  }
+
+  return splitFilterTerms(values);
+}
+
+function collectTitleTerms<T extends { title?: string | null }>(
+  values: Array<T | null> | string | null | undefined
+): string[] {
+  if (Array.isArray(values)) {
+    return dedupeTerms(
+      values
+        .map((value) => String(value?.title || "").trim())
+        .filter((value) => value.length > 0)
+    );
+  }
+
+  return splitFilterTerms(values);
+}
+
+function buildReleaseDateCondition(compare: string, parsedDate: Date): Prisma.IssueWhereInput {
+  if (compare === ">=") {
+    return {
+      releaseDate: {
+        gte: startOfDay(parsedDate),
+      },
+    };
+  }
+
+  if (compare === ">") {
+    return {
+      releaseDate: {
+        gt: endOfDay(parsedDate),
+      },
+    };
+  }
+
+  if (compare === "<=") {
+    return {
+      releaseDate: {
+        lte: endOfDay(parsedDate),
+      },
+    };
+  }
+
+  if (compare === "<") {
+    return {
+      releaseDate: {
+        lt: startOfDay(parsedDate),
+      },
+    };
+  }
+
+  return {
+    releaseDate: {
+      gte: startOfDay(parsedDate),
+      lte: endOfDay(parsedDate),
+    },
+  };
+}
+
 function containsInsensitive(haystack: string | null | undefined, needle: string): boolean {
   return String(haystack || "").toLocaleLowerCase("de-DE").includes(needle.toLocaleLowerCase("de-DE"));
 }
@@ -545,63 +614,11 @@ export class FilterService {
 
     const releasedateConditions: Prisma.IssueWhereInput[] = [];
     for (const entry of filter.releasedates || []) {
-        const parsedDate = parseFilterDate(entry?.date);
-        if (!parsedDate) continue;
-        const compare = String(entry?.compare || "=");
-
-        if (compare === "=") {
-          releasedateConditions.push({
-            releaseDate: {
-              gte: startOfDay(parsedDate),
-              lte: endOfDay(parsedDate),
-            },
-          });
-          continue;
-        }
-
-        if (compare === ">=") {
-          releasedateConditions.push({
-            releaseDate: {
-              gte: startOfDay(parsedDate),
-            },
-          });
-          continue;
-        }
-
-        if (compare === ">") {
-          releasedateConditions.push({
-            releaseDate: {
-              gt: endOfDay(parsedDate),
-            },
-          });
-          continue;
-        }
-
-        if (compare === "<=") {
-          releasedateConditions.push({
-            releaseDate: {
-              lte: endOfDay(parsedDate),
-            },
-          });
-          continue;
-        }
-
-        if (compare === "<") {
-          releasedateConditions.push({
-            releaseDate: {
-              lt: startOfDay(parsedDate),
-            },
-          });
-          continue;
-        }
-
-        releasedateConditions.push({
-          releaseDate: {
-            gte: startOfDay(parsedDate),
-            lte: endOfDay(parsedDate),
-          },
-        });
-      }
+      const parsedDate = parseFilterDate(entry?.date);
+      if (!parsedDate) continue;
+      const compare = String(entry?.compare || "=");
+      releasedateConditions.push(buildReleaseDateCondition(compare, parsedDate));
+    }
     and.push(...releasedateConditions);
 
     if (filter.withVariants && !filter.onlyCollected) {
@@ -695,13 +712,7 @@ export class FilterService {
     if (!matchesIndividuals(issue, filter.individuals)) return false;
     if (!matchesStorySwitches(issue, filter)) return false;
 
-    const arcTerms = Array.isArray(filter.arcs)
-      ? dedupeTerms(
-          filter.arcs
-            .map((arc) => String(arc?.title || "").trim())
-            .filter((arc) => arc.length > 0)
-        )
-      : splitFilterTerms(filter.arcs as string | null | undefined);
+    const arcTerms = collectTitleTerms(filter.arcs);
     if (arcTerms.length > 0) {
       const arcTitles = getArcTitles(issue, Boolean(filter.us));
       const matchesArcs = arcTerms.every((term) =>
@@ -710,20 +721,8 @@ export class FilterService {
       if (!matchesArcs) return false;
     }
 
-    const appearanceTerms = Array.isArray(filter.appearances)
-      ? dedupeTerms(
-          filter.appearances
-            .map((appearance) => String(appearance?.name || "").trim())
-            .filter((appearance) => appearance.length > 0)
-        )
-      : splitFilterTerms(filter.appearances as string | null | undefined);
-    const realityTerms = Array.isArray(filter.realities)
-      ? dedupeTerms(
-          filter.realities
-            .map((reality) => String(reality?.name || "").trim())
-            .filter((reality) => reality.length > 0)
-        )
-      : splitFilterTerms(filter.realities as string | null | undefined);
+    const appearanceTerms = collectNamedTerms(filter.appearances);
+    const realityTerms = collectNamedTerms(filter.realities);
     if (appearanceTerms.length > 0 || realityTerms.length > 0) {
       const appearanceNames = getStoryAppearanceNames(issue, Boolean(filter.us));
       if (
