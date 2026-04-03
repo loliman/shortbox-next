@@ -276,7 +276,7 @@ function normalizeHeader(s: string) {
   // "Writer(s)" => "writer", "Original Price" => "original price"
   return ws(s)
     .toLowerCase()
-    .replaceAll(/\(s\)/g, "") // writer(s) -> writer
+    .replaceAll("(s)", "") // writer(s) -> writer
     .replaceAll(/[:\[\]]/g, "")
     .replaceAll(/\s+/g, " ")
     .trim();
@@ -385,16 +385,16 @@ function normalizeWikiTitleForComparison(value: string): string {
 
 function normalizeIssueNumberKey(value: string): string {
   const normalized = ws(value)
-    .replace(/^([0-9]+[a-z.]*)\s*:\s+.*$/i, "$1")
+    .replace(/^(\d+[a-z.]*)\s*:\s+.*$/i, "$1")
     .toLowerCase()
     .replaceAll("_", " ")
-    .replaceAll(/a\.i\./g, "ai")
+    .replaceAll("a.i.", "ai")
     .replaceAll(/\s+/g, "");
   return normalized;
 }
 
 function escapeRegExp(value: string): string {
-  return value.replaceAll(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return value.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 }
 
 function extractContainedIssueStoryTitleFromCaption(
@@ -661,7 +661,7 @@ function cleanAppearanceName(raw: string): string {
 
 function parsePrice(raw: string | null): { price: number; currency: string } {
   if (!raw) return { price: 0, currency: "" };
-  const symbolPricePattern = /([€$£])\s*([0-9]+(?:\.[0-9]+)?)/;
+  const symbolPricePattern = /([€$£])\s*(\d+(?:\.\d+)?)/;
   const symbolMatch = symbolPricePattern.exec(raw);
   if (symbolMatch) {
     const currencyBySymbol: Record<string, string> = {
@@ -675,7 +675,7 @@ function parsePrice(raw: string | null): { price: number; currency: string } {
     };
   }
 
-  const currencyCodePattern = /\b([A-Z]{3})\b\s*([0-9]+(?:\.[0-9]+)?)/i;
+  const currencyCodePattern = /\b([A-Z]{3})\b\s*(\d+(?:\.\d+)?)/i;
   const codeMatch = currencyCodePattern.exec(raw);
   if (codeMatch) {
     return { currency: codeMatch[1].toUpperCase(), price: Number(codeMatch[2]) };
@@ -835,7 +835,7 @@ function inlineLabelValueText($: cheerio.CheerioAPI, label: string): string | nu
         .find("a[href^='/wiki/']")
         .map((_, el) => ws($(el).text()))
         .get()
-        .filter(Boolean) as string[],
+        .filter(Boolean),
     ),
   );
   if (linkValues.length > 0) return linkValues.join(", ");
@@ -914,7 +914,6 @@ function findStories($: cheerio.CheerioAPI): StoryKey[] {
     const mB = ordinalStoryPattern.exec(t);
     if (mB) {
       out.push({ number: Number(mB[1]), headingText: t, title: cleanStoryTitle(t), h2El: el });
-      return;
     }
   });
 
@@ -924,11 +923,11 @@ function findStories($: cheerio.CheerioAPI): StoryKey[] {
 
 function nextUntilH2Nodes(startEl: Element): AnyNode[] {
   const nodes: AnyNode[] = [];
-  let cur = (startEl as any).nextSibling;
+  let cur: AnyNode | null = startEl.nextSibling;
   while (cur) {
-    if ((cur as any).name === "h2") break;
-    nodes.push(cur as any);
-    cur = (cur as any).nextSibling;
+    if ("name" in cur && cur.name === "h2") break;
+    nodes.push(cur);
+    cur = cur.nextSibling;
   }
   return nodes;
 }
@@ -1313,11 +1312,11 @@ function getSeriesCacheKey(title: string, volume: number): string {
 
 function collectNodesUntilNextH2(startH2: Element): AnyNode[] {
   const nodes: AnyNode[] = [];
-  let cur = (startH2 as any).nextSibling;
+  let cur: AnyNode | null = startH2.nextSibling;
   while (cur) {
-    if ((cur as any).name === "h2") break;
-    nodes.push(cur as any);
-    cur = (cur as any).nextSibling;
+    if ("name" in cur && cur.name === "h2") break;
+    nodes.push(cur);
+    cur = cur.nextSibling;
   }
   return nodes;
 }
