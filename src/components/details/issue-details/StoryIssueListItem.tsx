@@ -41,7 +41,7 @@ export function StoryIssueListItem(props: Readonly<StoryIssueListItemProps>) {
   const { push } = usePendingNavigation();
   const publisherTitle = props.issue?.series?.publisher?.name || "";
   const routeUs = Boolean(props.routeUs);
-  const coverUs = props.coverUs === undefined ? routeUs : props.coverUs;
+  const coverUs = props.coverUs ?? routeUs;
 
   return (
     <ListItem

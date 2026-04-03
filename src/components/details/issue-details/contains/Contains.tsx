@@ -68,7 +68,7 @@ export function Contains(props: Readonly<ContainsProps>) {
               item={item}
               itemTitle={ItemTitle}
               itemNavigation={ItemNavigation}
-              itemDetails={ItemDetails as ContainsDetailsSlotComponent}
+              itemDetails={ItemDetails}
               query={props.query}
               us={props.us}
               {...slotProps}
