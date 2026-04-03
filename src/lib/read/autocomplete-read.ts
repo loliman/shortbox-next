@@ -434,7 +434,9 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
 }
 
 function normalizePattern(value: unknown) {
-  return String(value ?? "").trim();
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }
 
 function normalizePositiveInt(value: number | undefined, fallback: number) {

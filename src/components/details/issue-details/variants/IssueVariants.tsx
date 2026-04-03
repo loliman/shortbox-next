@@ -511,13 +511,11 @@ function getFormatSortRank(format: string | null | undefined): number {
 }
 
 function normalizeFormatAlias(value: string | null | undefined): string {
-  return String(value || "")
-    .trim()
-    .toLowerCase();
+  return value?.trim().toLowerCase() || "";
 }
 
 function normalizeSortText(value: string | null | undefined): string {
-  return String(value || "").trim();
+  return value?.trim() || "";
 }
 
 function getVariantCoverUrl(variant: VariantIssue | null | undefined, us: boolean): string {

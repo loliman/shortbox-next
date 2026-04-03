@@ -43,7 +43,7 @@ export type UpdateDeSeriesGenresReport = {
 };
 
 const splitGenreTokens = (value: unknown): string[] =>
-  String(value || "")
+  readGenreText(value)
     .split(",")
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);
@@ -115,7 +115,7 @@ export async function runUpdateDeSeriesGenres(
     usParentStories.forEach((row) => {
       const storyId = Number(row.id || 0);
       if (storyId <= 0) return;
-      usGenreByParentStoryId.set(storyId, String(row.genre || ""));
+      usGenreByParentStoryId.set(storyId, readGenreText(row.genre));
     });
 
     const genresByDeSeriesId = new Map<number, string[]>();
@@ -187,3 +187,8 @@ export async function runUpdateDeSeriesGenres(
   }
 }
 
+function readGenreText(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return "";
+}

@@ -40,7 +40,7 @@ function toPageLines(items: Array<{ str?: string; transform?: number[] }>) {
   const rows = new Map<string, Array<{ x: number; text: string }>>();
 
   for (const item of items) {
-    const text = String(item.str || "").trim();
+    const text = typeof item.str === "string" ? item.str.trim() : "";
     if (!text) continue;
     const transform = Array.isArray(item.transform) ? item.transform : [];
     const x = typeof transform[4] === "number" ? transform[4] : 0;
