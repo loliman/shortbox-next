@@ -748,16 +748,16 @@ async function syncStoriesFromParentRefs(
               normalizeStoryTitleKey(entry.storyTitle) === normalizeStoryTitleKey(parentStory.title)
           );
 
-        const selectedParentStories =
-          requestedParentStoryNumber > 0
-            ? parentStories.filter(
-                (entry) =>
-                  Number(entry.number || 0) === requestedParentStoryNumber &&
-                  (matchedParentRefsByTitle.length === 0 || matchesResolvedParentStory(entry))
-              )
-            : matchedParentRefsByTitle.length > 0
-              ? parentStories.filter((entry) => matchesResolvedParentStory(entry))
-              : parentStories;
+        let selectedParentStories = parentStories;
+        if (requestedParentStoryNumber > 0) {
+          selectedParentStories = parentStories.filter(
+            (entry) =>
+              Number(entry.number || 0) === requestedParentStoryNumber &&
+              (matchedParentRefsByTitle.length === 0 || matchesResolvedParentStory(entry))
+          );
+        } else if (matchedParentRefsByTitle.length > 0) {
+          selectedParentStories = parentStories.filter((entry) => matchesResolvedParentStory(entry));
+        }
 
         for (const parentStory of selectedParentStories) {
           await createStoryRow(Number(parentStory.id));
@@ -907,25 +907,31 @@ async function findOrCrawlParentIssueRefs(
     parent.number
   )) as CrawledIssueLike;
 
-  const normalizedCollectedIssues = Array.isArray(crawledIssue.collectedIssues)
-    ? crawledIssue.collectedIssues
-        .map((entry) => ({
-          number: normalizeText(entry?.number),
-          storyTitle: normalizeText(entry?.storyTitle),
-          seriesTitle: normalizeText(entry?.series?.title),
-          seriesVolume: Number(entry?.series?.volume || 0),
-        }))
-        .filter((entry) => entry.number && entry.seriesTitle && entry.seriesVolume > 0)
-    : Array.isArray(crawledIssue.containedIssues)
-      ? crawledIssue.containedIssues
-          .map((entry) => ({
-            number: normalizeText(entry?.number),
-            storyTitle: normalizeText(entry?.storyTitle),
-            seriesTitle: normalizeText(entry?.series?.title),
-            seriesVolume: Number(entry?.series?.volume || 0),
-          }))
-          .filter((entry) => entry.number && entry.seriesTitle && entry.seriesVolume > 0)
-      : [];
+  let normalizedCollectedIssues: Array<{
+    number: string;
+    storyTitle: string;
+    seriesTitle: string;
+    seriesVolume: number;
+  }> = [];
+  if (Array.isArray(crawledIssue.collectedIssues)) {
+    normalizedCollectedIssues = crawledIssue.collectedIssues
+      .map((entry) => ({
+        number: normalizeText(entry?.number),
+        storyTitle: normalizeText(entry?.storyTitle),
+        seriesTitle: normalizeText(entry?.series?.title),
+        seriesVolume: Number(entry?.series?.volume || 0),
+      }))
+      .filter((entry) => entry.number && entry.seriesTitle && entry.seriesVolume > 0);
+  } else if (Array.isArray(crawledIssue.containedIssues)) {
+    normalizedCollectedIssues = crawledIssue.containedIssues
+      .map((entry) => ({
+        number: normalizeText(entry?.number),
+        storyTitle: normalizeText(entry?.storyTitle),
+        seriesTitle: normalizeText(entry?.series?.title),
+        seriesVolume: Number(entry?.series?.volume || 0),
+      }))
+      .filter((entry) => entry.number && entry.seriesTitle && entry.seriesVolume > 0);
+  }
 
   if (normalizedCollectedIssues.length > 0) {
     const containedIssueRefs = new Map<string, ParentIssueRef>();

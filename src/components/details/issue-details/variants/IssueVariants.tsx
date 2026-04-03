@@ -194,60 +194,30 @@ export function IssueVariants(props: Readonly<IssueVariantsProps>) {
           collapsedSize: "0px",
         },
       }}
-      sx={(theme) => ({
-        position: "relative",
-        backgroundColor: "rgba(255,255,255,0.52)",
-        border: `1px solid ${theme.vars?.palette.divider ?? theme.palette.divider}`,
-        borderRadius: 1.5,
-        overflow: "hidden",
-        boxShadow: theme.shadows[2],
-        ...theme.applyStyles("dark", {
-          backgroundColor: "rgba(9,11,15,0.6)",
-        }),
-        "&::after": isActiveCoverLoading
-          ? {
-              content: '""',
-              position: "absolute",
-              inset: 0,
-              backgroundImage:
-                "linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)), linear-gradient(110deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.14) 50%, rgba(0, 0, 0, 0.04) 75%)",
-              backgroundSize: "100% 100%, 220% 100%",
-              backgroundPosition: "0 0, 200% 0",
-              backgroundRepeat: "no-repeat, no-repeat",
-              opacity: 0.7,
-              transform: "scale(1.03)",
-              zIndex: 0,
-              animation: "variantCoverShimmer 1.4s ease-in-out infinite",
-              ...theme.applyStyles("dark", {
-                backgroundImage:
-                  "linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), linear-gradient(110deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.04) 75%)",
-              }),
-            }
-          : activeCoverUrl
-            ? {
-              content: '""',
-              position: "absolute",
-              inset: 0,
-              backgroundImage:
-                `linear-gradient(to right, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.62) 40%, rgba(255, 255, 255, 0) 100%), url("${activeCoverUrl}")`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              backgroundRepeat: "no-repeat",
-              opacity: 0.7,
-              transform: "scale(1.03)",
-              zIndex: 0,
-              ...theme.applyStyles("dark", {
-                backgroundImage:
-                  `linear-gradient(to right, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.58) 40%, rgba(0, 0, 0, 0.08) 100%), url("${activeCoverUrl}")`,
-              }),
-            }
-            : undefined,
-        "@keyframes variantCoverShimmer": {
-          "0%": { backgroundPosition: "0 0, 220% 0" },
-          "100%": { backgroundPosition: "0 0, -20% 0" },
-        },
-        "&::before": { display: "none" },
-      })}
+      sx={(theme) => {
+        const overlayAfterSx = resolveVariantAccordionOverlay(theme, {
+          activeCoverUrl,
+          isActiveCoverLoading,
+        });
+
+        return {
+          position: "relative",
+          backgroundColor: "rgba(255,255,255,0.52)",
+          border: `1px solid ${theme.vars?.palette.divider ?? theme.palette.divider}`,
+          borderRadius: 1.5,
+          overflow: "hidden",
+          boxShadow: theme.shadows[2],
+          ...theme.applyStyles("dark", {
+            backgroundColor: "rgba(9,11,15,0.6)",
+          }),
+          "&::after": overlayAfterSx,
+          "@keyframes variantCoverShimmer": {
+            "0%": { backgroundPosition: "0 0, 220% 0" },
+            "100%": { backgroundPosition: "0 0, -20% 0" },
+          },
+          "&::before": { display: "none" },
+        };
+      }}
     >
       <AccordionSummary
         expandIcon={variants.length === 1 ? null : <ExpandMoreIcon sx={{ fontSize: 24 }} />}
@@ -426,15 +396,7 @@ export function IssueVariants(props: Readonly<IssueVariantsProps>) {
                   <IssueVariantTile
                     issue={props.issue}
                     variant={variant}
-                    edge={
-                      variants.length === 1
-                        ? "single"
-                        : idx === 0
-                          ? "start"
-                          : idx === variants.length - 1
-                            ? "end"
-                            : "middle"
-                    }
+                    edge={resolveVariantEdge(variants.length, idx)}
                     selected={selected}
                     hasStories={hasStories}
                     session={props.session}
@@ -471,6 +433,60 @@ function getIssueIdentityKey(
   ].join("|");
 }
 
+function resolveVariantAccordionOverlay(
+  theme: Theme,
+  options: { activeCoverUrl?: string; isActiveCoverLoading: boolean }
+) {
+  if (options.isActiveCoverLoading) {
+    return {
+      content: '""',
+      position: "absolute",
+      inset: 0,
+      backgroundImage:
+        "linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)), linear-gradient(110deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.14) 50%, rgba(0, 0, 0, 0.04) 75%)",
+      backgroundSize: "100% 100%, 220% 100%",
+      backgroundPosition: "0 0, 200% 0",
+      backgroundRepeat: "no-repeat, no-repeat",
+      opacity: 0.7,
+      transform: "scale(1.03)",
+      zIndex: 0,
+      animation: "variantCoverShimmer 1.4s ease-in-out infinite",
+      ...theme.applyStyles("dark", {
+        backgroundImage:
+          "linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), linear-gradient(110deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.04) 75%)",
+      }),
+    };
+  }
+  if (!options.activeCoverUrl) return undefined;
+
+  return {
+    content: '""',
+    position: "absolute",
+    inset: 0,
+    backgroundImage:
+      `linear-gradient(to right, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.62) 40%, rgba(255, 255, 255, 0) 100%), url("${options.activeCoverUrl}")`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+    opacity: 0.7,
+    transform: "scale(1.03)",
+    zIndex: 0,
+    ...theme.applyStyles("dark", {
+      backgroundImage:
+        `linear-gradient(to right, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.58) 40%, rgba(0, 0, 0, 0.08) 100%), url("${options.activeCoverUrl}")`,
+    }),
+  };
+}
+
+function resolveVariantEdge(
+  variantCount: number,
+  index: number
+): "single" | "start" | "end" | "middle" {
+  if (variantCount === 1) return "single";
+  if (index === 0) return "start";
+  if (index === variantCount - 1) return "end";
+  return "middle";
+}
 
 function compareVariants(left: VariantIssue, right: VariantIssue): number {
   const formatCompare = getFormatSortRank(left.format) - getFormatSortRank(right.format);

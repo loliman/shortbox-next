@@ -283,24 +283,22 @@ export default function List(props: Readonly<ListProps>) {
     );
 
     // Normalize any stale stored keys against actual publisher nodes
-    const normalizedStored =
-      hasStoredExpansion && visiblePublisherNodes.length > 0
-        ? Object.fromEntries(
-            Object.entries(storedExpansion).map(([key, value]) => {
-              const canonical = visiblePublisherNodes.find((n) => isSameEntityName(n.name, key));
-              return [canonical?.name ?? key, value] as const;
-            })
-          )
-        : storedExpansion;
+    let normalizedStored = storedExpansion;
+    if (hasStoredExpansion && visiblePublisherNodes.length > 0) {
+      normalizedStored = Object.fromEntries(
+        Object.entries(storedExpansion).map(([key, value]) => {
+          const canonical = visiblePublisherNodes.find((n) => isSameEntityName(n.name, key));
+          return [canonical?.name ?? key, value] as const;
+        })
+      );
+    }
     deferredExpandedPublishersRef.current = normalizedStored;
 
-    setExpandedPublishers(
-      selectedPublisherName
-        ? requiredExpansion
-        : hasStoredExpansion
-          ? { ...normalizedStored, ...requiredExpansion }
-          : requiredExpansion
-    );
+    let nextExpandedPublishers = requiredExpansion;
+    if (!selectedPublisherName && hasStoredExpansion) {
+      nextExpandedPublishers = { ...normalizedStored, ...requiredExpansion };
+    }
+    setExpandedPublishers(nextExpandedPublishers);
     setPublisherExpansionReady(true);
   }, [navStateKey, selectedPublisherName, visiblePublisherNodes]);
 
@@ -765,98 +763,91 @@ export default function List(props: Readonly<ListProps>) {
     updateNavOpenState,
   ]);
 
-  const content =
-    loading && visiblePublisherNodes.length === 0 ? (
-      <NavLoadingPlaceholder />
-    ) : visiblePublisherNodes.length === 0 ? (
-      <NestedEmptyRow depth={0} message="Keine Einträge vorhanden" />
-    ) : (
-      visiblePublisherNodes.map((publisherNode) => {
-        const publisherName = publisherNode.name || "";
-        const expanded = Boolean(expandedPublishers[publisherName]);
-        const selected = isSameEntityName(selectedPublisherName, publisherName);
-        const bypassSeriesCollapse =
-          expanded &&
-          selected &&
-          !selectedPathReady &&
-          isSameEntityName(publisherName, canonicalSelectedPublisherName);
-        const seriesBranch = (
-          <SeriesBranch
-            us={us}
-            publisher={publisherNode}
-            initialSeriesNodes={seriesNodesByPublisher[publisherName]}
-            initialIssueNodesBySeriesKey={issueNodesBySeriesKey}
-            navStateKey={navStateKey}
-            activeSeriesKey={selected ? selectedSeriesKey : null}
-            selectedIssue={selectedIssue}
-            session={props.session}
-            pushSelection={pushSelection}
-                ensureIssueNodesLoaded={ensureIssueNodesLoaded}
-                navScrollContainerRef={navScrollContainerRef}
-                navigationPending={isPending}
-                pendingNavigationKey={pendingNavigationKey}
-                pendingPublisherKey={pendingPublisherKey}
-            navAction={navAction}
-            selectedRowKey={selectedRowKey}
-            deferNonPriorityInitialization={!selectedPathReady}
-            deferProgressiveWindowing={
-              !selectedPathReady && isSameEntityName(publisherName, canonicalSelectedPublisherName)
+  let content: React.ReactNode;
+  if (loading && visiblePublisherNodes.length === 0) {
+    content = <NavLoadingPlaceholder />;
+  } else if (visiblePublisherNodes.length === 0) {
+    content = <NestedEmptyRow depth={0} message="Keine Einträge vorhanden" />;
+  } else {
+    content = visiblePublisherNodes.map((publisherNode) => {
+      const publisherName = publisherNode.name || "";
+      const expanded = Boolean(expandedPublishers[publisherName]);
+      const selected = isSameEntityName(selectedPublisherName, publisherName);
+      const isCanonicalSelectedPublisher = isSameEntityName(
+        publisherName,
+        canonicalSelectedPublisherName
+      );
+      const bypassSeriesCollapse =
+        expanded && selected && !selectedPathReady && isCanonicalSelectedPublisher;
+      const seriesBranch = (
+        <SeriesBranch
+          us={us}
+          publisher={publisherNode}
+          initialSeriesNodes={seriesNodesByPublisher[publisherName]}
+          initialIssueNodesBySeriesKey={issueNodesBySeriesKey}
+          navStateKey={navStateKey}
+          activeSeriesKey={selected ? selectedSeriesKey : null}
+          selectedIssue={selectedIssue}
+          session={props.session}
+          pushSelection={pushSelection}
+          ensureIssueNodesLoaded={ensureIssueNodesLoaded}
+          navScrollContainerRef={navScrollContainerRef}
+          navigationPending={isPending}
+          pendingNavigationKey={pendingNavigationKey}
+          pendingPublisherKey={pendingPublisherKey}
+          navAction={navAction}
+          selectedRowKey={selectedRowKey}
+          deferNonPriorityInitialization={!selectedPathReady}
+          deferProgressiveWindowing={!selectedPathReady && isCanonicalSelectedPublisher}
+          restoreStoredExpansion={selectedPathReady || !isCanonicalSelectedPublisher}
+          collapseStoredExpansion={selected && publisherRouteSelected}
+          allowAutoRevealFallback={allowAutoRevealFallback}
+          bypassInitialIssueCollapseAnimation={bypassSeriesCollapse}
+          onPriorityPathReady={isCanonicalSelectedPublisher ? handleSelectedPathReady : undefined}
+        />
+      );
+
+      let renderedSeriesBranch: React.ReactNode = (
+        <Collapse
+          in={expanded}
+          timeout="auto"
+          unmountOnExit
+          component="div"
+        >
+          {seriesBranch}
+        </Collapse>
+      );
+      if (bypassSeriesCollapse) {
+        renderedSeriesBranch = <Box component="div">{seriesBranch}</Box>;
+      }
+
+      return (
+        <Box
+          key={publisherName || "publisher-empty"}
+          component="li"
+          sx={{ listStyle: "none", m: 0, p: 0 }}
+        >
+          <NestedRow
+            rowKey={publisherName}
+            depth={0}
+            showDivider={true}
+            navRowKey={publisherName}
+            selected={selected}
+            label={publisherName}
+            expanded={expanded}
+            pending={
+              pendingPublisherKey === `publisher:${publisherName}` ||
+              pendingNavigationKey === publisherName
             }
-            restoreStoredExpansion={
-              selectedPathReady || !isSameEntityName(publisherName, canonicalSelectedPublisherName)
-            }
-            collapseStoredExpansion={selected && publisherRouteSelected}
-            allowAutoRevealFallback={allowAutoRevealFallback}
-            bypassInitialIssueCollapseAnimation={bypassSeriesCollapse}
-            onPriorityPathReady={
-              isSameEntityName(publisherName, canonicalSelectedPublisherName)
-                ? handleSelectedPathReady
-                : undefined
-            }
+            disabled={isPending}
+            onToggle={handleTogglePublisher}
+            onClick={handlePublisherClick}
           />
-        );
-
-        return (
-          <Box
-            key={publisherName || "publisher-empty"}
-            component="li"
-            sx={{ listStyle: "none", m: 0, p: 0 }}
-          >
-            <NestedRow
-              rowKey={publisherName}
-              depth={0}
-              showDivider={true}
-              navRowKey={publisherName}
-              selected={selected}
-              label={publisherName}
-              expanded={expanded}
-              pending={
-                pendingPublisherKey === `publisher:${publisherName}` ||
-                pendingNavigationKey === publisherName
-              }
-              disabled={isPending}
-              onToggle={handleTogglePublisher}
-              onClick={handlePublisherClick}
-            />
-
-            {bypassSeriesCollapse ? (
-              <Box component="div">
-                {seriesBranch}
-              </Box>
-            ) : (
-              <Collapse
-                in={expanded}
-                timeout="auto"
-                unmountOnExit
-                component="div"
-              >
-                {seriesBranch}
-              </Collapse>
-            )}
-          </Box>
-        );
-      })
-    );
+          {renderedSeriesBranch}
+        </Box>
+      );
+    });
+  }
 
   return (
     <NavDrawer
