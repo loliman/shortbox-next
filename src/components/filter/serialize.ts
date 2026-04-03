@@ -1,5 +1,5 @@
 import { stripItem } from "../../util/util";
-import { FilterSubmitValues, FilterValues } from "./types";
+import { FilterSubmitValues, FilterNumberOption, FilterValues } from "./types";
 
 function hasPayload(payload: FilterSubmitValues): boolean {
   return Object.keys(payload).length > 0;
@@ -70,7 +70,7 @@ function readSeriesPayload(values: FilterValues) {
 }
 
 function readNumberPayload(values: FilterValues) {
-  const numbers = [];
+  const numbers: FilterNumberOption[] = [];
   const numberVariant = "";
   const numberExact = splitExactNumbers(values.numberExact);
   if (numberExact.length > 0) {

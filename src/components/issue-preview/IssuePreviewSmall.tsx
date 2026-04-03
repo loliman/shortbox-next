@@ -38,7 +38,7 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
   const us = Boolean(props.us);
   const hasSession = Boolean(props.session);
   const variant = getIssueVariantLabel(props.issue);
-  const { coverUrl } = getIssuePreviewCover(props.issue, us);
+  const { coverUrl } = getIssuePreviewCover(props.issue);
   const candidateCoverUrl = coverUrl?.trim() ? coverUrl : NO_COVER_URL;
   const { isNearViewport, setElement } = useNearViewport();
   const { resolvedUrl: effectiveCoverUrl, isLoading: isCoverLoading } = useResolvedImageUrl(
