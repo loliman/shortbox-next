@@ -149,6 +149,12 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
   );
 }
 
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
+}
+
 function PreviewImportQueueEditor(props: Readonly<{
   queue: ActivePreviewImportQueue;
   session?: SessionData | null;
@@ -180,7 +186,7 @@ function PreviewImportQueueEditor(props: Readonly<{
             body: {
               action: "complete",
               draftId: draft.id,
-              createdIssueId: String(result.item?.id || ""),
+              createdIssueId: readTextValue(result.item?.id),
             },
           });
 

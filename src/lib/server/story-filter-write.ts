@@ -48,16 +48,12 @@ const toDateTimestamp = (value: unknown): number => {
 };
 
 const isPocketBookFormat = (format: unknown): boolean =>
-  String(format || "")
-    .trim()
-    .toLowerCase() === "taschenbuch";
+  normalizeText(format).toLowerCase() === "taschenbuch";
 
 const PART_PATTERN = /^(\d+)\s*\/\s*(\d+)$/;
 
 const parseStoryPart = (value: unknown): { current: number; total: number } | null => {
-  const match = String(value || "")
-    .trim()
-    .match(PART_PATTERN);
+  const match = normalizeText(value).match(PART_PATTERN);
   if (!match) return null;
 
   const current = Number(match[1]);
@@ -77,6 +73,11 @@ const isPartialPublicationStart = (part: unknown): boolean => {
 const isCompletePublication = (part: unknown): boolean => {
   const parsed = parseStoryPart(part);
   return !parsed || parsed.total <= 1;
+};
+
+const normalizeText = (value: unknown): string => {
+  if (typeof value === "string" || typeof value === "number") return String(value).trim();
+  return "";
 };
 
 async function resolveRecursiveRelatedParentIds(initialParentIds: number[]): Promise<number[]> {

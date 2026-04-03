@@ -586,9 +586,7 @@ function normalizeStringList(value: string[] | string | undefined) {
 }
 
 function normalizeText(value: unknown) {
-  return String(value || "")
-    .trim()
-    .toLowerCase();
+  return readTextValue(value).toLowerCase();
 }
 
 function readTextValue(value: unknown) {

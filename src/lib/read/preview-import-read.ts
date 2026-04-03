@@ -41,11 +41,17 @@ export async function readDeSeriesByTitle(title: string) {
   });
 
   return candidates
-    .filter((entry) => normalizeSeriesTitleKey(String(entry.title ?? "")) === normalizedTitle)
+    .filter((entry) => normalizeSeriesTitleKey(readTextValue(entry.title)) === normalizedTitle)
     .map((entry) => ({
-      title: String(entry.title ?? ""),
+      title: readTextValue(entry.title),
       volume: Number(entry.volume ?? 0),
-      publisherName: String(entry.publisher?.name ?? ""),
+      publisherName: readTextValue(entry.publisher?.name),
     }))
     .filter((entry) => entry.title && entry.volume > 0 && entry.publisherName);
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return "";
 }

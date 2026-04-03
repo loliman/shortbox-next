@@ -77,7 +77,7 @@ function dedupeTerms(values: string[]): string[] {
 }
 
 function splitGenres(value: string | null | undefined): string[] {
-  return String(value ?? "")
+  return readTextValue(value)
     .split(",")
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);
@@ -114,7 +114,7 @@ function collectNamedTerms<T extends { name?: string | null }>(
   if (Array.isArray(values)) {
     return dedupeTerms(
       values
-        .map((value) => String(value?.name ?? "").trim())
+        .map((value) => readTextValue(value?.name))
         .filter((value) => value.length > 0)
     );
   }
@@ -128,7 +128,7 @@ function collectTitleTerms<T extends { title?: string | null }>(
   if (Array.isArray(values)) {
     return dedupeTerms(
       values
-        .map((value) => String(value?.title ?? "").trim())
+        .map((value) => readTextValue(value?.title))
         .filter((value) => value.length > 0)
     );
   }
@@ -178,7 +178,7 @@ function buildReleaseDateCondition(compare: string, parsedDate: Date): Prisma.Is
 }
 
 function containsInsensitive(haystack: string | null | undefined, needle: string): boolean {
-  return String(haystack ?? "").toLocaleLowerCase("de-DE").includes(needle.toLocaleLowerCase("de-DE"));
+  return readTextValue(haystack).toLocaleLowerCase("de-DE").includes(needle.toLocaleLowerCase("de-DE"));
 }
 
 function isNumericFilterValue(value: string): boolean {
@@ -186,7 +186,7 @@ function isNumericFilterValue(value: string): boolean {
 }
 
 function parseFilterDate(raw: string | null | undefined): Date | null {
-  const value = String(raw ?? "").trim();
+  const value = readTextValue(raw);
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
@@ -427,7 +427,7 @@ function matchesReleasedates(issue: FilterIssueRecord, releasedates: RuntimeFilt
     const filterDate = parseFilterDate(entry?.date);
     const filterDay = toDayKey(filterDate);
     if (!filterDay) return true;
-    return compareValues(issueDay, filterDay, String(entry?.compare || "="));
+    return compareValues(issueDay, filterDay, readTextValue(entry?.compare) || "=");
   });
 }
 
@@ -435,13 +435,13 @@ function matchesNumbers(issue: FilterIssueRecord, numbers: RuntimeFilter["number
   if (!numbers || numbers.length === 0) return true;
 
   return numbers.every((entry) => {
-    const rawNumber = String(entry?.number || "").trim();
+    const rawNumber = readTextValue(entry?.number);
     if (!rawNumber) return true;
 
-    const compare = String(entry?.compare || "=");
+    const compare = readTextValue(entry?.compare) || "=";
     const variant =
       entry && typeof entry === "object" && "variant" in entry
-        ? String(entry.variant || "").trim()
+        ? readTextValue(entry.variant)
         : "";
     const hasVariant = variant.length > 0;
 
@@ -455,7 +455,7 @@ function matchesNumbers(issue: FilterIssueRecord, numbers: RuntimeFilter["number
     });
 
     if (!matched) return false;
-    if (hasVariant && String(issue.variant || "") !== variant) return false;
+    if (hasVariant && readTextValue(issue.variant) !== variant) return false;
     return true;
   });
 }
@@ -464,7 +464,7 @@ function matchesIndividuals(issue: FilterIssueRecord, individuals: RuntimeFilter
   if (!individuals || individuals.length === 0) return true;
 
   return individuals.every((entry) => {
-    const name = String(entry?.name || "").trim();
+    const name = readTextValue(entry?.name);
     if (!name) return true;
 
     const rawTypes = Array.isArray(entry?.type) ? entry.type : entry?.type ? [entry.type] : [];
@@ -485,14 +485,14 @@ function matchesIndividuals(issue: FilterIssueRecord, individuals: RuntimeFilter
         storyIndividuals.some(
           (link) =>
             link.individual.name === name &&
-            (types.length === 0 || types.includes(String(link.type || "").toUpperCase()))
+            (types.length === 0 || types.includes(readTextValue(link.type).toUpperCase()))
         );
 
       const matchesParent = (types: string[]) =>
         parentIndividuals.some(
           (link) =>
             link.individual.name === name &&
-            (types.length === 0 || types.includes(String(link.type || "").toUpperCase()))
+            (types.length === 0 || types.includes(readTextValue(link.type).toUpperCase()))
         );
 
       if (normalizedTypes.length === 0) return matchesStory([]) || matchesParent([]);
@@ -608,7 +608,7 @@ export class FilterService {
     ];
 
     const formats = (filter.formats || [])
-      .map((format) => String(format || "").trim())
+      .map((format) => readTextValue(format))
       .filter((format) => format.length > 0);
     if (formats.length > 0) and.push({ format: { in: formats } });
 
@@ -616,7 +616,7 @@ export class FilterService {
     for (const entry of filter.releasedates || []) {
       const parsedDate = parseFilterDate(entry?.date);
       if (!parsedDate) continue;
-      const compare = String(entry?.compare || "=");
+      const compare = readTextValue(entry?.compare) || "=";
       releasedateConditions.push(buildReleaseDateCondition(compare, parsedDate));
     }
     and.push(...releasedateConditions);
@@ -633,7 +633,7 @@ export class FilterService {
     if (filter.onlyNotCollected || filter.onlyNotCollectedNoOwnedVariants) and.push({ collected: false });
 
     const publisherNames = (filter.publishers || [])
-      .map((publisher) => String(publisher?.name || "").trim())
+      .map((publisher) => readTextValue(publisher?.name))
       .filter((name) => name.length > 0);
     if (publisherNames.length > 0) {
       and.push({
@@ -649,7 +649,7 @@ export class FilterService {
 
     const seriesConditions = (filter.series || [])
       .map((series) => {
-        const title = String(series?.title || "").trim();
+        const title = readTextValue(series?.title);
         const volume = typeof series?.volume === "number" ? series.volume : null;
         if (!title || volume === null) return null;
         return {
@@ -760,4 +760,10 @@ export class FilterService {
     return true;
   }
 
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }

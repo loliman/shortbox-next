@@ -19,7 +19,8 @@ export type HierarchyLevelType = (typeof HierarchyLevel)[keyof typeof HierarchyL
 
 function safeValue(value: unknown): string {
   if (value === null || value === undefined) return "";
-  return String(value);
+  if (typeof value === "string" || typeof value === "number") return String(value);
+  return "";
 }
 
 export function getHierarchyLevel(item: SelectedRoot): HierarchyLevelType {

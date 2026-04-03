@@ -476,9 +476,7 @@ function readTextValue(value: unknown) {
 }
 
 function normalizeText(value: unknown) {
-  return String(value ?? "")
-    .trim()
-    .toLowerCase();
+  return readTextValue(value).toLowerCase();
 }
 
 export default DetailsSection;

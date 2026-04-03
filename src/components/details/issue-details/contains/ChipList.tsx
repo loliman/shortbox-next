@@ -103,7 +103,8 @@ export function ChipList(props: Readonly<ChipListProps>) {
 
 function normalizeToken(value: unknown): string {
   if (!value) return "";
-  return String(value).trim().toUpperCase();
+  if (typeof value === "string" || typeof value === "number") return String(value).trim().toUpperCase();
+  return "";
 }
 
 function matchesAppearance(

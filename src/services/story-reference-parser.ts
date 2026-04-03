@@ -196,7 +196,7 @@ function isValidRange(start: number, end: number) {
 }
 
 function normalizeInput(input: string) {
-  return String(input || "")
+  return input
     .replace(DASH_PATTERN, "-")
     .replace(/[;\n\r]+/g, ",")
     .trim();

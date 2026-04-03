@@ -83,7 +83,7 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
     const entries = data?.changeRequests || [];
     return entries
       .filter((entry) => {
-        const id = String(entry?.id || "");
+        const id = readTextValue(entry?.id);
         return id.length > 0 && !hiddenIds[id];
       })
       .sort((a, b) => {
@@ -114,7 +114,7 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
   };
 
   const handleAccept = async (entry: ChangeRequestEntry | null) => {
-    const id = String(entry?.id || "");
+    const id = readTextValue(entry?.id);
     if (!id) return;
 
     try {
@@ -160,10 +160,14 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
           <Box>
             {visibleChangeRequests.map(
               (entry: ChangeRequestEntry, idx: number) => {
-              const id = String(entry.id || "");
+              const id = readTextValue(entry.id);
               const isLast = idx === visibleChangeRequests.length - 1;
-              const borderRadius =
-                idx === 0 ? (isLast ? "8px" : "8px 8px 0 0") : isLast ? "0 0 8px 8px" : "0";
+              let borderRadius = "0";
+              if (idx === 0) {
+                borderRadius = isLast ? "8px" : "8px 8px 0 0";
+              } else if (isLast) {
+                borderRadius = "0 0 8px 8px";
+              }
               const parsed = parseChangeRequest(entry.changeRequest);
               const rawIssue = parsed.issue || {};
               const rawItem = parsed.item || {};
@@ -401,7 +405,7 @@ function buildAddInfo(issue: Record<string, unknown>): string {
 }
 
 function toDisplay(value: unknown, fallback: string): string {
-  const text = String(value ?? "").trim();
+  const text = readTextValue(value);
   return text.length > 0 ? text : fallback;
 }
 
@@ -500,11 +504,17 @@ function toJsonValue(value: unknown): JsonValue {
     });
     return result;
   }
-  return String(value);
+  return readTextValue(value);
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }
 
 export default function ChangeRequests(props: Readonly<ChangeRequestsProps>) {

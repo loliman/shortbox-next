@@ -160,9 +160,7 @@ function toOption(value: unknown, options: FieldItem[], type: string): FieldItem
 }
 
 function normalizeText(value: unknown) {
-  return String(value ?? "")
-    .trim()
-    .toLowerCase();
+  return readTextValue(value).toLowerCase();
 }
 
 function readTextValue(value: unknown) {

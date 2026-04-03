@@ -82,7 +82,7 @@ export async function PATCH(request: NextRequest) {
     }
   }
 
-  const draftId = String(body.draftId || "").trim();
+  const draftId = readTextValue(body.draftId);
   if (!draftId) {
     return NextResponse.json(
       { error: "draftId wird benötigt" },
@@ -126,4 +126,10 @@ export async function DELETE() {
     { success: true },
     { headers: { "Cache-Control": "no-store" } }
   );
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }

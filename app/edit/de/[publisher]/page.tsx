@@ -30,7 +30,7 @@ export default async function DePublisherEditPage({
     }),
     readPublisherEditData({
       us: false,
-      publisher: String(selected.publisher?.name || ""),
+      publisher: selected.publisher?.name ?? "",
     }),
   ]);
   if (!initialPublisher) notFound();

@@ -240,9 +240,7 @@ function hasMatchingIndividual(selected: PersonLike[], available: PersonLike[]):
 }
 
 function normalizeText(value: unknown): string {
-  return String(value || "")
-    .trim()
-    .toLowerCase();
+  return readTextValue(value).toLowerCase();
 }
 
 function readTextValue(value: unknown): string {

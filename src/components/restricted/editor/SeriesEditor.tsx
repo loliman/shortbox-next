@@ -446,9 +446,7 @@ function isOptionLike(value: unknown): value is FieldItem {
 }
 
 function normalizeText(value: unknown) {
-  return String(value || "")
-    .trim()
-    .toLowerCase();
+  return readTextValue(value).toLowerCase();
 }
 
 function readTextValue(value: unknown): string {

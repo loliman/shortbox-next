@@ -163,9 +163,8 @@ export function buildIssueUrlSegments(
     locale,
     publisherSlug: generatePublisherSlug(publisherName),
     seriesSlug: generateSeriesSlug(seriesTitle, seriesStartYear, seriesVolume),
-    issueNumber: String(issueNumber || ""),
+    issueNumber: issueNumber ?? "",
     formatSlug: format ? generateFormatSlug(format) : undefined,
     variantSlug: variant ? generateVariantSlug(variant) : undefined,
   };
 }
-

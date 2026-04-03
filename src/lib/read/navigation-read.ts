@@ -122,8 +122,8 @@ function resolveSeriesNode(
   return seriesNodes.find((seriesNode) =>
     matchesSeriesSelectionBySlug(seriesNode, {
       us: selection.us,
-      publisher: String(selection.publisher || ""),
-      series: String(selection.series || ""),
+      publisher: selection.publisher ?? "",
+      series: selection.series ?? "",
       volume: Number(selection.volume || 0),
       startyear: Number(selection.startyear || 0) || undefined,
     })

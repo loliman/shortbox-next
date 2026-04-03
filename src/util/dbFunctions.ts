@@ -1,6 +1,7 @@
 import { romanize } from "./util";
 
-const toSafeString = (value: unknown): string => (value == null ? "" : String(value));
+const toSafeString = (value: unknown): string =>
+  typeof value === "string" || typeof value === "number" ? String(value) : "";
 
 export const createNodeUrl = (
   type: string,
@@ -65,4 +66,3 @@ export const createNodeIssueLabel = (
   }
   return label;
 };
-

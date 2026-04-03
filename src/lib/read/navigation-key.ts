@@ -17,8 +17,8 @@ export function getNavigationSeriesKey(input: {
   startyear?: number | string | null;
 }) {
   const parts = [
-    slugify(String(input.publisher || "")),
-    slugify(String(input.title || "")),
+    slugify(readTextValue(input.publisher)),
+    slugify(readTextValue(input.title)),
     normalizeNavigationVolume(input.volume),
   ];
   const startyear = normalizeNavigationStartYear(input.startyear);
@@ -74,8 +74,8 @@ export function matchesNavigationSeriesKey(
   if (!parsed) return false;
 
   const baseMatch = (
-    parsed.publisher === slugify(String(candidate.publisher || "")) &&
-    parsed.title === slugify(String(candidate.title || "")) &&
+    parsed.publisher === slugify(readTextValue(candidate.publisher)) &&
+    parsed.title === slugify(readTextValue(candidate.title)) &&
     parsed.volume === normalizeNavigationVolume(candidate.volume)
   );
 
@@ -85,3 +85,8 @@ export function matchesNavigationSeriesKey(
   return parsed.startyear === normalizeNavigationStartYear(candidate.startyear);
 }
 
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return "";
+}

@@ -88,7 +88,7 @@ function IssueReportView(props: Readonly<IssueReportProps>) {
                 body: {
                   issue: {
                     ...(payload.old || {}),
-                    id: String(issueDetails.id || ""),
+                    id: readTextValue(issueDetails.id),
                   },
                   item: payload.item,
                 },
@@ -99,7 +99,7 @@ function IssueReportView(props: Readonly<IssueReportProps>) {
             } catch (submitError: unknown) {
               const message =
                 submitError && typeof submitError === "object" && "message" in submitError
-                  ? String((submitError as { message?: string }).message || "")
+                  ? readTextValue((submitError as { message?: string }).message)
                   : "";
 
               enqueueSnackbar(
@@ -214,11 +214,11 @@ function sanitizeReportValues(
     next.releasedate = "";
   }
 
-  if (original.price == null && String(next.price || "") === "0") {
+  if (original.price == null && readTextValue(next.price) === "0") {
     next.price = "";
   }
 
-  if (original.currency == null && String(next.currency || "") === "EUR") {
+  if (original.currency == null && readTextValue(next.currency) === "EUR") {
     next.currency = "";
   }
 
@@ -230,7 +230,7 @@ function sanitizeReportValues(
     next.comicguideid = undefined;
   }
 
-  if (original.limitation == null && String(next.limitation || "") === "0") {
+  if (original.limitation == null && readTextValue(next.limitation) === "0") {
     next.limitation = "";
   }
 
@@ -266,4 +266,10 @@ export default function IssueReport(props: Readonly<{
       session={props.session}
     />
   );
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return "";
 }

@@ -61,7 +61,7 @@ function dedupeDraftsByIssueCode(drafts: PreviewImportDraft[]) {
   const result: PreviewImportDraft[] = [];
 
   for (const draft of drafts) {
-    const key = String(draft.issueCode || "").trim();
+    const key = readTextValue(draft.issueCode);
     if (key) {
       if (seen.has(key)) continue;
       seen.add(key);
@@ -73,7 +73,7 @@ function dedupeDraftsByIssueCode(drafts: PreviewImportDraft[]) {
 }
 
 function normalizeLines(text: string) {
-  return String(text || "")
+  return text
     .split(/\r?\n/)
     .map((line) => normalizeLine(line))
     .filter(Boolean)
@@ -193,7 +193,7 @@ async function parseCodeAnchoredDrafts(
 ) {
   const existingCodes = new Set(
     existingDrafts
-      .map((draft) => String(draft.issueCode || "").trim())
+      .map((draft) => readTextValue(draft.issueCode))
       .filter(Boolean)
   );
   const codeIndexes = lines
@@ -363,7 +363,7 @@ function toTitleCaseWord(word: string) {
 }
 
 function toTitleCasePart(part: string) {
-  const trimmed = String(part || "");
+  const trimmed = part;
   if (!trimmed) return "";
   if (TITLE_ACRONYMS.has(trimmed)) return trimmed;
 
@@ -489,7 +489,7 @@ function deriveBandTitle(lines: string[], localCodeIndex: number) {
     const bandMatch = (lines[index] || "").match(/^BAND\s+\d+:\s*(.*)$/i);
     if (!bandMatch) continue;
 
-    const sameLineTitle = normalizeTitle(String(bandMatch[1] || "").replace(/\(\d{4}\)/g, ""));
+    const sameLineTitle = normalizeTitle(readTextValue(bandMatch[1]).replace(/\(\d{4}\)/g, ""));
     if (sameLineTitle) {
       const split = splitTitleAndNumber(sameLineTitle);
       return {
@@ -704,6 +704,12 @@ function createEmptyIssueValues(): PreviewImportDraft["values"] {
       prefix: "",
     },
   };
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }
 
 function ensureFieldItemClientId<T extends Record<string, unknown>>(item: T): T & { uuid?: string } {

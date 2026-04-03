@@ -35,7 +35,7 @@ export function matchesSeriesSelectionBySlug(
     candidate.publisher?.original ?? candidate.publisher?.us ?? null;
   if (Boolean(candidatePublisherUs) !== Boolean(selection.us)) return false;
 
-  const candidatePublisherSlug = generatePublisherSlug(String(candidate.publisher?.name ?? ""));
+  const candidatePublisherSlug = generatePublisherSlug(readTextValue(candidate.publisher?.name));
   const expectedPublisherSlug = generatePublisherSlug(selection.publisher);
   if (candidatePublisherSlug !== expectedPublisherSlug) return false;
 
@@ -44,7 +44,7 @@ export function matchesSeriesSelectionBySlug(
 
   if (expectedStartYear !== null) {
     const candidateSeriesSlug = generateSeriesSlug(
-      String(candidate.title ?? ""),
+      readTextValue(candidate.title),
       candidateStartYear,
       candidateVolume
     );
@@ -56,5 +56,11 @@ export function matchesSeriesSelectionBySlug(
     return candidateSeriesSlug === expectedSeriesSlug;
   }
 
-  return slugify(String(candidate.title ?? "")) === slugify(selection.series);
+  return slugify(readTextValue(candidate.title)) === slugify(selection.series);
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }

@@ -20,7 +20,12 @@ export default function FormSection({
   children,
   sx,
 }: Readonly<FormSectionProps>) {
-  const sectionSx = Array.isArray(sx) ? sx : sx ? [sx] : [];
+  let sectionSx: NonNullable<FormSectionProps["sx"]> = [];
+  if (Array.isArray(sx)) {
+    sectionSx = sx;
+  } else if (sx) {
+    sectionSx = [sx];
+  }
   const headerSpacing = description ? 0.5 : 0;
 
   return (

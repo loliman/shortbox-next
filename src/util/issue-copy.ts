@@ -40,7 +40,7 @@ function toCount(value: IssueCopyBatchInput["count"]): number {
 export function normalizeIssueCopyBatch(input?: IssueCopyBatchInput | null): NormalizedIssueCopyBatch {
   return {
     count: toCount(input?.count),
-    prefix: String(input?.prefix || "").trim(),
+    prefix: readTextValue(input?.prefix),
   };
 }
 
@@ -56,4 +56,10 @@ export function buildVariantBatchLabels(input?: IssueCopyBatchInput | null): str
     const suffix = VARIANT_SUFFIXES[index] || "";
     return normalized.prefix ? `${normalized.prefix} ${suffix}` : suffix;
   });
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }

@@ -8,6 +8,8 @@ interface StickyActionBarProps {
 }
 
 export default function StickyActionBar({ children, sx }: Readonly<StickyActionBarProps>) {
+  const sxList = Array.isArray(sx) ? sx : sx ? [sx] : [];
+
   return (
     <Paper
       elevation={0}
@@ -26,7 +28,7 @@ export default function StickyActionBar({ children, sx }: Readonly<StickyActionB
           borderColor: theme.vars?.palette.divider ?? theme.palette.divider,
           backdropFilter: "blur(12px)",
         }),
-        ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
+        ...sxList,
       ]}
     >
       {children}

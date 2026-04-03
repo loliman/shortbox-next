@@ -17,10 +17,10 @@ function normalizeSeries(series: Record<string, unknown> | undefined, fallbackUs
 
   const publisher = (series.publisher || {}) as { name?: string; us?: boolean };
   return {
-    title: String(series.title || ""),
+    title: readTextValue(series.title),
     volume: (series.volume as number | string) || 0,
     publisher: {
-      name: String(publisher.name || ""),
+      name: readTextValue(publisher.name),
       us: typeof publisher.us === "boolean" ? publisher.us : fallbackUs,
     },
   };
@@ -44,10 +44,10 @@ function normalizeStory(story: Record<string, unknown>, usIssue: boolean) {
     id: story.id,
     _id: story._id,
     uuid: story.uuid,
-    title: String(story.title || ""),
+    title: readTextValue(story.title),
     number: story.number,
-    addinfo: String(story.addinfo || ""),
-    part: String(story.part || ""),
+    addinfo: readTextValue(story.addinfo),
+    part: readTextValue(story.part),
     exclusive,
     individuals:
       !exclusive && !story.individuals
@@ -65,15 +65,15 @@ function normalizeStory(story: Record<string, unknown>, usIssue: boolean) {
       ? undefined
       : {
           number: parent.number || 0,
-          title: String(parent.title || ""),
+          title: readTextValue(parent.title),
           issue: {
             series: {
-              title: String(parentSeries.title || ""),
+              title: readTextValue(parentSeries.title),
               volume: parentSeries.volume || 0,
               startyear: parentSeries.startyear || undefined,
             },
-            number: String(parentIssue.number || ""),
-            legacy_number: String(parentIssue.legacy_number || ""),
+            number: readTextValue(parentIssue.number),
+            legacy_number: readTextValue(parentIssue.legacy_number),
           },
         },
     children: story.children,
@@ -93,7 +93,7 @@ export function buildIssueCreateDefaultValues(
   if (level === HierarchyLevel.PUBLISHER) {
     const selectedPublisher = (selected.publisher || {}) as { name?: string; us?: boolean };
     defaults.series.publisher = {
-      name: String(selectedPublisher.name || ""),
+      name: readTextValue(selectedPublisher.name),
       us: typeof selectedPublisher.us === "boolean" ? selectedPublisher.us : selectedUs,
     };
   } else if (level === HierarchyLevel.SERIES) {
@@ -127,8 +127,8 @@ export function mapIssueToEditorDefaultValues(
     cover: values.cover || "",
     pages: Number(values.pages || 0),
     comicguideid: Number(values.comicguideid || 0),
-    isbn: String(values.isbn || ""),
-    limitation: String(values.limitation || ""),
+    isbn: readTextValue(values.isbn),
+    limitation: readTextValue(values.limitation),
     individuals: asArray(values.individuals as Array<Record<string, unknown>>).map(
       (individual) => ({
         name: individual.name,
@@ -174,4 +174,10 @@ export function mapIssueToEditorDefaultValues(
       prefix: "",
     },
   };
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return "";
 }

@@ -198,9 +198,9 @@ function normalizeStories(value: unknown): Array<Record<string, unknown>> {
     const exclusive = Boolean(story.exclusive) && !parent;
 
     const normalized: Record<string, unknown> = {
-      title: String(story.title || ""),
-      addinfo: String(story.addinfo || ""),
-      part: String(story.part || ""),
+      title: readTextValue(story.title),
+      addinfo: readTextValue(story.addinfo),
+      part: readTextValue(story.part),
       number: toOptionalInt(story.number) || 0,
       exclusive,
       individuals: normalizeIndividuals(story.individuals),
@@ -209,8 +209,14 @@ function normalizeStories(value: unknown): Array<Record<string, unknown>> {
 
     if (parent) normalized.parent = parent;
 
-    return normalized;
+  return normalized;
   });
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return "";
 }
 
 export function buildIssueMutationVariables(

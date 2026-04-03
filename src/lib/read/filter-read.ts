@@ -62,7 +62,7 @@ function splitFilterTerms(value: string | null | undefined): string[] {
 function extractArcTerms(filter: RuntimeFilter) {
   return Array.isArray(filter.arcs)
     ? dedupeTerms(
-        filter.arcs.map((arc) => String(arc?.title ?? "").trim()).filter((arc) => arc.length > 0)
+        filter.arcs.map((arc) => readTextValue(arc?.title)).filter((arc) => arc.length > 0)
       )
     : splitFilterTerms(filter.arcs as string | null | undefined);
 }
@@ -71,7 +71,7 @@ function extractAppearanceTerms(filter: RuntimeFilter) {
   return Array.isArray(filter.appearances)
     ? dedupeTerms(
         filter.appearances
-          .map((appearance) => String(appearance?.name ?? "").trim())
+          .map((appearance) => readTextValue(appearance?.name))
           .filter((appearance) => appearance.length > 0)
       )
     : splitFilterTerms(filter.appearances as string | null | undefined);
@@ -81,14 +81,14 @@ function extractRealityTerms(filter: RuntimeFilter) {
   return Array.isArray(filter.realities)
     ? dedupeTerms(
         filter.realities
-          .map((reality) => String(reality?.name ?? "").trim())
+          .map((reality) => readTextValue(reality?.name))
           .filter((reality) => reality.length > 0)
       )
     : splitFilterTerms(filter.realities as string | null | undefined);
 }
 
 function parseFilterDate(raw: string | null | undefined): Date | null {
-  const value = String(raw ?? "").trim();
+  const value = readTextValue(raw);
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
@@ -152,14 +152,14 @@ export function buildDirectIssueFilterWhere(
   ];
 
   const formats = (runtimeFilter.formats || [])
-    .map((format) => String(format || "").trim())
+    .map((format) => readTextValue(format))
     .filter((format) => format.length > 0);
   if (formats.length > 0) and.push({ format: { in: formats } });
 
   for (const entry of runtimeFilter.releasedates || []) {
     const parsedDate = parseFilterDate(entry?.date);
     if (!parsedDate) continue;
-    const compare = String(entry?.compare || "=");
+    const compare = readTextValue(entry?.compare) || "=";
 
     if (compare === "=") {
       and.push({ releaseDate: { gte: startOfDay(parsedDate), lte: endOfDay(parsedDate) } });
@@ -199,7 +199,7 @@ export function buildDirectIssueFilterWhere(
   if (runtimeFilter.onlyNotCollected) and.push({ collected: false });
 
   const publisherNames = (runtimeFilter.publishers || [])
-    .map((publisher) => String(publisher?.name || "").trim())
+    .map((publisher) => readTextValue(publisher?.name))
     .filter((name) => name.length > 0);
   if (publisherNames.length > 0) {
     and.push({
@@ -215,7 +215,7 @@ export function buildDirectIssueFilterWhere(
 
   const seriesConditions = (runtimeFilter.series || [])
     .map((series) => {
-      const title = String(series?.title || "").trim();
+      const title = readTextValue(series?.title);
       const volume = typeof series?.volume === "number" ? series.volume : null;
       if (!title || volume === null) return null;
       return { title, volume: BigInt(volume) };
@@ -496,4 +496,10 @@ export async function readFilterCount(
   if (!filter) return undefined;
 
   return (await resolveFilterState(filter, loggedInOverride)).initialFilterCount;
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }

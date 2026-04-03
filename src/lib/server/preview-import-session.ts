@@ -28,7 +28,7 @@ function toSessionPayload(data: string | null | undefined): SessionPayload {
 
 async function readServerSessionId() {
   const cookieStore = await cookies();
-  return String(cookieStore.get(SESSION_COOKIE_NAME)?.value || "").trim();
+  return (cookieStore.get(SESSION_COOKIE_NAME)?.value ?? "").trim();
 }
 
 async function readSessionPayload() {

@@ -31,8 +31,8 @@ export default async function UsSeriesEditPage({
     }),
     readSeriesEditData({
       us: true,
-      publisher: String(series?.publisher?.name || ""),
-      series: String(series?.title || ""),
+      publisher: series?.publisher?.name ?? "",
+      series: series?.title ?? "",
       volume: Number(series?.volume || 0),
     }),
   ]);

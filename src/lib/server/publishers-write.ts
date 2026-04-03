@@ -20,7 +20,7 @@ export async function createPublisher(item: PublisherInput): Promise<Result<Retu
       data: {
         name: normalizeText(item.name),
         original: Boolean(item.us),
-        addInfo: String(item.addinfo ?? ""),
+        addInfo: normalizeText(item.addinfo),
         startYear: BigInt(Number(item.startyear ?? 0)),
         endYear: normalizeYear(item.endyear),
         createdAt: now,
@@ -54,7 +54,7 @@ export async function editPublisher(oldItem: PublisherInput, item: PublisherInpu
       data: {
         name: normalizeText(item.name),
         original: Boolean(item.us ?? existing.original),
-        addInfo: String(item.addinfo ?? ""),
+        addInfo: normalizeText(item.addinfo),
         startYear: BigInt(Number(item.startyear ?? 0)),
         endYear: normalizeYear(item.endyear),
         updatedAt: new Date(),
@@ -136,10 +136,11 @@ function toPublisherPayload(publisher: {
 }
 
 function normalizeText(value: unknown) {
-  return String(value || "").trim();
+  if (typeof value === "string" || typeof value === "number") return String(value).trim();
+  return "";
 }
 
 function normalizeYear(value: unknown) {
   if (value === null || value === undefined || value === "") return BigInt(0);
-  return BigInt(Number(value || 0));
+  return BigInt(Number(value ?? 0));
 }

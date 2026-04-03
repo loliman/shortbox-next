@@ -232,9 +232,7 @@ function IssueEditorSeriesFields({
 }
 
 function normalizeText(value: unknown) {
-  return String(value || "")
-    .trim()
-    .toLowerCase();
+  return readTextValue(value).toLowerCase();
 }
 
 function formatPublisherLabel(option: PublisherOption) {
@@ -261,7 +259,7 @@ function showFieldError(formik: ReturnType<typeof useFormikContext<IssueEditorFo
 }
 
 function readFieldError(formik: ReturnType<typeof useFormikContext<IssueEditorFormValues>>, path: string) {
-  return showFieldError(formik, path) ? String(getIn(formik.errors, path) || "") : undefined;
+  return showFieldError(formik, path) ? readTextValue(getIn(formik.errors, path)) : undefined;
 }
 
 export default IssueEditorSeriesFields;

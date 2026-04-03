@@ -8,7 +8,7 @@ type LoginInput = {
 };
 
 export async function loginUser(credentials: LoginInput) {
-  if (!String(credentials.name || "").trim() || !String(credentials.password || "")) {
+  if (!readTextValue(credentials.name) || !readTextValue(credentials.password)) {
     throw new Error("Benutzername und Passwort werden benötigt");
   }
 
@@ -38,4 +38,10 @@ export async function logoutUser(userId?: string | number | bigint | null) {
 export async function logoutUserBySessionId(sessionId?: string | null) {
   const session = await readSessionBySessionId(sessionId);
   return logoutUser(session?.userId ?? null);
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }

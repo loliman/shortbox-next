@@ -23,7 +23,7 @@ export function getSessionCookieOptions() {
 
 export const readSessionBySessionId = cache(
   async (sessionId: string | null | undefined): Promise<SessionData | null> => {
-    const normalizedSessionId = String(sessionId || "").trim();
+    const normalizedSessionId = readTextValue(sessionId);
     if (!normalizedSessionId) return null;
 
     const user = await prisma.user.findFirst({
@@ -42,7 +42,7 @@ export const readSessionBySessionId = cache(
     return {
       loggedIn: true,
       userId: String(user.id),
-      userName: String(user.name || ""),
+      userName: readTextValue(user.name),
       canWrite: true,
       canAdmin: true,
     };
@@ -53,3 +53,9 @@ export const readServerSession = cache(async (): Promise<SessionData | null> => 
   const cookieStore = await cookies();
   return readSessionBySessionId(cookieStore.get(SESSION_COOKIE_NAME)?.value);
 });
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
+}

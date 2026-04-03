@@ -24,7 +24,8 @@ type IssueMetadataParts = {
 
 function toStringValue(value: unknown): string {
   if (value === null || value === undefined) return "";
-  return String(value).trim();
+  if (typeof value === "string" || typeof value === "number") return String(value).trim();
+  return "";
 }
 
 function toOptionalPositiveNumber(value: unknown): number | undefined {
@@ -89,4 +90,3 @@ export function buildIssueMetadataParts(
     canonical: buildCanonicalIssueUrl(issue, locale),
   };
 }
-

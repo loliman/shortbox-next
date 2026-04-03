@@ -171,9 +171,7 @@ function readTextValue(value: unknown) {
 }
 
 function normalizeText(value: unknown) {
-  return String(value || "")
-    .trim()
-    .toLowerCase();
+  return readTextValue(value).toLowerCase();
 }
 
 function showFieldError(
@@ -187,7 +185,7 @@ function readFieldError(
   formik: ReturnType<typeof useFormikContext<Record<string, unknown>>>,
   path: string
 ) {
-  return showFieldError(formik, path) ? String(getIn(formik.errors, path) || "") : undefined;
+  return showFieldError(formik, path) ? readTextValue(getIn(formik.errors, path)) : undefined;
 }
 
 function getNoOptionsText(isBelowMinLength: boolean, error: unknown) {

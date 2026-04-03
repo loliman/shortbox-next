@@ -15,7 +15,13 @@ export function getNextStoryParentSeriesSelection(
   }
 
   return {
-    title: String(selectedOption?.title || ""),
+    title: readTextValue(selectedOption?.title),
     volume: selectedOption?.volume ?? 0,
   };
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return "";
 }

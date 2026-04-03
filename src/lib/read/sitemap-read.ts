@@ -27,7 +27,8 @@ const BATCH_SIZE = 2000;
 
 function toSafeString(value: unknown): string {
   if (value === null || value === undefined) return "";
-  return String(value).trim();
+  if (typeof value === "string" || typeof value === "number") return String(value).trim();
+  return "";
 }
 
 function toPositiveNumber(value: unknown, fallback: number): number {

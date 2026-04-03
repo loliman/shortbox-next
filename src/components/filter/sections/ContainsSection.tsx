@@ -299,9 +299,7 @@ function sanitizeRealityList(values: FieldItem[]) {
 }
 
 function normalizeText(value: unknown) {
-  return String(value ?? "")
-    .trim()
-    .toLowerCase();
+  return readOptionText(value).toLowerCase();
 }
 
 function formatArcLabel(option: unknown) {

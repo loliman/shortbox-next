@@ -50,10 +50,10 @@ type PublisherMutationResult = {
 
 function createInitialPublisherValues(defaultValues?: PublisherFormValues): PublisherFormValues {
   return {
-    name: String(defaultValues?.name || ""),
+    name: readTextValue(defaultValues?.name),
     startyear: Number(defaultValues?.startyear ?? 1900),
     endyear: Number(defaultValues?.endyear ?? 1900),
-    addinfo: String(defaultValues?.addinfo || ""),
+    addinfo: readTextValue(defaultValues?.addinfo),
     us: Boolean(defaultValues?.us),
   };
 }
@@ -229,4 +229,10 @@ function PublisherEditorView(props: Readonly<PublisherEditorProps>) {
 
 export default function PublisherEditor(props: Readonly<PublisherEditorProps>) {
   return <PublisherEditorView {...props} />;
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }

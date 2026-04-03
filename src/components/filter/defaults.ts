@@ -47,16 +47,14 @@ function splitMultiValueString(value: string): string[] {
 }
 
 function normalizeText(value: unknown): string {
-  return String(value ?? "")
-    .trim()
-    .toLowerCase();
+  return readTextValue(value).toLowerCase();
 }
 
 function normalizeGenreFilters(rawGenres: unknown): FieldItem[] {
   const uniqueGenres = new Map<string, FieldItem>();
 
   const addGenre = (value: unknown) => {
-    const name = String(value ?? "").trim();
+    const name = readTextValue(value);
     if (!name) return;
 
     const key = normalizeText(name);
@@ -88,7 +86,7 @@ function normalizeArcFilters(rawArcs: unknown): FilterValues["arcs"] {
     return rawArcs
       .map((entry) => {
         if (!entry || typeof entry !== "object" || Array.isArray(entry)) return null;
-        const title = String((entry as { title?: unknown }).title ?? "").trim();
+        const title = readTextValue((entry as { title?: unknown }).title);
         if (!title) return null;
         const typeValue = (entry as { type?: unknown }).type;
         return typeof typeValue === "string" && typeValue.trim()
@@ -110,7 +108,7 @@ function normalizeAppearanceFilters(rawAppearances: unknown): FilterValues["appe
     return rawAppearances
       .map((entry) => {
         if (!entry || typeof entry !== "object" || Array.isArray(entry)) return null;
-        const name = String((entry as { name?: unknown }).name ?? "").trim();
+        const name = readTextValue((entry as { name?: unknown }).name);
         if (!name) return null;
         const typeValue = (entry as { type?: unknown }).type;
         return typeof typeValue === "string" && typeValue.trim()
@@ -132,7 +130,7 @@ function normalizeRealityFilters(rawRealities: unknown): FilterValues["realities
     return rawRealities
       .map((entry) => {
         if (!entry || typeof entry !== "object" || Array.isArray(entry)) return null;
-        const name = String((entry as { name?: unknown }).name || "").trim();
+        const name = readTextValue((entry as { name?: unknown }).name);
         if (!name) return null;
         return { name };
       })
@@ -200,24 +198,24 @@ function normalizeReleaseDateInputs(
 
   const values = rawReleasedates.filter(Boolean) as Array<FilterDateOption>;
   const exact = values.find(
-    (entry) => entry.compare === "=" && String(entry.date ?? "").trim() !== ""
+    (entry) => entry.compare === "=" && readTextValue(entry.date) !== ""
   );
   if (exact) {
-    result.releasedateExact = String(exact.date ?? "").trim();
+    result.releasedateExact = readTextValue(exact.date);
     return result;
   }
 
   const from = values.find(
     (entry) =>
-      (entry.compare === ">=" || entry.compare === ">") && String(entry.date || "").trim() !== ""
+      (entry.compare === ">=" || entry.compare === ">") && readTextValue(entry.date) !== ""
   );
   const to = values.find(
     (entry) =>
-      (entry.compare === "<=" || entry.compare === "<") && String(entry.date ?? "").trim() !== ""
+      (entry.compare === "<=" || entry.compare === "<") && readTextValue(entry.date) !== ""
   );
 
-  result.releasedateFrom = from ? String(from.date ?? "").trim() : "";
-  result.releasedateTo = to ? String(to.date ?? "").trim() : "";
+  result.releasedateFrom = from ? readTextValue(from.date) : "";
+  result.releasedateTo = to ? readTextValue(to.date) : "";
   return result;
 }
 
@@ -234,41 +232,47 @@ function normalizeNumberInputs(
 
   const values = rawNumbers.filter(Boolean) as Array<FilterNumberOption>;
   const exactValues = values
-    .filter((entry) => entry.compare === "=" && String(entry.number ?? "").trim() !== "")
-    .map((entry) => String(entry.number ?? "").trim());
+    .filter((entry) => entry.compare === "=" && readTextValue(entry.number) !== "")
+    .map((entry) => readTextValue(entry.number));
   if (exactValues.length > 0) {
     result.numberExact = exactValues.join(", ");
     const exactWithVariant = values.find(
       (entry) =>
         entry.compare === "=" &&
-        String(entry.number ?? "").trim() !== "" &&
-        String(entry.variant ?? "").trim() !== ""
+        readTextValue(entry.number) !== "" &&
+        readTextValue(entry.variant) !== ""
     );
-    if (exactWithVariant) result.numberVariant = String(exactWithVariant.variant ?? "").trim();
+    if (exactWithVariant) result.numberVariant = readTextValue(exactWithVariant.variant);
     return result;
   }
 
   const from = values.find(
     (entry) =>
-      (entry.compare === ">=" || entry.compare === ">") && String(entry.number || "").trim() !== ""
+      (entry.compare === ">=" || entry.compare === ">") && readTextValue(entry.number) !== ""
   );
   const to = values.find(
     (entry) =>
-      (entry.compare === "<=" || entry.compare === "<") && String(entry.number ?? "").trim() !== ""
+      (entry.compare === "<=" || entry.compare === "<") && readTextValue(entry.number) !== ""
   );
 
-  result.numberFrom = from ? String(from.number ?? "").trim() : "";
-  result.numberTo = to ? String(to.number ?? "").trim() : "";
+  result.numberFrom = from ? readTextValue(from.number) : "";
+  result.numberTo = to ? readTextValue(to.number) : "";
   const rangeWithVariant = values.find(
     (entry) =>
       (entry.compare === ">=" ||
         entry.compare === ">" ||
         entry.compare === "<=" ||
         entry.compare === "<") &&
-      String(entry.variant ?? "").trim() !== ""
+      readTextValue(entry.variant) !== ""
   );
-  if (rangeWithVariant) result.numberVariant = String(rangeWithVariant.variant ?? "").trim();
+  if (rangeWithVariant) result.numberVariant = readTextValue(rangeWithVariant.variant);
   return result;
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }
 
 export function parseFilterValues(queryFilter?: string): FilterValues {

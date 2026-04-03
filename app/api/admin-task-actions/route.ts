@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       const lockedWorkers = await readLockedAdminTaskWorkers(taskNames);
 
       const workerIds = lockedWorkers
-        .map((row) => String(row.locked_by || "").trim())
+        .map((row) => readTextValue(row.locked_by))
         .filter((workerId) => workerId.length > 0);
 
       const workerUtils = await getWorkerUtils();
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const taskKey = String(body.input?.taskKey || "").trim();
+    const taskKey = readTextValue(body.input?.taskKey);
     if (!isAdminTaskName(taskKey)) {
       return NextResponse.json({ error: `Unknown admin task: ${taskKey}` }, { status: 400 });
     }
@@ -140,4 +140,10 @@ function buildTaskPayload(
   }
 
   return { dryRun };
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }

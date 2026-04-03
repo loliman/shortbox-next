@@ -25,10 +25,16 @@ export function buildIssueSaveSuccessMessage({
 }
 
 function buildAutoCreatedSeriesNote(series: IssueSeriesMeta | undefined) {
-  const title = String(series?.title || "").trim();
+  const title = readTextValue(series?.title);
   const volume = Number(series?.volume || 0);
   if (!title) return "";
   if (!Number.isFinite(volume)) return `Serie "${title}" wurde automatisch angelegt.`;
 
   return `Serie "${title}" Vol. ${volume} wurde automatisch angelegt.`;
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }

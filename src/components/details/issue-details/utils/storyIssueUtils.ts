@@ -48,21 +48,27 @@ export function isSameIssue(issueA?: StoryIssue | null, issueB?: StoryIssue | nu
   return (
     normalizeText(issueA.series.publisher?.name) === normalizeText(issueB.series.publisher?.name) &&
     normalizeText(issueA.series.title) === normalizeText(issueB.series.title) &&
-    String(issueA.series.volume || "") === String(issueB.series.volume || "") &&
-    String(issueA.number || "") === String(issueB.number || "")
+    readTextValue(issueA.series.volume) === readTextValue(issueB.series.volume) &&
+    readTextValue(issueA.number) === readTextValue(issueB.number)
   );
 }
 
 function normalizeText(value: unknown): string {
-  return String(value || "")
-    .trim()
-    .toLowerCase();
+  return readTextValue(value).toLowerCase();
 }
 
 export function toIssueRowKey(item: StoryIssueRelation, idx: number): string {
   const issue = item?.issue;
   const series = issue?.series;
-  return `${series?.publisher?.name || "publisher"}|${series?.title || "series"}|${
-    issue?.number || item?.number || idx
-  }|${item?.number || idx}`;
+  const publisher = readTextValue(series?.publisher?.name) || "publisher";
+  const title = readTextValue(series?.title) || "series";
+  const issueNumber = readTextValue(issue?.number) || readTextValue(item?.number) || String(idx);
+  const relationNumber = readTextValue(item?.number) || String(idx);
+  return `${publisher}|${title}|${issueNumber}|${relationNumber}`;
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }

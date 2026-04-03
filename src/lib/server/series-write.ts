@@ -35,7 +35,7 @@ export async function createSeries(item: SeriesInput): Promise<Result<ReturnType
         endYear: normalizeYear(item.endyear),
         volume: BigInt(Number(item.volume ?? 0)),
         genre: normalizeText(item.genre),
-        addInfo: String(item.addinfo || ""),
+        addInfo: normalizeText(item.addinfo),
         fkPublisher: publisher.id,
         createdAt: now,
         updatedAt: now,
@@ -79,7 +79,7 @@ export async function editSeries(oldItem: SeriesInput, item: SeriesInput): Promi
         startYear: BigInt(Number(item.startyear ?? 0)),
         endYear: normalizeYear(item.endyear),
         genre: normalizeText(item.genre),
-        addInfo: String(item.addinfo || ""),
+        addInfo: normalizeText(item.addinfo),
         fkPublisher: newPublisher.id,
         updatedAt: new Date(),
       },
@@ -187,10 +187,11 @@ function toSeriesPayload(series: {
 }
 
 function normalizeText(value: unknown) {
-  return String(value || "").trim();
+  if (typeof value === "string" || typeof value === "number") return String(value).trim();
+  return "";
 }
 
 function normalizeYear(value: unknown) {
   if (value === null || value === undefined || value === "") return BigInt(0);
-  return BigInt(Number(value || 0));
+  return BigInt(Number(value ?? 0));
 }

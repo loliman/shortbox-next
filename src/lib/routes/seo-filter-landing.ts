@@ -94,12 +94,18 @@ function makeResolved(input: {
 
 function readEntryName(entry: unknown): string {
   if (!entry || typeof entry !== "object") return "";
-  return String((entry as { name?: unknown }).name ?? "");
+  return readTextValue((entry as { name?: unknown }).name);
 }
 
 function readEntryTitle(entry: unknown): string {
   if (!entry || typeof entry !== "object") return "";
-  return String((entry as { title?: unknown }).title ?? "");
+  return readTextValue((entry as { title?: unknown }).title);
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return "";
 }
 
 export async function resolveSeoFilterLanding(

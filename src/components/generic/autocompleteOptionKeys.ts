@@ -1,5 +1,9 @@
 type OptionValue = Record<string, unknown>;
-const toOptionKeyPart = (value: unknown) => String(value ?? "");
+const toOptionKeyPart = (value: unknown) => {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return "";
+};
 
 export function getPublisherOptionKey(option: OptionValue | string) {
   if (typeof option === "string") return option;

@@ -65,9 +65,15 @@ export function matchesIssueSelectionBySlug(
 
   if (Boolean(candidate.series?.publisher?.original) !== Boolean(selection.us)) return false;
 
-  const candidatePublisherSlug = generatePublisherSlug(String(candidate.series?.publisher?.name || ""));
+  const candidatePublisherSlug = generatePublisherSlug(readTextValue(candidate.series?.publisher?.name));
   const expectedPublisherSlug = generatePublisherSlug(selection.publisher);
   if (candidatePublisherSlug !== expectedPublisherSlug) return false;
 
-  return slugify(String(candidate.series?.title || "")) === slugify(selection.series);
+  return slugify(readTextValue(candidate.series?.title)) === slugify(selection.series);
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }

@@ -31,10 +31,10 @@ export default async function DeIssueCopyPage({
     }),
     readIssueDetails({
       us: false,
-      publisher: String(issue?.series?.publisher?.name || ""),
-      series: String(issue?.series?.title || ""),
+      publisher: issue?.series?.publisher?.name ?? "",
+      series: issue?.series?.title ?? "",
       volume: Number(issue?.series?.volume || 0),
-      number: String(issue?.number || ""),
+      number: issue?.number ?? "",
       format: issue?.format || undefined,
       variant: issue?.variant || undefined,
     }),

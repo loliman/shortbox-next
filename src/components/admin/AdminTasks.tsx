@@ -59,7 +59,7 @@ const formatDateTime = (value?: string | null): string => {
   return parsed.toLocaleString("de-DE");
 };
 
-const trimDetails = (value?: string | null): { text: string; truncated: boolean } => {
+const trimDetails = (value: string | null = ""): { text: string; truncated: boolean } => {
   const details = value ?? "";
   if (details.length <= MAX_DETAIL_CHARS) {
     return { text: details, truncated: false };
@@ -371,14 +371,18 @@ function AdminTasksPage(props: Readonly<AdminTasksProps>) {
 
         <Box>
           {tasks.map((task, idx) => {
-            const taskKey = String(task?.key || "");
+            const taskKey = readTextValue(task?.key);
             const runs = (task?.runs || []).slice(0, 10);
             const aggregateState = resolveAggregateTaskState(runs);
             const runningDryKey = `${taskKey}:dry`;
             const runningRealKey = `${taskKey}:run`;
             const isLast = idx === tasks.length - 1;
-            const borderRadius =
-              idx === 0 ? (isLast ? "8px" : "8px 8px 0 0") : isLast ? "0 0 8px 8px" : "0";
+            let borderRadius = "0";
+            if (idx === 0) {
+              borderRadius = isLast ? "8px" : "8px 8px 0 0";
+            } else if (isLast) {
+              borderRadius = "0 0 8px 8px";
+            }
 
             return (
               <Accordion
@@ -546,7 +550,7 @@ function AdminTasksPage(props: Readonly<AdminTasksProps>) {
                   ) : null}
 
                   {runs.map((run, runIndex) => {
-                    const runId = String(run?.id || "");
+                    const runId = readTextValue(run?.id);
                     const details = trimDetails(run?.details || "");
                     const runVisualState = resolveVisualState(run);
 
@@ -683,4 +687,10 @@ export default function AdminTasks(props: Readonly<AdminTasksProps>) {
   const snackbarBridge = useSnackbarBridge();
 
   return <AdminTasksPage {...props} {...snackbarBridge} />;
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }

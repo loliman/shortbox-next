@@ -31,7 +31,7 @@ export function getNextPublisherSelection(
     title: "",
     volume: "",
     publisher: {
-      name: String(selectedOption?.name || ""),
+      name: readTextValue(selectedOption?.name),
       us: typeof selectedOption?.us === "boolean" ? selectedOption.us : currentUs,
     },
   };
@@ -51,8 +51,14 @@ export function getNextSeriesSelection(
   }
 
   return {
-    title: String(selectedOption?.title || ""),
+    title: readTextValue(selectedOption?.title),
     volume: selectedOption?.volume ?? "",
     publisher: currentPublisher,
   };
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return "";
 }
