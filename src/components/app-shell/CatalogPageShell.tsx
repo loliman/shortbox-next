@@ -33,45 +33,122 @@ export interface CatalogPageShellProps {
   children?: React.ReactNode;
 }
 
+type InitialNavLayout = {
+  offset: string;
+  gutter: string;
+};
+
+async function readInitialNavLayout(showNavigation: boolean): Promise<InitialNavLayout> {
+  if (!showNavigation) return { offset: "0px", gutter: "0px" };
+
+  const headerStore = await headers();
+  const initialResponsiveGuess = getInitialResponsiveGuess(headerStore.get("user-agent"));
+  const initialTablet = !initialResponsiveGuess.isPhone && !initialResponsiveGuess.isDesktop;
+  const initialNavWide =
+    initialResponsiveGuess.isDesktop || (initialTablet && initialResponsiveGuess.isLandscape);
+  const navWidth = `${getNavDrawerWidth(false)}px`;
+
+  return {
+    offset: initialNavWide ? navWidth : "0px",
+    gutter: initialResponsiveGuess.isDesktop ? navWidth : "0px",
+  };
+}
+
+async function readResolvedSession(
+  session: SessionData | null | undefined
+): Promise<SessionData | null> {
+  if (session !== undefined) return session;
+  return readServerSession();
+}
+
+async function readResolvedChangeRequestsCount(
+  sessionPromise: Promise<SessionData | null>,
+  changeRequestsCount: number | undefined
+): Promise<number> {
+  if (typeof changeRequestsCount === "number") return changeRequestsCount;
+  const session = await sessionPromise;
+  if (!session?.canAdmin) return 0;
+  return countChangeRequests().catch(() => 0);
+}
+
+async function readResolvedPreviewImportActive(
+  sessionPromise: Promise<SessionData | null>,
+  previewImportActive: boolean | undefined
+): Promise<boolean> {
+  if (typeof previewImportActive === "boolean") return previewImportActive;
+  const session = await sessionPromise;
+  if (!session?.canAdmin) return false;
+  return readHasActivePreviewImportQueue().catch(() => false);
+}
+
+function getShellOverflow(lockViewportHeight: boolean) {
+  return lockViewportHeight ? { xs: "visible", lg: "hidden" } : "visible";
+}
+
+function getShellPadding(
+  showNavigation: boolean,
+  initialNavGutter: string,
+  initialNavOffset: string,
+  staticDesktopSidePadding: string
+) {
+  return {
+    pl: {
+      xs: 0,
+      sm: 2,
+      md: showNavigation ? 2 : staticDesktopSidePadding,
+      lg: showNavigation
+        ? `calc((var(--shortbox-nav-gutter, ${initialNavGutter}) / 2) + 8px)`
+        : staticDesktopSidePadding,
+    },
+    pr: {
+      xs: 0,
+      sm: 2,
+      md: showNavigation ? 2 : staticDesktopSidePadding,
+      lg: showNavigation
+        ? `max(16px, calc((var(--shortbox-nav-gutter, ${initialNavGutter}) / 2) + 8px - (var(--shortbox-nav-offset, ${initialNavOffset}) / 2)))`
+        : staticDesktopSidePadding,
+    },
+    pt: { xs: 0, sm: 2 },
+    pb: showNavigation
+      ? { xs: COMPACT_BOTTOM_BAR_CLEARANCE, sm: COMPACT_BOTTOM_BAR_CLEARANCE, lg: 2 }
+      : { xs: 0, sm: 2 },
+    ml: {
+      xs: showNavigation ? `var(--shortbox-nav-offset, ${initialNavOffset})` : 0,
+      lg: showNavigation
+        ? `calc(var(--shortbox-nav-offset, ${initialNavOffset}) / 2)`
+        : 0,
+    },
+  };
+}
+
 export default async function CatalogPageShell(props: Readonly<CatalogPageShellProps>) {
   const showNavigation = props.showNavigation ?? true;
   const lockViewportHeight = props.lockViewportHeight ?? true;
-  const sessionPromise =
-    props.session === undefined ? readServerSession() : Promise.resolve(props.session);
+  const sessionPromise = readResolvedSession(props.session);
 
   const [resolvedSession, resolvedChangeRequestsCount, resolvedPreviewImportActive, initialNavLayout] = await Promise.all([
     sessionPromise,
-    typeof props.changeRequestsCount === "number"
-      ? Promise.resolve(props.changeRequestsCount)
-      : sessionPromise.then((session) => (session?.canAdmin ? countChangeRequests().catch(() => 0) : 0)),
-    typeof props.previewImportActive === "boolean"
-      ? Promise.resolve(props.previewImportActive)
-      : sessionPromise.then((session) => (session?.canAdmin ? readHasActivePreviewImportQueue().catch(() => false) : false)),
-    (async () => {
-      if (!showNavigation) return { offset: "0px", gutter: "0px" };
-
-      const headerStore = await headers();
-      const initialResponsiveGuess = getInitialResponsiveGuess(headerStore.get("user-agent"));
-      const initialTablet = !initialResponsiveGuess.isPhone && !initialResponsiveGuess.isDesktop;
-      const initialNavWide =
-        initialResponsiveGuess.isDesktop || (initialTablet && initialResponsiveGuess.isLandscape);
-      const navWidth = `${getNavDrawerWidth(false)}px`;
-      return {
-        offset: initialNavWide ? navWidth : "0px",
-        gutter: initialResponsiveGuess.isDesktop ? navWidth : "0px",
-      };
-    })(),
+    readResolvedChangeRequestsCount(sessionPromise, props.changeRequestsCount),
+    readResolvedPreviewImportActive(sessionPromise, props.previewImportActive),
+    readInitialNavLayout(showNavigation),
   ]);
   const initialNavOffset = initialNavLayout.offset;
   const initialNavGutter = initialNavLayout.gutter;
   const staticDesktopSidePadding = `${getNavDrawerWidth(false) / 2 + 8}px`;
+  const shellOverflow = getShellOverflow(lockViewportHeight);
+  const shellPadding = getShellPadding(
+    showNavigation,
+    initialNavGutter,
+    initialNavOffset,
+    staticDesktopSidePadding
+  );
 
   return (
     <Box
       sx={{
         minHeight: "100dvh",
         height: lockViewportHeight ? { xs: "auto", lg: "100dvh" } : "auto",
-        overflow: lockViewportHeight ? { xs: "visible", lg: "hidden" } : "visible",
+        overflow: shellOverflow,
         display: "flex",
         flexDirection: "column",
         backgroundColor: "background.default",
@@ -111,7 +188,7 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
           display: "flex",
           flexGrow: 1,
           minHeight: 0,
-          overflow: lockViewportHeight ? { xs: "visible", lg: "hidden" } : "visible",
+          overflow: shellOverflow,
           backgroundColor: "background.default",
         }}
       >
@@ -121,34 +198,9 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
             flexGrow: 1,
             minWidth: 0,
             minHeight: 0,
-            overflow: lockViewportHeight ? { xs: "visible", lg: "hidden" } : "visible",
+            overflow: shellOverflow,
             backgroundColor: "background.default",
-            pl: {
-              xs: 0,
-              sm: 2,
-              md: showNavigation ? 2 : staticDesktopSidePadding,
-              lg: showNavigation
-                ? `calc((var(--shortbox-nav-gutter, ${initialNavGutter}) / 2) + 8px)`
-                : staticDesktopSidePadding,
-            },
-            pr: {
-              xs: 0,
-              sm: 2,
-              md: showNavigation ? 2 : staticDesktopSidePadding,
-              lg: showNavigation
-                ? `max(16px, calc((var(--shortbox-nav-gutter, ${initialNavGutter}) / 2) + 8px - (var(--shortbox-nav-offset, ${initialNavOffset}) / 2)))`
-                : staticDesktopSidePadding,
-            },
-            pt: { xs: 0, sm: 2 },
-            pb: showNavigation
-              ? { xs: COMPACT_BOTTOM_BAR_CLEARANCE, sm: COMPACT_BOTTOM_BAR_CLEARANCE, lg: 2 }
-              : { xs: 0, sm: 2 },
-            ml: {
-              xs: showNavigation ? `var(--shortbox-nav-offset, ${initialNavOffset})` : 0,
-              lg: showNavigation
-                ? `calc(var(--shortbox-nav-offset, ${initialNavOffset}) / 2)`
-                : 0,
-            },
+            ...shellPadding,
           }}
         >
           <Card
@@ -159,7 +211,7 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
               flexGrow: 1,
               minWidth: 0,
               minHeight: 0,
-              overflow: lockViewportHeight ? { xs: "visible", lg: "hidden" } : "visible",
+              overflow: shellOverflow,
               backgroundColor: "background.paper",
             }}
           >
@@ -184,7 +236,7 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
                   flexDirection: "column",
                   flex: 1,
                   minHeight: 0,
-                  overflow: lockViewportHeight ? { xs: "visible", lg: "hidden" } : "visible",
+                  overflow: shellOverflow,
                 }}
               >
                 {props.children}
