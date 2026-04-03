@@ -380,7 +380,7 @@ function TypedMetadataAutocomplete({
           action === "remove"
             ? toEntry(details?.option || null, options, entryKey, type)
             : toEntry(
-                details?.option || arrayValue[arrayValue.length - 1] || null,
+                details?.option || arrayValue.at(-1) || null,
                 options,
                 entryKey,
                 type
@@ -521,15 +521,16 @@ function removePattern(values: MetadataEntry[]) {
 
 function writePattern(values: MetadataEntry[], entryKey: EntryKey, value: string) {
   const nextValues = structuredClone(values || []) as MetadataEntry[];
+  const lastEntry = nextValues.at(-1);
 
-  if (nextValues.length === 0 || !nextValues[nextValues.length - 1].pattern) {
+  if (!lastEntry?.pattern) {
     const patternEntry: MetadataEntry = { pattern: true };
     patternEntry[entryKey] = value;
     nextValues.push(patternEntry);
     return nextValues;
   }
 
-  const nextPattern = { ...nextValues[nextValues.length - 1], [entryKey]: value };
+  const nextPattern = { ...lastEntry, [entryKey]: value };
   nextValues[nextValues.length - 1] = nextPattern;
   return nextValues;
 }
@@ -569,8 +570,7 @@ function toArray(value: unknown) {
 }
 
 function getPattern(values: MetadataEntry[], entryKey: EntryKey) {
-  if (values.length === 0) return "";
-  const lastEntry = values[values.length - 1];
+  const lastEntry = values.at(-1);
   if (!lastEntry.pattern) return "";
   return getEntryValue(lastEntry, entryKey);
 }

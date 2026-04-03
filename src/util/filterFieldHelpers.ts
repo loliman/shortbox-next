@@ -42,14 +42,15 @@ export function updateField(
     if (live) {
       const sourceValues = values || [];
       const nextValues = sourceValues.map((entry) => ({ ...entry }));
+      const lastValue = nextValues.at(-1);
 
-      if (nextValues.length === 0 || !nextValues[nextValues.length - 1].pattern) {
+      if (!lastValue?.pattern) {
         const dummy: FieldItem = { pattern: true };
         dummy[pattern] = option;
         nextValues.push(dummy);
       } else {
         nextValues[nextValues.length - 1] = {
-          ...nextValues[nextValues.length - 1],
+          ...lastValue,
           [pattern]: option,
         };
       }
@@ -121,7 +122,7 @@ export function updateField(
 
       case "create-option":
         selected.push({
-          name: payload.option?.name || (values && values[values.length - 1]?.name) || "",
+          name: payload.option?.name || values?.at(-1)?.name || "",
           type: payload.type ? [payload.type] : [],
           role: payload.role ? [payload.role] : [],
         });
@@ -139,6 +140,7 @@ export function updateField(
 }
 
 export function getPattern(arr: FieldItem[] | null | undefined, pattern: string) {
-  if (!arr || arr.length === 0 || !arr[arr.length - 1].pattern) return null;
-  return arr[arr.length - 1][pattern];
+  const lastEntry = arr?.at(-1);
+  if (!lastEntry?.pattern) return null;
+  return lastEntry[pattern];
 }

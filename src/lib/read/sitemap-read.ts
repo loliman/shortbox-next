@@ -100,7 +100,7 @@ export async function readPublisherSitemapEntries(): Promise<SitemapEntry[]> {
     });
 
     if (rows.length === 0) break;
-    cursor = rows[rows.length - 1].id;
+    cursor = rows.at(-1)?.id;
 
     for (const row of rows) {
       const publisherName = toSafeString(row.name);
@@ -138,7 +138,7 @@ export async function readSeriesSitemapEntries(): Promise<SitemapEntry[]> {
     });
 
     if (rows.length === 0) break;
-    cursor = rows[rows.length - 1].id;
+    cursor = rows.at(-1)?.id;
 
     for (const row of rows) {
       const publisherName = toSafeString(row.publisher?.name);
@@ -195,7 +195,7 @@ export async function readCanonicalIssueSitemapEntries(): Promise<SitemapEntry[]
     });
 
     if (rows.length === 0) break;
-    cursor = rows[rows.length - 1].id;
+    cursor = rows.at(-1)?.id;
 
     for (const row of rows) {
       const number = toSafeString(row.number);
@@ -244,7 +244,7 @@ export async function readPersonLandingSitemapEntries(): Promise<SitemapEntry[]>
     });
 
     if (rows.length === 0) break;
-    cursor = rows[rows.length - 1].id;
+    cursor = rows.at(-1)?.id;
 
     for (const row of rows) {
       const name = toSafeString(row.name);
@@ -271,7 +271,7 @@ export async function readArcLandingSitemapEntries(): Promise<SitemapEntry[]> {
     });
 
     if (rows.length === 0) break;
-    cursor = rows[rows.length - 1].id;
+    cursor = rows.at(-1)?.id;
 
     for (const row of rows) {
       const title = toSafeString(row.title);
@@ -298,7 +298,7 @@ export async function readAppearanceLandingSitemapEntries(): Promise<SitemapEntr
     });
 
     if (rows.length === 0) break;
-    cursor = rows[rows.length - 1].id;
+    cursor = rows.at(-1)?.id;
 
     for (const row of rows) {
       const name = toSafeString(row.name);
@@ -326,7 +326,7 @@ export async function readGenreLandingSitemapEntries(): Promise<SitemapEntry[]> 
       });
 
       if (rows.length === 0) break;
-      cursor = rows[rows.length - 1].id;
+      cursor = rows.at(-1)?.id;
 
       for (const row of rows) {
         const parts = toSafeString(row.genre)

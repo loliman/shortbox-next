@@ -231,7 +231,7 @@ export async function readLastEditedIssues(
     const connection = buildConnectionFromNodes(nodes);
     connection.pageInfo.hasNextPage = rows.length > limit;
     connection.pageInfo.endCursor = createFeedAnchorCursor(
-      pageRows[pageRows.length - 1],
+      pageRows.at(-1),
       cursorField,
       sortDirection
     );
