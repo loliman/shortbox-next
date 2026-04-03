@@ -43,7 +43,7 @@ function SeriesEdit(props: Readonly<SeriesEditProps>) {
   const selected = props.selected;
   const loading = false;
   const error = null;
-  const seriesDetails = props.initialSeries || null;
+  const seriesDetails = props.initialSeries ?? null;
 
   return (
     (() => {

@@ -183,7 +183,6 @@ export function buildDirectIssueFilterWhere(
 
     if (compare === "<") {
       and.push({ releaseDate: { lt: startOfDay(parsedDate) } });
-      continue;
     }
   }
 

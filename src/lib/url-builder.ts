@@ -33,8 +33,8 @@ export interface DetailPageUrlInput {
   seriesYear: number | null | undefined;
   seriesVolume: number | null | undefined;
   issueNumber: string | null | undefined;
-  format?: string | null | undefined;
-  variant?: string | null | undefined;
+  format?: string | null;
+  variant?: string | null;
 }
 
 // ---------------------------------------------------------------------------

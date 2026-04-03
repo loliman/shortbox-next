@@ -87,7 +87,7 @@ function IssueReportView(props: Readonly<IssueReportProps>) {
                 method: "POST",
                 body: {
                   issue: {
-                    ...(payload.old ? payload.old : {}),
+                    ...(payload.old ?? {}),
                     id: readTextValue(issueDetails.id),
                   },
                   item: payload.item,

@@ -36,8 +36,8 @@ function normalizeStory(story: Record<string, unknown>, usIssue: boolean) {
       series?: { title?: string; volume?: number; startyear?: number };
     };
   };
-  const parentIssue = parent.issue || {};
-  const parentSeries = parentIssue.series || {};
+  const parentIssue = parent.issue ?? {};
+  const parentSeries = parentIssue.series ?? {};
   const exclusive = Boolean(story.exclusive || usIssue);
 
   return ensureFieldItemClientId({

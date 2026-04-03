@@ -41,8 +41,8 @@ export function buildSortNavigationQuery(
 ) {
   return {
     filter: query?.filter ?? null,
-    order: patch.order !== undefined ? patch.order : getListingOrder(query),
-    direction: patch.direction !== undefined ? patch.direction : getListingDirection(query),
-    view: patch.view !== undefined ? patch.view : getListingView(query),
+    order: patch.order ?? getListingOrder(query),
+    direction: patch.direction ?? getListingDirection(query),
+    view: patch.view ?? getListingView(query),
   };
 }

@@ -23,6 +23,19 @@ type IssueLike = {
 };
 
 type OptionalNumberish = number | string | null | undefined;
+type OptionalText = string | null | undefined;
+
+function buildSeriesName(seriesTitle: string, year: OptionalNumberish): string {
+  const normalizedYear = toPositiveNumber(year);
+  return normalizedYear ? `${seriesTitle} (${normalizedYear})` : seriesTitle;
+}
+
+function buildIssueVariantSuffix(format: OptionalText, variant: OptionalText): string {
+  const parts = [format, variant].map(toStringValue).filter(Boolean);
+  if (parts.length === 0) return "";
+  if (parts.length === 1) return `[${parts[0]}]`;
+  return `[${parts[0]}] – ${parts[1]}`;
+}
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://shortbox.de";
 
@@ -125,7 +138,7 @@ export function buildSeriesBreadcrumbStructuredData(input: {
 }) {
   const year = toPositiveNumber(input.seriesYear);
   const volume = toPositiveNumber(input.seriesVolume) || 1;
-  const seriesName = `${input.seriesTitle}${year ? ` (${year})` : ""}`;
+  const seriesName = buildSeriesName(input.seriesTitle, year);
 
   return buildBreadcrumbList([
     { name: "Shortbox", path: `/${input.locale}` },
@@ -160,7 +173,7 @@ export function buildFilterLandingCollectionPageStructuredData(input: {
     "@type": "CollectionPage",
     name: `${input.entityLabel}: Hefte und Ausgaben`,
     url: toAbsoluteUrl(input.canonicalPath),
-    description: input.description || `${input.entityLabel}: Hefte und Ausgaben in Shortbox.`,
+    description: input.description ?? `${input.entityLabel}: Hefte und Ausgaben in Shortbox.`,
     inLanguage: "de",
     isPartOf: {
       "@type": "WebSite",
@@ -186,9 +199,11 @@ export function buildIssueComicStructuredData(issue: IssueLike, locale: Locale) 
   if (!publisherName || !seriesTitle || !issueNumber) return null;
 
   const canonicalPath = buildIssueCanonicalPath(issue, locale);
-  const seriesName = `${seriesTitle}${seriesYear ? ` (${seriesYear})` : ""}`;
-  const variantSuffix = [format ? `[${format}]` : "", variant ? `– ${variant}` : ""].filter(Boolean).join(" ");
-  const issueName = `${seriesTitle} #${issueNumber}${variantSuffix ? ` ${variantSuffix}` : ""}`;
+  const seriesName = buildSeriesName(seriesTitle, seriesYear);
+  const variantSuffix = buildIssueVariantSuffix(format, variant);
+  const issueName = variantSuffix
+    ? `${seriesTitle} #${issueNumber} ${variantSuffix}`
+    : `${seriesTitle} #${issueNumber}`;
 
   const isPartOf: Record<string, unknown> = {
     "@type": "ComicSeries",
@@ -223,7 +238,8 @@ export function buildPublisherCollectionPageStructuredData(input: {
     "@type": "CollectionPage",
     name: `${input.publisherName}: Serien und Ausgaben`,
     url: toAbsoluteUrl(canonicalPath),
-    description: input.description || `${input.publisherName}: Serien, Ausgaben und Aktualisierungen in Shortbox.`,
+    description:
+      input.description ?? `${input.publisherName}: Serien, Ausgaben und Aktualisierungen in Shortbox.`,
     inLanguage: "de",
     isPartOf: {
       "@type": "WebSite",
@@ -247,7 +263,7 @@ export function buildSeriesCollectionPageStructuredData(input: {
 }) {
   const year = toPositiveNumber(input.seriesYear);
   const volume = toPositiveNumber(input.seriesVolume) || 1;
-  const seriesName = `${input.seriesTitle}${year ? ` (${year})` : ""}`;
+  const seriesName = buildSeriesName(input.seriesTitle, year);
   const canonicalPath = buildSeriesCanonicalPath({
     locale: input.locale,
     publisherName: input.publisherName,
@@ -273,7 +289,9 @@ export function buildSeriesCollectionPageStructuredData(input: {
     "@type": "CollectionPage",
     name: `${input.seriesTitle} Band ${volume}: Ausgaben und Varianten`,
     url: toAbsoluteUrl(canonicalPath),
-    description: input.description || `${input.seriesTitle} Band ${volume}: Ausgaben, Varianten und Seriendetails in Shortbox.`,
+    description:
+      input.description ??
+      `${input.seriesTitle} Band ${volume}: Ausgaben, Varianten und Seriendetails in Shortbox.`,
     inLanguage: "de",
     isPartOf: {
       "@type": "WebSite",
@@ -310,7 +328,7 @@ export function buildIssueBreadcrumbStructuredData(issue: IssueLike, locale: Loc
     seriesVolume,
     issueNumber,
   });
-  const seriesName = `${seriesTitle}${seriesYear ? ` (${seriesYear})` : ""}`;
+  const seriesName = buildSeriesName(seriesTitle, seriesYear);
   const format = toStringValue(issue.format);
   const variant = toStringValue(issue.variant);
   const variantName = [format, variant].filter(Boolean).join(" – ");

@@ -46,6 +46,8 @@ export default function FilterSummaryBar(props: Readonly<FilterSummaryBarProps>)
   const hiddenCount = Math.max(0, filterLabels.length - visible.length);
   const compactLayout = Boolean(props.compactLayout);
   const selectedRoot = toSelectedRoot(props.selected);
+  const fallbackRoute = us ? "/us" : "/de";
+  const fromRoute = selectedRoot ? generateSeoUrl(selectedRoot, us) : fallbackRoute;
 
   return (
     <Box
@@ -97,7 +99,7 @@ export default function FilterSummaryBar(props: Readonly<FilterSummaryBarProps>)
               push(
                 buildRouteHref(us ? "/filter/us" : "/filter/de", props.query, {
                   filter: props.query?.filter ?? null,
-                  from: selectedRoot ? generateSeoUrl(selectedRoot, us) : (us ? "/us" : "/de"),
+                  from: fromRoute,
                 })
               );
             }}

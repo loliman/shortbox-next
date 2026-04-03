@@ -16,8 +16,11 @@ interface StoryReferenceContext {
 
 const DASH_PATTERN = /[‐‑–—]/g;
 const VOLUME_PATTERN = /\s+(?:vol(?:ume)?|v)\.?\s*(\d+)$/i;
-const ISSUE_REFERENCE_PATTERN =
-  /((?:annual\s+\d+(?:-\d+)?)|(?:#?[\dA-Za-z]+(?:-#?[\dA-Za-z]+)?))$/i;
+const ISSUE_NUMBER_TOKEN_PATTERN = /#?\d+[A-Za-z]?(?:-#?\d+[A-Za-z]?)?/;
+const ISSUE_REFERENCE_PATTERN = new RegExp(
+  `((?:annual\\s+\\d+(?:-\\d+)?)|(?:${ISSUE_NUMBER_TOKEN_PATTERN.source}))$`,
+  "i"
+);
 const CONTEXT_ISSUE_PATTERN = /^(?:annual\s+\d+(?:-\d+)?|\d+[A-Za-z]?(?:-\d+[A-Za-z]?)?)$/i;
 const ANNUAL_RANGE_PATTERN = /^annual\s+(\d+)(?:-(\d+))?$/i;
 const NUMERIC_RANGE_PATTERN = /^(\d+)([A-Za-z]?)(?:-(\d+)([A-Za-z]?))?$/;

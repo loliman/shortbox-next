@@ -49,7 +49,7 @@ class ContainsItem extends React.Component<ContainsItemProps> {
 
     const itemTitle = normalizeDisplayStoryTitle(this.props.item.title);
     const parentTitle = itemTitle ? undefined : normalizeDisplayStoryTitle(parent.title);
-    const storyTitle = itemTitle || parentTitle || "";
+    const storyTitle = itemTitle ?? parentTitle ?? "";
     const storyTitleLabel = storyTitle !== "" ? storyTitle : "Story";
 
     const addinfoText = buildAddinfoText(this.props.item);
@@ -177,8 +177,8 @@ class ContainsItem extends React.Component<ContainsItemProps> {
                         }}
                     >
                         <IssueReferenceInline
-                            seriesLabel={getSeriesLabel(parent.issue?.series as StorySeriesLike | undefined)}
-                            number={ parent.issue?.number}
+                            seriesLabel={getSeriesLabel(parent.issue?.series)}
+                            number={parent.issue?.number}
                             legacy_number={parent.issue?.legacy_number}
                         />
 

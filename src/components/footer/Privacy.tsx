@@ -233,7 +233,7 @@ function Privacy() {
               &quot;Privacy-Shield&quot; zertifizierten US-Verarbeiter gehören oder auf Grundlage besonderer
               Garantien, wie z.B. vertraglicher Verpflichtung durch sogenannte
               Standardschutzklauseln der EU-Kommission, dem Vorliegen von Zertifizierungen oder
-              verbindlichen internen Datenschutzvorschriften verarbeiten (Art. 44 bis 49 DSGVO,
+              verbindlichen internen Datenschutzvorschriften verarbeiten (Art. 44 bis 49 DSGVO,{" "}
               <a
                 href="https://ec.europa.eu/info/law/law-topic/data-protection/data-transfers-outside-eu_de"
                 target="_blank"
@@ -364,8 +364,7 @@ function Privacy() {
                 href="https://www.fandom.com/privacy-policy"
               >
                 https://www.fandom.com/privacy-policy
-              </a>
-              .
+              </a>.
             </Typography>
           </Stack>
 
@@ -385,8 +384,7 @@ function Privacy() {
                 href="https://www.comicguide.de/index.php/component/content/article?id=9"
               >
                 https://www.comicguide.de/index.php/component/content/article?id=9
-              </a>
-              .
+              </a>.
             </Typography>
           </Stack>
 

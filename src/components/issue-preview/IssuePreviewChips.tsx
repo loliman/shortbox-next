@@ -32,18 +32,6 @@ export function IssuePreviewChips(props: Readonly<IssuePreviewChipsProps>) {
     );
   }
 
-  /*if (us && flags.notPublishedInDe) {
-    chips.push(
-      <Chip
-        key="not-published"
-        size="small"
-        label="Nicht auf deutsch erschienen"
-        color="default"
-        sx={chipSx}
-      />
-    );
-  }*/
-
   if (!us && flags.hasOnlyApp) {
     chips.push(
       <Chip

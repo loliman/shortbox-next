@@ -197,16 +197,16 @@ export function AuthActionGroup(props: Readonly<AuthActionGroupProps>) {
           </IconButton>
         </Tooltip>
       ) : null}
-      {!props.loggedIn ? (
-        <Tooltip title="Login">
-          <IconButton color="inherit" aria-label="Login" onClick={() => props.onNavigate("/login")}>
-            <LoginIcon />
-          </IconButton>
-        </Tooltip>
-      ) : (
+      {props.loggedIn ? (
         <Tooltip title="Logout">
           <IconButton color="inherit" aria-label="Logout" onClick={props.onLogout}>
             <LogoutIcon />
+          </IconButton>
+        </Tooltip>
+      ) : (
+        <Tooltip title="Login">
+          <IconButton color="inherit" aria-label="Login" onClick={() => props.onNavigate("/login")}>
+            <LoginIcon />
           </IconButton>
         </Tooltip>
       )}

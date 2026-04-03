@@ -13,7 +13,7 @@ function normalizeRoleList(roleValue: string | string[] | undefined): string[] {
 }
 
 function isAppearanceField(name?: string) {
-  return (name || "").indexOf("appearances") > -1;
+  return (name || "").includes("appearances");
 }
 
 function cloneValues(values: FieldItem[] | undefined) {

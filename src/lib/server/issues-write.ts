@@ -387,9 +387,9 @@ function buildEditedIssueData(
     updatedAt: new Date(),
     ...(typeof item.verified === "boolean" ? { verified: item.verified } : {}),
     ...(typeof item.collected === "boolean" ? { collected: item.collected } : {}),
-    ...(item.comicguideid !== undefined
-      ? { comicGuideId: normalizeBigInt(item.comicguideid) }
-      : {}),
+    ...(item.comicguideid === undefined
+      ? {}
+      : { comicGuideId: normalizeBigInt(item.comicguideid) }),
   };
 }
 
@@ -454,13 +454,13 @@ export async function deleteIssueByLookup(item: IssueInput, executor: PrismaExec
       tx
     );
     const issue =
-      issueMatch?.id != null
-        ? await tx.issue.findUnique({
+      issueMatch?.id == null
+        ? null
+        : await tx.issue.findUnique({
             where: {
               id: issueMatch.id,
             },
-          })
-        : null;
+          });
     if (!issue) throw new Error("Issue not found");
 
     const storyRows = await tx.story.findMany({
@@ -1150,11 +1150,12 @@ async function findOrCreateUsSeries(
 }
 
 function normalizeCollectedIssues(crawledIssue: CrawledIssueLike) {
-  const collectedEntries = Array.isArray(crawledIssue.collectedIssues)
-    ? crawledIssue.collectedIssues
-    : Array.isArray(crawledIssue.containedIssues)
-      ? crawledIssue.containedIssues
-      : [];
+  let collectedEntries: NonNullable<CrawledIssueLike["collectedIssues"]> = [];
+  if (Array.isArray(crawledIssue.collectedIssues)) {
+    collectedEntries = crawledIssue.collectedIssues;
+  } else if (Array.isArray(crawledIssue.containedIssues)) {
+    collectedEntries = crawledIssue.containedIssues;
+  }
 
   return collectedEntries
     .map((entry) => ({

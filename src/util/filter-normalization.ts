@@ -41,7 +41,7 @@ export function normalizeLegacyFilterPayload(
   options?: LegacyFilterNormalizationOptions
 ): Record<string, unknown> {
   const normalized = { ...payload };
-  const resolved = { ...DEFAULT_OPTIONS, ...(options || {}) };
+  const resolved = { ...DEFAULT_OPTIONS, ...options };
 
   normalizeNamedField(normalized, "arcs", "title", resolved.mode);
   normalizeNamedField(normalized, "appearances", "name", resolved.mode);
@@ -78,4 +78,3 @@ export function parseAndNormalizeLegacyFilter(
     return undefined;
   }
 }
-

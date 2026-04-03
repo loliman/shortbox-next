@@ -51,7 +51,7 @@ export default function QueryResult(props: Readonly<QueryResultProps>) {
     return <AppPageLoader label={props.loadingLabel} />;
   }
 
-  if (error || (data && data.errors))
+  if (error || data?.errors)
     return (
       <Box sx={{ p: 2, display: "flex" }}>
         <ErrorIcon fontSize="large" />

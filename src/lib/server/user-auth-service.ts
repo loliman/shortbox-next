@@ -49,7 +49,7 @@ export class UserService {
     blockDuration: UserService.LOGIN_RATE_LIMIT_LOCK_SECONDS,
   });
 
-  constructor(private requestId?: string) {
+  constructor(private readonly requestId?: string) {
     void this.requestId;
   }
 

@@ -200,7 +200,6 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
     if (resolvedImmediately) {
       autoRevealKeyRef.current = autoRevealKey;
       onPriorityPathReady?.();
-      return;
     }
   }, [
     allowAutoRevealFallback,
@@ -397,7 +396,7 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
                       </Box>
                     }
                     secondary={createIssueSecondary(issueNode, Boolean(session))}
-                    secondaryTypographyProps={{ noWrap: true }}
+                    slotProps={{ secondary: { noWrap: true } }}
                   />
                 </Box>
               </CoverTooltip>

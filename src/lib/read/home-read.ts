@@ -22,10 +22,7 @@ export async function readHomeFeed(options: HomeReadOptions) {
   const requestedFirst = cursor ? limit : limit + offset + 1;
 
   const connection = await readLastEditedIssues(
-    {
-      ...(options.filter ?? {}),
-      us: options.us,
-    },
+    { ...options.filter, us: options.us },
     requestedFirst,
     cursor,
     options.order ?? undefined,

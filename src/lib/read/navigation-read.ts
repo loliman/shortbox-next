@@ -203,16 +203,17 @@ const readNavigationSeriesCached = unstable_cache(
 );
 
 export async function readNavigationIssues(scope: NavigationIssuesScope) {
+  const filteredIssueWhere = scope.filteredIssueIds
+    ? {
+        id: {
+          in: scope.filteredIssueIds,
+        },
+      }
+    : undefined;
   const issues = await prisma.issue.findMany({
     where: {
-      ...(scope.directIssueWhere || {}),
-      ...(scope.filteredIssueIds
-        ? {
-            id: {
-              in: scope.filteredIssueIds,
-            },
-          }
-        : {}),
+      ...scope.directIssueWhere,
+      ...filteredIssueWhere,
       series: {
         title: scope.series,
         volume: scope.volume,

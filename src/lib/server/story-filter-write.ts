@@ -67,7 +67,7 @@ const parseStoryPart = (value: unknown): { current: number; total: number } | nu
 
 const isPartialPublicationStart = (part: unknown): boolean => {
   const parsed = parseStoryPart(part);
-  return Boolean(parsed && parsed.current === 1 && parsed.total > 1);
+  return parsed?.current === 1 && parsed.total > 1;
 };
 
 const isCompletePublication = (part: unknown): boolean => {

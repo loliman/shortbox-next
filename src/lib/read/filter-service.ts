@@ -284,7 +284,7 @@ function hasRealityTerms(filter: RuntimeFilter): boolean {
   const realityTerms = Array.isArray(filter.realities)
     ? filter.realities
     : splitFilterTerms(typeof filter.realities === "string" ? filter.realities : undefined);
-  return Array.isArray(realityTerms) ? realityTerms.length > 0 : false;
+  return realityTerms.length > 0;
 }
 
 function hasIndividualTerms(filter: RuntimeFilter): boolean {
@@ -512,7 +512,7 @@ function matchesStorySwitches(issue: FilterIssueRecord, filter: RuntimeFilter): 
     if (filter.reprint) return false;
     if (filter.notReprint) return true;
     if (filter.noPrint) return true;
-      if (filter.notNoPrint) return false;
+    if (filter.notNoPrint) return false;
   }
 
   const storyConditions = collectStorySwitchConditions(stories, filter);
