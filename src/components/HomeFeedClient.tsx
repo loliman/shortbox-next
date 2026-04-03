@@ -133,8 +133,9 @@ export default function HomeFeedClient(props: Readonly<HomeFeedClientProps>) {
           hasMore?: boolean;
           nextCursor?: string | null;
         };
+        const nextItems = Array.isArray(payload.items) ? payload.items : [];
 
-        setItems((prev) => [...prev, ...((payload.items ?? []) as PreviewIssue[])]);
+        setItems((prev) => [...prev, ...nextItems]);
         setHasMore(Boolean(payload.hasMore));
         setNextCursor(typeof payload.nextCursor === "string" ? payload.nextCursor : null);
       } catch (nextError) {

@@ -16,7 +16,6 @@ import type { ActivePreviewImportQueue } from "../../types/preview-import";
 import type { SessionData } from "../../types/session";
 import IssueEditorFormContent from "../restricted/editor/issue-editor/IssueEditorFormContent";
 import { buildIssueMutationVariables } from "../restricted/editor/issue-editor/payload";
-import type { IssueEditorFormValues } from "../restricted/editor/issue-editor/types";
 import { buildTouchedFromErrors, findFirstErrorPath, focusEditorErrorField } from "../restricted/editor/issue-editor/validationFeedback";
 
 interface PreviewImportProps {
@@ -59,13 +58,13 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
 
       <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} alignItems={{ xs: "stretch", md: "center" }}>
         <Button component="label" variant="outlined" disabled={uploading}>
-          PDF wählen
+          <span>PDF wählen</span>
           <input
             hidden
             type="file"
             accept="application/pdf,.pdf"
             onChange={(event) => {
-              const nextFile = event.target.files?.[0] || null;
+              const nextFile = event.target.files?.[0] ?? null;
               setFile(nextFile);
             }}
           />
@@ -205,7 +204,7 @@ function PreviewImportQueueEditor(props: Readonly<{
       {({ resetForm, submitForm, isSubmitting, setFieldValue, values: formValues, validateForm, setTouched }) => (
         <Form style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
           <IssueEditorFormContent
-            values={formValues as IssueEditorFormValues}
+            values={formValues}
             showBatchCreate
             isDesktop
             session={props.session}

@@ -31,11 +31,11 @@ type IssueHistoryListProps = {
 };
 
 export function IssueHistoryList(props: Readonly<IssueHistoryListProps>) {
-  const issues = props.issues || [];
+  const issues = props.issues ?? [];
   const showSort = props.showSort ?? true;
   const compactLayout = Boolean(props.compactLayout);
-  const listingView = getListingView(props.query as ListingQuery);
-  const previewProps = (props.previewProps || {}) as Record<string, unknown>;
+  const listingView = getListingView(props.query);
+  const previewProps = props.previewProps ?? {};
   const galleryGridColumns = compactLayout
     ? "repeat(1, minmax(0, 1fr))"
     : {
@@ -53,7 +53,7 @@ export function IssueHistoryList(props: Readonly<IssueHistoryListProps>) {
   return (
     <Box component="section">
       <ListingToolbar
-        query={props.query as ListingQuery}
+        query={props.query}
         previewProps={previewProps}
         compactLayout={compactLayout}
         showSort={showSort}

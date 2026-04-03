@@ -15,7 +15,7 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { JsonDiffComponent } from "json-diff-react";
 import type { JsonValue } from "json-diff-react";
-import {generateLabel} from "../../lib/routes/hierarchy";
+import { generateLabel } from "../../lib/routes/hierarchy";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
 import { mutationRequest } from "../../lib/client/mutation-request";
 import type { SessionData } from "../../types/session";
@@ -364,7 +364,7 @@ function JsonDiffReactView(props: Readonly<{ before: JsonValue; after: JsonValue
         jsonDiffOptions={{
           maxElisions: 2,
           renderElision: (n: number, max: number) =>
-            n < max ? [...Array(n)].map(() => "…") : `… (${n} Einträge)`,
+            n < max ? [...new Array(n)].map(() => "…") : `… (${n} Einträge)`,
         }}
       />
     </Box>
@@ -377,8 +377,8 @@ function parseChangeRequest(value: unknown): ParsedChangeRequest {
   const item = asRecord(parsed?.item);
 
   return {
-    issue: issue || undefined,
-    item: item || undefined,
+    issue: issue ?? undefined,
+    item: item ?? undefined,
   };
 }
 
@@ -429,7 +429,7 @@ function parseJsonish(value: unknown): unknown {
     Object.keys(value)
       .sort((left, right) => left.localeCompare(right, "de-DE"))
       .forEach((key) => {
-        normalized[key] = parseJsonish((value as Record<string, unknown>)[key]);
+        normalized[key] = parseJsonish(value[key]);
       });
     return normalized;
   }
@@ -453,7 +453,7 @@ function sanitizeForDiffView(value: unknown, forceUsContext = false): unknown {
   if (Array.isArray(value)) return value.map((entry) => sanitizeForDiffView(entry, forceUsContext));
   if (!isPlainObject(value)) return value;
 
-  const source = value as Record<string, unknown>;
+  const source = value;
   const normalized: Record<string, unknown> = {};
   Object.keys(source).forEach((key) => {
     normalized[key] = sanitizeForDiffView(source[key], forceUsContext);
@@ -464,7 +464,7 @@ function sanitizeForDiffView(value: unknown, forceUsContext = false): unknown {
     forceUsContext ||
     (isPlainObject(series) &&
       isPlainObject(series.publisher) &&
-      Boolean((series.publisher as Record<string, unknown>).us));
+      Boolean(series.publisher.us));
 
   if (isUsIssue) {
     delete normalized.format;
@@ -472,7 +472,7 @@ function sanitizeForDiffView(value: unknown, forceUsContext = false): unknown {
     delete normalized.stories;
 
     if (isPlainObject(normalized.series)) {
-      const nextSeries = { ...(normalized.series as Record<string, unknown>) };
+      const nextSeries = { ...normalized.series };
       delete nextSeries.publisher;
       normalized.series = nextSeries;
     }
@@ -483,12 +483,11 @@ function sanitizeForDiffView(value: unknown, forceUsContext = false): unknown {
 
 function isUsIssueContext(value: unknown): boolean {
   if (!isPlainObject(value)) return false;
-  const issue = value as Record<string, unknown>;
-  const series = issue.series;
+  const series = value.series;
   if (!isPlainObject(series)) return false;
-  const publisher = (series as Record<string, unknown>).publisher;
+  const publisher = series.publisher;
   if (!isPlainObject(publisher)) return false;
-  return Boolean((publisher as Record<string, unknown>).us);
+  return Boolean(publisher.us);
 }
 
 function toJsonValue(value: unknown): JsonValue {
@@ -500,7 +499,7 @@ function toJsonValue(value: unknown): JsonValue {
   if (isPlainObject(value)) {
     const result: { [x: string]: JsonValue } = {};
     Object.keys(value).forEach((key) => {
-      result[key] = toJsonValue((value as Record<string, unknown>)[key]);
+      result[key] = toJsonValue(value[key]);
     });
     return result;
   }

@@ -56,19 +56,23 @@ function ThemeModeBridge(props: Readonly<AppProvidersProps>) {
     setColorScheme(nextMode);
   }, [setColorScheme, themeMode]);
 
+  const getNavigationNow = useCallback(
+    () => globalThis.performance?.now() ?? Date.now(),
+    []
+  );
+
   const beginNavigation = useCallback(() => {
-    navigationStartedAtRef.current =
-      typeof performance !== "undefined" ? performance.now() : Date.now();
+    navigationStartedAtRef.current = getNavigationNow();
     setNavigationPending(true);
-  }, []);
+  }, [getNavigationNow]);
 
   const chromeLoading = navigationPayloadLoading || navigationUiLoading;
 
   useEffect(() => {
-    if (!navigationPending) return;
+    if (navigationPending !== true) return;
 
     const startedAt = navigationStartedAtRef.current;
-    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const now = getNavigationNow();
     const elapsed = startedAt == null ? 0 : now - startedAt;
     const remaining = Math.max(0, MIN_NAVIGATION_FEEDBACK_MS - elapsed);
 
@@ -80,10 +84,10 @@ function ThemeModeBridge(props: Readonly<AppProvidersProps>) {
     return () => {
       globalThis.clearTimeout(timeout);
     };
-  }, [navigationPending, routeKey]);
+  }, [getNavigationNow, navigationPending, routeKey]);
 
   useEffect(() => {
-    if (!navigationPending) return;
+    if (navigationPending !== true) return;
 
     const timeout = globalThis.setTimeout(() => {
       navigationStartedAtRef.current = null;
