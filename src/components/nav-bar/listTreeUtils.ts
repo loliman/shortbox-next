@@ -218,7 +218,8 @@ export function normalizeIssueNumber(value: unknown): string {
 }
 
 export function getIssueNumberPrefix(number: string): string {
-  const match = number.match(/^\d+/);
+  const prefixPattern = /^\d+/;
+  const match = prefixPattern.exec(number);
   return match ? match[0] : "";
 }
 

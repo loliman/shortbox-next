@@ -73,7 +73,8 @@ function isNestedError(value: unknown) {
 }
 
 function revealStoryErrorPanel(errorPath: string) {
-  const match = errorPath.match(/^stories(?:\.|\[)(\d+)/);
+  const storyIndexPattern = /^stories(?:\.|\[)(\d+)/;
+  const match = storyIndexPattern.exec(errorPath);
   if (!match) return;
 
   const storyIndex = match[1];

@@ -53,7 +53,7 @@ const isPocketBookFormat = (format: unknown): boolean =>
 const PART_PATTERN = /^(\d+)\s*\/\s*(\d+)$/;
 
 const parseStoryPart = (value: unknown): { current: number; total: number } | null => {
-  const match = normalizeText(value).match(PART_PATTERN);
+  const match = PART_PATTERN.exec(normalizeText(value));
   if (!match) return null;
 
   const current = Number(match[1]);

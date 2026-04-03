@@ -45,10 +45,10 @@ export function updateField(
       const lastValue = nextValues.at(-1);
 
       if (lastValue?.pattern) {
-        nextValues[nextValues.length - 1] = {
+        nextValues.splice(-1, 1, {
           ...lastValue,
           [pattern]: option,
-        };
+        });
       } else {
         const dummy: FieldItem = { pattern: true };
         dummy[pattern] = option;

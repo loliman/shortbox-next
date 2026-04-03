@@ -531,7 +531,7 @@ function writePattern(values: MetadataEntry[], entryKey: EntryKey, value: string
   }
 
   const nextPattern = { ...lastEntry, [entryKey]: value };
-  nextValues[nextValues.length - 1] = nextPattern;
+  nextValues.splice(-1, 1, nextPattern);
   return nextValues;
 }
 

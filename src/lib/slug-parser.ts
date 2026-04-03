@@ -73,14 +73,16 @@ export function parseSeriesSlug(slug: string): ParsedSeriesSlug | null {
   if (!slug) return null;
 
   // Extract volume suffix: vol1, vol2, …
-  const volMatch = slug.match(/vol(\d+)$/i);
+  const volumePattern = /vol(\d+)$/i;
+  const volMatch = volumePattern.exec(slug);
   if (!volMatch) return null;
 
   const volume = Number.parseInt(volMatch[1], 10);
   const withoutVol = slug.substring(0, slug.length - volMatch[0].length).replace(/-$/, "");
 
   // Optionally extract 4-digit year immediately before the vol suffix
-  const yearMatch = withoutVol.match(/-(\d{4})$/);
+  const yearPattern = /-(\d{4})$/;
+  const yearMatch = yearPattern.exec(withoutVol);
   let title = withoutVol;
   let year: number | null = null;
 
@@ -236,4 +238,3 @@ export function parseIssueUrl(
     variant: parseVariantSlug(variantSlug),
   };
 }
-

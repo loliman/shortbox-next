@@ -367,8 +367,10 @@ function toTitleCasePart(part: string) {
   if (!trimmed) return "";
   if (TITLE_ACRONYMS.has(trimmed)) return trimmed;
 
-  const prefixMatch = trimmed.match(/^[^A-Za-zÄÖÜäöüß]*/)?.[0] || "";
-  const suffixMatch = trimmed.match(/[^A-Za-zÄÖÜäöüß]*$/)?.[0] || "";
+  const prefixPattern = /^[^A-Za-zÄÖÜäöüß]*/;
+  const suffixPattern = /[^A-Za-zÄÖÜäöüß]*$/;
+  const prefixMatch = prefixPattern.exec(trimmed)?.[0] || "";
+  const suffixMatch = suffixPattern.exec(trimmed)?.[0] || "";
   const core = trimmed.slice(prefixMatch.length, trimmed.length - suffixMatch.length);
   if (!core) return trimmed;
 
@@ -475,8 +477,9 @@ function collectCodeMetadataWindow(lines: string[], localCodeIndex: number) {
 }
 
 function deriveExplicitIssueNumber(lines: string[], localCodeIndex: number) {
+  const issueNumberPattern = /^Nr\.\s*([0-9]+[A-Za-z]?)$/i;
   for (let index = localCodeIndex - 1; index >= Math.max(0, localCodeIndex - 4); index -= 1) {
-    const match = (lines[index] || "").match(/^Nr\.\s*([0-9]+[A-Za-z]?)$/i);
+    const match = issueNumberPattern.exec(lines[index] || "");
     if (match) return match[1];
   }
   return "";
@@ -487,8 +490,9 @@ function stripTrailingIssueList(value: string) {
 }
 
 function deriveBandTitle(lines: string[], localCodeIndex: number) {
+  const bandTitlePattern = /^BAND\s+\d+:\s*(.*)$/i;
   for (let index = localCodeIndex - 1; index >= Math.max(0, localCodeIndex - 5); index -= 1) {
-    const bandMatch = (lines[index] || "").match(/^BAND\s+\d+:\s*(.*)$/i);
+    const bandMatch = bandTitlePattern.exec(lines[index] || "");
     if (!bandMatch) continue;
 
     const sameLineTitle = normalizeTitle(readTextValue(bandMatch[1]).replaceAll(/\(\d{4}\)/g, ""));
@@ -555,7 +559,9 @@ function parseContentReference(contentLine: string) {
 }
 
 function parseStoryReferenceSegment(segment: string) {
-  const match = segment.match(/^(.*\S)\s+(\d+[A-Za-z]?|Annual\s+\d+)(?:-(\d+[A-Za-z]?|\d+))?$/i);
+  const storyReferencePattern =
+    /^(.*\S)\s+(\d+[A-Za-z]?|Annual\s+\d+)(?:-(\d+[A-Za-z]?|\d+))?$/i;
+  const match = storyReferencePattern.exec(segment);
   if (!match) return [];
 
   const seriesTitle = match[1].trim();

@@ -88,7 +88,7 @@ type ContainsTitleDetailedNavigationProps = {
 const PART_PATTERN = /^(\d+)\s*\/\s*(\d+)$/;
 
 function parseStoryPart(value: string | null | undefined): { current: number; total: number } | null {
-  const match = readContainsTitleText(value).match(PART_PATTERN);
+  const match = PART_PATTERN.exec(readContainsTitleText(value));
   if (!match) return null;
 
   const current = Number(match[1]);
