@@ -126,7 +126,7 @@ function toParent(
     const series = structuredClone(item.series ?? { publisher: {} }) as Record<string, unknown> & {
       publisher?: { us?: boolean };
     };
-    if (!series.publisher) series.publisher = {};
+    series.publisher ??= {};
     series.publisher.us = undefined;
     const parent = { series };
     return stripItem(parent);

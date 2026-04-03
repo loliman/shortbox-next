@@ -124,20 +124,20 @@ export function printNavPerfSummary(label = "sidebar") {
 }
 
 function pushNavPerfEvent(name: string, detail?: NavPerfDetail) {
-  if (globalThis.window === undefined) return;
+  if (globalThis.window !== undefined) {
+    const store = globalThis.__SHORTBOX_NAV_DEBUG__ ??= {
+      sessionKey: "unknown",
+      events: [],
+    };
 
-  const store = globalThis.__SHORTBOX_NAV_DEBUG__ ??= {
-    sessionKey: "unknown",
-    events: [],
-  };
+    const at = typeof performance !== "undefined" ? performance.now() : Date.now();
+    store.events.push({ name, at, detail });
+    if (store.events.length > EVENT_LIMIT) {
+      store.events.splice(0, store.events.length - EVENT_LIMIT);
+    }
 
-  const at = typeof performance !== "undefined" ? performance.now() : Date.now();
-  store.events.push({ name, at, detail });
-  if (store.events.length > EVENT_LIMIT) {
-    store.events.splice(0, store.events.length - EVENT_LIMIT);
+    console.info(`[nav-perf] ${name}`, detail ?? "");
   }
-
-  console.info(`[nav-perf] ${name}`, detail ?? "");
 }
 
 function safeClearPerformanceEntries() {

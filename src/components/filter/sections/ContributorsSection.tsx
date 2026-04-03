@@ -22,6 +22,8 @@ interface ContributorsSectionProps {
 }
 
 function ContributorsSection({ values, us, setFieldValue }: Readonly<ContributorsSectionProps>) {
+  const showTranslator = us === false;
+
   return (
     <Stack spacing={2}>
       <Typography variant="h6">Mitwirkende</Typography>
@@ -38,7 +40,7 @@ function ContributorsSection({ values, us, setFieldValue }: Readonly<Contributor
         ))}
       </Stack>
 
-      {!us ? (
+      {showTranslator ? (
         <Stack spacing={1}>
           <ContributorAutocomplete
             label={TRANSLATOR_FIELD.label}

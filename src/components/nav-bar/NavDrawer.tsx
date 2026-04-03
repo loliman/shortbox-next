@@ -41,6 +41,8 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
     children,
   } = props;
   const drawerWidth = getNavDrawerWidth(temporary);
+  const navActionBottomOffset = temporary ? `calc(${COMPACT_BOTTOM_BAR_CLEARANCE} + 14px)` : 14;
+  const navListBottomPadding = temporary ? `calc(${COMPACT_BOTTOM_BAR_CLEARANCE} + 56px)` : 56;
   const paperSx = {
     width: drawerWidth,
     maxWidth: "100%",
@@ -62,10 +64,14 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
       <Box
         sx={{
           position: "absolute",
-          bottom: temporary ? `calc(${COMPACT_BOTTOM_BAR_CLEARANCE}px + 14px)` : 14,
-          right: 14,
+          inset: 0,
           zIndex: 2,
-          pointerEvents: "auto",
+          display: "flex",
+          alignItems: "flex-end",
+          justifyContent: "flex-end",
+          p: 1.75,
+          pb: navActionBottomOffset,
+          pointerEvents: "none",
         }}
       >
         <Tooltip describeChild title="Zur Auswahl springen">
@@ -112,7 +118,7 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
             width: "100%",
             p: 0,
             pt: 0.5,
-            pb: temporary ? COMPACT_BOTTOM_BAR_CLEARANCE : 0,
+            pb: navListBottomPadding,
           }}
         >
           {children}
@@ -132,8 +138,10 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
         ModalProps={{
           keepMounted: false,
         }}
-        PaperProps={{
-          sx: paperSx,
+        slotProps={{
+          paper: {
+            sx: paperSx,
+          },
         }}
       >
         {drawerContent}
@@ -145,8 +153,10 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
     <Drawer
       variant="persistent"
       open={Boolean(drawerOpen)}
-      PaperProps={{
-        sx: paperSx,
+      slotProps={{
+        paper: {
+          sx: paperSx,
+        },
       }}
     >
       {drawerContent}

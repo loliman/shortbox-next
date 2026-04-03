@@ -6,7 +6,6 @@ import {
   readNavigationSeries,
 } from "@/src/lib/read/navigation-read";
 import { resolveNavigationFilterQuery } from "@/src/lib/routes/seo-filter-navigation";
-import { readServerSession } from "@/src/lib/server/session";
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,8 +18,7 @@ export async function GET(request: NextRequest) {
       routeFilterKind: searchParams.get("routeFilterKind"),
       routeFilterSlug: searchParams.get("routeFilterSlug"),
     });
-    const session = await readServerSession();
-    const filterState = await readNavigationFilterState(filter, Boolean(session?.loggedIn));
+    const filterState = await readNavigationFilterState(filter);
 
     if (scope === "series") {
       const publisher = (searchParams.get("publisher") || "").trim();

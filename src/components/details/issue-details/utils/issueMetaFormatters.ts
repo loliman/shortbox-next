@@ -1,7 +1,8 @@
 export function toShortboxDate(date: string) {
-  if (date.indexOf("01.01.") > -1) {
+  if (date.includes("01.01.")) {
     return date.substring(6);
-  } else if (date.indexOf("01.") === 0) {
+  }
+  if (date.startsWith("01.")) {
     date = date.substring(2);
   }
 

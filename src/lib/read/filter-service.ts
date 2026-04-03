@@ -208,22 +208,7 @@ function endOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
 }
 
-function compareValues(left: string, right: string, compare: string): boolean {
-  switch (compare) {
-    case ">":
-      return left > right;
-    case ">=":
-      return left >= right;
-    case "<":
-      return left < right;
-    case "<=":
-      return left <= right;
-    default:
-      return left === right;
-  }
-}
-
-function compareNumericValues(left: number, right: number, compare: string): boolean {
+function compareValues(left: string | number, right: string | number, compare: string): boolean {
   switch (compare) {
     case ">":
       return left > right;
@@ -307,23 +292,23 @@ function hasIndividualTerms(filter: RuntimeFilter): boolean {
 }
 
 function hasStorySwitchTerms(filter: RuntimeFilter): boolean {
-  return Boolean(
+  return !!(
     filter.firstPrint ||
-      filter.notFirstPrint ||
-      filter.onlyPrint ||
-      filter.notOnlyPrint ||
-      filter.onlyTb ||
-      filter.notOnlyTb ||
-      filter.exclusive ||
-      filter.notExclusive ||
-      filter.reprint ||
-      filter.notReprint ||
-      filter.otherOnlyTb ||
-      filter.notOtherOnlyTb ||
-      filter.noPrint ||
-      filter.notNoPrint ||
-      filter.onlyOnePrint ||
-      filter.notOnlyOnePrint
+    filter.notFirstPrint ||
+    filter.onlyPrint ||
+    filter.notOnlyPrint ||
+    filter.onlyTb ||
+    filter.notOnlyTb ||
+    filter.exclusive ||
+    filter.notExclusive ||
+    filter.reprint ||
+    filter.notReprint ||
+    filter.otherOnlyTb ||
+    filter.notOtherOnlyTb ||
+    filter.noPrint ||
+    filter.notNoPrint ||
+    filter.onlyOnePrint ||
+    filter.notOnlyOnePrint
   );
 }
 
@@ -335,15 +320,21 @@ function buildIssueIncludeForFilter(filter: RuntimeFilter): Prisma.IssueInclude 
       },
     },
   };
+  const isUs = filter.us === true;
+  const hasArcFilters = hasArcTerms(filter);
+  const hasAppearanceFilters = hasAppearanceTerms(filter);
+  const hasRealityFilters = hasRealityTerms(filter);
+  const hasIndividualFilters = hasIndividualTerms(filter);
+  const hasStorySwitchFilters = hasStorySwitchTerms(filter);
 
   const needsStoryGraph =
-    hasStorySwitchTerms(filter) ||
-    hasAppearanceTerms(filter) ||
-    hasRealityTerms(filter) ||
-    hasIndividualTerms(filter) ||
-    (!Boolean(filter.us) && hasArcTerms(filter));
+    hasStorySwitchFilters ||
+    hasAppearanceFilters ||
+    hasRealityFilters ||
+    hasIndividualFilters ||
+    (!isUs && hasArcFilters);
 
-  if (Boolean(filter.us) && hasArcTerms(filter)) {
+  if (isUs && hasArcFilters) {
     include.arcs = {
       include: {
         arc: true,
@@ -352,55 +343,36 @@ function buildIssueIncludeForFilter(filter: RuntimeFilter): Prisma.IssueInclude 
   }
 
   if (needsStoryGraph) {
+    const includeAppearances = hasAppearanceFilters || hasRealityFilters;
+    const includeParent = !isUs || hasStorySwitchFilters || hasIndividualFilters;
+    const includeParentIssueArcs = !isUs && hasArcFilters;
+    const includeParentAppearances = !isUs && includeAppearances;
+    const includeParentIndividuals = !isUs && hasIndividualFilters;
+
     include.stories = {
       include: {
-        appearances: hasAppearanceTerms(filter) || hasRealityTerms(filter)
+        appearances: includeAppearances ? { include: { appearance: true } } : false,
+        individuals: hasIndividualFilters ? { include: { individual: true } } : false,
+        parent: includeParent
           ? {
               include: {
-                appearance: true,
-              },
-            }
-          : false,
-        individuals: hasIndividualTerms(filter)
-          ? {
-              include: {
-                individual: true,
-              },
-            }
-          : false,
-        parent:
-          !Boolean(filter.us) || hasStorySwitchTerms(filter) || hasIndividualTerms(filter)
-            ? {
-                include: {
-                  issue: !Boolean(filter.us) && hasArcTerms(filter)
-                    ? {
-                        include: {
-                          arcs: {
-                            include: {
-                              arc: true,
-                            },
+                issue: includeParentIssueArcs
+                  ? {
+                      include: {
+                        arcs: {
+                          include: {
+                            arc: true,
                           },
                         },
-                      }
-                    : false,
-                  appearances: !Boolean(filter.us) && (hasAppearanceTerms(filter) || hasRealityTerms(filter))
-                    ? {
-                        include: {
-                          appearance: true,
-                        },
-                      }
-                    : false,
-                  individuals: !Boolean(filter.us) && hasIndividualTerms(filter)
-                    ? {
-                        include: {
-                          individual: true,
-                        },
-                      }
-                    : false,
-                },
-              }
-            : false,
-        children: hasAppearanceTerms(filter) || hasRealityTerms(filter)
+                      },
+                    }
+                  : false,
+                appearances: includeParentAppearances ? { include: { appearance: true } } : false,
+                individuals: includeParentIndividuals ? { include: { individual: true } } : false,
+              },
+            }
+          : false,
+        children: includeAppearances
           ? {
               include: {
                 appearances: {
@@ -449,15 +421,25 @@ function matchesNumbers(issue: FilterIssueRecord, numbers: RuntimeFilter["number
     const numeric = isNumericFilterValue(rawNumber);
     const matched = candidates.some((candidate) => {
       if (numeric && isNumericFilterValue(candidate)) {
-        return compareNumericValues(Number(candidate), Number(rawNumber), compare);
+        return compareValues(Number(candidate), Number(rawNumber), compare);
       }
       return compareValues(candidate, rawNumber, compare);
     });
 
-    if (!matched) return false;
-    if (hasVariant && readTextValue(issue.variant) !== variant) return false;
-    return true;
+    return matched && (!hasVariant || readTextValue(issue.variant) === variant);
   });
+}
+
+function matchesIndividualLinks(
+  links: readonly IndividualLinkShape[],
+  name: string,
+  types: readonly string[]
+) {
+  return links.some(
+    (link) =>
+      link.individual.name === name &&
+      (types.length === 0 || types.includes(readTextValue(link.type).toUpperCase()))
+  );
 }
 
 function matchesIndividuals(issue: FilterIssueRecord, individuals: RuntimeFilter["individuals"]): boolean {
@@ -485,20 +467,8 @@ function matchesIndividuals(issue: FilterIssueRecord, individuals: RuntimeFilter
     return ((issue.stories || []) as FilterStoryShape[]).some((story) => {
       const storyIndividuals = story.individuals || [];
       const parentIndividuals = story.parent?.individuals || [];
-
-      const matchesStory = (types: string[]) =>
-        storyIndividuals.some(
-          (link) =>
-            link.individual.name === name &&
-            (types.length === 0 || types.includes(readTextValue(link.type).toUpperCase()))
-        );
-
-      const matchesParent = (types: string[]) =>
-        parentIndividuals.some(
-          (link) =>
-            link.individual.name === name &&
-            (types.length === 0 || types.includes(readTextValue(link.type).toUpperCase()))
-        );
+      const matchesStory = (types: string[]) => matchesIndividualLinks(storyIndividuals, name, types);
+      const matchesParent = (types: string[]) => matchesIndividualLinks(parentIndividuals, name, types);
 
       if (normalizedTypes.length === 0) return matchesStory([]) || matchesParent([]);
       if (includesTranslator && matchesStory([TRANSLATOR_STORY_INDIVIDUAL_TYPE])) return true;
@@ -511,6 +481,30 @@ function matchesIndividuals(issue: FilterIssueRecord, individuals: RuntimeFilter
   });
 }
 
+function collectStorySwitchConditions(stories: FilterStoryShape[], filter: RuntimeFilter): boolean[] {
+  const conditions: boolean[] = [];
+  if (filter.firstPrint) conditions.push(stories.some((story) => story.firstApp));
+  if (filter.notFirstPrint) conditions.push(stories.some((story) => !story.firstApp));
+  if (filter.onlyPrint) conditions.push(stories.some((story) => story.onlyApp));
+  if (filter.notOnlyPrint) conditions.push(stories.some((story) => !story.onlyApp));
+  if (filter.onlyTb) conditions.push(stories.some((story) => story.onlyTb));
+  if (filter.notOnlyTb) conditions.push(stories.some((story) => !story.onlyTb));
+  if (filter.exclusive) conditions.push(stories.some((story) => !story.parent));
+  if (filter.notExclusive) conditions.push(stories.some((story) => story.parent != null));
+  if (filter.reprint) conditions.push(stories.length > 0 && stories.every((story) => !story.firstApp));
+  if (filter.notReprint)
+    conditions.push(stories.length === 0 || stories.some((story) => story.firstApp));
+  if (filter.otherOnlyTb) conditions.push(stories.some((story) => story.otherOnlyTb));
+  if (filter.notOtherOnlyTb) conditions.push(stories.some((story) => !story.otherOnlyTb));
+  if (filter.noPrint)
+    conditions.push(stories.length === 0 || stories.some((story) => !story.firstApp && !story.onlyApp));
+  if (filter.notNoPrint)
+    conditions.push(stories.some((story) => story.firstApp || story.onlyApp));
+  if (filter.onlyOnePrint) conditions.push(stories.some((story) => story.onlyOnePrint));
+  if (filter.notOnlyOnePrint) conditions.push(stories.some((story) => !story.onlyOnePrint));
+  return conditions;
+}
+
 function matchesStorySwitches(issue: FilterIssueRecord, filter: RuntimeFilter): boolean {
   const stories = (issue.stories || []) as FilterStoryShape[];
 
@@ -518,30 +512,10 @@ function matchesStorySwitches(issue: FilterIssueRecord, filter: RuntimeFilter): 
     if (filter.reprint) return false;
     if (filter.notReprint) return true;
     if (filter.noPrint) return true;
-    if (filter.notNoPrint) return false;
+      if (filter.notNoPrint) return false;
   }
 
-  const storyConditions: boolean[] = [];
-  if (filter.firstPrint) storyConditions.push(stories.some((story) => story.firstApp));
-  if (filter.notFirstPrint) storyConditions.push(stories.some((story) => !story.firstApp));
-  if (filter.onlyPrint) storyConditions.push(stories.some((story) => story.onlyApp));
-  if (filter.notOnlyPrint) storyConditions.push(stories.some((story) => !story.onlyApp));
-  if (filter.onlyTb) storyConditions.push(stories.some((story) => story.onlyTb));
-  if (filter.notOnlyTb) storyConditions.push(stories.some((story) => !story.onlyTb));
-  if (filter.exclusive) storyConditions.push(stories.some((story) => !story.parent));
-  if (filter.notExclusive) storyConditions.push(stories.some((story) => Boolean(story.parent)));
-  if (filter.reprint) storyConditions.push(stories.length > 0 && stories.every((story) => !story.firstApp));
-  if (filter.notReprint)
-    storyConditions.push(stories.length === 0 || stories.some((story) => story.firstApp));
-  if (filter.otherOnlyTb) storyConditions.push(stories.some((story) => story.otherOnlyTb));
-  if (filter.notOtherOnlyTb) storyConditions.push(stories.some((story) => !story.otherOnlyTb));
-  if (filter.noPrint)
-    storyConditions.push(stories.length === 0 || stories.some((story) => !story.firstApp && !story.onlyApp));
-  if (filter.notNoPrint)
-    storyConditions.push(stories.some((story) => story.firstApp || story.onlyApp));
-  if (filter.onlyOnePrint) storyConditions.push(stories.some((story) => story.onlyOnePrint));
-  if (filter.notOnlyOnePrint) storyConditions.push(stories.some((story) => !story.onlyOnePrint));
-
+  const storyConditions = collectStorySwitchConditions(stories, filter);
   if (storyConditions.length === 0) return true;
   return storyConditions.some(Boolean);
 }
@@ -569,25 +543,17 @@ function reduceOwnedVariantGroups(issues: FilterIssueRecord[]): FilterIssueRecor
 }
 
 export class FilterService {
-  private requestId?: string;
-
-  constructor(requestId?: string) {
-    this.requestId = requestId;
-    void this.requestId;
-  }
-
-  public async count(filter: Filter, loggedIn: boolean): Promise<number> {
-    const issues = await this.getFilteredIssues(filter, loggedIn);
+  public async count(filter: Filter): Promise<number> {
+    const issues = await this.getFilteredIssues(filter);
     return issues.length;
   }
 
-  public async getFilteredIssueIds(filter: Filter, loggedIn: boolean): Promise<number[]> {
-    const issues = await this.getFilteredIssues(filter, loggedIn);
+  public async getFilteredIssueIds(filter: Filter): Promise<number[]> {
+    const issues = await this.getFilteredIssues(filter);
     return issues.map((issue) => Number(issue.id));
   }
 
-  private async getFilteredIssues(filter: Filter, loggedIn: boolean): Promise<FilterIssueRecord[]> {
-    void loggedIn;
+  private async getFilteredIssues(filter: Filter): Promise<FilterIssueRecord[]> {
     const runtimeFilter = filter as RuntimeFilter;
     const where = this.buildBaseWhere(runtimeFilter);
     const include = buildIssueIncludeForFilter(runtimeFilter);
@@ -606,7 +572,7 @@ export class FilterService {
       {
         series: {
           publisher: {
-            original: Boolean(filter.us),
+            original: filter.us === true,
           },
         },
       },
@@ -662,7 +628,7 @@ export class FilterService {
           volume: BigInt(volume),
         };
       })
-      .filter((entry): entry is { title: string; volume: bigint } => Boolean(entry));
+      .filter((entry): entry is { title: string; volume: bigint } => entry !== null);
     if (seriesConditions.length > 0) {
       and.push({
         OR: seriesConditions.map((series) => ({
@@ -719,7 +685,7 @@ export class FilterService {
 
     const arcTerms = collectTitleTerms(filter.arcs);
     if (arcTerms.length > 0) {
-      const arcTitles = getArcTitles(issue, Boolean(filter.us));
+      const arcTitles = getArcTitles(issue, filter.us === true);
       const matchesArcs = arcTerms.every((term) =>
         arcTitles.some((title) => containsInsensitive(title, term))
       );
@@ -729,7 +695,7 @@ export class FilterService {
     const appearanceTerms = collectNamedTerms(filter.appearances);
     const realityTerms = collectNamedTerms(filter.realities);
     if (appearanceTerms.length > 0 || realityTerms.length > 0) {
-      const appearanceNames = getStoryAppearanceNames(issue, Boolean(filter.us));
+      const appearanceNames = getStoryAppearanceNames(issue, filter.us === true);
       if (
         appearanceTerms.some(
           (term) => !appearanceNames.some((appearanceName) => containsInsensitive(appearanceName, term))

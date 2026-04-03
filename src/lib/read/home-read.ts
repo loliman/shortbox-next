@@ -18,7 +18,6 @@ type HomeReadOptions = {
 export async function readHomeFeed(options: HomeReadOptions) {
   const limit = normalizePositiveInt(options.limit, DEFAULT_HOME_PAGE_SIZE);
   const offset = normalizePositiveInt(options.offset, 0);
-  const loggedIn = Boolean(options.loggedIn);
   const cursor = typeof options.cursor === "string" ? options.cursor || undefined : undefined;
   const requestedFirst = cursor ? limit : limit + offset + 1;
 
@@ -30,8 +29,7 @@ export async function readHomeFeed(options: HomeReadOptions) {
     requestedFirst,
     cursor,
     options.order ?? undefined,
-    options.direction ?? undefined,
-    loggedIn
+    options.direction ?? undefined
   );
   const nodes = connection.edges.map((edge) => edge?.node).filter(Boolean);
   const windowed = cursor ? nodes.slice(0, limit) : nodes.slice(offset, offset + limit);

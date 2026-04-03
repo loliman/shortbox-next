@@ -131,7 +131,9 @@ export default function List(props: Readonly<ListProps>) {
   const initialViewportAppliedKeyRef = React.useRef<string | null>(null);
   const [seriesNodesByPublisher, setSeriesNodesByPublisher] = React.useState<Record<string, SeriesNode[]>>(
     () => {
-      const nextState: Record<string, SeriesNode[]> = { ...(props.initialSeriesNodesByPublisher || {}) };
+      const nextState: Record<string, SeriesNode[]> = props.initialSeriesNodesByPublisher
+        ? { ...props.initialSeriesNodesByPublisher }
+        : {};
       if (selectedPublisherName && !nextState[selectedPublisherName]) {
         const cachedSelectedSeries = readCachedSeries(navStateKey, selectedPublisherName);
         if (cachedSelectedSeries) {
@@ -146,7 +148,9 @@ export default function List(props: Readonly<ListProps>) {
   );
   const [issueNodesBySeriesKey, setIssueNodesBySeriesKey] = React.useState<Record<string, IssueNode[]>>(
     () => {
-      const nextState: Record<string, IssueNode[]> = { ...(props.initialIssueNodesBySeriesKey || {}) };
+      const nextState: Record<string, IssueNode[]> = props.initialIssueNodesBySeriesKey
+        ? { ...props.initialIssueNodesBySeriesKey }
+        : {};
       if (selectedSeriesKey && !nextState[selectedSeriesKey]) {
         const cachedSelectedIssues = readCachedIssues(navStateKey, selectedSeriesKey);
         if (cachedSelectedIssues) {

@@ -10,11 +10,13 @@ import type {
 import type { SxProps, Theme } from "@mui/material/styles";
 
 type OptionValue = Record<string, unknown>;
+type AutocompleteOption = OptionValue | string;
+type AutocompleteBaseValue = AutocompleteOption | AutocompleteOption[] | null;
 
 interface AutocompleteBaseProps {
   id?: string;
   options: OptionValue[];
-  value: OptionValue | OptionValue[] | string | null;
+  value: AutocompleteBaseValue;
   inputValue?: string;
   label?: React.ReactNode;
   placeholder?: string;
@@ -33,9 +35,9 @@ interface AutocompleteBaseProps {
   onFocus?: (e: React.FocusEvent<HTMLElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLElement>) => void;
   onListboxScroll?: (e: React.UIEvent<HTMLElement>) => void;
-  getOptionLabel: (option: OptionValue | string) => string;
-  getOptionKey?: (option: OptionValue | string) => string | number;
-  isOptionEqualToValue: (option: OptionValue, value: OptionValue | string) => boolean;
+  getOptionLabel: (option: AutocompleteOption) => string;
+  getOptionKey?: (option: AutocompleteOption) => string | number;
+  isOptionEqualToValue: (option: OptionValue, value: AutocompleteOption) => boolean;
   onInputChange?: (
     event: React.SyntheticEvent,
     value: string,
@@ -43,7 +45,7 @@ interface AutocompleteBaseProps {
   ) => void;
   onChange?: (
     event: React.SyntheticEvent,
-    value: OptionValue | OptionValue[] | string | null,
+    value: AutocompleteBaseValue,
     reason: AutocompleteChangeReason,
     details?: AutocompleteChangeDetails<OptionValue>
   ) => void;
@@ -77,6 +79,20 @@ function AutocompleteBase({
   onInputChange,
   onChange,
 }: Readonly<AutocompleteBaseProps>) {
+  const readOptionLabel = React.useCallback(
+    (option: AutocompleteOption) => getOptionLabel(option),
+    [getOptionLabel]
+  );
+  const readOptionKey = React.useCallback(
+    (option: AutocompleteOption) => (getOptionKey ? getOptionKey(option) : readOptionLabel(option)),
+    [getOptionKey, readOptionLabel]
+  );
+  const compareOption = React.useCallback(
+    (option: AutocompleteOption, selected: AutocompleteOption) =>
+      isOptionRecord(option) && isOptionEqualToValue(option, selected),
+    [isOptionEqualToValue]
+  );
+
   const autocompleteId = React.useMemo(
     () => id || buildAutocompleteId({ inputAriaLabel, label, placeholder }),
     [id, inputAriaLabel, label, placeholder]
@@ -102,7 +118,7 @@ function AutocompleteBase({
   );
 
   return (
-    <Autocomplete<OptionValue, boolean, false, boolean>
+    <Autocomplete<AutocompleteOption, boolean, false, boolean>
       id={autocompleteId}
       multiple={Boolean(multiple)}
       freeSolo={Boolean(freeSolo)}
@@ -122,24 +138,13 @@ function AutocompleteBase({
           sx: { maxHeight: 320, overflow: "auto" },
         },
       }}
-      isOptionEqualToValue={(option, selected) =>
-        isOptionEqualToValue(option as OptionValue, selected as OptionValue | string)
-      }
-      getOptionLabel={(option) => getOptionLabel(option as OptionValue | string)}
-      getOptionKey={(option) =>
-        (getOptionKey ? getOptionKey(option as OptionValue | string) : getOptionLabel(option as OptionValue | string))
-      }
+      isOptionEqualToValue={compareOption}
+      getOptionLabel={readOptionLabel}
+      getOptionKey={readOptionKey}
       noOptionsText={noOptionsText}
       loadingText={loadingText}
       onInputChange={onInputChange}
-      onChange={(event, selected, reason, details) =>
-        onChange?.(
-          event,
-          selected as OptionValue | OptionValue[] | string | null,
-          reason,
-          details as AutocompleteChangeDetails<OptionValue>
-        )
-      }
+      onChange={onChange}
       onFocus={onFocus}
       onBlur={onBlur}
       renderInput={(params) => (
@@ -151,24 +156,30 @@ function AutocompleteBase({
           helperText={helperText}
           label={label}
           placeholder={placeholder ? placeholder.trim() : "Suchen..."}
-          inputProps={{
-            ...params.inputProps,
-            "aria-label": inputAriaLabel,
-          }}
-          InputLabelProps={{ shrink: true }}
-          InputProps={{
-            ...params.InputProps,
-            endAdornment: (
-              <React.Fragment>
-                {loading ? <CircularProgress color="inherit" size={20} /> : null}
-                {params.InputProps.endAdornment}
-              </React.Fragment>
-            ),
+          slotProps={{
+            htmlInput: {
+              ...params.inputProps,
+              "aria-label": inputAriaLabel,
+            },
+            inputLabel: { shrink: true },
+            input: {
+              ...params.InputProps,
+              endAdornment: (
+                <React.Fragment>
+                  {loading ? <CircularProgress color="inherit" size={20} /> : null}
+                  {params.InputProps.endAdornment}
+                </React.Fragment>
+              ),
+            },
           }}
         />
       )}
     />
   );
+}
+
+function isOptionRecord(option: AutocompleteOption): option is OptionValue {
+  return typeof option === "object" && option !== null;
 }
 
 function buildAutocompleteId(input: {

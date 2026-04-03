@@ -430,11 +430,10 @@ export function buildDirectIssueFilterWhere(
 }
 
 export async function readFilteredIssueIds(
-  filter: Filter | null | undefined,
-  loggedInOverride?: boolean
+  filter: Filter | null | undefined
 ): Promise<number[] | null> {
   if (!filter) return null;
-  return new FilterService().getFilteredIssueIds(filter, Boolean(loggedInOverride));
+  return new FilterService().getFilteredIssueIds(filter);
 }
 
 type ResolvedFilterState = {
@@ -445,10 +444,7 @@ type ResolvedFilterState = {
 };
 
 const resolveFilterStateCached = cache(
-  async (
-    serializedFilter: string,
-    loggedIn: boolean
-  ): Promise<ResolvedFilterState> => {
+  async (serializedFilter: string): Promise<ResolvedFilterState> => {
     const filter = JSON.parse(serializedFilter) as Filter;
     const directIssueWhere = buildDirectIssueFilterWhere(filter);
 
@@ -463,7 +459,7 @@ const resolveFilterStateCached = cache(
       };
     }
 
-    const filteredIssueIds = await new FilterService().getFilteredIssueIds(filter, loggedIn);
+    const filteredIssueIds = await new FilterService().getFilteredIssueIds(filter);
     return {
       directIssueWhere: null,
       filteredIssueIds,
@@ -474,8 +470,7 @@ const resolveFilterStateCached = cache(
 );
 
 export async function resolveFilterState(
-  filter: Filter | null | undefined,
-  loggedInOverride?: boolean
+  filter: Filter | null | undefined
 ): Promise<ResolvedFilterState> {
   if (!filter) {
     return {
@@ -486,16 +481,15 @@ export async function resolveFilterState(
     };
   }
 
-  return resolveFilterStateCached(JSON.stringify(filter), Boolean(loggedInOverride));
+  return resolveFilterStateCached(JSON.stringify(filter));
 }
 
 export async function readFilterCount(
-  filter: Filter | null | undefined,
-  loggedInOverride?: boolean
+  filter: Filter | null | undefined
 ): Promise<number | undefined> {
   if (!filter) return undefined;
 
-  return (await resolveFilterState(filter, loggedInOverride)).initialFilterCount;
+  return (await resolveFilterState(filter)).initialFilterCount;
 }
 
 function readTextValue(value: unknown): string {

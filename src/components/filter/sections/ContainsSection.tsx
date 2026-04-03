@@ -97,7 +97,7 @@ function ContainsSection({
           exclusive
           value={mode}
           onChange={(_, nextMode: "any" | "include" | "exclude" | null) => {
-            const targetMode = nextMode || "any";
+            const targetMode = nextMode ?? "any";
             setFieldValue(field, targetMode === "include");
             setFieldValue(negatedField, targetMode === "exclude");
           }}
@@ -151,7 +151,7 @@ function ContainsSection({
     <Stack spacing={1.5}>
       <Typography variant="h6">Inhalt</Typography>
 
-      {!us ? (
+      {us === false ? (
         <Box sx={switchGridSx}>
           {renderContainsToggle("Einzige Veröffentlichung", "onlyPrint", "notOnlyPrint")}
           {renderContainsToggle("Erstveröffentlichung", "firstPrint", "notFirstPrint")}

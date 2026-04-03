@@ -30,7 +30,7 @@ export type StoryIssueRelation = {
 
 export function toChildAddinfo(child: StoryIssueRelation): string {
   let addinfoText = "";
-  if (child.part && child.part.indexOf("/x") === -1) {
+  if (child.part && !child.part.includes("/x")) {
     addinfoText += "Teil " + child.part.replace("/", " von ");
   }
   if (addinfoText !== "" && child.addinfo) {
@@ -43,7 +43,7 @@ export function toChildAddinfo(child: StoryIssueRelation): string {
 }
 
 export function isSameIssue(issueA?: StoryIssue | null, issueB?: StoryIssue | null): boolean {
-  if (!issueA || !issueB || !issueA.series || !issueB.series) return false;
+  if (issueA?.series == null || issueB?.series == null) return false;
 
   return (
     normalizeText(issueA.series.publisher?.name) === normalizeText(issueB.series.publisher?.name) &&

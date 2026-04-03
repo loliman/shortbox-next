@@ -63,7 +63,7 @@ function FilterSwitch({ checked, label, onToggle, disabled = false, sx }: Readon
           onChange={onToggle}
           color="primary"
           disabled={disabled}
-          inputProps={{ "aria-label": label }}
+          slotProps={{ input: { "aria-label": label } }}
         />
       </Box>
     </Box>

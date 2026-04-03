@@ -1,3 +1,1 @@
-import { getPattern, updateField } from "../../util/filterFieldHelpers";
-
-export { getPattern, updateField };
+export { getPattern, updateField } from "../../util/filterFieldHelpers";

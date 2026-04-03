@@ -31,6 +31,11 @@ const KNOWN_FORMATS = [
   "Album Hardcover",
 ] as const;
 const TITLE_ACRONYMS = new Set(["HC", "SC", "XL"]);
+const ISSUE_NUMBER_PATTERN = /^Nr\.\s*(\d+[A-Za-z]?)$/i;
+const STORY_REFERENCE_PATTERN =
+  /^(.*\S)\s+(\d+[A-Za-z]?|Annual\s+\d+)(?:-(\d+[A-Za-z]?))?$/i;
+const TITLE_LETTER_PATTERN = /[^A-Za-zÄÖÜäöüß]/g;
+const TITLE_UPPERCASE_PATTERN = /[^A-ZÄÖÜ]/g;
 
 export async function parsePreviewImportQueue(
   options: ParsePreviewImportOptions
@@ -409,11 +414,9 @@ function deriveCodeAnchoredTitle(lines: string[], localCodeIndex: number) {
 }
 
 function deriveCodeAnchoredSourceTitle(lines: string[], localCodeIndex: number, fallbackCode: string) {
-  return (
-    deriveCodeAnchoredTitle(lines, localCodeIndex)
+  return deriveCodeAnchoredTitle(lines, localCodeIndex)
     || deriveLooseFallbackTitle(lines, localCodeIndex)
-    || fallbackCode
-  );
+    || fallbackCode;
 }
 
 function deriveLooseFallbackTitle(lines: string[], localCodeIndex: number) {
@@ -438,9 +441,9 @@ function deriveLooseFallbackTitle(lines: string[], localCodeIndex: number) {
 
 function scoreFallbackTitle(line: string) {
   const tokens = line.split(/\s+/).filter(Boolean);
-  const letters = line.replaceAll(/[^A-Za-zÄÖÜäöüß]/g, "").length;
+  const letters = line.replaceAll(TITLE_LETTER_PATTERN, "").length;
   const shortTokenPenalty = tokens.filter(
-    (token) => token.replaceAll(/[^A-Za-zÄÖÜäöüß]/g, "").length <= 2
+    (token) => token.replaceAll(TITLE_LETTER_PATTERN, "").length <= 2
   ).length;
   return letters - shortTokenPenalty * 6;
 }
@@ -454,13 +457,13 @@ function looksLikeStandaloneTitleLine(line: string) {
 
   const tokens = line.split(/\s+/).filter(Boolean);
   const shortTokenRatio = tokens.length > 0
-    ? tokens.filter((token) => token.replaceAll(/[^A-Za-zÄÖÜäöüß]/g, "").length <= 2).length / tokens.length
+    ? tokens.filter((token) => token.replaceAll(TITLE_LETTER_PATTERN, "").length <= 2).length / tokens.length
     : 1;
   if (shortTokenRatio > 0.45) return false;
 
-  const letters = line.replaceAll(/[^A-Za-zÄÖÜäöüß]/g, "");
+  const letters = line.replaceAll(TITLE_LETTER_PATTERN, "");
   if (letters.length < 4) return false;
-  const upperRatio = letters.replaceAll(/[^A-ZÄÖÜ]/g, "").length / letters.length;
+  const upperRatio = letters.replaceAll(TITLE_UPPERCASE_PATTERN, "").length / letters.length;
   return upperRatio > 0.55;
 }
 
@@ -477,9 +480,8 @@ function collectCodeMetadataWindow(lines: string[], localCodeIndex: number) {
 }
 
 function deriveExplicitIssueNumber(lines: string[], localCodeIndex: number) {
-  const issueNumberPattern = /^Nr\.\s*([0-9]+[A-Za-z]?)$/i;
   for (let index = localCodeIndex - 1; index >= Math.max(0, localCodeIndex - 4); index -= 1) {
-    const match = issueNumberPattern.exec(lines[index] || "");
+    const match = ISSUE_NUMBER_PATTERN.exec(lines[index] || "");
     if (match) return match[1];
   }
   return "";
@@ -559,9 +561,7 @@ function parseContentReference(contentLine: string) {
 }
 
 function parseStoryReferenceSegment(segment: string) {
-  const storyReferencePattern =
-    /^(.*\S)\s+(\d+[A-Za-z]?|Annual\s+\d+)(?:-(\d+[A-Za-z]?|\d+))?$/i;
-  const match = storyReferencePattern.exec(segment);
+  const match = STORY_REFERENCE_PATTERN.exec(segment);
   if (!match) return [];
 
   const seriesTitle = match[1].trim();
@@ -572,8 +572,8 @@ function parseStoryReferenceSegment(segment: string) {
     return [{ seriesTitle, volume: 1, issueNumber: start }];
   }
 
-  const startNumber = Number.parseInt(start.replaceAll(/[^0-9]/g, ""), 10);
-  const endNumber = Number.parseInt(end.replaceAll(/[^0-9]/g, ""), 10);
+  const startNumber = Number.parseInt(start.replaceAll(/\D/g, ""), 10);
+  const endNumber = Number.parseInt(end.replaceAll(/\D/g, ""), 10);
   if (!Number.isFinite(startNumber) || !Number.isFinite(endNumber) || endNumber < startNumber) {
     return [{ seriesTitle, volume: 1, issueNumber: start }];
   }
@@ -645,7 +645,7 @@ function parseFormat(line: string) {
   if (/\bHC\b/i.test(line)) return "Hardcover";
   if (/\bSC\b/i.test(line)) return "Softcover";
   const known = KNOWN_FORMATS.find((format) =>
-    new RegExp(`\\b${escapeRegExp(format)}\\b`, "i").test(line)
+    new RegExp(String.raw`\b${escapeRegExp(format)}\b`, "i").test(line)
   );
   return known;
 }

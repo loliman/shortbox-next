@@ -244,153 +244,182 @@ export async function createIssueBatch(
 export async function editIssue(oldItem: IssueInput, item: IssueInput): Promise<Result<IssueWriteItemResult>> {
   try {
     const res = await prisma.$transaction(async (tx) => {
-    const oldIssueId = normalizeBigInt(oldItem.id);
-    const existing =
-      oldIssueId !== null
-        ? await tx.issue.findUnique({
-            where: {
-              id: oldIssueId,
-            },
-          })
-        : null;
+      const resolvedExisting = await resolveExistingIssueForEdit(oldItem, tx);
+      if (resolvedExisting == null) throw new Error("Issue not found");
 
-    let resolvedExisting = existing;
+      const oldSeriesId = resolvedExisting.fkSeries;
+      if (oldSeriesId == null) throw new Error("Series not found");
 
-    if (!resolvedExisting) {
-      const oldPublisher = await findPublisher(oldItem.series?.publisher, tx);
-      if (!oldPublisher) throw new Error("Publisher not found");
+      const inheritsStories = await issueInheritsStories(resolvedExisting.id, tx);
+      const newPublisher = await findPublisher(item.series?.publisher, tx);
+      if (newPublisher == null) throw new Error("Publisher not found");
 
-      const oldSeries = await tx.series.findFirst({
-        where: {
-          title: normalizeText(oldItem.series?.title),
-          volume: BigInt(Number(oldItem.series?.volume ?? 0)),
-          fkPublisher: oldPublisher.id,
-        },
-      });
-      if (!oldSeries) throw new Error("Series not found");
+      const { series: newSeries, created: createdSeries } = await findOrCreateIssueSeries(
+        item.series,
+        newPublisher.id,
+        tx
+      );
 
-      const resolvedExistingMatch = await findIssueBySeriesIdentity(
+      await assertIssueSeriesIdentityIsAvailable(
         {
-          fkSeries: oldSeries.id,
-          number: oldItem.number,
-          format: oldItem.format,
-          variant: oldItem.variant,
+          fkSeries: newSeries.id,
+          number: item.number,
+          format: item.format,
+          variant: item.variant,
+          excludeId: resolvedExisting.id,
         },
         tx
       );
-      resolvedExisting =
-        resolvedExistingMatch?.id != null
-          ? await tx.issue.findUnique({
-              where: {
-                id: resolvedExistingMatch.id,
-              },
-            })
-          : null;
-    }
-    if (!resolvedExisting) throw new Error("Issue not found");
-    const oldSeriesId = resolvedExisting.fkSeries;
-    if (oldSeriesId === null || oldSeriesId === undefined) throw new Error("Series not found");
-    const inheritsStories = await issueInheritsStories(resolvedExisting.id, tx);
 
-    const newPublisher = await findPublisher(item.series?.publisher, tx);
-    if (!newPublisher) throw new Error("Publisher not found");
-
-    const { series: newSeries, created: createdSeries } = await findOrCreateIssueSeries(
-      item.series,
-      newPublisher.id,
-      tx
-    );
-
-    const duplicateIssue = await findIssueBySeriesIdentity(
-      {
-        fkSeries: newSeries.id,
-        number: item.number,
-        format: item.format,
-        variant: item.variant,
-        excludeId: resolvedExisting.id,
-      },
-      tx
-    );
-    if (duplicateIssue) {
-      throw new Error("Issue already exists");
-    }
-
-    const oldNumber = normalizeText(oldItem.number);
-    const seriesChanged = oldSeriesId !== newSeries.id;
-    const siblingIssuesToMove = seriesChanged
-      ? await tx.issue.findMany({
-          where: {
-            number: oldNumber,
-            fkSeries: oldSeriesId,
-          },
-        })
-      : [];
-
-    const updated = await tx.issue.update({
-      where: {
-        id: resolvedExisting.id,
-      },
-      data: {
-        title: inheritsStories ? resolvedExisting.title : normalizeText(item.title),
-        number: normalizeText(item.number),
-        format: normalizeText(item.format),
-        variant: normalizeOptionalText(item.variant),
-        releaseDate: coerceReleaseDateForDb(item.releasedate),
-        legacyNumber: normalizeText(item.legacy_number),
-        pages: normalizeBigInt(item.pages) ?? BigInt(0),
-        price: normalizeFloat(item.price),
-        currency: normalizeOptionalText(item.currency) ?? "",
-        isbn: normalizeOptionalText(item.isbn) ?? "",
-        limitation: normalizeBigInt(item.limitation),
-        addInfo: normalizeOptionalText(item.addinfo) ?? "",
-        fkSeries: newSeries.id,
-        updatedAt: new Date(),
-        ...(typeof item.verified === "boolean" ? { verified: item.verified } : {}),
-        ...(typeof item.collected === "boolean" ? { collected: item.collected } : {}),
-        ...(item.comicguideid !== undefined
-          ? { comicGuideId: normalizeBigInt(item.comicguideid) }
-          : {}),
-      },
-      include: {
-        series: {
-          include: {
-            publisher: true,
+      const updated = await tx.issue.update({
+        where: {
+          id: resolvedExisting.id,
+        },
+        data: buildEditedIssueData(item, resolvedExisting.title, inheritsStories, newSeries.id),
+        include: {
+          series: {
+            include: {
+              publisher: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    if (seriesChanged) {
-      for (const siblingIssue of siblingIssuesToMove) {
-        if (siblingIssue.id === updated.id) continue;
-        await tx.issue.update({
-          where: { id: siblingIssue.id },
-          data: { fkSeries: newSeries.id, updatedAt: new Date() },
-        });
+      await moveSiblingIssuesToSeries(oldItem.number, oldSeriesId, newSeries.id, updated.id, tx);
+
+      if (shouldSyncIssueStories(item, inheritsStories, newPublisher.original)) {
+        const removedUsParentStoryIds = await syncStoriesFromParentRefs(Number(updated.id), item, tx);
+        await updateStoryFilterFlagsForIssue(Number(updated.id));
+        const removedUsIssueIds = await resolveIssueIdsFromStoryIds(removedUsParentStoryIds, tx);
+        for (const removedUsIssueId of removedUsIssueIds) {
+          await updateStoryFilterFlagsForIssue(removedUsIssueId);
+        }
       }
-    }
 
-    const shouldSyncStories =
-      typeof item === "object" && item !== null && Object.prototype.hasOwnProperty.call(item, "stories");
-
-    if (!inheritsStories && !newPublisher.original && shouldSyncStories) {
-      const removedUsParentStoryIds = await syncStoriesFromParentRefs(Number(updated.id), item, tx);
-      await updateStoryFilterFlagsForIssue(Number(updated.id));
-      const removedUsIssueIds = await resolveIssueIdsFromStoryIds(removedUsParentStoryIds, tx);
-      for (const removedUsIssueId of removedUsIssueIds) {
-        await updateStoryFilterFlagsForIssue(removedUsIssueId);
-      }
-    }
-
-    return {
-      item: toIssuePayload(updated),
-      ...(createdSeries ? { meta: { createdSeries: toIssueSeriesMeta(newSeries) } } : {}),
-    };
+      return {
+        item: toIssuePayload(updated),
+        ...(createdSeries ? { meta: { createdSeries: toIssueSeriesMeta(newSeries) } } : {}),
+      };
     }, ISSUE_TRANSACTION_OPTIONS);
     return success(res);
   } catch (error) {
     return failure(error as Error);
   }
+}
+
+async function resolveExistingIssueForEdit(oldItem: IssueInput, executor: PrismaExecutor) {
+  const oldIssueId = normalizeBigInt(oldItem.id);
+  if (oldIssueId != null) {
+    const existingIssue = await executor.issue.findUnique({
+      where: {
+        id: oldIssueId,
+      },
+    });
+    if (existingIssue) return existingIssue;
+  }
+
+  const oldPublisher = await findPublisher(oldItem.series?.publisher, executor);
+  if (oldPublisher == null) throw new Error("Publisher not found");
+
+  const oldSeries = await executor.series.findFirst({
+    where: {
+      title: normalizeText(oldItem.series?.title),
+      volume: BigInt(Number(oldItem.series?.volume ?? 0)),
+      fkPublisher: oldPublisher.id,
+    },
+  });
+  if (oldSeries == null) throw new Error("Series not found");
+
+  const resolvedExistingMatch = await findIssueBySeriesIdentity(
+    {
+      fkSeries: oldSeries.id,
+      number: oldItem.number,
+      format: oldItem.format,
+      variant: oldItem.variant,
+    },
+    executor
+  );
+  if (resolvedExistingMatch?.id == null) return null;
+
+  return executor.issue.findUnique({
+    where: {
+      id: resolvedExistingMatch.id,
+    },
+  });
+}
+
+async function assertIssueSeriesIdentityIsAvailable(
+  input: {
+    fkSeries: bigint;
+    number?: string | null;
+    format?: string | null;
+    variant?: string | null;
+    excludeId?: bigint;
+  },
+  executor: PrismaExecutor
+) {
+  const duplicateIssue = await findIssueBySeriesIdentity(input, executor);
+  if (duplicateIssue) {
+    throw new Error("Issue already exists");
+  }
+}
+
+function buildEditedIssueData(
+  item: IssueInput,
+  inheritedTitle: string,
+  inheritsStories: boolean,
+  fkSeries: bigint
+) {
+  return {
+    title: inheritsStories ? inheritedTitle : normalizeText(item.title),
+    number: normalizeText(item.number),
+    format: normalizeText(item.format),
+    variant: normalizeOptionalText(item.variant),
+    releaseDate: coerceReleaseDateForDb(item.releasedate),
+    legacyNumber: normalizeText(item.legacy_number),
+    pages: normalizeBigInt(item.pages) ?? BigInt(0),
+    price: normalizeFloat(item.price),
+    currency: normalizeOptionalText(item.currency) ?? "",
+    isbn: normalizeOptionalText(item.isbn) ?? "",
+    limitation: normalizeBigInt(item.limitation),
+    addInfo: normalizeOptionalText(item.addinfo) ?? "",
+    fkSeries,
+    updatedAt: new Date(),
+    ...(typeof item.verified === "boolean" ? { verified: item.verified } : {}),
+    ...(typeof item.collected === "boolean" ? { collected: item.collected } : {}),
+    ...(item.comicguideid !== undefined
+      ? { comicGuideId: normalizeBigInt(item.comicguideid) }
+      : {}),
+  };
+}
+
+async function moveSiblingIssuesToSeries(
+  oldNumber: string | null | undefined,
+  oldSeriesId: bigint,
+  newSeriesId: bigint,
+  updatedIssueId: bigint,
+  executor: PrismaExecutor
+) {
+  if (oldSeriesId === newSeriesId) return;
+
+  const siblingIssuesToMove = await executor.issue.findMany({
+    where: {
+      number: normalizeText(oldNumber),
+      fkSeries: oldSeriesId,
+    },
+  });
+
+  for (const siblingIssue of siblingIssuesToMove) {
+    if (siblingIssue.id === updatedIssueId) continue;
+    await executor.issue.update({
+      where: { id: siblingIssue.id },
+      data: { fkSeries: newSeriesId, updatedAt: new Date() },
+    });
+  }
+}
+
+function shouldSyncIssueStories(item: IssueInput, inheritsStories: boolean, isUsPublisher: boolean) {
+  return !inheritsStories && !isUsPublisher && Object.hasOwn(item, "stories");
 }
 
 export async function deleteIssueByLookup(item: IssueInput, executor: PrismaExecutor = prisma): Promise<Result<boolean>> {
@@ -629,6 +658,108 @@ async function createIssueRecord(item: IssueInput, tx: PrismaExecutor) {
   };
 }
 
+async function createLinkedStoryRow(
+  issueId: number,
+  storyNumber: number,
+  story: StoryInput,
+  parentStoryId: number | null,
+  linkedParentStoryIds: Set<number>,
+  executor: PrismaExecutor
+) {
+  if (parentStoryId != null && parentStoryId > 0) {
+    linkedParentStoryIds.add(parentStoryId);
+  }
+
+  const createdStory = await executor.story.create({
+    data: {
+      fkIssue: BigInt(issueId),
+      fkParent: parentStoryId ? BigInt(parentStoryId) : null,
+      number: BigInt(storyNumber),
+      title: normalizeText(story.title),
+      addInfo: normalizeText(story.addinfo),
+      part: normalizeText(story.part),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  });
+
+  await linkStoryIndividuals(Number(createdStory.id), story.individuals || [], executor);
+  await linkStoryAppearances(Number(createdStory.id), story.appearances || [], executor);
+}
+
+async function resolveParentStoriesForInputStory(
+  story: StoryInput,
+  parentIssueCache: Map<string, ParentIssueRef[]>,
+  executor: PrismaExecutor
+) {
+  const parentTitle = normalizeText(story.parent?.issue?.series?.title);
+  const parentVolume = Number(story.parent?.issue?.series?.volume || 0);
+  const parentNumber = normalizeText(story.parent?.issue?.number);
+  if (!parentTitle || parentVolume <= 0 || !parentNumber) return [];
+
+  const cacheKey = `${parentTitle}::${parentVolume}::${parentNumber}`;
+  let parentIssueRefs = parentIssueCache.get(cacheKey);
+  if (parentIssueRefs == null) {
+    parentIssueRefs = await findOrCrawlParentIssueRefs(
+      {
+        title: parentTitle,
+        volume: parentVolume,
+        number: parentNumber,
+      },
+      executor
+    );
+    parentIssueCache.set(cacheKey, parentIssueRefs);
+  }
+  if (parentIssueRefs.length === 0) return [];
+
+  const requestedParentStoryNumber = Number(story.parent?.number || 0);
+  const requestedStoryTitle = normalizeStoryTitleKey(story.title);
+  const matchedParentRefsByTitle =
+    requestedStoryTitle === ""
+      ? []
+      : parentIssueRefs.filter(
+          (entry) => normalizeStoryTitleKey(entry.storyTitle) === requestedStoryTitle
+        );
+
+  const parentStories = await executor.story.findMany({
+    where: {
+      fkIssue: { in: parentIssueRefs.map((entry) => entry.issueId) },
+      ...(requestedParentStoryNumber > 0
+        ? { number: BigInt(requestedParentStoryNumber) }
+        : {}),
+    },
+    orderBy: [{ fkIssue: "asc" }, { number: "asc" }, { id: "asc" }],
+    select: { id: true, fkIssue: true, title: true, number: true },
+  });
+
+  if (requestedParentStoryNumber > 0) {
+    return parentStories.filter(
+      (entry) =>
+        Number(entry.number || 0) === requestedParentStoryNumber &&
+        matchesResolvedParentStory(entry, matchedParentRefsByTitle)
+    );
+  }
+
+  if (matchedParentRefsByTitle.length > 0) {
+    return parentStories.filter((entry) => matchesResolvedParentStory(entry, matchedParentRefsByTitle));
+  }
+
+  return parentStories;
+}
+
+function matchesResolvedParentStory(
+  parentStory: { fkIssue: bigint | null; title: string },
+  matchedParentRefsByTitle: ParentIssueRef[]
+) {
+  if (matchedParentRefsByTitle.length === 0) return true;
+
+  return matchedParentRefsByTitle.some(
+    (entry) =>
+      entry.issueId === parentStory.fkIssue &&
+      normalizeStoryTitleKey(entry.storyTitle) === normalizeStoryTitleKey(parentStory.title)
+  );
+}
+
 async function syncStoriesFromParentRefs(
   issueId: number,
   item: IssueInput,
@@ -673,101 +804,26 @@ async function syncStoriesFromParentRefs(
     const resolvedStoryNumber = requestedStoryNumber > 0 ? requestedStoryNumber : nextStoryNumber++;
     if (resolvedStoryNumber >= nextStoryNumber) nextStoryNumber = resolvedStoryNumber + 1;
 
-    const createStoryRow = async (parentStoryId: number | null) => {
-      if (typeof parentStoryId === "number" && parentStoryId > 0) {
-        newlyLinkedParentStoryIds.add(parentStoryId);
-      }
+    const selectedParentStories = await resolveParentStoriesForInputStory(
+      story,
+      parentIssueCache,
+      executor
+    );
 
-      const createdStory = await executor.story.create({
-        data: {
-          fkIssue: BigInt(issueId),
-          fkParent: parentStoryId ? BigInt(parentStoryId) : null,
-          number: BigInt(resolvedStoryNumber),
-          title: normalizeText(story.title),
-          addInfo: normalizeText(story.addinfo),
-          part: normalizeText(story.part),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      });
-
-      await linkStoryIndividuals(Number(createdStory.id), story.individuals || [], executor);
-      await linkStoryAppearances(Number(createdStory.id), story.appearances || [], executor);
-    };
-
-    let hasCreatedStory = false;
-      const parentTitle = normalizeText(story.parent?.issue?.series?.title);
-    const parentVolume = Number(story.parent?.issue?.series?.volume || 0);
-    const parentNumber = normalizeText(story.parent?.issue?.number);
-
-    if (parentTitle && parentVolume > 0 && parentNumber) {
-      const cacheKey = `${parentTitle}::${parentVolume}::${parentNumber}`;
-      let parentIssueRefs = parentIssueCache.get(cacheKey);
-
-      if (!parentIssueRefs) {
-        parentIssueRefs = await findOrCrawlParentIssueRefs(
-          {
-            title: parentTitle,
-            volume: parentVolume,
-            number: parentNumber,
-          },
-          executor
-        );
-        parentIssueCache.set(cacheKey, parentIssueRefs);
-      }
-
-      if (parentIssueRefs.length > 0) {
-        const requestedParentStoryNumber = Number(story.parent?.number || 0);
-        const requestedStoryTitle = normalizeStoryTitleKey(story.title);
-        const matchedParentRefsByTitle =
-          requestedStoryTitle === ""
-            ? []
-            : parentIssueRefs.filter(
-                (entry) => normalizeStoryTitleKey(entry.storyTitle) === requestedStoryTitle
-              );
-
-        const parentIssueIds = parentIssueRefs.map((entry) => entry.issueId);
-        const parentStories = await executor.story.findMany({
-          where: {
-            fkIssue: { in: parentIssueIds },
-            ...(requestedParentStoryNumber > 0
-              ? { number: BigInt(requestedParentStoryNumber) }
-              : {}),
-          },
-          orderBy: [{ fkIssue: "asc" }, { number: "asc" }, { id: "asc" }],
-          select: { id: true, fkIssue: true, title: true, number: true },
-        });
-
-        const matchesResolvedParentStory = (parentStory: {
-          fkIssue: bigint | null;
-          title: string;
-        }) =>
-          matchedParentRefsByTitle.some(
-            (entry) =>
-              entry.issueId === parentStory.fkIssue &&
-              normalizeStoryTitleKey(entry.storyTitle) === normalizeStoryTitleKey(parentStory.title)
-          );
-
-        let selectedParentStories = parentStories;
-        if (requestedParentStoryNumber > 0) {
-          selectedParentStories = parentStories.filter(
-            (entry) =>
-              Number(entry.number || 0) === requestedParentStoryNumber &&
-              (matchedParentRefsByTitle.length === 0 || matchesResolvedParentStory(entry))
-          );
-        } else if (matchedParentRefsByTitle.length > 0) {
-          selectedParentStories = parentStories.filter((entry) => matchesResolvedParentStory(entry));
-        }
-
-        for (const parentStory of selectedParentStories) {
-          await createStoryRow(Number(parentStory.id));
-          hasCreatedStory = true;
-        }
-      }
+    if (selectedParentStories.length === 0) {
+      await createLinkedStoryRow(issueId, resolvedStoryNumber, story, null, newlyLinkedParentStoryIds, executor);
+      continue;
     }
 
-    if (!hasCreatedStory) {
-      await createStoryRow(null);
+    for (const parentStory of selectedParentStories) {
+      await createLinkedStoryRow(
+        issueId,
+        resolvedStoryNumber,
+        story,
+        Number(parentStory.id),
+        newlyLinkedParentStoryIds,
+        executor
+      );
     }
   }
 
@@ -826,66 +882,12 @@ async function findOrCrawlParentIssueRefs(
   parent: { title: string; volume: number; number: string },
   executor: PrismaExecutor
 ): Promise<ParentIssueRef[]> {
-  const localIssues = await executor.issue.findMany({
-    where: {
-      number: parent.number,
-      variant: "",
-      series: {
-        title: parent.title,
-        volume: BigInt(parent.volume),
-        publisher: {
-          original: true,
-        },
-      },
-    },
-    orderBy: [{ id: "asc" }],
-    select: { id: true },
-  });
-
-  if (localIssues.length > 0) {
-    return localIssues.map((entry) => ({ issueId: entry.id }));
-  }
+  const localIssueRefs = await findLocalParentIssueRefs(parent, executor);
+  if (localIssueRefs.length > 0) return localIssueRefs;
 
   const crawledSeries = await crawler.crawlSeries(parent.title, parent.volume);
-  let publisher = await executor.publisher.findFirst({
-    where: {
-      name: normalizeText(crawledSeries.publisherName) || "Marvel Comics",
-      original: true,
-    },
-  });
-
-  publisher ??= await executor.publisher.create({
-    data: {
-      name: normalizeText(crawledSeries.publisherName) || "Marvel Comics",
-      original: true,
-      addInfo: "",
-      startYear: BigInt(0),
-      endYear: BigInt(0),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-  });
-
-  let series = await executor.series.findFirst({
-    where: {
-      title: parent.title,
-      volume: BigInt(parent.volume),
-      fkPublisher: publisher.id,
-    },
-  });
-
-  series ??= await executor.series.create({
-    data: {
-      title: crawledSeries.title,
-      volume: BigInt(crawledSeries.volume),
-      startYear: BigInt(crawledSeries.startyear || 0),
-      endYear: BigInt(crawledSeries.endyear || 0),
-      addInfo: "",
-      fkPublisher: publisher.id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-  });
+  const publisher = await findOrCreateUsPublisher(crawledSeries.publisherName, executor);
+  const series = await findOrCreateUsSeries(parent, crawledSeries, publisher.id, executor);
 
   const issue = await executor.issue.findFirst({
     where: {
@@ -903,31 +905,7 @@ async function findOrCrawlParentIssueRefs(
     parent.number
   )) as CrawledIssueLike;
 
-  let normalizedCollectedIssues: Array<{
-    number: string;
-    storyTitle: string;
-    seriesTitle: string;
-    seriesVolume: number;
-  }> = [];
-  if (Array.isArray(crawledIssue.collectedIssues)) {
-    normalizedCollectedIssues = crawledIssue.collectedIssues
-      .map((entry) => ({
-        number: normalizeText(entry?.number),
-        storyTitle: normalizeText(entry?.storyTitle),
-        seriesTitle: normalizeText(entry?.series?.title),
-        seriesVolume: Number(entry?.series?.volume || 0),
-      }))
-      .filter((entry) => entry.number && entry.seriesTitle && entry.seriesVolume > 0);
-  } else if (Array.isArray(crawledIssue.containedIssues)) {
-    normalizedCollectedIssues = crawledIssue.containedIssues
-      .map((entry) => ({
-        number: normalizeText(entry?.number),
-        storyTitle: normalizeText(entry?.storyTitle),
-        seriesTitle: normalizeText(entry?.series?.title),
-        seriesVolume: Number(entry?.series?.volume || 0),
-      }))
-      .filter((entry) => entry.number && entry.seriesTitle && entry.seriesVolume > 0);
-  }
+  const normalizedCollectedIssues = normalizeCollectedIssues(crawledIssue);
 
   if (normalizedCollectedIssues.length > 0) {
     const containedIssueRefs = new Map<string, ParentIssueRef>();
@@ -1086,6 +1064,106 @@ async function findOrCrawlParentIssueRefs(
   }
 
   return [{ issueId: createdIssue.id }];
+}
+
+async function findLocalParentIssueRefs(
+  parent: { title: string; volume: number; number: string },
+  executor: PrismaExecutor
+) {
+  const localIssues = await executor.issue.findMany({
+    where: {
+      number: parent.number,
+      variant: "",
+      series: {
+        title: parent.title,
+        volume: BigInt(parent.volume),
+        publisher: {
+          original: true,
+        },
+      },
+    },
+    orderBy: [{ id: "asc" }],
+    select: { id: true },
+  });
+
+  return localIssues.map((entry) => ({ issueId: entry.id }));
+}
+
+async function findOrCreateUsPublisher(
+  publisherName: string | undefined,
+  executor: PrismaExecutor
+) {
+  const normalizedPublisherName = normalizeText(publisherName) || "Marvel Comics";
+  const existingPublisher = await executor.publisher.findFirst({
+    where: {
+      name: normalizedPublisherName,
+      original: true,
+    },
+  });
+  if (existingPublisher) return existingPublisher;
+
+  return executor.publisher.create({
+    data: {
+      name: normalizedPublisherName,
+      original: true,
+      addInfo: "",
+      startYear: BigInt(0),
+      endYear: BigInt(0),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  });
+}
+
+async function findOrCreateUsSeries(
+  parent: { title: string; volume: number },
+  crawledSeries: {
+    title: string;
+    volume: number;
+    startyear?: number;
+    endyear?: number;
+  },
+  publisherId: bigint,
+  executor: PrismaExecutor
+) {
+  const existingSeries = await executor.series.findFirst({
+    where: {
+      title: parent.title,
+      volume: BigInt(parent.volume),
+      fkPublisher: publisherId,
+    },
+  });
+  if (existingSeries) return existingSeries;
+
+  return executor.series.create({
+    data: {
+      title: crawledSeries.title,
+      volume: BigInt(crawledSeries.volume),
+      startYear: BigInt(crawledSeries.startyear || 0),
+      endYear: BigInt(crawledSeries.endyear || 0),
+      addInfo: "",
+      fkPublisher: publisherId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  });
+}
+
+function normalizeCollectedIssues(crawledIssue: CrawledIssueLike) {
+  const collectedEntries = Array.isArray(crawledIssue.collectedIssues)
+    ? crawledIssue.collectedIssues
+    : Array.isArray(crawledIssue.containedIssues)
+      ? crawledIssue.containedIssues
+      : [];
+
+  return collectedEntries
+    .map((entry) => ({
+      number: normalizeText(entry?.number),
+      storyTitle: normalizeText(entry?.storyTitle),
+      seriesTitle: normalizeText(entry?.series?.title),
+      seriesVolume: Number(entry?.series?.volume || 0),
+    }))
+    .filter((entry) => entry.number && entry.seriesTitle && entry.seriesVolume > 0);
 }
 
 async function findPublisher(publisher: PublisherRef | null | undefined, executor: PrismaExecutor) {

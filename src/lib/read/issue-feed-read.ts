@@ -190,14 +190,13 @@ export async function readLastEditedIssues(
   first: number | undefined,
   after: string | undefined,
   order: string | undefined,
-  direction: string | undefined,
-  loggedIn: boolean
+  direction: string | undefined
 ) {
   const limit = Number.isFinite(first) && first && first > 0 ? Math.floor(first) : 25;
   const sortField = normalizeSortField(order);
   const sortDirection = normalizeSortDirection(direction);
   const cursorField = getFeedCursorField(sortField);
-  const filterState = await resolveFilterState(filter, loggedIn);
+  const filterState = await resolveFilterState(filter);
   const directFilterWhere = filterState.directIssueWhere;
   const filteredIssueIds = filterState.filteredIssueIds;
   const where: Prisma.IssueWhereInput = {
@@ -265,7 +264,7 @@ export async function readIssueNavigationNodes(
 
   const normalizedPattern = normalizeText(pattern);
   const take = Number.isFinite(first) && first && first > 0 ? Math.floor(first) : undefined;
-  const filterState = await resolveFilterState(filter, loggedIn);
+  const filterState = await resolveFilterState(filter);
   const directFilterWhere = filterState.directIssueWhere;
   const filteredIssueIds = filterState.filteredIssueIds;
   const rows = await prisma.issue.findMany({

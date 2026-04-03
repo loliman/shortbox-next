@@ -17,8 +17,10 @@ function withRouteFilter(
   query: Record<string, unknown> | null | undefined,
   routeFilterJson: string
 ): Record<string, unknown> {
+  const nextQuery = query ? { ...query } : {};
+
   return {
-    ...(query ?? {}),
+    ...nextQuery,
     // Route-derived filter always wins so entity landing pages stay deterministic.
     filter: routeFilterJson,
   };
@@ -132,4 +134,3 @@ export async function renderSeoFilterHomePage(input: {
     </>
   );
 }
-

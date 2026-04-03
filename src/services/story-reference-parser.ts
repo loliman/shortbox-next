@@ -16,6 +16,11 @@ interface StoryReferenceContext {
 
 const DASH_PATTERN = /[‐‑–—]/g;
 const VOLUME_PATTERN = /\s+(?:vol(?:ume)?|v)\.?\s*(\d+)$/i;
+const ISSUE_REFERENCE_PATTERN =
+  /((?:annual\s+\d+(?:-\d+)?)|(?:#?[\dA-Za-z]+(?:-#?[\dA-Za-z]+)?))$/i;
+const CONTEXT_ISSUE_PATTERN = /^(?:annual\s+\d+(?:-\d+)?|\d+[A-Za-z]?(?:-\d+[A-Za-z]?)?)$/i;
+const ANNUAL_RANGE_PATTERN = /^annual\s+(\d+)(?:-(\d+))?$/i;
+const NUMERIC_RANGE_PATTERN = /^(\d+)([A-Za-z]?)(?:-(\d+)([A-Za-z]?))?$/;
 
 export function parseStoryReferences(input: string): StoryReferenceParseResult {
   const normalizedInput = normalizeInput(input);
@@ -54,7 +59,7 @@ function parseSegment(
     return createContextReferences(context, contextIssueNumbers);
   }
 
-  const issueMatch = /((?:annual\s+\d+(?:-\d+)?)|(?:#?[A-Za-z0-9]+(?:-\#?[A-Za-z0-9]+)?))$/i.exec(segment);
+  const issueMatch = ISSUE_REFERENCE_PATTERN.exec(segment);
   if (!issueMatch) return null;
 
   const rawIssueSpec = issueMatch[1]?.trim() || "";
@@ -126,12 +131,11 @@ function parseSeriesContext(rawSeriesSpec: string): StoryReferenceContext | null
   const seriesSpec = stripTrailingPunctuation(rawSeriesSpec);
   const volumeMatch = VOLUME_PATTERN.exec(seriesSpec);
   const volume = volumeMatch ? Number.parseInt(volumeMatch[1], 10) : 1;
-  const volumeMatchIndex =
-    volumeMatch && typeof volumeMatch.index === "number" ? volumeMatch.index : undefined;
+  const volumeMatchIndex = volumeMatch?.index;
   const seriesTitle = stripTrailingPunctuation(
-    volumeMatchIndex !== undefined
-      ? seriesSpec.slice(0, Math.max(0, volumeMatchIndex)).trim()
-      : seriesSpec
+    volumeMatchIndex === undefined
+      ? seriesSpec
+      : seriesSpec.slice(0, Math.max(0, volumeMatchIndex)).trim()
   );
   if (!seriesTitle || !Number.isFinite(volume) || volume <= 0) return null;
 
@@ -141,7 +145,7 @@ function parseSeriesContext(rawSeriesSpec: string): StoryReferenceContext | null
 function parseContextIssueNumbers(value: string): string[] | null {
   const normalized = stripTrailingPunctuation(value).replace(/^#/, "").trim();
   if (!normalized) return null;
-  if (!/^(?:annual\s+\d+(?:-\d+)?|\d+[A-Za-z]?(?:-\d+[A-Za-z]?)?)$/i.test(normalized)) {
+  if (!CONTEXT_ISSUE_PATTERN.test(normalized)) {
     return null;
   }
 
@@ -152,35 +156,46 @@ function parseIssueNumbers(value: string): string[] | null {
   const normalized = stripTrailingPunctuation(value).replace(/^#/, "").trim();
   if (!normalized) return null;
 
-  const annualRangeMatch = /^annual\s+(\d+)(?:-(\d+))?$/i.exec(normalized);
-  if (annualRangeMatch) {
-    const start = Number.parseInt(annualRangeMatch[1], 10);
-    const end = annualRangeMatch[2] ? Number.parseInt(annualRangeMatch[2], 10) : start;
-    if (!isValidRange(start, end)) return null;
-    return expandNumericRange(start, end).map((number) => `Annual ${number}`);
-  }
+  const annualIssueNumbers = parseAnnualIssueNumbers(normalized);
+  if (annualIssueNumbers) return annualIssueNumbers;
 
-  const numericRangeMatch = /^(\d+)([A-Za-z]?)(?:-(\d+)([A-Za-z]?))?$/.exec(normalized);
-  if (numericRangeMatch) {
-    const start = Number.parseInt(numericRangeMatch[1], 10);
-    const startSuffix = numericRangeMatch[2] ?? "";
-    const end = numericRangeMatch[3] ? Number.parseInt(numericRangeMatch[3], 10) : start;
-    const endSuffix = numericRangeMatch[4] ?? startSuffix;
-
-    if (!numericRangeMatch[3]) {
-      return [`${start}${startSuffix}`];
-    }
-
-    if (startSuffix || endSuffix) {
-      if (start === end && startSuffix === endSuffix) return [`${start}${startSuffix}`];
-      return [normalized];
-    }
-
-    if (!isValidRange(start, end)) return null;
-    return expandNumericRange(start, end).map(String);
-  }
+  const numericIssueNumbers = parseNumericIssueNumbers(normalized);
+  if (numericIssueNumbers) return numericIssueNumbers;
 
   return [normalized];
+}
+
+function parseAnnualIssueNumbers(normalized: string): string[] | null {
+  const annualRangeMatch = ANNUAL_RANGE_PATTERN.exec(normalized);
+  if (!annualRangeMatch) return null;
+
+  const start = Number.parseInt(annualRangeMatch[1], 10);
+  const end = annualRangeMatch[2] ? Number.parseInt(annualRangeMatch[2], 10) : start;
+  if (!isValidRange(start, end)) return null;
+
+  return expandNumericRange(start, end).map((number) => `Annual ${number}`);
+}
+
+function parseNumericIssueNumbers(normalized: string): string[] | null {
+  const numericRangeMatch = NUMERIC_RANGE_PATTERN.exec(normalized);
+  if (!numericRangeMatch) return null;
+
+  const start = Number.parseInt(numericRangeMatch[1], 10);
+  const startSuffix = numericRangeMatch[2] ?? "";
+  const endDigits = numericRangeMatch[3];
+  if (endDigits === undefined) {
+    return [`${start}${startSuffix}`];
+  }
+
+  const end = Number.parseInt(endDigits, 10);
+  const endSuffix = numericRangeMatch[4] ?? startSuffix;
+  if (startSuffix || endSuffix) {
+    if (start === end && startSuffix === endSuffix) return [`${start}${startSuffix}`];
+    return [normalized];
+  }
+
+  if (!isValidRange(start, end)) return null;
+  return expandNumericRange(start, end).map(String);
 }
 
 function expandNumericRange(start: number, end: number): number[] {
