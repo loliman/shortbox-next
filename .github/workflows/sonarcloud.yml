@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  CI_NODE_VERSION: 24
+  CI_NODE_VERSION: 25
 
 jobs:
   sonarcloud:

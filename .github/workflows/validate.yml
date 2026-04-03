@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  CI_NODE_VERSION: 24
+  CI_NODE_VERSION: 25
 
 jobs:
   quality:
