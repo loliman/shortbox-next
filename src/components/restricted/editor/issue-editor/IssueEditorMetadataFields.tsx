@@ -36,7 +36,7 @@ interface MetadataEntry {
 
 interface IssueEditorMetadataFieldsProps {
   values: IssueEditorFormValues;
-  copy?: boolean;
+  showBatchCreate?: boolean;
   batchEnabled?: boolean;
   isDesktop?: boolean;
   setFieldValue: (field: string, value: unknown, shouldValidate?: boolean) => void;
@@ -59,7 +59,7 @@ interface TypedMetadataAutocompleteProps {
 
 function IssueEditorMetadataFields({
   values,
-  copy,
+  showBatchCreate = false,
   batchEnabled,
   setFieldValue,
   lockedFields,
@@ -67,11 +67,11 @@ function IssueEditorMetadataFields({
   const us = values.series.publisher.us;
   const formatLocked = Boolean(lockedFields?.format);
   const variantLocked = Boolean(lockedFields?.variant);
-  const previewLabels = copy && batchEnabled ? buildVariantBatchLabels(values.copyBatch) : [];
+  const previewLabels = showBatchCreate && batchEnabled ? buildVariantBatchLabels(values.copyBatch) : [];
 
   return (
     <Grid container spacing={2}>
-      {copy ? (
+      {showBatchCreate ? (
         <Grid size={{ xs: 12 }}>
           <Accordion
             disableGutters
@@ -167,14 +167,14 @@ function IssueEditorMetadataFields({
         </Grid>
       ) : null}
 
-      {!(copy && batchEnabled) ? (
+      {!(showBatchCreate && batchEnabled) ? (
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <FastField
             disabled={variantLocked}
             name="variant"
             label="Variante"
             component={TextField}
-            helperText={copy ? "Nur fuer einzelne Kopie." : undefined}
+            helperText={showBatchCreate ? "Nur fuer einzelne Ausgabe." : undefined}
             fullWidth
           />
         </Grid>

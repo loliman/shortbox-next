@@ -21,9 +21,13 @@ export async function POST(request: NextRequest) {
     }
 
     invalidateNavigationCache();
-    const items = Array.isArray(result.data) ? result.data : [result.data];
+    const items = "items" in result.data ? result.data.items : [result.data.item];
     return NextResponse.json(
-      { item: items[items.length - 1], items },
+      {
+        item: items[items.length - 1],
+        items,
+        ...("meta" in result.data && result.data.meta ? { meta: result.data.meta } : {}),
+      },
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (error) {
@@ -46,7 +50,13 @@ export async function PATCH(request: NextRequest) {
     }
 
     invalidateNavigationCache();
-    return NextResponse.json({ item: result.data }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json(
+      {
+        item: result.data.item,
+        ...(result.data.meta ? { meta: result.data.meta } : {}),
+      },
+      { headers: { "Cache-Control": "no-store" } }
+    );
   } catch (error) {
     const message = error instanceof Yup.ValidationError ? error.errors.join(", ") : "Ausgabe konnte nicht gespeichert werden";
     return NextResponse.json({ error: message }, { status: 400 });

@@ -118,6 +118,7 @@ function IssueReportView(props: Readonly<IssueReportProps>) {
               <IssueEditorFormContent
                 values={values}
                 edit
+                showBatchCreate={false}
                 id={
                   typeof issueDetails.id === "string" || typeof issueDetails.id === "number"
                     ? issueDetails.id

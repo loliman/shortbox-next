@@ -17,6 +17,7 @@ function IssueEditorFormContent(props: IssueEditorFormContentProps) {
     values,
     edit,
     copy,
+    showBatchCreate = false,
     isDesktop,
     id,
     session,
@@ -96,6 +97,7 @@ function IssueEditorFormContent(props: IssueEditorFormContentProps) {
         <IssueEditorMetadataFields
           values={values}
           copy={copy}
+          showBatchCreate={showBatchCreate}
           batchEnabled={Boolean(values.copyBatch.enabled)}
           isDesktop={isDesktop}
           setFieldValue={setFieldValue}

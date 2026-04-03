@@ -200,6 +200,7 @@ function PreviewImportQueueEditor(props: Readonly<{
         <Form style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
           <IssueEditorFormContent
             values={formValues as IssueEditorFormValues}
+            showBatchCreate
             isDesktop
             session={props.session}
             header={`Import ${props.queue.currentDraftIndex + 1} von ${props.queue.totalDraftCount}`}

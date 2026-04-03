@@ -154,7 +154,32 @@ type IssueInput = {
   } | null;
 };
 
-export async function createIssue(item: IssueInput): Promise<Result<ReturnType<typeof toIssuePayload>>> {
+type IssueSeriesMeta = {
+  title: string;
+  volume: number;
+  startyear: number;
+  endyear: number;
+  publisher?: {
+    name: string;
+    us: boolean;
+  };
+};
+
+type IssueWriteMeta = {
+  createdSeries?: IssueSeriesMeta;
+};
+
+type IssueWriteItemResult = {
+  item: ReturnType<typeof toIssuePayload>;
+  meta?: IssueWriteMeta;
+};
+
+type IssueWriteBatchResult = {
+  items: Array<ReturnType<typeof toIssuePayload>>;
+  meta?: IssueWriteMeta;
+};
+
+export async function createIssue(item: IssueInput): Promise<Result<IssueWriteItemResult>> {
   try {
     const res = await prisma.$transaction(async (tx) => {
       return createIssueRecord(item, tx);
@@ -168,25 +193,31 @@ export async function createIssue(item: IssueInput): Promise<Result<ReturnType<t
 export async function createIssueBatch(
   item: IssueInput,
   batch: IssueCopyBatchInput
-): Promise<Result<Array<ReturnType<typeof toIssuePayload>>>> {
+): Promise<Result<IssueWriteBatchResult>> {
   try {
     const res = await prisma.$transaction(async (tx) => {
       const variants = buildVariantBatchLabels(batch);
       const createdItems: Array<ReturnType<typeof toIssuePayload>> = [];
+      let meta: IssueWriteMeta | undefined;
 
       for (const variant of variants) {
-        createdItems.push(
-          await createIssueRecord(
-            {
-              ...item,
-              variant,
-            },
-            tx
-          )
+        const createdResult = await createIssueRecord(
+          {
+            ...item,
+            variant,
+          },
+          tx
         );
+        createdItems.push(createdResult.item);
+        if (!meta?.createdSeries && createdResult.meta?.createdSeries) {
+          meta = createdResult.meta;
+        }
       }
 
-      return createdItems;
+      return {
+        items: createdItems,
+        ...(meta ? { meta } : {}),
+      };
     }, ISSUE_TRANSACTION_OPTIONS);
     return success(res);
   } catch (error) {
@@ -194,7 +225,7 @@ export async function createIssueBatch(
   }
 }
 
-export async function editIssue(oldItem: IssueInput, item: IssueInput): Promise<Result<ReturnType<typeof toIssuePayload>>> {
+export async function editIssue(oldItem: IssueInput, item: IssueInput): Promise<Result<IssueWriteItemResult>> {
   try {
     const res = await prisma.$transaction(async (tx) => {
     const oldIssueId = normalizeBigInt(oldItem.id);
@@ -248,7 +279,11 @@ export async function editIssue(oldItem: IssueInput, item: IssueInput): Promise<
     const newPublisher = await findPublisher(item.series?.publisher, tx);
     if (!newPublisher) throw new Error("Publisher not found");
 
-    const newSeries = await findOrCreateIssueSeries(item.series, newPublisher.id, tx);
+    const { series: newSeries, created: createdSeries } = await findOrCreateIssueSeries(
+      item.series,
+      newPublisher.id,
+      tx
+    );
 
     const duplicateIssue = await findIssueBySeriesIdentity(
       {
@@ -331,7 +366,10 @@ export async function editIssue(oldItem: IssueInput, item: IssueInput): Promise<
       }
     }
 
-    return toIssuePayload(updated);
+    return {
+      item: toIssuePayload(updated),
+      ...(createdSeries ? { meta: { createdSeries: toIssueSeriesMeta(newSeries) } } : {}),
+    };
     }, ISSUE_TRANSACTION_OPTIONS);
     return success(res);
   } catch (error) {
@@ -520,7 +558,7 @@ async function createIssueRecord(item: IssueInput, tx: PrismaExecutor) {
   const publisher = await findPublisher(item.series?.publisher, tx);
   if (!publisher) throw new Error("Publisher not found");
 
-  const series = await findOrCreateIssueSeries(item.series, publisher.id, tx);
+  const { series, created: createdSeries } = await findOrCreateIssueSeries(item.series, publisher.id, tx);
 
   const duplicateIssue = await findIssueBySeriesIdentity(
     {
@@ -569,7 +607,10 @@ async function createIssueRecord(item: IssueInput, tx: PrismaExecutor) {
   await syncStoriesFromParentRefs(Number(created.id), item, tx);
   await updateStoryFilterFlagsForIssue(Number(created.id));
 
-  return toIssuePayload(created);
+  return {
+    item: toIssuePayload(created),
+    ...(createdSeries ? { meta: { createdSeries: toIssueSeriesMeta(series) } } : {}),
+  };
 }
 
 async function syncStoriesFromParentRefs(
@@ -1303,7 +1344,12 @@ async function findOrCreateIssueSeries(
     },
   });
 
-  if (series) return series;
+  if (series) {
+    return {
+      series,
+      created: false,
+    };
+  }
 
   const currentYear = new Date().getFullYear();
   series = await executor.series.create({
@@ -1323,7 +1369,34 @@ async function findOrCreateIssueSeries(
     },
   });
 
-  return series;
+  return {
+    series,
+    created: true,
+  };
+}
+
+function toIssueSeriesMeta(series: {
+  title: string | null;
+  volume: bigint;
+  startYear: bigint;
+  endYear: bigint | null;
+  publisher: {
+    name: string;
+    original: boolean;
+  } | null;
+}): IssueSeriesMeta {
+  return {
+    title: series.title || "",
+    volume: Number(series.volume),
+    startyear: Number(series.startYear),
+    endyear: series.endYear === null ? 0 : Number(series.endYear),
+    publisher: series.publisher
+      ? {
+          name: series.publisher.name,
+          us: series.publisher.original,
+        }
+      : undefined,
+  };
 }
 
 function toIssuePayload(issue: {

@@ -72,6 +72,7 @@ export interface IssueEditorFormContentProps {
   values: IssueEditorFormValues;
   edit?: boolean;
   copy?: boolean;
+  showBatchCreate?: boolean;
   isDesktop?: boolean;
   id?: string | number;
   session?: SessionData | null;

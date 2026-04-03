@@ -13,8 +13,15 @@ import type { IssueEditorFormValues, IssueEditorProps } from "./issue-editor/typ
 import { mutationRequest } from "../../../lib/client/mutation-request";
 import type { SelectedRoot } from "../../../types/domain";
 import { buildTouchedFromErrors, findFirstErrorPath, focusEditorErrorField } from "./issue-editor/validationFeedback";
+import { buildIssueSaveSuccessMessage } from "./issue-editor/saveFeedback";
 
 type IssueMutationResult = Record<string, unknown>;
+type IssueMutationMeta = {
+  createdSeries?: {
+    title?: string;
+    volume?: number;
+  };
+};
 
 function readIssueUs(item: IssueMutationResult): boolean {
   const series = item.series as { publisher?: { us?: unknown } } | undefined;
@@ -131,7 +138,11 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
         actions.setSubmitting(true);
         try {
           const variables = buildIssueMutationVariables(values, defaultValues, edit);
-          const result = await mutationRequest<{ item?: IssueMutationResult; items?: IssueMutationResult[] }>({
+          const result = await mutationRequest<{
+            item?: IssueMutationResult;
+            items?: IssueMutationResult[];
+            meta?: IssueMutationMeta;
+          }>({
             url: "/api/issues",
             method: edit ? "PATCH" : "POST",
             body: variables as unknown as Record<string, unknown>,
@@ -145,15 +156,17 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
           if (!nextItem) throw new Error("Ausgabe konnte nicht gespeichert werden");
 
           const nextUs = readIssueUs(nextItem);
-          if (createdItems.length > 1) {
-            enqueueSnackbar(`${createdItems.length} Varianten erfolgreich gespeichert`, {
+          enqueueSnackbar(
+            buildIssueSaveSuccessMessage({
+              createdCount: createdItems.length > 0 ? createdItems.length : 1,
+              issueLabel: generateLabel(toIssueSelection(nextItem, nextUs)),
+              successMessage,
+              createdSeries: result.meta?.createdSeries,
+            }),
+            {
               variant: "success",
-            });
-          } else {
-            enqueueSnackbar(generateLabel(toIssueSelection(nextItem, nextUs)) + successMessage, {
-              variant: "success",
-            });
-          }
+            }
+          );
 
           if (!copyModeRef.current) {
             router.push(
@@ -189,6 +202,7 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
             values={values}
             edit={edit}
             copy={props.copy}
+            showBatchCreate={!edit}
             isDesktop={props.isDesktop}
             id={props.id}
             session={props.session}
