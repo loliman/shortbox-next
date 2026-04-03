@@ -6,7 +6,9 @@ import { TopBar } from "./TopBar";
 
 jest.mock("./SearchBar", () => ({
   __esModule: true,
-  default: function MockSearchBar(props: { onFocus?: (e: any, focus: boolean) => void }) {
+  default: function MockSearchBar(
+    props: Readonly<{ onFocus?: (e: { preventDefault: () => void }, focus: boolean) => void }>
+  ) {
     return (
       <button
         type="button"

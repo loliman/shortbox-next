@@ -12,7 +12,7 @@ describe("FooterLinks", () => {
     expect(screen.getByText("Kontakt / Fehler melden / Unterstützen")).toBeTruthy();
     expect(screen.getByText("Impressum")).toBeTruthy();
     expect(screen.getByText("Datenschutz")).toBeTruthy();
-    const githubLink = screen.getByRole("link", { name: "GitHub" }) as HTMLAnchorElement;
+    const githubLink = screen.getByRole("link", { name: "GitHub" });
     expect(githubLink.getAttribute("href")).toBe("https://github.com/loliman");
 
     fireEvent.click(screen.getByRole("button", { name: "Über" }));

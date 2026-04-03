@@ -33,14 +33,12 @@ describe("FormActions", () => {
       <FormActions isSubmitting={true} onReset={onReset} onCancel={onCancel} onSubmit={onSubmit} />
     );
 
-    expect(
-      (screen.getByRole("button", { name: "Zurücksetzen" }) as HTMLButtonElement).disabled
-    ).toBe(true);
-    expect((screen.getByRole("button", { name: "Abbrechen" }) as HTMLButtonElement).disabled).toBe(
-      true
-    );
-    expect((screen.getByRole("button", { name: "Filtern" }) as HTMLButtonElement).disabled).toBe(
-      true
-    );
+    const resetButton = screen.getByRole("button", { name: "Zurücksetzen" });
+    const cancelButton = screen.getByRole("button", { name: "Abbrechen" });
+    const submitButton = screen.getByRole("button", { name: "Filtern" });
+
+    expect(resetButton).toHaveAttribute("disabled");
+    expect(cancelButton).toHaveAttribute("disabled");
+    expect(submitButton).toHaveAttribute("disabled");
   });
 });
