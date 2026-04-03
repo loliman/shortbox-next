@@ -42,7 +42,7 @@ export async function readSeriesDetailsQuery(input: SeriesSelectionInput) {
       });
 
   const resolvedSeries =
-    series || slugCandidates.find((candidate) => matchesSeriesSelectionBySlug(candidate, input)) || null;
+    series ?? slugCandidates.find((candidate) => matchesSeriesSelectionBySlug(candidate, input)) ?? null;
 
   if (!resolvedSeries) return null;
 

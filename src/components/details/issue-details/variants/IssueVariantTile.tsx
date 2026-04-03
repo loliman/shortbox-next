@@ -33,7 +33,7 @@ export function IssueVariantTile(props: Readonly<IssueVariantTileProps>) {
   const showBookmark = Boolean(props.session) && Boolean(props.hasStories);
   const showCollected = Boolean(props.session) && Boolean(props.variant.collected);
   const variantLabel =
-    (props.variant.format || "") +
+    (props.variant.format ?? "") +
     " (" +
     (props.variant.variant ? props.variant.variant + " Variant" : "Reguläre Ausgabe") +
     ")";

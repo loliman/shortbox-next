@@ -97,10 +97,10 @@ export default function HomeFeedClient(props: Readonly<HomeFeedClientProps>) {
       routeUs,
     ]
   );
-  const [items, setItems] = React.useState<PreviewIssue[]>(() => props.initialItems || []);
+  const [items, setItems] = React.useState<PreviewIssue[]>(() => props.initialItems ?? []);
   const [fetchingMore, setFetchingMore] = React.useState(false);
   const [hasMore, setHasMore] = React.useState(Boolean(props.initialHasMore));
-  const [nextCursor, setNextCursor] = React.useState<string | null>(props.initialNextCursor || null);
+  const [nextCursor, setNextCursor] = React.useState<string | null>(props.initialNextCursor ?? null);
   const requestKey = React.useMemo(
     () =>
       JSON.stringify({
@@ -134,7 +134,7 @@ export default function HomeFeedClient(props: Readonly<HomeFeedClientProps>) {
           nextCursor?: string | null;
         };
 
-        setItems((prev) => [...prev, ...((payload.items || []) as PreviewIssue[])]);
+        setItems((prev) => [...prev, ...((payload.items ?? []) as PreviewIssue[])]);
         setHasMore(Boolean(payload.hasMore));
         setNextCursor(typeof payload.nextCursor === "string" ? payload.nextCursor : null);
       } catch (nextError) {
@@ -153,8 +153,8 @@ export default function HomeFeedClient(props: Readonly<HomeFeedClientProps>) {
 
   React.useEffect(() => {
     setHasMore(Boolean(props.initialHasMore));
-    setItems(props.initialItems || []);
-    setNextCursor(props.initialNextCursor || null);
+    setItems(props.initialItems ?? []);
+    setNextCursor(props.initialNextCursor ?? null);
   }, [props.initialHasMore, props.initialItems, props.initialNextCursor, requestKey]);
 
   React.useEffect(() => {

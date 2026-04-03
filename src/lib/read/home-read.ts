@@ -24,13 +24,13 @@ export async function readHomeFeed(options: HomeReadOptions) {
 
   const connection = await readLastEditedIssues(
     {
-      ...(options.filter || {}),
+      ...(options.filter ?? {}),
       us: options.us,
     },
     requestedFirst,
     cursor,
-    options.order || undefined,
-    options.direction || undefined,
+    options.order ?? undefined,
+    options.direction ?? undefined,
     loggedIn
   );
   const nodes = connection.edges.map((edge) => edge?.node).filter(Boolean);
@@ -40,7 +40,7 @@ export async function readHomeFeed(options: HomeReadOptions) {
     hasMore: cursor
       ? Boolean(connection.pageInfo.hasNextPage)
       : nodes.length > offset + limit,
-    nextCursor: cursor ? connection.pageInfo.endCursor || null : null,
+    nextCursor: cursor ? connection.pageInfo.endCursor ?? null : null,
   };
 }
 

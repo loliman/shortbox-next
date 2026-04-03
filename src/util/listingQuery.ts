@@ -24,11 +24,11 @@ export function parseListingFilter(query: ListingQuery, us: boolean): Record<str
 }
 
 export function getListingOrder(query: ListingQuery): string {
-  return query?.order || DEFAULT_ORDER;
+  return query?.order ?? DEFAULT_ORDER;
 }
 
 export function getListingDirection(query: ListingQuery): string {
-  return query?.direction || DEFAULT_DIRECTION;
+  return query?.direction ?? DEFAULT_DIRECTION;
 }
 
 export function getListingView(query: ListingQuery): "strip" | "gallery" {
@@ -40,7 +40,7 @@ export function buildSortNavigationQuery(
   patch: Partial<{ order: string | null; direction: string | null; view: string | null }>
 ) {
   return {
-    filter: query?.filter || null,
+    filter: query?.filter ?? null,
     order: patch.order !== undefined ? patch.order : getListingOrder(query),
     direction: patch.direction !== undefined ? patch.direction : getListingDirection(query),
     view: patch.view !== undefined ? patch.view : getListingView(query),

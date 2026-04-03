@@ -115,7 +115,7 @@ function AutocompleteBase({
       options={options}
       value={value}
       inputValue={inputValue}
-      popupIcon={popupIcon || undefined}
+      popupIcon={popupIcon ?? undefined}
       slotProps={{
         listbox: {
           onScroll: onListboxScroll,
