@@ -213,7 +213,8 @@ async function loadIssueForChangeRequest(issueId: number): Promise<Record<string
 }
 
 export async function readChangeRequests(options?: { order?: string | null; direction?: string | null }) {
-  const direction = String(options?.direction || "asc").toLowerCase() === "desc" ? "desc" : "asc";
+  const directionInput = typeof options?.direction === "string" ? options.direction.toLowerCase() : "asc";
+  const direction = directionInput === "desc" ? "desc" : "asc";
   const rows = await prisma.changeRequest.findMany({
     orderBy: [{ createdAt: direction }, { id: direction }],
   });

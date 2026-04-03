@@ -1124,7 +1124,7 @@ function parseArcsFromPartOf($: cheerio.CheerioAPI): CrawledArc[] {
         .replace(/\.$/, "")
         .replace(/\s+\((19|20)\d{2}\)\s*$/i, "")
         .replace(/\s+\((event|storyline|arc)\)\s*$/i, "")
-        .replace(/^["“]|["”]$/g, ""),
+        .replaceAll(/^["“]|["”]$/g, ""),
     );
     const normalizedTitle = stripTrailingArcMetadata(title);
     if (!normalizedTitle) return;
