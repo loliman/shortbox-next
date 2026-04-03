@@ -94,19 +94,21 @@ function IssueEditorSeriesFields({
         normalizeText(entry.publisher?.name) === normalizeText(values.series.publisher.name)
     ) || (seriesPattern.trim().length > 0 ? seriesPattern : null);
 
-  const publisherNoOptionsText = publisherQuery.isBelowMinLength
-    ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
-    : publisherQuery.error
-      ? "Daten aktuell nicht verfügbar"
-      : "Keine Ergebnisse gefunden";
+  let publisherNoOptionsText = "Keine Ergebnisse gefunden";
+  if (publisherQuery.isBelowMinLength) {
+    publisherNoOptionsText = `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`;
+  } else if (publisherQuery.error) {
+    publisherNoOptionsText = "Daten aktuell nicht verfügbar";
+  }
 
-  const seriesNoOptionsText = isSeriesDisabled
-    ? "Bitte zuerst Verlag wählen"
-    : seriesQuery.isBelowMinLength
-      ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
-      : seriesQuery.error
-        ? "Daten aktuell nicht verfügbar"
-        : "Keine Ergebnisse gefunden";
+  let seriesNoOptionsText = "Keine Ergebnisse gefunden";
+  if (isSeriesDisabled) {
+    seriesNoOptionsText = "Bitte zuerst Verlag wählen";
+  } else if (seriesQuery.isBelowMinLength) {
+    seriesNoOptionsText = `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`;
+  } else if (seriesQuery.error) {
+    seriesNoOptionsText = "Daten aktuell nicht verfügbar";
+  }
 
   return (
     <Grid container spacing={2}>

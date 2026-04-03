@@ -250,13 +250,9 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                 Tippe, um zu suchen…
               </Typography>
             </Box>
-          ) : resolvedError ? (
-            <Typography component="span" noWrap sx={{ fontSize: "1rem", color: "text.primary" }}>
-              Suche aktuell nicht verfügbar
-            </Typography>
           ) : (
             <Typography component="span" noWrap sx={{ fontSize: "1rem", color: "text.primary" }}>
-              Keine Ergebnisse gefunden
+              {resolvedError ? "Suche aktuell nicht verfügbar" : "Keine Ergebnisse gefunden"}
             </Typography>
           )
         }
@@ -315,7 +311,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
           width: "100%",
           position: "relative",
           zIndex: theme.zIndex.appBar + 2,
-          transform: focused ? (compactLayout ? "scale(1)" : "scale(1.1)") : "scale(1)",
+          transform: resolveSearchTransform(focused, compactLayout),
           transformOrigin: "center",
           transition: "transform 220ms ease",
           "& .MuiOutlinedInput-root": {
@@ -516,4 +512,9 @@ function getNodeTypeBadgeSx(type?: string | null) {
           alpha(theme.palette.primary.main, theme.palette.mode === "dark" ? 0.4 : 0.28),
       };
   }
+}
+
+function resolveSearchTransform(focused: boolean, compactLayout: boolean): string {
+  if (!focused) return "scale(1)";
+  return compactLayout ? "scale(1)" : "scale(1.1)";
 }

@@ -333,11 +333,12 @@ function SeriesPublisherAutocomplete({
       }}
       onChange={(_, option) => {
         const selectedOption = Array.isArray(option) ? option[0] || null : option;
-        const selectedName = isOptionLike(selectedOption)
-          ? readTextValue(selectedOption.name)
-          : typeof selectedOption === "string"
-            ? selectedOption
-            : "";
+        let selectedName = "";
+        if (isOptionLike(selectedOption)) {
+          selectedName = readTextValue(selectedOption.name);
+        } else if (typeof selectedOption === "string") {
+          selectedName = selectedOption;
+        }
         setFieldValue("publisher", {
           name: selectedName,
           us: publisherUs,

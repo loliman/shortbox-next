@@ -82,14 +82,17 @@ function AutocompleteBase({
     [id, inputAriaLabel, label, placeholder]
   );
   const mergedTextFieldSx: SxProps<Theme> = React.useMemo(
-    () => [
-      {
-        "& .MuiOutlinedInput-root": {
-          bgcolor: "background.paper",
+    () => {
+      const sxList = Array.isArray(textFieldSx) ? textFieldSx : textFieldSx ? [textFieldSx] : [];
+      return [
+        {
+          "& .MuiOutlinedInput-root": {
+            bgcolor: "background.paper",
+          },
         },
-      },
-      ...(Array.isArray(textFieldSx) ? textFieldSx : textFieldSx ? [textFieldSx] : []),
-    ],
+        ...sxList,
+      ];
+    },
     [textFieldSx]
   );
 

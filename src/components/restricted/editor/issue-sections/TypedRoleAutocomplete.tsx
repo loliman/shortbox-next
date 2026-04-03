@@ -51,11 +51,12 @@ function TypedRoleAutocomplete({
   const visibleValues = selectedValues.filter(
     (entry) => !entry.pattern && hasTypedRole(entry, type)
   );
-  const noOptionsText = queryResult.isBelowMinLength
-    ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
-    : queryResult.error
-      ? "Daten aktuell nicht verfügbar"
-      : "Keine Ergebnisse gefunden";
+  let noOptionsText = "Keine Ergebnisse gefunden";
+  if (queryResult.isBelowMinLength) {
+    noOptionsText = `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`;
+  } else if (queryResult.error) {
+    noOptionsText = "Daten aktuell nicht verfügbar";
+  }
 
   return (
     <AutocompleteBase

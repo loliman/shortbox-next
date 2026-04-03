@@ -38,11 +38,11 @@ export function generateUrl(item: SelectedRoot, us: boolean): string {
   if (!item.publisher && !item.series && !item.issue) return url;
 
   if (item.publisher)
-    return url + encodeURIComponent(safeValue(item.publisher.name).replaceAll(/%/g, "%25"));
+    return url + encodeURIComponent(safeValue(item.publisher.name).replaceAll("%", "%25"));
 
   if (item.series) {
-    const publisherName = safeValue(item.series.publisher?.name).replaceAll(/%/g, "%25");
-    const seriesTitle = safeValue(item.series.title).replaceAll(/%/g, "%25");
+    const publisherName = safeValue(item.series.publisher?.name).replaceAll("%", "%25");
+    const seriesTitle = safeValue(item.series.title).replaceAll("%", "%25");
     const volume = safeValue(item.series.volume);
     return (
       url +
@@ -53,10 +53,10 @@ export function generateUrl(item: SelectedRoot, us: boolean): string {
   }
 
   if (!item.issue?.variant || item.issue.variant === "") {
-    const publisherName = safeValue(item.issue?.series?.publisher?.name).replaceAll(/%/g, "%25");
-    const seriesTitle = safeValue(item.issue?.series?.title).replaceAll(/%/g, "%25");
+    const publisherName = safeValue(item.issue?.series?.publisher?.name).replaceAll("%", "%25");
+    const seriesTitle = safeValue(item.issue?.series?.title).replaceAll("%", "%25");
     const seriesVolume = safeValue(item.issue?.series?.volume);
-    const number = safeValue(item.issue?.number).replaceAll(/%/g, "%25");
+    const number = safeValue(item.issue?.number).replaceAll("%", "%25");
     const format = safeValue(item.issue?.format);
     return (
       url +
@@ -69,10 +69,10 @@ export function generateUrl(item: SelectedRoot, us: boolean): string {
     );
   }
 
-  const publisherName = safeValue(item.issue?.series?.publisher?.name).replaceAll(/%/g, "%25");
-  const seriesTitle = safeValue(item.issue?.series?.title).replaceAll(/%/g, "%25");
+  const publisherName = safeValue(item.issue?.series?.publisher?.name).replaceAll("%", "%25");
+  const seriesTitle = safeValue(item.issue?.series?.title).replaceAll("%", "%25");
   const seriesVolume = safeValue(item.issue?.series?.volume);
-  const number = safeValue(item.issue?.number).replaceAll(/%/g, "%25");
+  const number = safeValue(item.issue?.number).replaceAll("%", "%25");
   const format = safeValue(item.issue?.format);
   const variant = safeValue(item.issue?.variant);
 

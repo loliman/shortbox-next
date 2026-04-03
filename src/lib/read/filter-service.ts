@@ -467,7 +467,11 @@ function matchesIndividuals(issue: FilterIssueRecord, individuals: RuntimeFilter
     const name = readTextValue(entry?.name);
     if (!name) return true;
 
-    const rawTypes = Array.isArray(entry?.type) ? entry.type : entry?.type ? [entry.type] : [];
+    const rawTypes = Array.isArray(entry?.type)
+      ? entry.type
+      : entry?.type
+        ? [entry.type]
+        : [];
     const normalizedTypes = dedupeTerms(
       rawTypes
         .filter((type): type is string => typeof type === "string")

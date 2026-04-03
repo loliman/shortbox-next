@@ -57,7 +57,12 @@ class ContainsItem extends React.Component<ContainsItemProps> {
     const itemCount = Array.isArray(this.props.items) ? this.props.items.length : 0;
     const isFirst = this.props.index === 0;
     const isLast = this.props.index === itemCount - 1;
-    const borderRadius = isFirst ? (isLast ? "8px" : "8px 8px 0 0") : isLast ? "0 0 8px 8px" : "0";
+    let borderRadius = "0";
+    if (isFirst) {
+      borderRadius = isLast ? "8px" : "8px 8px 0 0";
+    } else if (isLast) {
+      borderRadius = "0 0 8px 8px";
+    }
 
     return (
       <Accordion
