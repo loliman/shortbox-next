@@ -22,7 +22,7 @@ export function dedupeSeriesItems(items: SeriesItem[]) {
   return dedupeBy(
     items,
     (item) =>
-      `${item.title}::${item.volume}::${item.startyear}::${item.publisher?.name || ""}::${String(item.publisher?.us ?? "")}`
+      `${item.title}::${item.volume}::${item.startyear}::${item.publisher?.name || ""}::${item.publisher?.us ?? ""}`
   );
 }
 

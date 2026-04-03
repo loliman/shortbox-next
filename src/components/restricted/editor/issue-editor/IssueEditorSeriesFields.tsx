@@ -50,8 +50,8 @@ function IssueEditorSeriesFields({
   lockedFields,
 }: IssueEditorSeriesFieldsProps) {
   const formik = useFormikContext<IssueEditorFormValues>();
-  const publisherPattern = String(values.series.publisher.name ?? "");
-  const seriesPattern = String(values.series.title ?? "");
+  const publisherPattern = values.series.publisher.name ?? "";
+  const seriesPattern = values.series.title ?? "";
   const publisherUs = Boolean(values.series.publisher.us);
   const isSeriesDisabled = publisherPattern.trim().length === 0;
   const titleLocked = Boolean(lockedFields?.title);

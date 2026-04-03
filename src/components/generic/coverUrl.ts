@@ -4,7 +4,12 @@ type CoverUrlLike = {
 };
 
 export function buildComicGuideCoverUrl(comicGuideId: string | number | null | undefined): string {
-  const normalized = String(comicGuideId ?? "").trim();
+  const normalized =
+    typeof comicGuideId === "string"
+      ? comicGuideId.trim()
+      : typeof comicGuideId === "number"
+        ? String(comicGuideId).trim()
+        : "";
   if (normalized === "" || normalized === "0") return "";
   return `https://www.comicguide.de/pics/large/${normalized}.jpg`;
 }

@@ -193,16 +193,22 @@ export function expanded(item: ItemLike, query?: QueryParams): boolean {
 }
 
 export function hasExpandNumberMatch(item: ItemLike, query?: QueryParams): boolean {
-  const expandValue = String(query?.expand ?? "").trim();
+  const expandValue = readExpandedText(query?.expand);
   if (!expandValue) return false;
 
-  const itemNumber = String(item?.number ?? "").trim();
+  const itemNumber = readExpandedText(item?.number);
   if (itemNumber) {
     return itemNumber === expandValue;
   }
 
-  const parentNumber = String(item?.parent?.number ?? "").trim();
+  const parentNumber = readExpandedText(item?.parent?.number);
   return parentNumber !== "" && parentNumber === expandValue;
+}
+
+function readExpandedText(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }
 
 function resolveIssue(item: ItemLike | null | undefined): IssueLike | null {

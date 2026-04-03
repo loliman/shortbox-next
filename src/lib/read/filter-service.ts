@@ -239,7 +239,7 @@ function compareNumericValues(left: number, right: number, compare: string): boo
 }
 
 function formatRank(format: string | null | undefined): number {
-  switch (String(format || "").trim().toLocaleLowerCase("de-DE")) {
+  switch ((format || "").trim().toLocaleLowerCase("de-DE")) {
     case "heft":
       return 1;
     case "softcover":

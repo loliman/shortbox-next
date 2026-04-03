@@ -220,7 +220,7 @@ class ContainsItem extends React.Component<ContainsItemProps> {
 }
 
 function normalizeDisplayStoryTitle(value: string | null | undefined): string {
-    const normalized = String(value || "").trim();
+    const normalized = value?.trim() || "";
     return normalized === "Untitled" ? "" : normalized;
 }
 

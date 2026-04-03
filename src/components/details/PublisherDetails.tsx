@@ -43,7 +43,12 @@ export default function PublisherDetails(props: Readonly<PublisherDetailsProps>)
     typeof details.startyear === "number" || typeof details.startyear === "string"
       ? String(details.startyear)
       : "";
-  const endYearLabel = details.active || details.endyear === 0 ? "heute" : String(details.endyear ?? "");
+  const endYearLabel =
+    details.active || details.endyear === 0
+      ? "heute"
+      : typeof details.endyear === "number" || typeof details.endyear === "string"
+        ? String(details.endyear)
+        : "";
   const previewProps = {
     us,
     session: props.session,

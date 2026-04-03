@@ -230,24 +230,26 @@ interface ActionMenuItemProps {
 
 function buildIssueMutationInput(item: DropdownItem): IssueMutationInput {
   const stripped = stripItem(structuredClone(item));
+  const readDropdownText = (value: unknown) =>
+    typeof value === "string" || typeof value === "number" ? String(value) : "";
   const input: IssueMutationInput = {
     id: stripped.id as string | number | undefined,
-    title: String(stripped.title || ""),
-    number: String(stripped.number || ""),
-    format: String(stripped.format || ""),
+    title: readDropdownText(stripped.title),
+    number: readDropdownText(stripped.number),
+    format: readDropdownText(stripped.format),
     releasedate: (stripped.releasedate as string) || "",
     pages: Number(stripped.pages || 0),
     price: Number(stripped.price || 0),
-    currency: String(stripped.currency || ""),
-    isbn: String(stripped.isbn || ""),
-    limitation: String(stripped.limitation || ""),
-    addinfo: String(stripped.addinfo || ""),
+    currency: readDropdownText(stripped.currency),
+    isbn: readDropdownText(stripped.isbn),
+    limitation: readDropdownText(stripped.limitation),
+    addinfo: readDropdownText(stripped.addinfo),
     series: (stripped.series as DropdownItem["series"]) || undefined,
     verified: Boolean(stripped.verified),
     collected: Boolean(stripped.collected),
   };
 
-  const variant = String(stripped.variant || "");
+  const variant = readDropdownText(stripped.variant);
   if (variant !== "") input.variant = variant;
 
   return input;
@@ -255,14 +257,16 @@ function buildIssueMutationInput(item: DropdownItem): IssueMutationInput {
 
 function buildIssueLookupInput(item: DropdownItem): IssueMutationInput {
   const stripped = stripItem(structuredClone(item));
+  const readDropdownText = (value: unknown) =>
+    typeof value === "string" || typeof value === "number" ? String(value) : "";
   const input: IssueMutationInput = {
     id: stripped.id as string | number | undefined,
-    number: String(stripped.number || ""),
-    format: String(stripped.format || ""),
+    number: readDropdownText(stripped.number),
+    format: readDropdownText(stripped.format),
     series: (stripped.series as DropdownItem["series"]) || undefined,
   };
 
-  const variant = String(stripped.variant || "");
+  const variant = readDropdownText(stripped.variant);
   if (variant !== "") input.variant = variant;
 
   return input;
