@@ -14,6 +14,6 @@ export function generateMarvelDbUrl(issue: IssueLike): string {
     "_Vol_" +
     String(issue.series?.volume ?? "") +
     "_" +
-    String(issue.number ?? "");
+    (issue.number ?? "");
   return "https://marvel.fandom.com/wiki/" + path.split("%20").join("_");
 }

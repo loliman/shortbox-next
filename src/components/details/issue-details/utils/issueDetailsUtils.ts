@@ -52,7 +52,7 @@ export function getVariantKey(
 }
 
 export function buildIssueVariantKey(issue: { format?: string | null; variant?: string | null }): string {
-  return [slugify(String(issue.format || "")), slugify(String(issue.variant || ""))].join("|");
+  return [slugify(issue.format || ""), slugify(issue.variant || "")].join("|");
 }
 
 export function compareIssueNumbers(issueNumber: string, filterNumber: string): number {

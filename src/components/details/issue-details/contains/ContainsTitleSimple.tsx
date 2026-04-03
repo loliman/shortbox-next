@@ -49,7 +49,7 @@ export function ContainsTitleSimple(props: Readonly<ContainsTitleSimpleProps>) {
   const children = Array.isArray(item.children) ? item.children : [];
   const reprints = Array.isArray(item.reprints) ? item.reprints : [];
   const hasIssueReference = Boolean(item.series);
-  const storyTitle = String(item.title || "").trim();
+  const storyTitle = readContainsText(item.title);
   const publicationFallback = buildPublicationFallback({
     childrenCount: children.length,
     us: Boolean(props.us),
@@ -223,4 +223,10 @@ function buildSimpleActionChips({
   }
 
   return chips;
+}
+
+function readContainsText(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }

@@ -88,9 +88,7 @@ type ContainsTitleDetailedNavigationProps = {
 const PART_PATTERN = /^(\d+)\s*\/\s*(\d+)$/;
 
 function parseStoryPart(value: string | null | undefined): { current: number; total: number } | null {
-  const match = String(value || "")
-    .trim()
-    .match(PART_PATTERN);
+  const match = readContainsTitleText(value).match(PART_PATTERN);
   if (!match) return null;
 
   const current = Number(match[1]);
@@ -103,7 +101,7 @@ function parseStoryPart(value: string | null | undefined): { current: number; to
 }
 
 function toReleaseTimestamp(value: string | null | undefined): number {
-  const parsed = Date.parse(String(value || "").trim());
+  const parsed = Date.parse(readContainsTitleText(value));
   return Number.isNaN(parsed) ? Number.POSITIVE_INFINITY : parsed;
 }
 
@@ -185,7 +183,7 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
   const allowInteractiveActions = props.allowInteractiveActions ?? true;
   const issue = resolveIssueForDetails(item);
   const issueSelection = issue ? toIssueSelection(issue) : null;
-  const storyExpandNumber = String(item.parent?.number ?? item.number ?? "").trim();
+  const storyExpandNumber = readContainsTitleText(item.parent?.number ?? item.number);
   const storyNumberLabel = "";
 
   const stackActions =
@@ -458,7 +456,7 @@ export function ContainsTitleDetailedNavigation(
   const item = props.item;
   const issue = resolveIssueForDetails(item);
   const issueSelection = issue ? toIssueSelection(issue) : null;
-  const storyExpandNumber = String(item.parent?.number ?? item.number ?? "").trim();
+  const storyExpandNumber = readContainsTitleText(item.parent?.number ?? item.number);
   const reprintSelection = item.parent?.reprintOf?.issue
     ? toIssueSelection(item.parent.reprintOf.issue)
     : null;
@@ -611,6 +609,12 @@ function buildDetailedActionChips({
 }
 
 function normalizeDisplayStoryTitle(value: string | null | undefined): string {
-  const normalized = String(value || "").trim();
+  const normalized = readContainsTitleText(value);
   return normalized === "Untitled" ? "" : normalized;
+}
+
+function readContainsTitleText(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }

@@ -67,7 +67,7 @@ export async function findPublicSearchNodes(input: {
   us: boolean;
   offset?: number;
 }): Promise<PublicSearchNode[]> {
-  const pattern = String(input.pattern ?? "").trim();
+  const pattern = readSearchText(input.pattern);
   if (!pattern) return [];
 
   const parsed = parseSearchPattern(pattern);
@@ -446,8 +446,8 @@ function sortIssueRepresentatives(left: NodeCandidate, right: NodeCandidate): nu
   const formatCompare = compareIssueFormatPriority(left.issueFormatSort || "", right.issueFormatSort || "");
   if (formatCompare !== 0) return formatCompare;
 
-  const leftVariant = String(left.issueVariantSort || "").trim();
-  const rightVariant = String(right.issueVariantSort || "").trim();
+  const leftVariant = readSearchText(left.issueVariantSort);
+  const rightVariant = readSearchText(right.issueVariantSort);
   const leftIsRegular = leftVariant === "";
   const rightIsRegular = rightVariant === "";
   if (leftIsRegular !== rightIsRegular) return leftIsRegular ? -1 : 1;
@@ -615,10 +615,10 @@ function buildSeriesScopedRaw(parsed: ParsedSearchPattern): string {
 }
 
 function buildIssueDisplayLabel(row: SearchIndexRow): string {
-  const sourceLabel = String(row.label || "").trim();
-  const issueNumber = String(row.issue_number || "").trim();
-  const issueLegacyNumber = String(row.issue_legacy_number || "").trim();
-  const issueTitle = String(row.issue_title || "").trim();
+  const sourceLabel = readSearchText(row.label);
+  const issueNumber = readSearchText(row.issue_number);
+  const issueLegacyNumber = readSearchText(row.issue_legacy_number);
+  const issueTitle = readSearchText(row.issue_title);
   if (!sourceLabel || !issueNumber) return sourceLabel;
 
   const hashIndex = sourceLabel.indexOf(" #");
@@ -626,4 +626,10 @@ function buildIssueDisplayLabel(row: SearchIndexRow): string {
   const titleSuffix = issueTitle ? `: ${issueTitle}` : "";
   const legacySuffix = issueLegacyNumber ? ` LGY #${issueLegacyNumber}` : "";
   return `${seriesLabel} #${issueNumber}${legacySuffix}${titleSuffix}`;
+}
+
+function readSearchText(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }

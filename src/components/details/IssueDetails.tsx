@@ -410,7 +410,7 @@ function buildCoverGalleryIssues(issue: Issue): PreviewIssue[] {
   const gallery: PreviewIssue[] = [];
 
   for (const candidate of candidates) {
-    const dedupeKey = [String(candidate.format || ""), String(candidate.variant || "")].join("|");
+    const dedupeKey = [candidate.format || "", candidate.variant || ""].join("|");
     if (seenIssueKeys.has(dedupeKey)) continue;
     seenIssueKeys.add(dedupeKey);
 
