@@ -26,7 +26,7 @@ jest.mock("./TopBarFilterMenu", () => ({
   },
 }));
 
-describe.skip("TopBar", () => {
+describe("TopBar", () => {
   it("navigates to current locale home via logo button", async () => {
     const user = userEvent.setup();
     const navigate = jest.fn();

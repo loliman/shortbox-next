@@ -44,7 +44,7 @@ jest.mock("../../../graphql/queriesTyped", () => ({
 
 import PublisherEditor from "./PublisherEditor";
 
-describe.skip("PublisherEditor", () => {
+describe("PublisherEditor", () => {
   beforeEach(() => {
     mocks.addToCacheMock.mockReset();
     mocks.updateInCacheMock.mockReset();

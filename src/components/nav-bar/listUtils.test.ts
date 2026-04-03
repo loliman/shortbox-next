@@ -27,7 +27,7 @@ import {
   toNodeList,
 } from "./listUtils";
 
-describe.skip("listUtils", () => {
+describe("listUtils", () => {
   it("parses filter JSON safely", () => {
     expect(parseFilter('{"us":true}')).toEqual({ us: true });
     expect(parseFilter("invalid")).toBeUndefined();

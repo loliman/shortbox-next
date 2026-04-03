@@ -68,6 +68,12 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
   } else if (usesFallbackCover) {
     lightBackgroundImage = `linear-gradient(rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.22)), linear-gradient(to right, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.58) 40%, rgba(255, 255, 255, 0.08) 100%), url(${NO_COVER_URL})`;
   }
+  let borderLeftColorKey = "divider";
+  if (accentKey === "success") {
+    borderLeftColorKey = "success.main";
+  } else if (accentKey === "secondary") {
+    borderLeftColorKey = "secondary.main";
+  }
   let darkBackgroundImage =
     "linear-gradient(rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.28)), linear-gradient(to right, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.58) 40%, rgba(0, 0, 0, 0.08) 100%), url(" +
     effectiveCoverUrl +
@@ -85,12 +91,7 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
         sx={(theme) => ({
           backgroundColor: "background.paper",
           borderLeft: "4px solid",
-          borderLeftColor:
-            accentKey === "success"
-              ? theme.palette.success.main
-              : accentKey === "secondary"
-                ? theme.palette.secondary.main
-                : theme.palette.divider,
+          borderLeftColor: theme.palette[borderLeftColorKey as "divider"] ?? theme.palette.divider,
           boxShadow: theme.shadows[2],
           backgroundImage: lightBackgroundImage,
           backgroundRepeat: isCoverLoading ? "no-repeat, no-repeat" : "no-repeat, no-repeat, no-repeat",

@@ -102,7 +102,7 @@ jest.mock("./issue-editor/IssueEditorFormContent", () => ({
 
 import IssueEditor from "./IssueEditor";
 
-describe.skip("IssueEditor", () => {
+describe("IssueEditor", () => {
   beforeEach(() => {
     mocks.createEmptyIssueValuesMock.mockClear();
     mocks.buildIssueEditorStateMock.mockClear();

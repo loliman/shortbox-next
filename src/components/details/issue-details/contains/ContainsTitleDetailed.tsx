@@ -196,7 +196,7 @@ function getContainsTitleLayoutSx(stackActions: boolean) {
 }
 
 function getContainsSeriesLabel(issue: ContainsIssueLike | undefined, hasIssueReference: boolean) {
-  if (!hasIssueReference || !issue?.series) return undefined;
+  if (hasIssueReference !== true || issue?.series == null) return undefined;
   return generateLabel({ series: issue.series as SelectedRoot["series"] });
 }
 
@@ -453,7 +453,7 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
   const variant = !props.us && issue?.variant ? " " + issue.variant : "";
   const itemTitle = normalizeDisplayStoryTitle(item.title);
   const parentTitle =
-    !itemTitle && item.parent?.title ? normalizeDisplayStoryTitle(item.parent.title) : undefined;
+    itemTitle || !item.parent?.title ? undefined : normalizeDisplayStoryTitle(item.parent.title);
   const storyTitle = itemTitle || parentTitle || "";
   const storyTitleLabel = storyTitle || "Story";
   const showParentTitle = Boolean(parentTitle && itemTitle && parentTitle !== itemTitle);
@@ -694,9 +694,11 @@ function buildDetailedActionChips({
     chips.push(<Chip key="collectedmultiple" color="success" label="Mehrfach gesammelt" />);
   }
 
-  if (!item.parent?.collectedmultipletimes && item.parent?.collected && hasSession) {
-    chips.push(<Chip key="collected" color="success" label="Gesammelt" />);
+  if (item.parent?.collected !== true || item.parent?.collectedmultipletimes || !hasSession) {
+    return chips;
   }
+
+  chips.push(<Chip key="collected" color="success" label="Gesammelt" />);
 
   return chips;
 }

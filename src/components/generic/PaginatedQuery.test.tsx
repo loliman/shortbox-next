@@ -17,7 +17,7 @@ type FetchMoreArg = {
   updateQuery: (previousResult: any, options: { fetchMoreResult: any }) => any;
 };
 
-describe.skip("PaginatedQuery", () => {
+describe("PaginatedQuery", () => {
   beforeEach(() => {
     useQueryMock.mockReset();
   });

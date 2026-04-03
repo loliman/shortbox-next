@@ -6,7 +6,7 @@ import userEvent from "@testing-library/user-event";
 import { search } from "../../graphql/queriesTyped";
 import { SearchBar, getNodeType } from "./SearchBar";
 
-describe.skip("SearchBar", () => {
+describe("SearchBar", () => {
   it("maps node type labels", () => {
     expect(getNodeType("publisher")).toBe("Verlag");
     expect(getNodeType("series")).toBe("Serie");

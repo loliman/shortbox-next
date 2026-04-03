@@ -43,7 +43,7 @@ const issueValues = {
   },
 };
 
-describe.skip("Issue editor hints", () => {
+describe("Issue editor hints", () => {
   it("renders the parent hint for the issue title", () => {
     render(
       <Formik initialValues={issueValues} onSubmit={() => undefined}>

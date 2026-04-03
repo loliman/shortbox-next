@@ -59,7 +59,7 @@ jest.mock("../../../graphql/queriesTyped", () => ({
 
 import SeriesEditor from "./SeriesEditor";
 
-describe.skip("SeriesEditor", () => {
+describe("SeriesEditor", () => {
   beforeEach(() => {
     mocks.addToCacheMock.mockReset();
     mocks.removeFromCacheMock.mockReset();

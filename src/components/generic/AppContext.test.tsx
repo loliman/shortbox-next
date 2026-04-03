@@ -5,7 +5,7 @@ import ThemeModeProvider, {
   ThemeModeContext,
 } from "./AppContext";
 
-describe.skip("ThemeModeProvider", () => {
+describe("ThemeModeProvider", () => {
   it("provides theme helpers", () => {
     const toggleTheme = jest.fn();
     let themeValue: any;
