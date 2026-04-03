@@ -10,6 +10,7 @@ import {
   readSeriesSitemapEntries,
   type SitemapEntry,
 } from "@/src/lib/read/sitemap-read";
+import { isDatabaseUnavailable } from "@/src/lib/prisma/is-database-unavailable";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://shortbox.de";
 
@@ -39,25 +40,33 @@ function mergeEntries(list: SitemapEntry[]): MetadataRoute.Sitemap {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [publisherEntries, seriesEntries, issueEntries, personEntries, arcEntries, appearanceEntries, genreEntries] =
-    await Promise.all([
-      readPublisherSitemapEntries(),
-      readSeriesSitemapEntries(),
-      readCanonicalIssueSitemapEntries(),
-      readPersonLandingSitemapEntries(),
-      readArcLandingSitemapEntries(),
-      readAppearanceLandingSitemapEntries(),
-      readGenreLandingSitemapEntries(),
-    ]);
+  try {
+    const [publisherEntries, seriesEntries, issueEntries, personEntries, arcEntries, appearanceEntries, genreEntries] =
+      await Promise.all([
+        readPublisherSitemapEntries(),
+        readSeriesSitemapEntries(),
+        readCanonicalIssueSitemapEntries(),
+        readPersonLandingSitemapEntries(),
+        readArcLandingSitemapEntries(),
+        readAppearanceLandingSitemapEntries(),
+        readGenreLandingSitemapEntries(),
+      ]);
 
-  return mergeEntries([
-    ...readHomeSitemapEntries(),
-    ...publisherEntries,
-    ...seriesEntries,
-    ...issueEntries,
-    ...personEntries,
-    ...arcEntries,
-    ...appearanceEntries,
-    ...genreEntries,
-  ]);
+    return mergeEntries([
+      ...readHomeSitemapEntries(),
+      ...publisherEntries,
+      ...seriesEntries,
+      ...issueEntries,
+      ...personEntries,
+      ...arcEntries,
+      ...appearanceEntries,
+      ...genreEntries,
+    ]);
+  } catch (error) {
+    if (isDatabaseUnavailable(error)) {
+      return mergeEntries(readHomeSitemapEntries());
+    }
+
+    throw error;
+  }
 }
