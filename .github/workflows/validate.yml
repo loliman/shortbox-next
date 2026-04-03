@@ -64,7 +64,7 @@ jobs:
           cache: npm
 
       - name: Restore Next.js build cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .next/cache
           key: ${{ runner.os }}-nextjs-a11y-${{ hashFiles('package-lock.json', 'tsconfig*.json', 'next.config.*', 'app/**/*.{ts,tsx,js,jsx}', 'src/**/*.{ts,tsx,js,jsx}', 'scripts/**/*.{js,mjs,ts}') }}
@@ -98,7 +98,7 @@ jobs:
           cache: npm
 
       - name: Restore Next.js build cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .next/cache
           key: ${{ runner.os }}-nextjs-seo-${{ hashFiles('package-lock.json', 'tsconfig*.json', 'next.config.*', 'app/**/*.{ts,tsx,js,jsx}', 'src/**/*.{ts,tsx,js,jsx}', 'scripts/**/*.{js,mjs,ts}') }}
