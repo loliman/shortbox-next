@@ -41,30 +41,30 @@ function normalizeIssueEditorValues(
   return {
     ...defaults,
     ...source,
-    title: String(source.title || ""),
-    number: String(source.number || ""),
-    variant: String(source.variant || ""),
-    format: String(source.format || defaults.format || ""),
-    limitation: String(source.limitation || ""),
-    releasedate: String(source.releasedate || ""),
+    title: readTextValue(source.title),
+    number: readTextValue(source.number),
+    variant: readTextValue(source.variant),
+    format: readTextValue(source.format) || defaults.format,
+    limitation: readTextValue(source.limitation),
+    releasedate: readTextValue(source.releasedate),
     price: source.price == null ? "" : String(source.price),
-    currency: String(source.currency || ""),
-    addinfo: String(source.addinfo || ""),
-    isbn: String(source.isbn || ""),
+    currency: readTextValue(source.currency),
+    addinfo: readTextValue(source.addinfo),
+    isbn: readTextValue(source.isbn),
     copyBatch: {
       enabled: Boolean(source.copyBatch?.enabled),
       count: source.copyBatch?.count ?? defaults.copyBatch.count,
-      prefix: String(source.copyBatch?.prefix || ""),
+      prefix: readTextValue(source.copyBatch?.prefix),
     },
     series: {
       ...defaults.series,
       ...source.series,
-      title: String(source.series?.title || ""),
+      title: readTextValue(source.series?.title),
       volume: source.series?.volume ?? defaults.series.volume,
       publisher: {
         ...defaults.series.publisher,
         ...source.series?.publisher,
-        name: String(source.series?.publisher?.name || ""),
+        name: readTextValue(source.series?.publisher?.name),
         us: Boolean(source.series?.publisher?.us),
       },
     },
@@ -72,6 +72,12 @@ function normalizeIssueEditorValues(
     arcs: Array.isArray(source.arcs) ? source.arcs : [],
     stories: Array.isArray(source.stories) ? source.stories : [],
   };
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return "";
 }
 
 function IssueEditorView(props: Readonly<IssueEditorProps>) {

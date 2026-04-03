@@ -34,7 +34,7 @@ function TypedRoleAutocomplete({
   disabled,
 }: TypedRoleAutocompleteProps) {
   const selectedValues = sanitizeEntries(values);
-  const pattern = String(getPattern(selectedValues, "name", type) ?? "");
+  const pattern = readTextValue(getPattern(selectedValues, "name", type));
 
   const queryResult = useAutocompleteQuery<FieldItem>({
     source,
@@ -135,7 +135,7 @@ function hasTypedRole(entry: FieldItem, type: string) {
 
 function getName(option: unknown) {
   if (typeof option === "string") return option;
-  return String((option as { name?: unknown })?.name || "");
+  return readTextValue((option as { name?: unknown })?.name);
 }
 
 function toOption(value: unknown, options: FieldItem[], type: string): FieldItem | null {
@@ -160,9 +160,15 @@ function toOption(value: unknown, options: FieldItem[], type: string): FieldItem
 }
 
 function normalizeText(value: unknown) {
-  return String(value || "")
+  return String(value ?? "")
     .trim()
     .toLowerCase();
+}
+
+function readTextValue(value: unknown) {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }
 
 export default TypedRoleAutocomplete;

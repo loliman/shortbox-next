@@ -49,7 +49,7 @@ export function getIssueLabel(issue?: IssueLike | null): string {
 }
 
 export function getLegacyNumberLabel(issue?: Pick<IssueLike, "legacy_number"> | null): string {
-  const legacy = String(issue?.legacy_number || "").trim();
+  const legacy = issue?.legacy_number?.trim() ?? "";
   return legacy ? `LGY #${legacy}` : "";
 }
 

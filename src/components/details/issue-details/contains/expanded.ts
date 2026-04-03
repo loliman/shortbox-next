@@ -56,7 +56,7 @@ type ExpandedFilter = {
 function readTitles(value: unknown): string[] {
   if (Array.isArray(value)) {
     return value
-      .map((entry) => String((entry as { title?: unknown })?.title || "").trim())
+      .map((entry) => readTextValue((entry as { title?: unknown })?.title))
       .filter((entry) => entry.length > 0);
   }
   if (typeof value === "string") {
@@ -69,7 +69,7 @@ function readTitles(value: unknown): string[] {
 function readNames(value: unknown): string[] {
   if (Array.isArray(value)) {
     return value
-      .map((entry) => String((entry as { name?: unknown })?.name || "").trim())
+      .map((entry) => readTextValue((entry as { name?: unknown })?.name))
       .filter((entry) => entry.length > 0);
   }
   if (typeof value === "string") {
@@ -165,7 +165,7 @@ export function expanded(item: ItemLike, query?: QueryParams): boolean {
     const selectedArcs = readTitles((currentFilter as { arcs?: unknown }).arcs);
     if (
       selectedArcs.length > 0 &&
-      compareArcs.some((arc) => selectedArcs.includes(String(arc?.title || "")))
+      compareArcs.some((arc) => selectedArcs.includes(readTextValue(arc?.title)))
     ) {
       isExpanded = true;
     }
@@ -178,7 +178,7 @@ export function expanded(item: ItemLike, query?: QueryParams): boolean {
     if (
       selectedAppearances.length > 0 &&
       compareAppearances.some((appearance) =>
-        selectedAppearances.includes(String(appearance?.name || ""))
+        selectedAppearances.includes(readTextValue(appearance?.name))
       )
     ) {
       isExpanded = true;
@@ -243,6 +243,12 @@ function normalizeText(value: unknown): string {
   return String(value || "")
     .trim()
     .toLowerCase();
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }
 
 function normalizeTypes(value: unknown): Set<string> {

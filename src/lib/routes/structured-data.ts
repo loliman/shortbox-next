@@ -37,7 +37,8 @@ export function buildWebsiteStructuredData() {
 
 function toStringValue(value: unknown): string {
   if (value === null || value === undefined) return "";
-  return String(value).trim();
+  if (typeof value === "string" || typeof value === "number") return String(value).trim();
+  return "";
 }
 
 function toPositiveNumber(value: unknown): number | undefined {
@@ -325,4 +326,3 @@ export function buildIssueBreadcrumbStructuredData(issue: IssueLike, locale: Loc
 
   return buildBreadcrumbList(entries);
 }
-

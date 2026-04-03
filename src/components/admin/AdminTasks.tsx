@@ -60,7 +60,7 @@ const formatDateTime = (value?: string | null): string => {
 };
 
 const trimDetails = (value?: string | null): { text: string; truncated: boolean } => {
-  const details = String(value || "");
+  const details = value ?? "";
   if (details.length <= MAX_DETAIL_CHARS) {
     return { text: details, truncated: false };
   }
@@ -96,7 +96,7 @@ const getWorkerStateFromDetails = (details?: string | null): string | null => {
 };
 
 const hasFailedItemsInSummary = (summary: string): boolean => {
-  const match = summary.match(/failed\s*=\s*(\d+)/i);
+  const match = /failed\s*=\s*(\d+)/i.exec(summary);
   if (!match) return false;
   const failedCount = Number(match[1]);
   return Number.isFinite(failedCount) && failedCount > 0;
@@ -105,7 +105,7 @@ const hasFailedItemsInSummary = (summary: string): boolean => {
 const resolveVisualState = (run: RunLike | null | undefined): VisualState => {
   if (!run) return "missing";
 
-  const summary = String(run.summary || "").toLowerCase();
+  const summary = (run.summary ?? "").toLowerCase();
   const workerState = getWorkerStateFromDetails(run.details);
 
   if (!run.finishedAt || summary.includes("queued") || summary.includes("running")) {
@@ -207,7 +207,7 @@ const resolveVisualStateLabel = (state: VisualState): string => {
 
 const resolveAggregateTaskState = (runs: Array<RunLike | null | undefined>): VisualState => {
   if (!runs || runs.length === 0) return "missing";
-  const latestRun = runs.find((run) => Boolean(run));
+  const latestRun = runs.find(Boolean);
   if (!latestRun) return "missing";
   return resolveVisualState(latestRun);
 };

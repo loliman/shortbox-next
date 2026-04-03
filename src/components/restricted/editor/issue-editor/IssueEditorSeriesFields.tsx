@@ -238,7 +238,7 @@ function normalizeText(value: unknown) {
 }
 
 function formatPublisherLabel(option: PublisherOption) {
-  return String(option.name || "");
+  return readTextValue(option.name);
 }
 
 function formatSeriesLabel(option: SeriesOption) {
@@ -247,7 +247,13 @@ function formatSeriesLabel(option: SeriesOption) {
 
 function getSeriesKey(value: SeriesOption | Record<string, unknown> | null | undefined) {
   if (!value) return "";
-  return `${String((value as SeriesOption).title || "")}::${String((value as SeriesOption).volume || "")}`;
+  return `${readTextValue((value as SeriesOption).title)}::${readTextValue((value as SeriesOption).volume)}`;
+}
+
+function readTextValue(value: unknown) {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }
 
 function showFieldError(formik: ReturnType<typeof useFormikContext<IssueEditorFormValues>>, path: string) {

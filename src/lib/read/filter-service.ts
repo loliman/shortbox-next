@@ -77,7 +77,7 @@ function dedupeTerms(values: string[]): string[] {
 }
 
 function splitGenres(value: string | null | undefined): string[] {
-  return String(value || "")
+  return String(value ?? "")
     .split(",")
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);
@@ -114,7 +114,7 @@ function collectNamedTerms<T extends { name?: string | null }>(
   if (Array.isArray(values)) {
     return dedupeTerms(
       values
-        .map((value) => String(value?.name || "").trim())
+        .map((value) => String(value?.name ?? "").trim())
         .filter((value) => value.length > 0)
     );
   }
@@ -128,7 +128,7 @@ function collectTitleTerms<T extends { title?: string | null }>(
   if (Array.isArray(values)) {
     return dedupeTerms(
       values
-        .map((value) => String(value?.title || "").trim())
+        .map((value) => String(value?.title ?? "").trim())
         .filter((value) => value.length > 0)
     );
   }
@@ -178,7 +178,7 @@ function buildReleaseDateCondition(compare: string, parsedDate: Date): Prisma.Is
 }
 
 function containsInsensitive(haystack: string | null | undefined, needle: string): boolean {
-  return String(haystack || "").toLocaleLowerCase("de-DE").includes(needle.toLocaleLowerCase("de-DE"));
+  return String(haystack ?? "").toLocaleLowerCase("de-DE").includes(needle.toLocaleLowerCase("de-DE"));
 }
 
 function isNumericFilterValue(value: string): boolean {
@@ -186,7 +186,7 @@ function isNumericFilterValue(value: string): boolean {
 }
 
 function parseFilterDate(raw: string | null | undefined): Date | null {
-  const value = String(raw || "").trim();
+  const value = String(raw ?? "").trim();
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;

@@ -40,9 +40,9 @@ export default function LayoutChromeClient(props: Readonly<LayoutChromeClientPro
   const showNavigation = props.showNavigation ?? true;
   const navigationInstanceKey = [
     props.us,
-    String(props.query?.filter ?? ""),
-    String(props.query?.routeFilterKind ?? ""),
-    String(props.query?.routeFilterSlug ?? ""),
+    readRouteQueryValue(props.query?.filter),
+    readRouteQueryValue(props.query?.routeFilterKind),
+    readRouteQueryValue(props.query?.routeFilterSlug),
     getSelectedPathKey(props.selected),
   ].join("|");
   const theme = useTheme();
@@ -75,6 +75,40 @@ export default function LayoutChromeClient(props: Readonly<LayoutChromeClientPro
       : null
   );
   const navPayloadReady = !props.navigationLoading && Boolean(props.initialPublisherNodes);
+  let navigationContent: React.ReactNode = null;
+
+  if (showNavigation) {
+    navigationContent = navPayloadReady ? (
+      <DeferredNavList
+        key={navigationInstanceKey}
+        initialPublisherNodes={props.initialPublisherNodes}
+        initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher}
+        initialIssueNodesBySeriesKey={props.initialIssueNodesBySeriesKey}
+        drawerOpen={chromeState.drawerOpen}
+        toggleDrawer={chromeState.toggleDrawer}
+        temporaryDrawer={temporaryDrawer}
+        phonePortrait={isPhonePortrait}
+        query={
+          props.query as
+            | {
+                filter?: string | null;
+                routeFilterKind?: string | null;
+                routeFilterSlug?: string | null;
+                navOpen?: string | null;
+                navPublisher?: string | null;
+                navSeries?: string | null;
+              }
+            | null
+        }
+        selected={props.selected}
+        session={session}
+        us={props.us}
+        loading={props.navigationLoading}
+      />
+    ) : (
+      <NavListLoadingFallback />
+    );
+  }
 
   return (
     <>
@@ -95,71 +129,50 @@ export default function LayoutChromeClient(props: Readonly<LayoutChromeClientPro
         previewImportActive={props.previewImportActive ?? false}
       />
 
-      {showNavigation ? (
-        navPayloadReady ? (
-          <DeferredNavList
-            key={navigationInstanceKey}
-            initialPublisherNodes={props.initialPublisherNodes}
-            initialSeriesNodesByPublisher={props.initialSeriesNodesByPublisher}
-            initialIssueNodesBySeriesKey={props.initialIssueNodesBySeriesKey}
-            drawerOpen={chromeState.drawerOpen}
-            toggleDrawer={chromeState.toggleDrawer}
-            temporaryDrawer={temporaryDrawer}
-            phonePortrait={isPhonePortrait}
-            query={
-              props.query as
-                | {
-                    filter?: string | null;
-                    routeFilterKind?: string | null;
-                    routeFilterSlug?: string | null;
-                    navOpen?: string | null;
-                    navPublisher?: string | null;
-                    navSeries?: string | null;
-                  }
-                | null
-            }
-            selected={props.selected}
-            session={session}
-            us={props.us}
-            loading={props.navigationLoading}
-          />
-        ) : (
-          <NavListLoadingFallback />
-        )
-      ) : null}
+      {navigationContent}
     </>
   );
+}
+
+function readRouteQueryValue(value: unknown): string {
+  if (typeof value === "string") return value;
+  return "";
 }
 
 function getSelectedPathKey(selected: LayoutRouteData["selected"]) {
   if (selected.issue) {
     return [
       "issue",
-      selected.issue.series.publisher.name || "",
-      selected.issue.series.title || "",
-      selected.issue.series.volume || "",
-      selected.issue.series.startyear || "",
-      selected.issue.number || "",
-      selected.issue.format || "",
-      selected.issue.variant || "",
+      readPathValue(selected.issue.series.publisher.name),
+      readPathValue(selected.issue.series.title),
+      readPathValue(selected.issue.series.volume),
+      readPathValue(selected.issue.series.startyear),
+      readPathValue(selected.issue.number),
+      readPathValue(selected.issue.format),
+      readPathValue(selected.issue.variant),
     ].join("|");
   }
 
   if (selected.series) {
     return [
       "series",
-      selected.series.publisher.name || "",
-      selected.series.title || "",
-      selected.series.volume || "",
-      selected.series.startyear || "",
+      readPathValue(selected.series.publisher.name),
+      readPathValue(selected.series.title),
+      readPathValue(selected.series.volume),
+      readPathValue(selected.series.startyear),
     ].join("|");
   }
 
   if (selected.publisher) {
-    return ["publisher", selected.publisher.name || ""].join("|");
+    return ["publisher", readPathValue(selected.publisher.name)].join("|");
   }
 
   return "root";
+}
+
+function readPathValue(value: unknown): string {
+  if (typeof value === "string" || typeof value === "number") return String(value);
+  return "";
 }
 
 function NavListLoadingFallback() {

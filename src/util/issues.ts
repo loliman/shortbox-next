@@ -33,7 +33,7 @@ type ItemTitleLike = {
 
 function safeValue(value: unknown): string {
   if (value === null || value === undefined) return "";
-  return String(value);
+  return typeof value === "string" || typeof value === "number" ? String(value) : "";
 }
 
 function generateSeriesLabel(series: ItemTitleIssueLike["series"]): string {

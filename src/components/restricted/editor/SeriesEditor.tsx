@@ -61,16 +61,16 @@ type SeriesMutationResult = {
 
 function createInitialSeriesValues(defaultValues?: SeriesFormValues): SeriesFormValues {
   return {
-    title: String(defaultValues?.title ?? ""),
-    genre: String(defaultValues?.genre ?? ""),
+    title: readTextValue(defaultValues?.title),
+    genre: readTextValue(defaultValues?.genre),
     publisher: {
-      name: String(defaultValues?.publisher?.name ?? ""),
+      name: readTextValue(defaultValues?.publisher?.name),
       us: Boolean(defaultValues?.publisher?.us),
     },
     volume: Number(defaultValues?.volume ?? 1),
     startyear: Number(defaultValues?.startyear ?? 1900),
     endyear: Number(defaultValues?.endyear ?? 1900),
-    addinfo: String(defaultValues?.addinfo ?? ""),
+    addinfo: readTextValue(defaultValues?.addinfo),
   };
 }
 
@@ -321,15 +321,9 @@ function SeriesPublisherAutocomplete({
       freeSolo
       textFieldSx={textFieldSx}
       loading={query.loading}
-      noOptionsText={
-        query.isBelowMinLength
-          ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
-          : query.error
-            ? "Daten aktuell nicht verfügbar"
-            : "Keine Ergebnisse gefunden"
-      }
+      noOptionsText={getNoOptionsText(query.isBelowMinLength, query.error)}
       onListboxScroll={query.onListboxScroll}
-      getOptionLabel={(option) => String((option as { name?: unknown })?.name || "")}
+      getOptionLabel={(option) => readTextValue((option as { name?: unknown })?.name)}
       isOptionEqualToValue={(option, value) =>
         normalizeText(option.name) === normalizeText((value as { name?: unknown })?.name)
       }
@@ -340,7 +334,7 @@ function SeriesPublisherAutocomplete({
       onChange={(_, option) => {
         const selectedOption = Array.isArray(option) ? option[0] || null : option;
         const selectedName = isOptionLike(selectedOption)
-          ? String(selectedOption.name || "")
+          ? readTextValue(selectedOption.name)
           : typeof selectedOption === "string"
             ? selectedOption
             : "";
@@ -375,7 +369,7 @@ function SeriesGenreAutocomplete({
     () =>
       normalizeGenreNames([
         ...selectedGenreNames,
-        ...query.options.map((entry) => String(entry?.name || "")),
+        ...query.options.map((entry) => readTextValue(entry?.name)),
       ])
         .map((name) => ({ name })),
     [query.options, selectedGenreNames]
@@ -392,13 +386,7 @@ function SeriesGenreAutocomplete({
       freeSolo
       textFieldSx={textFieldSx}
       loading={query.loading}
-      noOptionsText={
-        query.isBelowMinLength
-          ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
-          : query.error
-            ? "Daten aktuell nicht verfügbar"
-            : "Keine Ergebnisse gefunden"
-      }
+      noOptionsText={getNoOptionsText(query.isBelowMinLength, query.error)}
       onListboxScroll={query.onListboxScroll}
       getOptionLabel={(option) => getGenreOptionName(option)}
       isOptionEqualToValue={(option, value) =>
@@ -419,7 +407,7 @@ function SeriesGenreAutocomplete({
 function getGenreOptionName(option: unknown): string {
   if (typeof option === "string") return option;
   if (option && typeof option === "object" && !Array.isArray(option)) {
-    return String((option as { name?: unknown }).name || "");
+    return readTextValue((option as { name?: unknown }).name);
   }
   return "";
 }
@@ -428,7 +416,7 @@ function normalizeGenreNames(values: string[]): string[] {
   const unique = new Map<string, string>();
 
   values.forEach((value) => {
-    const name = String(value || "").trim();
+    const name = readTextValue(value);
     if (!name) return;
 
     const key = normalizeText(name);
@@ -439,7 +427,7 @@ function normalizeGenreNames(values: string[]): string[] {
 }
 
 function parseGenreString(value: string): string[] {
-  return normalizeGenreNames(String(value || "").split(","));
+  return normalizeGenreNames(readTextValue(value).split(","));
 }
 
 function toGenreNameList(value: unknown): string[] {
@@ -463,13 +451,25 @@ function normalizeText(value: unknown) {
     .toLowerCase();
 }
 
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
+}
+
+function getNoOptionsText(isBelowMinLength: boolean, error: unknown) {
+  if (isBelowMinLength) return `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`;
+  if (error) return "Daten aktuell nicht verfügbar";
+  return "Keine Ergebnisse gefunden";
+}
+
 export default function SeriesEditor(props: Readonly<SeriesEditorProps>) {
   return <SeriesEditorView {...props} />;
 }
 
 function normalizeSeriesPayload(values: SeriesFormValues) {
   const stripped = stripItem(values) as SeriesFormValues & Record<string, unknown>;
-  const publisherName = String(values.publisher?.name || "").trim();
+  const publisherName = readTextValue(values.publisher?.name);
   const publisherUs = Boolean(values.publisher?.us);
   const genre = serializeGenres(parseGenreString(values.genre));
 

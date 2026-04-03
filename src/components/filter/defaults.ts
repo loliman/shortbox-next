@@ -200,10 +200,10 @@ function normalizeReleaseDateInputs(
 
   const values = rawReleasedates.filter(Boolean) as Array<FilterDateOption>;
   const exact = values.find(
-    (entry) => entry.compare === "=" && String(entry.date || "").trim() !== ""
+    (entry) => entry.compare === "=" && String(entry.date ?? "").trim() !== ""
   );
   if (exact) {
-    result.releasedateExact = String(exact.date || "").trim();
+    result.releasedateExact = String(exact.date ?? "").trim();
     return result;
   }
 
@@ -213,11 +213,11 @@ function normalizeReleaseDateInputs(
   );
   const to = values.find(
     (entry) =>
-      (entry.compare === "<=" || entry.compare === "<") && String(entry.date || "").trim() !== ""
+      (entry.compare === "<=" || entry.compare === "<") && String(entry.date ?? "").trim() !== ""
   );
 
-  result.releasedateFrom = from ? String(from.date || "").trim() : "";
-  result.releasedateTo = to ? String(to.date || "").trim() : "";
+  result.releasedateFrom = from ? String(from.date ?? "").trim() : "";
+  result.releasedateTo = to ? String(to.date ?? "").trim() : "";
   return result;
 }
 
@@ -234,17 +234,17 @@ function normalizeNumberInputs(
 
   const values = rawNumbers.filter(Boolean) as Array<FilterNumberOption>;
   const exactValues = values
-    .filter((entry) => entry.compare === "=" && String(entry.number || "").trim() !== "")
-    .map((entry) => String(entry.number || "").trim());
+    .filter((entry) => entry.compare === "=" && String(entry.number ?? "").trim() !== "")
+    .map((entry) => String(entry.number ?? "").trim());
   if (exactValues.length > 0) {
     result.numberExact = exactValues.join(", ");
     const exactWithVariant = values.find(
       (entry) =>
         entry.compare === "=" &&
-        String(entry.number || "").trim() !== "" &&
-        String(entry.variant || "").trim() !== ""
+        String(entry.number ?? "").trim() !== "" &&
+        String(entry.variant ?? "").trim() !== ""
     );
-    if (exactWithVariant) result.numberVariant = String(exactWithVariant.variant || "").trim();
+    if (exactWithVariant) result.numberVariant = String(exactWithVariant.variant ?? "").trim();
     return result;
   }
 
@@ -254,20 +254,20 @@ function normalizeNumberInputs(
   );
   const to = values.find(
     (entry) =>
-      (entry.compare === "<=" || entry.compare === "<") && String(entry.number || "").trim() !== ""
+      (entry.compare === "<=" || entry.compare === "<") && String(entry.number ?? "").trim() !== ""
   );
 
-  result.numberFrom = from ? String(from.number || "").trim() : "";
-  result.numberTo = to ? String(to.number || "").trim() : "";
+  result.numberFrom = from ? String(from.number ?? "").trim() : "";
+  result.numberTo = to ? String(to.number ?? "").trim() : "";
   const rangeWithVariant = values.find(
     (entry) =>
       (entry.compare === ">=" ||
         entry.compare === ">" ||
         entry.compare === "<=" ||
         entry.compare === "<") &&
-      String(entry.variant || "").trim() !== ""
+      String(entry.variant ?? "").trim() !== ""
   );
-  if (rangeWithVariant) result.numberVariant = String(rangeWithVariant.variant || "").trim();
+  if (rangeWithVariant) result.numberVariant = String(rangeWithVariant.variant ?? "").trim();
   return result;
 }
 

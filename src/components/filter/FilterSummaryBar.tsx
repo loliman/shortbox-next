@@ -183,8 +183,8 @@ function pushReleaseDateEntries(entries: string[], value: unknown) {
 
   for (const entry of value) {
     const item = entry as { compare?: unknown; date?: unknown };
-    const compare = String(item?.compare || "").trim();
-    const date = String(item?.date || "").trim();
+    const compare = readFilterText(item?.compare);
+    const date = readFilterText(item?.date);
     if (!date) continue;
 
     if (compare === "=") exactDates.push(date);
@@ -209,8 +209,8 @@ function pushNumberEntries(entries: string[], value: unknown) {
 
   for (const entry of value) {
     const item = entry as { compare?: unknown; number?: unknown };
-    const compare = String(item?.compare || "").trim();
-    const number = String(item?.number || "").trim();
+    const compare = readFilterText(item?.compare);
+    const number = readFilterText(item?.number);
     if (!number) continue;
 
     if (compare === "=") exactNumbers.push(number);
@@ -238,12 +238,10 @@ function pushIndividualEntries(entries: string[], value: unknown) {
 
   for (const entry of value) {
     const item = entry as { name?: unknown; type?: unknown };
-    const name = String(item?.name || "").trim();
+    const name = readFilterText(item?.name);
     if (!name) continue;
 
-    const types = Array.isArray(item?.type)
-      ? item.type.map((type) => String(type || "").trim()).filter((type) => type.length > 0)
-      : [String(item?.type || "").trim()].filter((type) => type.length > 0);
+    const types = readFilterTextList(item?.type);
     const targetTypes = types.length > 0 ? types : ["_ANY_"];
 
     for (const type of targetTypes) {
@@ -272,13 +270,29 @@ function toFilterLabel(item: unknown): string {
     number?: unknown;
     compare?: unknown;
   };
-  if (objectItem.name) return String(objectItem.name).trim();
-  if (objectItem.title) return String(objectItem.title).trim();
+  const name = readFilterText(objectItem.name);
+  if (name) return name;
+  const title = readFilterText(objectItem.title);
+  if (title) return title;
   if (objectItem.number) {
-    const compare = String(objectItem.compare || "").trim();
-    const number = String(objectItem.number || "").trim();
+    const compare = readFilterText(objectItem.compare);
+    const number = readFilterText(objectItem.number);
     return `${compare}${number}`.trim();
   }
 
   return "";
+}
+
+function readFilterText(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
+}
+
+function readFilterTextList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((entry) => readFilterText(entry)).filter((entry) => entry.length > 0);
+  }
+  const single = readFilterText(value);
+  return single ? [single] : [];
 }

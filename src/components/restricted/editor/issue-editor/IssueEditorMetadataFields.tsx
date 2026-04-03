@@ -576,7 +576,7 @@ function getPattern(values: MetadataEntry[], entryKey: EntryKey) {
 
 function getEntryValue(value: unknown, entryKey: EntryKey) {
   if (typeof value === "string") return value;
-  return String((value as MetadataEntry | null | undefined)?.[entryKey] || "");
+  return readTextValue((value as MetadataEntry | null | undefined)?.[entryKey]);
 }
 
 function normalizeStringList(value: string[] | string | undefined) {
@@ -589,6 +589,12 @@ function normalizeText(value: unknown) {
   return String(value || "")
     .trim()
     .toLowerCase();
+}
+
+function readTextValue(value: unknown) {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }
 
 function asEntryList(values: Array<Record<string, unknown>> | undefined) {

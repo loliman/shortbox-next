@@ -33,7 +33,7 @@ function normalizeUniqueNames(values: Array<{ name?: unknown }>): string[] {
   const unique = new Map<string, string>();
 
   values.forEach((entry) => {
-    const name = String(entry.name ?? "").trim();
+    const name = readTextValue(entry.name);
     if (!name) return;
 
     const key = name.toLowerCase();
@@ -114,7 +114,7 @@ export function serializeFilterValues(
   }
 
   if (values.arcs.length > 0) {
-    payload.arcs = values.arcs.map((entry) => ({ title: String(entry.title || "").trim() }));
+    payload.arcs = values.arcs.map((entry) => ({ title: readTextValue(entry.title) }));
   }
 
   if (values.individuals.length > 0) {
@@ -127,13 +127,13 @@ export function serializeFilterValues(
 
   if (values.appearances.length > 0) {
     payload.appearances = values.appearances.map((entry) => ({
-      name: String(entry.name || "").trim(),
+      name: readTextValue(entry.name),
     }));
   }
 
   if (values.realities.length > 0) {
     payload.realities = values.realities.map((entry) => ({
-      name: String(entry.name || "").trim(),
+      name: readTextValue(entry.name),
     }));
   }
 
@@ -180,4 +180,10 @@ export function serializeFilterValues(
     ...payload,
     us,
   };
+}
+
+function readTextValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }

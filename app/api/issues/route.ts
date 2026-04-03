@@ -22,9 +22,10 @@ export async function POST(request: NextRequest) {
 
     invalidateNavigationCache();
     const items = "items" in result.data ? result.data.items : [result.data.item];
+    const lastItem = items.at(-1);
     return NextResponse.json(
       {
-        item: items[items.length - 1],
+        item: lastItem,
         items,
         ...("meta" in result.data && result.data.meta ? { meta: result.data.meta } : {}),
       },

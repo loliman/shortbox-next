@@ -9,6 +9,16 @@ import { createRouteMetadata } from "@/src/lib/routes/metadata";
 import { readServerSession } from "@/src/lib/server/session";
 import { generateSeoUrl } from "@/src/lib/routes/hierarchy";
 
+function readRecordString(
+  record: Record<string, unknown> | null | undefined,
+  key: string
+): string {
+  const value = record?.[key];
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return "";
+}
+
 export async function generateMetadata({
   params,
   searchParams,
@@ -30,20 +40,20 @@ export async function generateMetadata({
         })
       : null;
   const details = initialData?.details;
-  const canonicalPublisherName = String(
-    (details?.publisher as Record<string, unknown> | undefined)?.name || selectedSeries?.publisher?.name || ""
-  );
-  const canonicalSeriesTitle = String(details?.title || selectedSeries?.title || "");
+  const detailsPublisher = details?.publisher as Record<string, unknown> | undefined;
+  const canonicalPublisherName =
+    readRecordString(detailsPublisher, "name") || selectedSeries?.publisher?.name || "";
+  const canonicalSeriesTitle = readRecordString(details as Record<string, unknown> | undefined, "title") || selectedSeries?.title || "";
   const canonicalSeriesVolume = Number(details?.volume || selectedSeries?.volume || 0) || undefined;
   const canonicalSeriesYear = Number(details?.startyear || 0) || undefined;
   const title = details
-    ? `${String(details.title || selectedSeries?.title || "")} ${Number(details.volume || selectedSeries?.volume || 0)}`
+    ? `${readRecordString(details as Record<string, unknown>, "title") || selectedSeries?.title || ""} ${Number(details.volume || selectedSeries?.volume || 0)}`
     : "Serie";
 
   return createRouteMetadata({
     title,
     description: details
-      ? `${String(details.title || "")} Band ${Number(details.volume || 0)}: Ausgaben, Varianten und Seriendetails in Shortbox mit Verlag, Jahrgang und Heftuebersicht.`
+      ? `${readRecordString(details as Record<string, unknown>, "title")} Band ${Number(details.volume || 0)}: Ausgaben, Varianten und Seriendetails in Shortbox mit Verlag, Jahrgang und Heftuebersicht.`
       : "Seriendetails auf Shortbox.",
     canonical:
       canonicalPublisherName && canonicalSeriesTitle
@@ -99,12 +109,11 @@ export default async function DeSeriesPage({
   ]);
   if (!initialData?.details) notFound();
   const details = initialData.details as Record<string, unknown>;
-  const resolvedPublisherName = String(
-    (details.publisher as Record<string, unknown> | undefined)?.name ??
-      selectedSeries?.publisher?.name ??
-      ""
-  );
-  const resolvedSeriesTitle = String(details.title ?? selectedSeries?.title ?? "");
+  const resolvedPublisherName =
+    readRecordString(details.publisher as Record<string, unknown> | undefined, "name") ||
+    selectedSeries?.publisher?.name ||
+    "";
+  const resolvedSeriesTitle = readRecordString(details, "title") || selectedSeries?.title || "";
   const resolvedSeriesYear = details.startyear as string | number | null | undefined;
   const resolvedSeriesVolume = details.volume as string | number | null | undefined;
   const breadcrumbJsonLd = buildSeriesBreadcrumbStructuredData({

@@ -76,7 +76,7 @@ function DetailsSection({
     () =>
       sanitizeGenreList([
         ...selectedGenres,
-        ...genreQuery.options.map((entry) => ({ name: String(entry || "") })),
+        ...genreQuery.options.map((entry) => ({ name: readTextValue(entry) })),
       ]),
     [genreQuery.options, selectedGenres]
   );
@@ -97,7 +97,7 @@ function DetailsSection({
         label="Format"
         placeholder="Format auswählen"
         multiple
-        getOptionLabel={(option) => String((option as { name?: unknown })?.name || "")}
+        getOptionLabel={(option) => readTextValue((option as { name?: unknown })?.name)}
         isOptionEqualToValue={(option, value) =>
           normalizeText(option.name) === normalizeText((value as { name?: unknown })?.name)
         }
@@ -223,15 +223,9 @@ function DetailsSection({
         label="Verlag"
         placeholder="Verlag suchen..."
         loading={publisherQuery.loading}
-        noOptionsText={
-          publisherQuery.isBelowMinLength
-            ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
-            : publisherQuery.error
-              ? "Daten aktuell nicht verfügbar"
-              : "Keine Ergebnisse gefunden"
-        }
+        noOptionsText={getAutocompleteNoOptionsText(publisherQuery, MIN_QUERY_LENGTH)}
         onListboxScroll={publisherQuery.onListboxScroll}
-        getOptionLabel={(option) => String((option as { name?: unknown })?.name || "")}
+        getOptionLabel={(option) => readTextValue((option as { name?: unknown })?.name)}
         isOptionEqualToValue={(option, value) =>
           normalizeText(option.name) === normalizeText((value as { name?: unknown })?.name)
         }
@@ -253,19 +247,13 @@ function DetailsSection({
         label="Serie"
         placeholder="Serie suchen..."
         loading={seriesQuery.loading}
-        noOptionsText={
-          seriesQuery.isBelowMinLength
-            ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
-            : seriesQuery.error
-              ? "Daten aktuell nicht verfügbar"
-              : "Keine Ergebnisse gefunden"
-        }
+        noOptionsText={getAutocompleteNoOptionsText(seriesQuery, MIN_QUERY_LENGTH)}
         onListboxScroll={seriesQuery.onListboxScroll}
         getOptionLabel={(option) => formatSeriesLabel(option)}
         isOptionEqualToValue={(option, value) =>
           normalizeText(option.title) === normalizeText((value as { title?: unknown })?.title) &&
-          normalizeText(String(option.volume || "")) ===
-            normalizeText(String((value as { volume?: unknown })?.volume || ""))
+          normalizeText(readTextValue(option.volume)) ===
+            normalizeText(readTextValue((value as { volume?: unknown })?.volume))
         }
         onInputChange={(_, nextInput, reason) => {
           if (reason !== "input" && reason !== "clear" && reason !== "reset") return;
@@ -286,13 +274,7 @@ function DetailsSection({
         multiple
         freeSolo
         loading={genreQuery.loading}
-        noOptionsText={
-          genreQuery.isBelowMinLength
-            ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
-            : genreQuery.error
-              ? "Daten aktuell nicht verfügbar"
-              : "Keine Ergebnisse gefunden"
-        }
+        noOptionsText={getAutocompleteNoOptionsText(genreQuery, MIN_QUERY_LENGTH)}
         onListboxScroll={genreQuery.onListboxScroll}
         getOptionLabel={(option) => getGenreName(option)}
         isOptionEqualToValue={(option, value) =>
@@ -445,7 +427,7 @@ function asFormatArray(value: unknown) {
   return value
     .map((entry) => {
       if (!entry || typeof entry !== "object" || Array.isArray(entry)) return null;
-      const name = String((entry as { name?: unknown }).name ?? "").trim();
+      const name = readTextValue((entry as { name?: unknown }).name);
       if (!name) return null;
       return { name };
     })
@@ -482,8 +464,14 @@ function sanitizeGenreList(values: Array<string | FieldItem>) {
 function getGenreName(entry: unknown) {
   if (typeof entry === "string") return entry;
   if (entry && typeof entry === "object" && !Array.isArray(entry)) {
-    return String((entry as { name?: unknown }).name ?? "");
+    return readTextValue((entry as { name?: unknown }).name);
   }
+  return "";
+}
+
+function readTextValue(value: unknown) {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
   return "";
 }
 
@@ -498,10 +486,19 @@ export default DetailsSection;
 function formatSeriesLabel(entry: unknown) {
   const option = entry as { title?: unknown; volume?: unknown; startyear?: unknown };
   return getSeriesLabel({
-    title: String(option?.title ?? ""),
+    title: readTextValue(option?.title),
     volume: option?.volume as string | number | null | undefined,
     startyear: option?.startyear as string | number | null | undefined,
   });
+}
+
+function getAutocompleteNoOptionsText(
+  query: { isBelowMinLength?: boolean; error?: unknown },
+  minQueryLength: number
+) {
+  if (query.isBelowMinLength) return `Mindestens ${minQueryLength} Zeichen eingeben`;
+  if (query.error) return "Daten aktuell nicht verfügbar";
+  return "Keine Ergebnisse gefunden";
 }
 
 function getPresetDateRange(preset: string): { from: string; to: string } | null {

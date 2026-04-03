@@ -27,8 +27,8 @@ function ThemeModeBridge(props: Readonly<AppProvidersProps>) {
   const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
   const [navigationPending, setNavigationPending] = useState(false);
-  const [navigationPayloadLoading, setNavigationPayloadLoadingState] = useState(false);
-  const [navigationUiLoading, setNavigationUiLoadingState] = useState(false);
+  const [navigationPayloadLoading, setNavigationPayloadLoading] = useState(false);
+  const [navigationUiLoading, setNavigationUiLoading] = useState(false);
   const navigationStartedAtRef = useRef<number | null>(null);
   const themeMode: AppThemeMode = colorScheme === "dark" ? "dark" : "light";
   const themeReady = mounted && (colorScheme === "light" || colorScheme === "dark");
@@ -60,14 +60,6 @@ function ThemeModeBridge(props: Readonly<AppProvidersProps>) {
     navigationStartedAtRef.current =
       typeof performance !== "undefined" ? performance.now() : Date.now();
     setNavigationPending(true);
-  }, []);
-
-  const setNavigationPayloadLoading = useCallback((loading: boolean) => {
-    setNavigationPayloadLoadingState(loading);
-  }, []);
-
-  const setNavigationUiLoading = useCallback((loading: boolean) => {
-    setNavigationUiLoadingState(loading);
   }, []);
 
   const chromeLoading = navigationPayloadLoading || navigationUiLoading;

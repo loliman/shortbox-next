@@ -29,7 +29,7 @@ function StoryFieldsNonExclusive(props: StoryFieldsNonExclusiveProps) {
   };
   const parentIssue = parent.issue || {};
   const parentSeries = parentIssue.series || {};
-  const seriesPattern = String(parentSeries.title || "");
+  const seriesPattern = readTextValue(parentSeries.title);
 
   const seriesQuery = useAutocompleteQuery<FieldItem>({
     source: "series",
@@ -46,8 +46,8 @@ function StoryFieldsNonExclusive(props: StoryFieldsNonExclusiveProps) {
     seriesQuery.options.find(
       (entry) =>
         normalizeText(entry.title) === normalizeText(parentSeries.title) &&
-        normalizeText(String(entry.volume || "")) ===
-          normalizeText(String(parentSeries.volume || ""))
+        normalizeText(readTextValue(entry.volume)) ===
+          normalizeText(readTextValue(parentSeries.volume))
     ) ||
     (seriesPattern.trim().length > 0
       ? {
@@ -70,11 +70,7 @@ function StoryFieldsNonExclusive(props: StoryFieldsNonExclusiveProps) {
           freeSolo
           loading={seriesQuery.loading}
           noOptionsText={
-            seriesQuery.isBelowMinLength
-              ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
-              : seriesQuery.error
-                ? "Daten aktuell nicht verfügbar"
-                : "Keine Ergebnisse gefunden"
+            getNoOptionsText(seriesQuery.isBelowMinLength, seriesQuery.error)
           }
           onListboxScroll={seriesQuery.onListboxScroll}
           getOptionLabel={(option) => formatSeriesLabel(option)}
@@ -157,7 +153,7 @@ function isOptionLike(value: unknown): value is FieldItem {
 function formatSeriesLabel(entry: unknown) {
   const option = entry as { title?: unknown; volume?: unknown; startyear?: unknown };
   return getSeriesLabel({
-    title: String(option?.title || ""),
+    title: readTextValue(option?.title),
     volume: option?.volume as string | number | null | undefined,
     startyear: option?.startyear as string | number | null | undefined,
   });
@@ -165,7 +161,13 @@ function formatSeriesLabel(entry: unknown) {
 
 function getSeriesKey(value: unknown) {
   const option = value as { title?: unknown; volume?: unknown };
-  return `${String(option?.title || "")}::${String(option?.volume || "")}`;
+  return `${readTextValue(option?.title)}::${readTextValue(option?.volume)}`;
+}
+
+function readTextValue(value: unknown) {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }
 
 function normalizeText(value: unknown) {
@@ -186,6 +188,12 @@ function readFieldError(
   path: string
 ) {
   return showFieldError(formik, path) ? String(getIn(formik.errors, path) || "") : undefined;
+}
+
+function getNoOptionsText(isBelowMinLength: boolean, error: unknown) {
+  if (isBelowMinLength) return `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`;
+  if (error) return "Daten aktuell nicht verfügbar";
+  return "Keine Ergebnisse gefunden";
 }
 
 export default StoryFieldsNonExclusive;

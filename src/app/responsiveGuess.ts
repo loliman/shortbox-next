@@ -9,10 +9,9 @@ const TABLET_USER_AGENT_RE =
 const PHONE_USER_AGENT_RE =
   /iphone|ipod|android.*mobile|windows phone|blackberry|bb10|mobile/i;
 
-export function getInitialResponsiveGuess(userAgent: string | null | undefined): InitialResponsiveGuess {
-  const normalizedUserAgent = userAgent ?? "";
-  const isTablet = TABLET_USER_AGENT_RE.test(normalizedUserAgent);
-  const isPhone = !isTablet && PHONE_USER_AGENT_RE.test(normalizedUserAgent);
+export function getInitialResponsiveGuess(userAgent = ""): InitialResponsiveGuess {
+  const isTablet = TABLET_USER_AGENT_RE.test(userAgent);
+  const isPhone = !isTablet && PHONE_USER_AGENT_RE.test(userAgent);
   const isDesktop = !isPhone && !isTablet;
 
   return {

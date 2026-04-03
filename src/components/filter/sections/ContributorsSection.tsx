@@ -89,14 +89,10 @@ function ContributorAutocomplete({
       multiple
       loading={query.loading}
       noOptionsText={
-        query.isBelowMinLength
-          ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
-          : query.error
-            ? "Daten aktuell nicht verfügbar"
-            : "Keine Ergebnisse gefunden"
+        getNoOptionsText(query.isBelowMinLength, query.error)
       }
       onListboxScroll={query.onListboxScroll}
-      getOptionLabel={(option) => String((option as { name?: unknown })?.name ?? "")}
+      getOptionLabel={(option) => readTextValue((option as { name?: unknown })?.name)}
       isOptionEqualToValue={(option, value) =>
         normalizeText(option.name) === normalizeText((value as { name?: unknown })?.name)
       }
@@ -183,6 +179,18 @@ function normalizeText(value: unknown) {
   return String(value || "")
     .trim()
     .toLowerCase();
+}
+
+function readTextValue(value: unknown) {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
+}
+
+function getNoOptionsText(isBelowMinLength: boolean, error: unknown) {
+  if (isBelowMinLength) return `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`;
+  if (error) return "Daten aktuell nicht verfügbar";
+  return "Keine Ergebnisse gefunden";
 }
 
 export default ContributorsSection;

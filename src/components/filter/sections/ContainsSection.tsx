@@ -65,11 +65,7 @@ function ContainsSection({
     field: keyof FilterValues,
     negatedField: keyof FilterValues
   ) => {
-    const mode: "any" | "include" | "exclude" = values[field]
-      ? "include"
-      : values[negatedField]
-        ? "exclude"
-        : "any";
+    const mode = resolveContainsMode(values[field], values[negatedField]);
 
     return (
       <Box
@@ -186,13 +182,7 @@ function ContainsSection({
         multiple
         loading={arcQuery.loading}
         textFieldSx={{ width: "100%" }}
-        noOptionsText={
-          arcQuery.isBelowMinLength
-            ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
-            : arcQuery.error
-              ? "Daten aktuell nicht verfügbar"
-              : "Keine Ergebnisse gefunden"
-        }
+        noOptionsText={getAutocompleteNoOptionsText(arcQuery.isBelowMinLength, arcQuery.error)}
         onListboxScroll={arcQuery.onListboxScroll}
         getOptionLabel={(option) => formatArcLabel(option)}
         isOptionEqualToValue={(option, value) =>
@@ -220,13 +210,7 @@ function ContainsSection({
         multiple
         loading={appearanceQuery.loading}
         textFieldSx={{ width: "100%" }}
-        noOptionsText={
-          appearanceQuery.isBelowMinLength
-            ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
-            : appearanceQuery.error
-              ? "Daten aktuell nicht verfügbar"
-              : "Keine Ergebnisse gefunden"
-        }
+        noOptionsText={getAutocompleteNoOptionsText(appearanceQuery.isBelowMinLength, appearanceQuery.error)}
         onListboxScroll={appearanceQuery.onListboxScroll}
         getOptionLabel={(option) => formatAppearanceLabel(option)}
         isOptionEqualToValue={(option, value) =>
@@ -254,15 +238,9 @@ function ContainsSection({
         multiple
         loading={realityQuery.loading}
         textFieldSx={{ width: "100%" }}
-        noOptionsText={
-          realityQuery.isBelowMinLength
-            ? `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`
-            : realityQuery.error
-              ? "Daten aktuell nicht verfügbar"
-              : "Keine Ergebnisse gefunden"
-        }
+        noOptionsText={getAutocompleteNoOptionsText(realityQuery.isBelowMinLength, realityQuery.error)}
         onListboxScroll={realityQuery.onListboxScroll}
-        getOptionLabel={(option) => String((option as { name?: unknown })?.name || "").trim()}
+        getOptionLabel={(option) => readOptionText((option as { name?: unknown })?.name)}
         isOptionEqualToValue={(option, value) =>
           normalizeText((option as { name?: unknown }).name) ===
           normalizeText((value as { name?: unknown })?.name)
@@ -291,8 +269,8 @@ function asOptionArray(value: unknown): FieldItem[] {
 function sanitizeArcList(values: FieldItem[]) {
   return values
     .map((entry) => {
-      const title = String(entry.title || "").trim();
-      const type = String(entry.type || "").trim();
+      const title = readOptionText(entry.title);
+      const type = readOptionText(entry.type);
       if (!title) return null;
       return type ? { title, type } : { title };
     })
@@ -302,8 +280,8 @@ function sanitizeArcList(values: FieldItem[]) {
 function sanitizeAppearanceList(values: FieldItem[]) {
   return values
     .map((entry) => {
-      const name = String(entry.name || "").trim();
-      const type = String(entry.type || "").trim();
+      const name = readOptionText(entry.name);
+      const type = readOptionText(entry.type);
       if (!name) return null;
       return type ? { name, type } : { name };
     })
@@ -313,7 +291,7 @@ function sanitizeAppearanceList(values: FieldItem[]) {
 function sanitizeRealityList(values: FieldItem[]) {
   return values
     .map((entry) => {
-      const name = String(entry.name || "").trim();
+      const name = readOptionText(entry.name);
       if (!name) return null;
       return { name };
     })
@@ -321,25 +299,46 @@ function sanitizeRealityList(values: FieldItem[]) {
 }
 
 function normalizeText(value: unknown) {
-  return String(value || "")
+  return String(value ?? "")
     .trim()
     .toLowerCase();
 }
 
 function formatArcLabel(option: unknown) {
   const entry = option as { title?: unknown; type?: unknown };
-  const title = String(entry.title || "").trim();
-  const type = String(entry.type || "").trim();
+  const title = readOptionText(entry.title);
+  const type = readOptionText(entry.type);
   if (!title) return "";
   return type ? `${title} (${type})` : title;
 }
 
 function formatAppearanceLabel(option: unknown) {
   const entry = option as { name?: unknown; type?: unknown };
-  const name = String(entry.name || "").trim();
-  const type = String(entry.type || "").trim();
+  const name = readOptionText(entry.name);
+  const type = readOptionText(entry.type);
   if (!name) return "";
   return type ? `${name} (${type})` : name;
+}
+
+function readOptionText(value: unknown) {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
+}
+
+function getAutocompleteNoOptionsText(isBelowMinLength: boolean, error: unknown) {
+  if (isBelowMinLength) return `Mindestens ${MIN_QUERY_LENGTH} Zeichen eingeben`;
+  if (error) return "Daten aktuell nicht verfügbar";
+  return "Keine Ergebnisse gefunden";
+}
+
+function resolveContainsMode(
+  includeValue: unknown,
+  excludeValue: unknown
+): "any" | "include" | "exclude" {
+  if (includeValue) return "include";
+  if (excludeValue) return "exclude";
+  return "any";
 }
 
 export default ContainsSection;
