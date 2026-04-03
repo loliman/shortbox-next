@@ -64,10 +64,11 @@ export const NestedRow = React.memo(function NestedRow(props: Readonly<NestedRow
           slotProps={{
             primary: {
               noWrap: true,
-              sx: {
+              sx: (theme) => ({
                 fontWeight: props.selected ? 700 : 400,
-                color: "text.primary",
-              },
+                color: theme.palette.mode === "dark" ? "#f5f5f5" : "#111111",
+                opacity: 1,
+              }),
             },
           }}
         />

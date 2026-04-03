@@ -327,13 +327,14 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
                         <Typography
                           component="span"
                           noWrap
-                          sx={{
+                          sx={(theme) => ({
                             minWidth: 0,
                             flex: 1,
                             fontSize: "0.9rem",
                             fontWeight: selected ? 700 : 400,
-                            color: "text.primary",
-                          }}
+                            color: theme.palette.mode === "dark" ? "#f5f5f5" : "#111111",
+                            opacity: 1,
+                          })}
                         >
                           <Box
                             component="span"
