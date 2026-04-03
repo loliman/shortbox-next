@@ -239,8 +239,8 @@ function pushIndividualEntries(entries: string[], value: unknown) {
     const targetTypes = types.length > 0 ? types : ["_ANY_"];
 
     for (const type of targetTypes) {
-      const label = labelsByType.get(type) || "Mitwirkende";
-      const existing = grouped.get(label) || [];
+      const label = labelsByType.get(type) ?? "Mitwirkende";
+      const existing = grouped.get(label) ?? [];
       if (!existing.includes(name)) existing.push(name);
       grouped.set(label, existing);
     }

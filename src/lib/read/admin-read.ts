@@ -41,13 +41,13 @@ export async function readAdminTasks(limitRuns = 10) {
     const runsByTask = await listTaskRuns(normalizedLimitRuns);
 
     return ADMIN_TASK_DEFINITIONS.map((task, index) => {
-      const runs = runsByTask.get(task.name) || [];
+      const runs = runsByTask.get(task.name) ?? [];
       return {
         id: String(index + 1),
         key: task.name,
         name: task.label,
         description: task.description,
-        lastRun: runs[0] || null,
+        lastRun: runs[0] ?? null,
         runs,
       };
     });
@@ -213,7 +213,7 @@ async function listTaskRuns(limitRuns: number) {
       const task = ADMIN_TASK_DEFINITIONS.find((entry) => entry.name === row.task_identifier);
       if (!task) continue;
 
-      const existingRuns = runsByTask.get(task.name) || [];
+      const existingRuns = runsByTask.get(task.name) ?? [];
       const existingRunIndex = existingRuns.findIndex((run) => run.id === String(row.id));
 
       if (existingRunIndex >= 0) {

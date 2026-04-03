@@ -25,7 +25,7 @@ interface ListingToolbarProps {
 export default function ListingToolbar(props: Readonly<ListingToolbarProps>) {
   const showSort = props.showSort ?? true;
   const compactLayout = Boolean(props.compactLayout);
-  const previewProps = props.previewProps || {};
+  const previewProps = props.previewProps ?? {};
 
   return (
     <Stack spacing={1.5} sx={{ width: "100%" }}>

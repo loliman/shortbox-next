@@ -317,8 +317,8 @@ const findUSIssueIdsWithoutDEReference = ({
     if (currentId == null) continue;
 
     for (const nextId of [
-      ...(storyChildrenByParentId.get(currentId) || []),
-      ...(storyReprintsById.get(currentId) || []),
+      ...(storyChildrenByParentId.get(currentId) ?? []),
+      ...(storyReprintsById.get(currentId) ?? []),
     ]) {
       if (reachableStoryIds.has(nextId)) continue;
       reachableStoryIds.add(nextId);
