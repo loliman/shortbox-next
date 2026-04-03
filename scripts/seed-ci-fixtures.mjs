@@ -1,7 +1,19 @@
+import "dotenv/config";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
+import { Pool } from "pg";
 import fixture from "./fixtures/marvel-horror-classic-collection-1.json" with { type: "json" };
 
-const prisma = new PrismaClient();
+const prismaPool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+const prismaAdapter = new PrismaPg(prismaPool);
+
+const prisma = new PrismaClient({
+  adapter: prismaAdapter,
+  log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+});
 const now = new Date("2026-01-01T00:00:00.000Z");
 
 function asBigInt(value) {
@@ -231,4 +243,5 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
+    await prismaPool.end();
   });
