@@ -79,7 +79,7 @@ export function StoryIssueListItem(props: Readonly<StoryIssueListItemProps>) {
                 flex: 1,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
-                color: "#4b5565",
+                color: "text.primary",
               }}
             >
               <IssueReferenceInline
@@ -144,7 +144,6 @@ export function StoryIssueListItem(props: Readonly<StoryIssueListItemProps>) {
                 lineHeight: 1.5,
                 fontWeight: 500,
                 color: "text.secondary",
-                opacity: 0.9,
               }}
             >
               {props.subtitle || null}

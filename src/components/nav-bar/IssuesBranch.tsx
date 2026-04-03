@@ -332,6 +332,7 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
                             flex: 1,
                             fontSize: "0.9rem",
                             fontWeight: selected ? 700 : 400,
+                            color: "text.primary",
                           }}
                         >
                           <Box
@@ -396,7 +397,14 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
                       </Box>
                     }
                     secondary={createIssueSecondary(issueNode, Boolean(session))}
-                    slotProps={{ secondary: { noWrap: true } }}
+                    slotProps={{
+                      secondary: {
+                        noWrap: true,
+                        sx: {
+                          color: "text.secondary",
+                        },
+                      },
+                    }}
                   />
                 </Box>
               </CoverTooltip>

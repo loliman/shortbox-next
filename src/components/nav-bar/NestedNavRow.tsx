@@ -62,7 +62,13 @@ export const NestedRow = React.memo(function NestedRow(props: Readonly<NestedRow
         <ListItemText
           primary={props.label}
           slotProps={{
-            primary: { noWrap: true, sx: { fontWeight: props.selected ? 700 : 400 } },
+            primary: {
+              noWrap: true,
+              sx: {
+                fontWeight: props.selected ? 700 : 400,
+                color: "text.primary",
+              },
+            },
           }}
         />
       </ListItemButton>
