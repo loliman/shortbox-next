@@ -152,7 +152,7 @@ export function ContainsTitleSimple(props: Readonly<ContainsTitleSimpleProps>) {
         ) : null}
       </Box>
 
-      {!stackActions ? (
+      {stackActions ? null : (
         <Box
           sx={{
             ml: "auto",
@@ -166,7 +166,7 @@ export function ContainsTitleSimple(props: Readonly<ContainsTitleSimpleProps>) {
         >
           {actionChips}
         </Box>
-      ) : null}
+      )}
     </Box>
   );
 }
@@ -199,10 +199,6 @@ function buildSimpleActionChips({
   if (item.onlytb && !item.parent) {
     chips.push(<Chip key="onlytb" label="Nur in Taschenbuch" color="primary" />);
   }
-
-  /*if (us && childrenCount === 0) {
-    chips.push(<Chip key="notpublished" label="Nicht auf deutsch erschienen" color="default" />);
-  }*/
 
   if (item.reprintOf) {
     chips.push(<Chip key="reprintof" label="Nachdruck" color="default" />);

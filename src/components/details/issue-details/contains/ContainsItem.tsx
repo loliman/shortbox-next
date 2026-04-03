@@ -116,11 +116,9 @@ export function ContainsItem(props: Readonly<ContainsItemProps>) {
           ...theme.applyStyles("dark", {
             backgroundColor: "#161b22",
           }),
-          ...{
-            "@media (max-width:599.95px)": {
-              px: 1.5,
-              py: 1,
-            },
+          "@media (max-width:599.95px)": {
+            px: 1.5,
+            py: 1,
           },
         })}
       >
@@ -197,11 +195,9 @@ export function ContainsItem(props: Readonly<ContainsItemProps>) {
             ...theme.applyStyles("dark", {
               backgroundColor: "#161b22",
             }),
-            ...{
-              "@media (max-width:599.95px)": {
-                px: 1.5,
-                pb: 1.5,
-              },
+            "@media (max-width:599.95px)": {
+              px: 1.5,
+              pb: 1.5,
             },
           })}
         >
