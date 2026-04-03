@@ -1,5 +1,6 @@
 import "server-only";
 
+import { prisma } from "../prisma/client";
 import {
   generateAppearanceSlug,
   generateArcSlug,
@@ -35,6 +36,7 @@ type ResolveInput = {
 };
 
 const SEO_AUTOCOMPLETE_PAGE_SIZE = 250;
+const SEO_APPEARANCE_SCAN_BATCH_SIZE = 2000;
 
 function localeFromUs(us: boolean): "de" | "us" {
   return us ? "us" : "de";
@@ -135,6 +137,25 @@ async function findAutocompleteMatch<TEntry>(
   }
 }
 
+async function findAppearanceNameBySlug(slug: string): Promise<string | null> {
+  let cursor: bigint | undefined;
+
+  while (true) {
+    const rows = await prisma.appearance.findMany({
+      orderBy: { id: "asc" },
+      take: SEO_APPEARANCE_SCAN_BATCH_SIZE,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      select: { id: true, name: true },
+    });
+
+    if (rows.length === 0) return null;
+    cursor = rows.at(-1)?.id;
+
+    const match = rows.find((row) => generateAppearanceSlug(row.name) === slug);
+    if (match?.name) return match.name;
+  }
+}
+
 export async function resolveSeoFilterLanding(
   input: ResolveInput
 ): Promise<ResolvedSeoFilterLanding | null> {
@@ -184,23 +205,15 @@ export async function resolveSeoFilterLanding(
   }
 
   if (input.kind === "appearance") {
-    const parsed = parseAppearanceSlug(safeSlug);
-    if (!parsed) return null;
-
-    const match = await findAutocompleteMatch<{ name?: string }>({
-      source: "apps",
-      variables: { pattern: parsed },
-      matches: (entry) => generateAppearanceSlug(readEntryName(entry)) === safeSlug,
-    });
-
-    if (!match?.name) return null;
+    const matchName = await findAppearanceNameBySlug(safeSlug);
+    if (!matchName) return null;
 
     return makeResolved({
       us: input.us,
       kind: input.kind,
-      canonicalSlug: generateAppearanceSlug(match.name),
-      entityLabel: match.name,
-      filterPayload: { appearances: [{ name: match.name }] },
+      canonicalSlug: generateAppearanceSlug(matchName),
+      entityLabel: matchName,
+      filterPayload: { appearances: [{ name: matchName }] },
     });
   }
 
