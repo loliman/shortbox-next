@@ -142,7 +142,7 @@ function ws(s: string) {
 
 function normalizeCrawlerEntityValue(raw: string): string {
   const normalized = ws(
-    String(raw || "")
+    raw
       .replaceAll(/[\u00A0\u2007\u202F]/g, " ")
       .replaceAll(/[\u200B-\u200D\uFEFF]/g, "")
       .replaceAll(/[‘’`´]/g, "'")
@@ -209,7 +209,7 @@ async function requestTextWithRetry(
 }
 
 function normalizeWikiHref(value: string | null | undefined): string {
-  return ws(String(value || "")).replace(/^https?:\/\/[^/]+/i, "");
+  return ws(value || "").replace(/^https?:\/\/[^/]+/i, "");
 }
 
 function isWikiHref(value: string | null | undefined): boolean {
@@ -412,7 +412,7 @@ function extractContainedIssueStoryTitleFromCaption(
     node = (node as AnyNode).nextSibling || null;
   }
 
-  const trailingText = ws(fragments.join(" ").replace(/^["“”']+|["“”']+$/g, ""));
+  const trailingText = ws(fragments.join(" ").replaceAll(/^["“”']+|["“”']+$/g, ""));
   if (trailingText) return trailingText;
 
   const captionText = ws(caption.text());
@@ -544,7 +544,7 @@ function splitListNames(raw: string | null): string[] {
 }
 
 function cleanAppearanceName(raw: string): string {
-  let value = ws(raw.replace(/[⏴⏵]/g, " "));
+  let value = ws(raw.replaceAll(/[⏴⏵]/g, " "));
 
   // Remove trailing contextual/status markers while preserving identity parentheses,
   // e.g. "Binary (Carol Danvers) (Joins)" -> "Binary (Carol Danvers)".
@@ -615,7 +615,7 @@ function cleanAppearanceName(raw: string): string {
   }
 
   value = ws(
-    value.replace(/\(([^()]+)\)/g, (full, inner) => {
+    value.replaceAll(/\(([^()]+)\)/g, (full, inner) => {
       const normalized = normalizeHeader(inner);
       for (const suffix of removableSuffixes) {
         if (normalized.includes(suffix)) return "";
@@ -801,8 +801,10 @@ function infoboxTopImageFileTitle($: cheerio.CheerioAPI): string | null {
   if (/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(href)) return `File:${href.replace(/^File:/i, "")}`;
 
   const image = $(".portable-infobox figure.pi-item.pi-image img").first();
+  const imageDataName = image.attr("data-image-name");
+  const imageDataKey = image.attr("data-image-key");
   const imageName = ws(
-    String(image.attr("data-image-name") || image.attr("data-image-key") || "").replace(/^File:/i, ""),
+    (typeof imageDataName === "string" ? imageDataName : imageDataKey || "").replace(/^File:/i, ""),
   );
   return imageName ? `File:${imageName}` : null;
 }
@@ -1207,7 +1209,7 @@ async function getIssueCategoryImageFileTitles(pageTitle: string): Promise<strin
   return Array.from(
     new Set(
       members
-        .map((member: { title?: unknown }) => ws(String(member?.title || "")))
+        .map((member: { title?: unknown }) => ws(typeof member?.title === "string" ? member.title : ""))
         .filter((title: string) => title.startsWith("File:")),
     ),
   );
@@ -1221,7 +1223,7 @@ function buildVariantLabelFromFileTitle(pageTitle: string, fileTitle: string): s
 }
 
 function normalizeImageUrl(raw: unknown): string {
-  return ws(String(raw || ""))
+  return ws(typeof raw === "string" ? raw : "")
     .replace(/\/revision\/latest(?:\/scale-to-width-down\/\d+)?(?:\?cb=[^#]+)?$/i, "")
     .replace(/\?cb=[^#]+$/i, "");
 }
@@ -1386,7 +1388,7 @@ function extractArtistsFromText(raw: string): string[] {
 }
 
 function cleanVariantLabel(raw: string): string {
-  const value = ws(String(raw || "").replace(/^\d+\s*-\s*/i, ""));
+  const value = ws(raw.replace(/^\d+\s*-\s*/i, ""));
   if (!value) return "";
   return ws(
     value
@@ -1437,8 +1439,10 @@ function extractVariantEntriesFromWdsTabber(
     .each((_, galleryItem) => {
       const item = $(galleryItem);
       const image = item.find("img[data-image-name], img").first();
+      const imageDataName = image.attr("data-image-name");
+      const imageDataKey = image.attr("data-image-key");
       const imageName = ws(
-        String(image.attr("data-image-name") || image.attr("data-image-key") || "").replace(/^File:/i, ""),
+        (typeof imageDataName === "string" ? imageDataName : imageDataKey || "").replace(/^File:/i, ""),
       );
       const fileLink = item.find("a").first();
       const fileTitle = imageName ? `File:${imageName}` : getFileTitleFromLink($, fileLink);
@@ -1461,8 +1465,10 @@ function extractVariantEntriesFromWdsTabber(
       const figure = $(content).find("figure.pi-image, .pi-item.pi-image").first();
       const fileLink = figure.find("a").first();
       const image = figure.find("img").first();
+      const imageDataName = image.attr("data-image-name");
+      const imageDataKey = image.attr("data-image-key");
       const imageName = ws(
-        String(image.attr("data-image-name") || image.attr("data-image-key") || "").replace(/^File:/i, ""),
+        (typeof imageDataName === "string" ? imageDataName : imageDataKey || "").replace(/^File:/i, ""),
       );
       const fileTitle = imageName ? `File:${imageName}` : getFileTitleFromLink($, fileLink);
       const variant = cleanVariantLabel(
