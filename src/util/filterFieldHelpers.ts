@@ -122,7 +122,7 @@ export function updateField(
 
       case "create-option":
         selected.push({
-          name: payload.option?.name || values?.at(-1)?.name || "",
+          name: payload.option?.name ?? values?.at(-1)?.name ?? "",
           type: payload.type ? [payload.type] : [],
           role: payload.role ? [payload.role] : [],
         });

@@ -380,7 +380,7 @@ function TypedMetadataAutocomplete({
           action === "remove"
             ? toEntry(details?.option || null, options, entryKey, type)
             : toEntry(
-                details?.option || arrayValue.at(-1) || null,
+                details?.option ?? arrayValue.at(-1) ?? null,
                 options,
                 entryKey,
                 type
