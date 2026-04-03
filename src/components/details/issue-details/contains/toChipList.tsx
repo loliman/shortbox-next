@@ -73,7 +73,7 @@ export function toChipList(
                 props.navigate(targetHref);
                 return;
               }
-              if (typeof globalThis.window !== "undefined") {
+              if (globalThis.window !== undefined) {
                 globalThis.location.href = targetHref;
               }
             }}

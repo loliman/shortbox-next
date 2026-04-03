@@ -42,7 +42,7 @@ class ErrorFabBase extends React.Component<ErrorFabProps, ErrorFabState> {
     this.updateBottomBarHeight();
     this.addViewportListeners();
 
-    if (typeof globalThis.window !== "undefined") {
+    if (globalThis.window !== undefined) {
       this.rafId = globalThis.requestAnimationFrame(() => {
         this.observeBottomBar();
         this.updateBottomBarHeight();
@@ -53,7 +53,7 @@ class ErrorFabBase extends React.Component<ErrorFabProps, ErrorFabState> {
   componentWillUnmount(): void {
     this.removeViewportListeners();
     this.resizeObserver?.disconnect();
-    if (typeof globalThis.window !== "undefined" && this.rafId !== undefined) {
+    if (globalThis.window !== undefined && this.rafId !== undefined) {
       globalThis.cancelAnimationFrame(this.rafId);
     }
   }
@@ -187,25 +187,25 @@ class ErrorFabBase extends React.Component<ErrorFabProps, ErrorFabState> {
     return Math.ceil(bottomBar.getBoundingClientRect().height || bottomBar.offsetHeight || 0);
   }
 
-  private updateBottomBarHeight = () => {
+  private readonly updateBottomBarHeight = () => {
     const nextHeight = this.getBottomBarHeight();
     if (nextHeight === this.state.mobileBottomBarHeight) return;
     this.setState({ mobileBottomBarHeight: nextHeight });
   };
 
   private addViewportListeners() {
-    if (typeof globalThis.window === "undefined") return;
+    if (globalThis.window === undefined) return;
     globalThis.addEventListener("resize", this.handleViewportChange);
     globalThis.addEventListener("orientationchange", this.handleViewportChange);
   }
 
   private removeViewportListeners() {
-    if (typeof globalThis.window === "undefined") return;
+    if (globalThis.window === undefined) return;
     globalThis.removeEventListener("resize", this.handleViewportChange);
     globalThis.removeEventListener("orientationchange", this.handleViewportChange);
   }
 
-  private handleViewportChange = () => {
+  private readonly handleViewportChange = () => {
     this.observeBottomBar();
     this.updateBottomBarHeight();
   };
@@ -220,11 +220,9 @@ class ErrorFabBase extends React.Component<ErrorFabProps, ErrorFabState> {
     this.observedBottomBar = bottomBar;
 
     if (!bottomBar) return;
-    if (!this.resizeObserver) {
-      this.resizeObserver = new ResizeObserver(() => {
+    this.resizeObserver ??= new ResizeObserver(() => {
         this.updateBottomBarHeight();
       });
-    }
     this.resizeObserver.observe(bottomBar);
   }
 }
