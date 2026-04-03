@@ -26,8 +26,8 @@ function normalizeForDiff(value: unknown): unknown {
     return value.map((entry) => normalizeForDiff(entry));
   }
 
-  if (value && typeof value === "object") {
-    const input = value as Record<string, unknown>;
+  const input = asRecord(value);
+  if (input) {
     const normalized: Record<string, unknown> = {};
     for (const key of Object.keys(input).sort((left, right) => left.localeCompare(right, "de-DE"))) {
       normalized[key] = normalizeForDiff(input[key]);
@@ -81,10 +81,10 @@ function resolveChangeRequestItem(
 ): Record<string, unknown> | null {
   const changeItem = extractChangeRequestItem(value);
   if (!changeItem && !issue) return null;
-  if (!changeItem) return issue ? (normalizeForDiff(issue) as Record<string, unknown>) : null;
-  if (!issue) return normalizeForDiff(changeItem) as Record<string, unknown>;
+  if (!changeItem) return issue ? asRecord(normalizeForDiff(issue)) : null;
+  if (!issue) return asRecord(normalizeForDiff(changeItem));
 
-  return normalizeForDiff(mergeRecords(issue, changeItem)) as Record<string, unknown>;
+  return asRecord(normalizeForDiff(mergeRecords(issue, changeItem)));
 }
 
 function normalizeChangeRequestPayload(

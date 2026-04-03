@@ -24,13 +24,14 @@ interface SeriesLabelOptions {
   fallbackYear?: string;
 }
 
+function readIssueNumber(value: IssueLike["number"]): string {
+  return value == null ? "" : String(value);
+}
+
 export function getSeriesLabel(series?: SeriesLike | null, options?: SeriesLabelOptions): string {
   if (!series?.title) return "";
 
-  const volume =
-    series.volume !== undefined && series.volume !== null
-      ? ` (Vol. ${romanize(series.volume)})`
-      : "";
+  const volume = series.volume == null ? "" : ` (Vol. ${romanize(series.volume)})`;
   const startyear = series.startyear ?? options?.fallbackYear;
   const year = startyear ? ` (${startyear})` : "";
 
@@ -41,7 +42,7 @@ export function getIssueLabel(issue?: IssueLike | null): string {
   if (!issue) return "";
 
   const seriesLabel = getSeriesLabel(issue.series);
-  const number = issue.number !== undefined && issue.number !== null ? String(issue.number) : "";
+  const number = readIssueNumber(issue.number);
   const legacyLabel = getLegacyNumberLabel(issue);
   const numberWithLegacy = legacyLabel ? `#${number} ${legacyLabel}` : `#${number}`;
 
@@ -58,8 +59,7 @@ export function getIssueUrl(issue: IssueLike | undefined, us: boolean): string {
   if (
     !issue?.series?.title ||
     !issue?.series?.publisher?.name ||
-    issue.number === undefined ||
-    issue.number === null
+    issue.number == null
   ) {
     return us ? "/us" : "/de";
   }
@@ -75,7 +75,7 @@ export function getIssueUrl(issue: IssueLike | undefined, us: boolean): string {
     seriesTitle: issue.series.title,
     seriesYear,
     seriesVolume,
-    issueNumber: String(issue.number),
+    issueNumber: readIssueNumber(issue.number),
     format: issue.format || undefined,
     variant: issue.variant || undefined,
   });

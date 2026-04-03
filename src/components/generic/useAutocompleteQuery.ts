@@ -130,8 +130,8 @@ export function useAutocompleteQuery<TOption>({
   }, [debouncedInputKey, loadPage, skip, source]);
 
   const onListboxScroll = (e: React.UIEvent<HTMLElement>) => {
-    const element = e.target as HTMLElement | null;
-    if (!element) return;
+    if (!(e.target instanceof HTMLElement)) return;
+    const element = e.target;
     if (skip || !hasMore || loading || fetching || fetchMoreInFlightRef.current) return;
 
     const remaining = element.scrollHeight - element.scrollTop - element.clientHeight;

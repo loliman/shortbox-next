@@ -127,7 +127,10 @@ function buildFilterLabels(rawFilter?: string | null): string[] {
   let parsed: Record<string, unknown> | null = null;
   try {
     const parsedValue = JSON.parse(rawFilter);
-    parsed = parsedValue && typeof parsedValue === "object" ? (parsedValue as Record<string, unknown>) : null;
+    parsed =
+      parsedValue && typeof parsedValue === "object" && !Array.isArray(parsedValue)
+        ? parsedValue
+        : null;
   } catch {
     parsed = null;
   }

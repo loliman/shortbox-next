@@ -9,7 +9,7 @@ type IssueNumberInlineProps = {
 };
 
 export function IssueNumberInline(props: Readonly<IssueNumberInlineProps>) {
-  const number = props.number !== undefined && props.number !== null ? String(props.number) : "";
+  const number = props.number == null ? "" : String(props.number);
   const legacyLabel = getLegacyNumberLabel({ legacy_number: props.legacy_number });
 
   if (!number && !legacyLabel) return null;

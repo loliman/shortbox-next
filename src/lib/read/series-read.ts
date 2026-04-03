@@ -36,5 +36,6 @@ export async function readSeriesEditData(
     volume: options.volume,
   });
 
-  return (result?.details as Record<string, unknown> | null) ?? null;
+  const details = result?.details;
+  return details && typeof details === "object" && !Array.isArray(details) ? details : null;
 }
