@@ -45,6 +45,19 @@ interface IssueDetailsProps {
   initialFilterCount?: number | null;
 }
 
+type IssueDetailsContentProps = {
+  arcs: ReturnType<typeof collectIssueArcs>;
+  BottomComponent?: IssueDetailsSlotComponent;
+  coverAttribution: React.ReactNode;
+  coverGalleryIssues: PreviewIssue[];
+  detailsComponent: IssueDetailsSlotComponent;
+  issue: Issue;
+  query?: RouteQuery | null;
+  selected: SelectedRoot;
+  session?: SessionData | null;
+  us: boolean;
+};
+
 export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
   const selected = props.selected;
   const us = Boolean(props.us);
@@ -89,66 +102,7 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
   const breadcrumbJsonLd = buildIssueBreadcrumbStructuredData(issueForVariants, us ? "us" : "de");
   const comicIssueJsonLd = buildIssueComicStructuredData(issueForVariants, us ? "us" : "de");
   const coverGalleryIssues = buildCoverGalleryIssues(issueForVariants);
-  const hasComicGuideAttribution =
-    !us &&
-    issueForVariants.comicguideid !== null &&
-    issueForVariants.comicguideid !== undefined &&
-    String(issueForVariants.comicguideid).trim() !== "" &&
-    String(issueForVariants.comicguideid) !== "0";
-  let coverAttribution: React.ReactNode = null;
-  if (hasComicGuideAttribution) {
-    coverAttribution = (
-      <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.82, textAlign: "left" }}>
-        Das Cover für&nbsp;
-        <a
-          href={generateComicGuideUrl(issueForVariants)}
-          rel="noopener noreferrer nofollow"
-          target="_blank"
-        >
-          <IssueReferenceInline
-            seriesLabel={generateLabel({ series: issueForVariants.series })}
-            number={issueForVariants.number}
-            legacy_number={issueForVariants.legacy_number}
-          />
-        </a>
-        &nbsp;wird bereitgestellt vom&nbsp;
-        <a href="https://www.comicguide.de" rel="noopener noreferrer nofollow" target="_blank">
-          deutschen ComicGuide
-        </a>
-        &nbsp;und darf nicht ohne Genehmigung weiterverbreitet werden.
-      </Typography>
-    );
-  } else if (us) {
-    coverAttribution = (
-      <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.82, textAlign: "left" }}>
-        Informationen über&nbsp;
-        <a
-          href={generateMarvelDbUrl(issueForVariants)}
-          rel="noopener noreferrer nofollow"
-          target="_blank"
-        >
-          <IssueReferenceInline
-            seriesLabel={generateLabel({ series: issueForVariants.series })}
-            number={issueForVariants.number}
-            legacy_number={issueForVariants.legacy_number}
-          />
-        </a>
-        &nbsp;werden bezogen aus der&nbsp;
-        <a href="https://marvel.fandom.com" rel="noopener noreferrer nofollow" target="_blank">
-          Marvel Database
-        </a>
-        &nbsp;und stehen unter der&nbsp;
-        <a
-          href="https://creativecommons.org/licenses/by/3.0/de/"
-          rel="noopener noreferrer nofollow"
-          target="_blank"
-        >
-          Creative Commons License 3.0
-        </a>
-        &nbsp;. Die Informationen wurden aufbereitet und unter Umständen ergänzt.&nbsp;
-      </Typography>
-    );
-  }
+  const coverAttribution = buildCoverAttribution(issueForVariants, us);
   const desktopColumnScrollSx = {
     minWidth: 0,
     minHeight: 0,
@@ -238,73 +192,18 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
           overflow: { xs: "visible", lg: "hidden" },
         }}
       >
-        <Box sx={{ display: { xs: "flex", lg: "none" }, flexDirection: "column", gap: 2 }}>
-          <Box sx={{ minWidth: 0 }}>
-            <IssueVariants
-              us={us}
-              issue={issueForVariants as unknown as VariantIssue}
-              activeFormat={selected.issue?.format ?? undefined}
-              activeVariant={selected.issue?.variant ?? undefined}
-              session={props.session}
-            />
-          </Box>
-
-          {issueForVariants.addinfo && issueForVariants.addinfo !== "" ? (
-            <Paper variant="outlined" sx={{ p: 2 }}>
-              <Typography dangerouslySetInnerHTML={{ __html: sanitizeHtml(issueForVariants.addinfo) }} />
-            </Paper>
-          ) : null}
-
-          <Box sx={{ minWidth: 0 }}>
-            <IssueCoverGalleryClient
-              us={us}
-              issues={coverGalleryIssues}
-              activeFormat={selected.issue?.format ?? undefined}
-              activeVariant={selected.issue?.variant ?? undefined}
-              query={props.query}
-            />
-          </Box>
-
-          {arcs.length > 0 ? (
-            <Box
-              sx={{
-                minWidth: 0,
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-                flexWrap: "nowrap",
-                overflow: "hidden",
-              }}
-            >
-              <Box sx={{ minWidth: 0, overflow: "hidden" }}>
-                <StoryArcChips arcs={arcs} us={us} inline />
-              </Box>
-            </Box>
-          ) : null}
-
-          <Box sx={{ minWidth: 0 }}>
-            <DetailsTable
-              issue={issueForVariants}
-              details={DetailsComponent}
-              query={props.query}
-              us={us}
-            />
-          </Box>
-
-          {BottomComponent ? (
-            <Box sx={{ minWidth: 0, width: "100%", mt: 0 }}>
-              <BottomComponent
-                query={props.query}
-                selected={issueForVariants}
-                issue={issueForVariants}
-                us={us}
-                session={props.session}
-              />
-            </Box>
-          ) : null}
-
-          {coverAttribution ? <Box>{coverAttribution}</Box> : null}
-        </Box>
+        <IssueDetailsMobileContent
+          arcs={arcs}
+          BottomComponent={BottomComponent}
+          coverAttribution={coverAttribution}
+          coverGalleryIssues={coverGalleryIssues}
+          detailsComponent={DetailsComponent}
+          issue={issueForVariants}
+          query={props.query}
+          selected={selected}
+          session={props.session}
+          us={us}
+        />
 
         <Box
           sx={{
@@ -324,33 +223,15 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
               pr: 0.5,
             }}
           >
-            <Box sx={{ minWidth: 0 }}>
-              <IssueVariants
-                us={us}
-                issue={issueForVariants as unknown as VariantIssue}
-                activeFormat={selected.issue?.format ?? undefined}
-                activeVariant={selected.issue?.variant ?? undefined}
-                session={props.session}
-              />
-            </Box>
-
-            {issueForVariants.addinfo && issueForVariants.addinfo !== "" ? (
-              <Paper variant="outlined" sx={{ p: 2 }}>
-                <Typography dangerouslySetInnerHTML={{ __html: sanitizeHtml(issueForVariants.addinfo) }} />
-              </Paper>
-            ) : null}
-
-            {BottomComponent ? (
-              <Box sx={{ minWidth: 0, width: "100%", mt: 0 }}>
-                <BottomComponent
-                  query={props.query}
-                  selected={issueForVariants}
-                  issue={issueForVariants}
-                  us={us}
-                  session={props.session}
-                />
-              </Box>
-            ) : null}
+            <IssueDetailsPrimaryColumn
+              BottomComponent={BottomComponent}
+              detailsComponent={DetailsComponent}
+              issue={issueForVariants}
+              query={props.query}
+              selected={selected}
+              session={props.session}
+              us={us}
+            />
           </Box>
 
           <Box
@@ -359,47 +240,228 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
               pl: 0.5,
             }}
           >
-            <Box sx={{ minWidth: 0 }}>
-              <IssueCoverGalleryClient
-                us={us}
-                issues={coverGalleryIssues}
-                activeFormat={selected.issue?.format ?? undefined}
-                activeVariant={selected.issue?.variant ?? undefined}
-                query={props.query}
-              />
-            </Box>
-
-            {arcs.length > 0 ? (
-              <Box
-                sx={{
-                  minWidth: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                  flexWrap: "nowrap",
-                  overflow: "hidden",
-                }}
-              >
-                <Box sx={{ minWidth: 0, overflow: "hidden" }}>
-                  <StoryArcChips arcs={arcs} us={us} inline />
-                </Box>
-              </Box>
-            ) : null}
-
-            <Box sx={{ minWidth: 0 }}>
-              <DetailsTable
-                issue={issueForVariants}
-                details={DetailsComponent}
-                query={props.query}
-                us={us}
-              />
-            </Box>
-
-            {coverAttribution ? <Box>{coverAttribution}</Box> : null}
+            <IssueDetailsSecondaryColumn
+              arcs={arcs}
+              coverAttribution={coverAttribution}
+              coverGalleryIssues={coverGalleryIssues}
+              detailsComponent={DetailsComponent}
+              issue={issueForVariants}
+              query={props.query}
+              selected={selected}
+              session={props.session}
+              us={us}
+            />
           </Box>
         </Box>
       </CardContent>
     </Box>
+  );
+}
+
+function buildCoverAttribution(issue: Issue, us: boolean): React.ReactNode {
+  const issueReference = (
+    <IssueReferenceInline
+      seriesLabel={generateLabel({ series: issue.series })}
+      number={issue.number}
+      legacy_number={issue.legacy_number}
+    />
+  );
+  const comicGuideId = String(issue.comicguideid ?? "").trim();
+
+  if (!us && comicGuideId !== "" && comicGuideId !== "0") {
+    return (
+      <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.82, textAlign: "left" }}>
+        {"Das Cover für "}
+        <a
+          href={generateComicGuideUrl(issue)}
+          rel="noopener noreferrer nofollow"
+          target="_blank"
+        >
+          {issueReference}
+        </a>
+        {" wird bereitgestellt vom "}
+        <a href="https://www.comicguide.de" rel="noopener noreferrer nofollow" target="_blank">
+          deutschen ComicGuide
+        </a>
+        {" und darf nicht ohne Genehmigung weiterverbreitet werden."}
+      </Typography>
+    );
+  }
+
+  if (!us) return null;
+
+  return (
+    <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.82, textAlign: "left" }}>
+      {"Informationen über "}
+      <a
+        href={generateMarvelDbUrl(issue)}
+        rel="noopener noreferrer nofollow"
+        target="_blank"
+      >
+        {issueReference}
+      </a>
+      {" werden bezogen aus der "}
+      <a href="https://marvel.fandom.com" rel="noopener noreferrer nofollow" target="_blank">
+        Marvel Database
+      </a>
+      {" und stehen unter der "}
+      <a
+        href="https://creativecommons.org/licenses/by/3.0/de/"
+        rel="noopener noreferrer nofollow"
+        target="_blank"
+      >
+        Creative Commons License 3.0
+      </a>
+      {"."} {"Die Informationen wurden aufbereitet und unter Umständen ergänzt."}
+    </Typography>
+  );
+}
+
+function renderAddInfo(issue: Issue): React.ReactNode {
+  if (!issue.addinfo) return null;
+
+  return (
+    <Paper variant="outlined" sx={{ p: 2 }}>
+      <Typography dangerouslySetInnerHTML={{ __html: sanitizeHtml(issue.addinfo) }} />
+    </Paper>
+  );
+}
+
+function renderArcs(arcs: ReturnType<typeof collectIssueArcs>, us: boolean): React.ReactNode {
+  if (arcs.length === 0) return null;
+
+  return (
+    <Box
+      sx={{
+        minWidth: 0,
+        display: "flex",
+        alignItems: "center",
+        gap: 1,
+        flexWrap: "nowrap",
+        overflow: "hidden",
+      }}
+    >
+      <Box sx={{ minWidth: 0, overflow: "hidden" }}>
+        <StoryArcChips arcs={arcs} us={us} inline />
+      </Box>
+    </Box>
+  );
+}
+
+function renderBottomSection(
+  BottomComponent: IssueDetailsSlotComponent | undefined,
+  issue: Issue,
+  query: RouteQuery | null | undefined,
+  session: SessionData | null | undefined,
+  us: boolean
+): React.ReactNode {
+  if (!BottomComponent) return null;
+
+  return (
+    <Box sx={{ minWidth: 0, width: "100%", mt: 0 }}>
+      <BottomComponent
+        query={query}
+        selected={issue}
+        issue={issue}
+        us={us}
+        session={session}
+      />
+    </Box>
+  );
+}
+
+function renderDetailsTable(
+  issue: Issue,
+  detailsComponent: IssueDetailsSlotComponent,
+  query: RouteQuery | null | undefined,
+  us: boolean
+): React.ReactNode {
+  return (
+    <Box sx={{ minWidth: 0 }}>
+      <DetailsTable
+        issue={issue}
+        details={detailsComponent}
+        query={query}
+        us={us}
+      />
+    </Box>
+  );
+}
+
+function renderVariantSection(
+  issue: Issue,
+  selected: SelectedRoot,
+  session: SessionData | null | undefined,
+  us: boolean
+): React.ReactNode {
+  return (
+    <Box sx={{ minWidth: 0 }}>
+      <IssueVariants
+        us={us}
+        issue={issue as unknown as VariantIssue}
+        activeFormat={selected.issue?.format ?? undefined}
+        activeVariant={selected.issue?.variant ?? undefined}
+        session={session}
+      />
+    </Box>
+  );
+}
+
+function renderCoverGallery(
+  coverGalleryIssues: PreviewIssue[],
+  query: RouteQuery | null | undefined,
+  selected: SelectedRoot,
+  us: boolean
+): React.ReactNode {
+  return (
+    <Box sx={{ minWidth: 0 }}>
+      <IssueCoverGalleryClient
+        us={us}
+        issues={coverGalleryIssues}
+        activeFormat={selected.issue?.format ?? undefined}
+        activeVariant={selected.issue?.variant ?? undefined}
+        query={query}
+      />
+    </Box>
+  );
+}
+
+function IssueDetailsMobileContent(props: Readonly<IssueDetailsContentProps>) {
+  return (
+    <Box sx={{ display: { xs: "flex", lg: "none" }, flexDirection: "column", gap: 2 }}>
+      {renderVariantSection(props.issue, props.selected, props.session, props.us)}
+      {renderAddInfo(props.issue)}
+      {renderCoverGallery(props.coverGalleryIssues, props.query, props.selected, props.us)}
+      {renderArcs(props.arcs, props.us)}
+      {renderDetailsTable(props.issue, props.detailsComponent, props.query, props.us)}
+      {renderBottomSection(props.BottomComponent, props.issue, props.query, props.session, props.us)}
+      {props.coverAttribution ? <Box>{props.coverAttribution}</Box> : null}
+    </Box>
+  );
+}
+
+function IssueDetailsPrimaryColumn(
+  props: Readonly<Omit<IssueDetailsContentProps, "arcs" | "coverAttribution" | "coverGalleryIssues">>
+) {
+  return (
+    <>
+      {renderVariantSection(props.issue, props.selected, props.session, props.us)}
+      {renderAddInfo(props.issue)}
+      {renderBottomSection(props.BottomComponent, props.issue, props.query, props.session, props.us)}
+    </>
+  );
+}
+
+function IssueDetailsSecondaryColumn(
+  props: Readonly<IssueDetailsContentProps>
+) {
+  return (
+    <>
+      {renderCoverGallery(props.coverGalleryIssues, props.query, props.selected, props.us)}
+      {renderArcs(props.arcs, props.us)}
+      {renderDetailsTable(props.issue, props.detailsComponent, props.query, props.us)}
+      {props.coverAttribution ? <Box>{props.coverAttribution}</Box> : null}
+    </>
   );
 }
 
