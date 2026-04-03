@@ -44,15 +44,15 @@ export function updateField(
       const nextValues = sourceValues.map((entry) => ({ ...entry }));
       const lastValue = nextValues.at(-1);
 
-      if (!lastValue?.pattern) {
-        const dummy: FieldItem = { pattern: true };
-        dummy[pattern] = option;
-        nextValues.push(dummy);
-      } else {
+      if (lastValue?.pattern) {
         nextValues[nextValues.length - 1] = {
           ...lastValue,
           [pattern]: option,
         };
+      } else {
+        const dummy: FieldItem = { pattern: true };
+        dummy[pattern] = option;
+        nextValues.push(dummy);
       }
 
       setFieldValue(field, nextValues);

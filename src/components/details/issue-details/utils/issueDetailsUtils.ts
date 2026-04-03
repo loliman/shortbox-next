@@ -59,7 +59,7 @@ export function buildIssueVariantKey(issue: { format?: string | null; variant?: 
 export function compareIssueNumbers(issueNumber: string, filterNumber: string): number {
   const parseSortableIssueNumber = (value: string): number | null => {
     const trimmed = readIssueDetailsText(value);
-    const unicodeFractionMatch = trimmed.match(/^(-?\d+)?\s*([¼½¾])$/);
+    const unicodeFractionMatch = /^(-?\d+)?\s*([¼½¾])$/.exec(trimmed);
     if (unicodeFractionMatch) {
       const whole = Number(unicodeFractionMatch[1] || 0);
       const fractionValues: Record<string, number> = {
@@ -71,7 +71,7 @@ export function compareIssueNumbers(issueNumber: string, filterNumber: string): 
       if (Number.isFinite(whole) && fraction != null) return whole + fraction;
     }
 
-    const fractionMatch = trimmed.match(/^(-?\d+)\s*\/\s*(\d+)$/);
+    const fractionMatch = /^(-?\d+)\s*\/\s*(\d+)$/.exec(trimmed);
     if (fractionMatch) {
       const numerator = Number(fractionMatch[1]);
       const denominator = Number(fractionMatch[2]);

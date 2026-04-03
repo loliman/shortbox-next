@@ -54,7 +54,7 @@ function parseSegment(
     return createContextReferences(context, contextIssueNumbers);
   }
 
-  const issueMatch = segment.match(/((?:annual\s+\d+(?:-\d+)?)|(?:#?[A-Za-z0-9]+(?:-\#?[A-Za-z0-9]+)?))$/i);
+  const issueMatch = /((?:annual\s+\d+(?:-\d+)?)|(?:#?[A-Za-z0-9]+(?:-\#?[A-Za-z0-9]+)?))$/i.exec(segment);
   if (!issueMatch) return null;
 
   const rawIssueSpec = issueMatch[1]?.trim() || "";
@@ -124,7 +124,7 @@ function createContextReferences(
 
 function parseSeriesContext(rawSeriesSpec: string): StoryReferenceContext | null {
   const seriesSpec = stripTrailingPunctuation(rawSeriesSpec);
-  const volumeMatch = seriesSpec.match(VOLUME_PATTERN);
+  const volumeMatch = VOLUME_PATTERN.exec(seriesSpec);
   const volume = volumeMatch ? Number.parseInt(volumeMatch[1], 10) : 1;
   const volumeMatchIndex =
     volumeMatch && typeof volumeMatch.index === "number" ? volumeMatch.index : undefined;
@@ -152,7 +152,7 @@ function parseIssueNumbers(value: string): string[] | null {
   const normalized = stripTrailingPunctuation(value).replace(/^#/, "").trim();
   if (!normalized) return null;
 
-  const annualRangeMatch = normalized.match(/^annual\s+(\d+)(?:-(\d+))?$/i);
+  const annualRangeMatch = /^annual\s+(\d+)(?:-(\d+))?$/i.exec(normalized);
   if (annualRangeMatch) {
     const start = Number.parseInt(annualRangeMatch[1], 10);
     const end = annualRangeMatch[2] ? Number.parseInt(annualRangeMatch[2], 10) : start;
@@ -160,7 +160,7 @@ function parseIssueNumbers(value: string): string[] | null {
     return expandNumericRange(start, end).map((number) => `Annual ${number}`);
   }
 
-  const numericRangeMatch = normalized.match(/^(\d+)([A-Za-z]?)(?:-(\d+)([A-Za-z]?))?$/);
+  const numericRangeMatch = /^(\d+)([A-Za-z]?)(?:-(\d+)([A-Za-z]?))?$/.exec(normalized);
   if (numericRangeMatch) {
     const start = Number.parseInt(numericRangeMatch[1], 10);
     const startSuffix = numericRangeMatch[2] || "";

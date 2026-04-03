@@ -391,14 +391,14 @@ function isYearMatch(startyear: number | null, endyear: number | null, year: num
 
 function parseSortableIssueNumber(value: string): number | null {
   const trimmed = value.trim();
-  const unicodeFractionMatch = trimmed.match(/^(-?\d+)?\s*([¼½¾])$/);
+  const unicodeFractionMatch = /^(-?\d+)?\s*([¼½¾])$/.exec(trimmed);
   if (unicodeFractionMatch) {
     const whole = Number(unicodeFractionMatch[1] || 0);
     const fraction = UNICODE_FRACTION_VALUES[unicodeFractionMatch[2]];
     if (Number.isFinite(whole) && fraction != null) return whole + fraction;
   }
 
-  const fractionMatch = trimmed.match(FRACTION_NUMBER_PATTERN);
+  const fractionMatch = FRACTION_NUMBER_PATTERN.exec(trimmed);
   if (fractionMatch) {
     const numerator = Number(fractionMatch[1]);
     const denominator = Number(fractionMatch[2]);
