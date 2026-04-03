@@ -20,25 +20,22 @@ export default function FormSection({
   children,
   sx,
 }: Readonly<FormSectionProps>) {
-  let sectionSx: NonNullable<FormSectionProps["sx"]> = [];
-  if (Array.isArray(sx)) {
-    sectionSx = sx;
-  } else if (sx) {
-    sectionSx = [sx];
-  }
+  const sectionSx = normalizeSxList(sx);
   const headerSpacing = description ? 0.5 : 0;
 
   return (
     <Paper
       elevation={0}
-      sx={[
-        (theme) => ({
-          ...editorSectionSx(theme),
-          p: { xs: 2, sm: 2.5 },
-          boxShadow: "none",
-        }),
-        ...sectionSx,
-      ]}
+      sx={
+        [
+          (theme: Theme) => ({
+            ...editorSectionSx(theme),
+            p: { xs: 2, sm: 2.5 },
+            boxShadow: "none",
+          }),
+          ...sectionSx,
+        ] as SxProps<Theme>
+      }
     >
       <Stack spacing={2}>
         {title || description ? (
@@ -65,4 +62,9 @@ export default function FormSection({
       </Stack>
     </Paper>
   );
+}
+
+function normalizeSxList(sx: SxProps<Theme> | undefined): SxProps<Theme>[] {
+  if (!sx) return [];
+  return Array.isArray(sx) ? [...sx] : [sx];
 }

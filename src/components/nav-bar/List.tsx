@@ -14,6 +14,7 @@ import {
   isElementVisibleInContainer,
   isSameEntityName,
   scrollNavElementIntoView,
+  type IssueNode,
   type PublisherNode,
   type SeriesNode,
 } from "./listTreeUtils";

@@ -11,6 +11,7 @@ import type { AutocompleteSource } from "../../../../lib/read/autocomplete-read"
 
 const MIN_QUERY_LENGTH = 2;
 const DEBOUNCE_MS = 250;
+type AutocompleteOption = FieldItem | string;
 
 interface TypedRoleAutocompleteProps {
   source: AutocompleteSource;
@@ -83,7 +84,7 @@ function TypedRoleAutocomplete({
         const action = toTypedAction(reason);
         if (!action) return;
 
-        let nextValues: typeof visibleValues = [];
+        let nextValues: AutocompleteOption[] = [];
         if (Array.isArray(value)) {
           nextValues = value;
         } else if (value) {

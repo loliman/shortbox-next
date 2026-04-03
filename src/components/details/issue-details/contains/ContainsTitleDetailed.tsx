@@ -364,7 +364,7 @@ function ContainsTitleDetailedReprintBlock(props: Readonly<{
       onClick={(e) => {
         e.stopPropagation();
         if (!props.reprintSelection) return;
-        push(
+        props.push(
           buildRouteHref(generateSeoUrl(props.reprintSelection, true), props.query, {
             expand: props.reprintNumber,
             filter: null,

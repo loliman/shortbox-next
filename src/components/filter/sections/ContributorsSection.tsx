@@ -141,7 +141,7 @@ function buildPayload(
 
 function asSingleValue(
   value: FieldItem | string | Array<FieldItem | string> | null,
-  details?: AutocompleteChangeDetails<Record<string, unknown>>
+  details?: AutocompleteChangeDetails<FieldItem | string>
 ) {
   if (details?.option) return details.option;
   if (Array.isArray(value)) return value.at(-1) ?? null;

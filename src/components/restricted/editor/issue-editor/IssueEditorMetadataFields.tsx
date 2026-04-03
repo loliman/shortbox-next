@@ -11,6 +11,7 @@ import type {
   AutocompleteInputChangeReason,
 } from "@mui/material/Autocomplete";
 import { FastField } from "formik";
+import type { FieldInputProps } from "formik";
 import AutocompleteBase from "../../../generic/AutocompleteBase";
 import { TextField } from "../../../generic/FormikTextField";
 import { useAutocompleteQuery } from "../../../generic/useAutocompleteQuery";
@@ -36,6 +37,7 @@ interface MetadataEntry {
 
 interface IssueEditorMetadataFieldsProps {
   values: IssueEditorFormValues;
+  copy?: boolean;
   showBatchCreate?: boolean;
   batchEnabled?: boolean;
   isDesktop?: boolean;
@@ -130,11 +132,24 @@ function IssueEditorMetadataFields({
 
                 <Grid size={{ xs: 12, sm: 4, md: 3 }}>
                   <FastField name="copyBatch.count">
-                    {({ field, form }: { field: { name: string; value: unknown; onBlur: (event: unknown) => void }; form: { touched: Record<string, unknown>; errors: Record<string, unknown>; setFieldValue: (field: string, value: unknown, shouldValidate?: boolean) => void } }) => (
+                    {({
+                      field,
+                      form,
+                    }: {
+                      field: FieldInputProps<unknown>;
+                      form: {
+                        touched: Record<string, unknown>;
+                        errors: Record<string, unknown>;
+                        setFieldValue: (
+                          field: string,
+                          value: unknown,
+                          shouldValidate?: boolean
+                        ) => void;
+                      };
+                    }) => (
                       <TextField
                         field={field}
                         form={form}
-                        name="copyBatch.count"
                         label="Anzahl"
                         type="number"
                         inputProps={{ min: 1, max: 26 }}
@@ -571,6 +586,7 @@ function toArray(value: unknown) {
 
 function getPattern(values: MetadataEntry[], entryKey: EntryKey) {
   const lastEntry = values.at(-1);
+  if (!lastEntry) return "";
   if (!lastEntry.pattern) return "";
   return getEntryValue(lastEntry, entryKey);
 }

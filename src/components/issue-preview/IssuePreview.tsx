@@ -58,11 +58,6 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
   } else if (!us && flags.hasFirstApp) {
     accentKey = "secondary";
   }
-  const borderLeftColorByAccent = {
-    success: "success.main",
-    secondary: "secondary.main",
-    default: "divider",
-  } as const;
   let lightBackgroundImage =
     "linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.3)), linear-gradient(to right, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.62) 40%, rgba(255, 255, 255, 0) 100%), url(" +
     effectiveCoverUrl +
@@ -90,7 +85,12 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
         sx={(theme) => ({
           backgroundColor: "background.paper",
           borderLeft: "4px solid",
-          borderLeftColor: theme.palette[borderLeftColorByAccent[accentKey]] ?? theme.palette.divider,
+          borderLeftColor:
+            accentKey === "success"
+              ? theme.palette.success.main
+              : accentKey === "secondary"
+                ? theme.palette.secondary.main
+                : theme.palette.divider,
           boxShadow: theme.shadows[2],
           backgroundImage: lightBackgroundImage,
           backgroundRepeat: isCoverLoading ? "no-repeat, no-repeat" : "no-repeat, no-repeat, no-repeat",
@@ -167,6 +167,10 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
       </Card>
     </Box>
   );
+}
+
+function themePaletteDividerFallback() {
+  return "divider" as const;
 }
 
 export function IssuePreviewPlaceholder() {

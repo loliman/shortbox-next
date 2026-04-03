@@ -281,7 +281,7 @@ function StoryDetailsSidebar(props: Readonly<{
 export function IssueDetailsUSStoryDetails(props: Readonly<IssueDetailsUSStoryDetailsProps>) {
   const currentItem = props.item ?? {};
   const story = currentItem.parent ?? currentItem;
-  const currentIssue = props.issue ?? currentItem.issue ?? story.issue;
+  const currentIssue = props.issue ?? currentItem.issue ?? story.issue ?? undefined;
   const us = Boolean(props.us);
   const storyArcs = readStoryArcs(currentItem as StoryItemWithArcs);
   const reprints = Array.isArray(story?.reprints) ? story.reprints : [];

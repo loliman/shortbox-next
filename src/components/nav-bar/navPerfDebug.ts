@@ -43,9 +43,9 @@ export function isNavPerfDebugEnabled() {
 }
 
 export function resetNavPerfSession(sessionKey: string, detail?: NavPerfDetail) {
-  if (!isNavPerfDebugEnabled() || globalThis.window === undefined) return;
+  if (!isNavPerfDebugEnabled() || typeof window === "undefined") return;
 
-  globalThis.__SHORTBOX_NAV_DEBUG__ = {
+  window.__SHORTBOX_NAV_DEBUG__ = {
     sessionKey,
     events: [],
   };
@@ -55,7 +55,7 @@ export function resetNavPerfSession(sessionKey: string, detail?: NavPerfDetail) 
 }
 
 export function markNavPerf(name: string, detail?: NavPerfDetail) {
-  if (!isNavPerfDebugEnabled() || globalThis.window === undefined) return;
+  if (!isNavPerfDebugEnabled() || typeof window === "undefined") return;
 
   const markName = `${MARK_PREFIX}${name}`;
   try {
@@ -68,7 +68,7 @@ export function markNavPerf(name: string, detail?: NavPerfDetail) {
 }
 
 export function measureNavPerf(name: string, start: string, end: string, detail?: NavPerfDetail) {
-  if (!isNavPerfDebugEnabled() || globalThis.window === undefined) return null;
+  if (!isNavPerfDebugEnabled() || typeof window === "undefined") return null;
 
   const measureName = `${MARK_PREFIX}${name}`;
   try {
@@ -83,11 +83,11 @@ export function measureNavPerf(name: string, start: string, end: string, detail?
 }
 
 export function observeNavLongTasks() {
-  if (!isNavPerfDebugEnabled() || globalThis.window === undefined) return () => {};
+  if (!isNavPerfDebugEnabled() || typeof window === "undefined") return () => {};
   if (typeof PerformanceObserver === "undefined") return () => {};
 
   try {
-    const observer = new PerformanceObserver((list) => {
+    const observer = new PerformanceObserver((list: PerformanceObserverEntryList) => {
       for (const entry of list.getEntries()) {
         pushNavPerfEvent("longtask", {
           duration: Math.round(entry.duration),
@@ -105,9 +105,9 @@ export function observeNavLongTasks() {
 }
 
 export function printNavPerfSummary(label = "sidebar") {
-  if (!isNavPerfDebugEnabled() || globalThis.window === undefined) return;
+  if (!isNavPerfDebugEnabled() || typeof window === "undefined") return;
 
-  const store = globalThis.__SHORTBOX_NAV_DEBUG__;
+  const store = window.__SHORTBOX_NAV_DEBUG__;
   if (!store) return;
 
   const rows = store.events.map((event) => ({
@@ -124,8 +124,8 @@ export function printNavPerfSummary(label = "sidebar") {
 }
 
 function pushNavPerfEvent(name: string, detail?: NavPerfDetail) {
-  if (globalThis.window !== undefined) {
-    const store = globalThis.__SHORTBOX_NAV_DEBUG__ ??= {
+  if (typeof window !== "undefined") {
+    const store = window.__SHORTBOX_NAV_DEBUG__ ??= {
       sessionKey: "unknown",
       events: [],
     };

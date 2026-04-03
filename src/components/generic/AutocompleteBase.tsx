@@ -47,7 +47,7 @@ interface AutocompleteBaseProps {
     event: React.SyntheticEvent,
     value: AutocompleteBaseValue,
     reason: AutocompleteChangeReason,
-    details?: AutocompleteChangeDetails<OptionValue>
+    details?: AutocompleteChangeDetails<AutocompleteOption>
   ) => void;
 }
 
@@ -97,7 +97,7 @@ function AutocompleteBase({
     () => id || buildAutocompleteId({ inputAriaLabel, label, placeholder }),
     [id, inputAriaLabel, label, placeholder]
   );
-  const mergedTextFieldSx: SxProps<Theme> = React.useMemo(
+  const mergedTextFieldSx = React.useMemo<SxProps<Theme>>(
     () => {
       let sxList: SxProps<Theme>[] = [];
       if (Array.isArray(textFieldSx)) {
@@ -112,7 +112,7 @@ function AutocompleteBase({
           },
         },
         ...sxList,
-      ];
+      ] as SxProps<Theme>;
     },
     [textFieldSx]
   );

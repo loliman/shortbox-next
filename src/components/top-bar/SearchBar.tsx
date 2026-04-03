@@ -18,6 +18,12 @@ type SearchNode = {
   label?: string | null;
   url?: string | null;
 };
+
+type NavigatorWithUserAgentData = Navigator & {
+  userAgentData?: {
+    platform?: string;
+  };
+};
 const MIN_QUERY_LENGTH = 2;
 const RESULT_ROW_HEIGHT = 44;
 const RESULT_PANEL_MAX_HEIGHT = 911;
@@ -40,7 +46,10 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
   const [focused, setFocused] = useState(false);
   const shortcutHint = React.useMemo(() => {
     if (typeof navigator === "undefined") return "⌘K";
-    const platform = navigator.userAgentData?.platform ?? navigator.platform ?? "";
+    const platform =
+      (navigator as NavigatorWithUserAgentData).userAgentData?.platform ??
+      navigator.platform ??
+      "";
     return /Mac|iPhone|iPad|iPod/i.test(platform) ? "⌘K" : "⌃K";
   }, []);
   const queryPattern = debouncedPattern;
