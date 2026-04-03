@@ -300,7 +300,7 @@ function parseSearchPattern(input: string): ParsedSearchPattern {
     break;
   }
 
-  const trailingIssue = rest[rest.length - 1];
+  const trailingIssue = rest.at(-1);
   if (rest.length > 1 && trailingIssue && looksLikeIssueNumberToken(trailingIssue)) {
     issueNumber = trailingIssue;
     rest.pop();

@@ -732,7 +732,7 @@ function parseYearRange(raw: string | null): { startyear: number; endyear: numbe
     const year = Number(years[0]);
     return { startyear: year, endyear: year };
   }
-  return { startyear: Number(years[0]), endyear: Number(years[years.length - 1]) };
+  return { startyear: Number(years[0]), endyear: Number(years.at(-1)) };
 }
 
 /* =====================================

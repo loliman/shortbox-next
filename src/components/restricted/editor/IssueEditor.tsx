@@ -158,7 +158,7 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
                 (entry): entry is IssueMutationResult => Boolean(entry) && typeof entry === "object"
               )
             : [];
-          const nextItem = createdItems[createdItems.length - 1] || result.item;
+          const nextItem = createdItems.at(-1) || result.item;
           if (!nextItem) throw new Error("Ausgabe konnte nicht gespeichert werden");
 
           const nextUs = readIssueUs(nextItem);

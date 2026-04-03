@@ -130,7 +130,8 @@ export function getIssuePreviewFlags(
 
       for (const child of story.children || []) {
         if (!child) continue;
-        if (!collected && child.issue?.collected) {
+        if (collected) continue;
+        if (child.issue?.collected) {
           collected = true;
         }
       }

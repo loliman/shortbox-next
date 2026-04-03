@@ -319,12 +319,12 @@ async function buildDraft(input: {
 
 function splitTitleAndNumber(sourceTitle: string) {
   const cleaned = normalizeTitle(sourceTitle);
-  const annualMatch = cleaned.match(/^(.*\S)\s+(Annual\s+\d+)$/i);
+  const annualMatch = /^(.*\S)\s+(Annual\s+\d+)$/i.exec(cleaned);
   if (annualMatch) {
     return { seriesTitle: annualMatch[1], number: annualMatch[2] };
   }
 
-  const issueMatch = cleaned.match(/^(.*\S)\s+(\d+[A-Za-z]?)$/);
+  const issueMatch = /^(.*\S)\s+(\d+[A-Za-z]?)$/.exec(cleaned);
   if (issueMatch) {
     return {
       seriesTitle: issueMatch[1],
@@ -611,10 +611,10 @@ function looksLikeMetadataContextLine(line: string) {
 
 function parseMetadataLines(lines: string[], fallbackReleaseDate?: string) {
   const joined = lines.join(" | ");
-  const issueCode = joined.match(PRODUCT_CODE_PATTERN)?.[1];
-  const pages = joined.match(/(\d+)\s*S\./i)?.[1];
-  const releaseDate = joined.match(DATE_PATTERN)?.[1];
-  const limitation = joined.match(/auf\s+(\d+)\s+Ex\./i)?.[1];
+  const issueCode = PRODUCT_CODE_PATTERN.exec(joined)?.[1];
+  const pages = /(\d+)\s*S\./i.exec(joined)?.[1];
+  const releaseDate = DATE_PATTERN.exec(joined)?.[1];
+  const limitation = /auf\s+(\d+)\s+Ex\./i.exec(joined)?.[1];
 
   return {
     issueCode,
@@ -645,13 +645,13 @@ function parseFormat(line: string) {
 }
 
 function parsePrice(line: string) {
-  const match = line.match(PRICE_PATTERN)?.[1];
+  const match = PRICE_PATTERN.exec(line)?.[1];
   if (!match) return "0";
   return match.replaceAll(",", ".");
 }
 
 function toIsoDate(value: string) {
-  const match = value.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+  const match = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(value);
   if (!match) return "1900-01-01";
   return `${match[3]}-${match[2]}-${match[1]}`;
 }
