@@ -32,7 +32,7 @@ export function IssueCoverGalleryClient(props: Readonly<IssueCoverGalleryClientP
   });
   const activeIndex = React.useMemo(() => {
     const idx = props.issues.findIndex((item) => buildIssueVariantKey(item) === activeIssueKey);
-    return idx >= 0 ? idx : 0;
+    return Math.max(0, idx);
   }, [activeIssueKey, props.issues]);
   const activeIssue = props.issues[activeIndex] || props.issues[0];
 
@@ -103,14 +103,14 @@ export function IssueCoverGalleryClient(props: Readonly<IssueCoverGalleryClientP
   );
 }
 
-function IssueCoverGalleryFrame(props: {
+function IssueCoverGalleryFrame(props: Readonly<{
   us: boolean;
   activeIssue: PreviewIssue;
   activeIndex: number;
   maxIndex: number;
   issues: PreviewIssue[];
   onNavigate: (index: number) => void;
-}) {
+}>) {
   return (
     <Box sx={{ position: "relative", width: "100%", paddingTop: "150%" }}>
       <Box sx={{ position: "absolute", inset: 0 }}>
@@ -167,4 +167,3 @@ function coverGalleryArrowSx(side: "left" | "right") {
     },
   };
 }
-
