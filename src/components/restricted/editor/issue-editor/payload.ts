@@ -24,21 +24,23 @@ interface MutationVariables {
 
 function toOptionalFloat(value: unknown): number | undefined {
   if (value === null || value === undefined || value === "") return undefined;
-  const parsed =
-    typeof value === "number" ? value : Number.parseFloat(String(value).replace(",", ".").trim());
+  const normalized = readTextValue(value).trim();
+  if (normalized.length === 0) return undefined;
+  const parsed = typeof value === "number" ? value : Number.parseFloat(normalized.replace(",", "."));
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 function toOptionalInt(value: unknown): number | undefined {
   if (value === null || value === undefined || value === "") return undefined;
-  const parsed =
-    typeof value === "number" ? Math.trunc(value) : Number.parseInt(String(value).trim(), 10);
+  const normalized = readTextValue(value).trim();
+  if (normalized.length === 0) return undefined;
+  const parsed = typeof value === "number" ? Math.trunc(value) : Number.parseInt(normalized, 10);
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 function toOptionalString(value: unknown): string | undefined {
   if (value === null || value === undefined) return undefined;
-  const normalized = String(value).trim();
+  const normalized = readTextValue(value).trim();
   return normalized.length > 0 ? normalized : undefined;
 }
 
@@ -49,7 +51,7 @@ function toOptionalDateString(value: unknown): string | undefined {
     return value.toISOString().slice(0, 10);
   }
 
-  const normalized = String(value).trim();
+  const normalized = readTextValue(value).trim();
   if (normalized.length === 0) return undefined;
   if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return normalized;
 

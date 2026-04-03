@@ -1,8 +1,9 @@
 import type { FieldItem } from "./types";
 
 function keyValue(value: unknown) {
-  if (value === null || value === undefined) return "";
-  return String(value);
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return "";
 }
 
 export function getContainsKey(type: string, item: FieldItem, index: number) {

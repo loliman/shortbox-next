@@ -22,7 +22,7 @@ export function slugify(text: string | null | undefined): string {
     .replaceAll(/[äÄ]/g, "ae")
     .replaceAll(/[öÖ]/g, "oe")
     .replaceAll(/[üÜ]/g, "ue")
-    .replaceAll(/ß/g, "ss")
+    .replaceAll("ß", "ss")
     // Decompose accented Latin characters (e.g. é → e + ́) then strip the combining marks
     .normalize("NFD")
     .replaceAll(/[\u0300-\u036f]/g, "")

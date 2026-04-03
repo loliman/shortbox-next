@@ -17,8 +17,9 @@ export function normalizeBigInt(value: unknown) {
 
 export function normalizeFloat(value: unknown) {
   if (value === null || value === undefined || value === "") return null;
-  const numeric =
-    typeof value === "number" ? value : Number(String(value).replaceAll(",", ".").trim());
+  const normalized = normalizeText(value);
+  if (!normalized) return null;
+  const numeric = typeof value === "number" ? value : Number(normalized.replaceAll(",", "."));
   return Number.isFinite(numeric) ? numeric : null;
 }
 

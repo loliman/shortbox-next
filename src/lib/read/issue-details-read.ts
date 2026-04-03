@@ -666,7 +666,7 @@ function toIssueIndividualEntryShape(entry: any) {
 function toReleaseDateTimestamp(value: unknown): number {
   if (value instanceof Date) return value.getTime();
 
-  const parsed = new Date(String(value ?? "")).getTime();
+  const parsed = new Date(normalizeText(value)).getTime();
   return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY;
 }
 

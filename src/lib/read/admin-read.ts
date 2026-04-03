@@ -102,7 +102,7 @@ function parseTaskResult(resultJson: string) {
     return {
       status: parsed.status === "FAILED" ? ("FAILED" as const) : ("SUCCESS" as const),
       dryRun: Boolean(parsed.dryRun),
-      summary: String(parsed.summary || "Task completed"),
+      summary: toSummaryText(parsed.summary),
       details: toDetailsText(parsed.details),
       workerState: extractWorkerState(parsed.details),
     };
@@ -266,6 +266,17 @@ function toDetailsText(value: unknown): string | null {
   try {
     return JSON.stringify(value, null, 2);
   } catch {
-    return String(value);
+    return readPrimitiveText(value);
   }
+}
+
+function toSummaryText(value: unknown): string {
+  const summary = readPrimitiveText(value).trim();
+  return summary || "Task completed";
+}
+
+function readPrimitiveText(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return "";
 }

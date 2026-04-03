@@ -402,7 +402,7 @@ function dedupeStrings(values: string[]) {
 }
 
 function splitGenres(value: unknown): string[] {
-  return String(value || "")
+  return normalizePattern(value)
     .split(",")
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);

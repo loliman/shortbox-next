@@ -208,8 +208,9 @@ export function doesIssueNodeMatchSelectedIssueRoute(
 }
 
 export function normalizeIssuePart(value: unknown): string {
-  if (value === null || value === undefined) return "";
-  return String(value).trim();
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }
 
 export function normalizeIssueNumber(value: unknown): string {
@@ -354,6 +355,6 @@ export function scrollNavElementIntoView(
 export function getIssueNodeVariant(issueNode: IssueNode): string | undefined {
   const rawVariant = (issueNode as unknown as { variant?: unknown }).variant;
   if (rawVariant === null || rawVariant === undefined) return undefined;
-  const value = String(rawVariant).trim();
+  const value = normalizeIssuePart(rawVariant);
   return value === "" ? undefined : value;
 }
