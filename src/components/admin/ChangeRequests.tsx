@@ -364,7 +364,7 @@ function JsonDiffReactView(props: Readonly<{ before: JsonValue; after: JsonValue
         jsonDiffOptions={{
           maxElisions: 2,
           renderElision: (n: number, max: number) =>
-            n < max ? [...new Array(n)].map(() => "…") : `… (${n} Einträge)`,
+            n < max ? Array.from({ length: n }, () => "…") : `… (${n} Einträge)`,
         }}
       />
     </Box>
