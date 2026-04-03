@@ -133,8 +133,9 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
   };
 
   const closeSearch = (e: React.FocusEvent<HTMLElement> | React.MouseEvent<HTMLElement> | null) => {
-    const activeElement = document.activeElement as HTMLElement | null;
-    activeElement?.blur();
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     handleFocus(e, false);
   };
 

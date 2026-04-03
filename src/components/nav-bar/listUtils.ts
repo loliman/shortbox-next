@@ -53,7 +53,7 @@ export function scrollToSelectedIssue(
   const idx = items.findIndex((entry) => entry?.number === selectedIssueNumber);
   if (idx < 0) return;
 
-  const currentItem = listElement.querySelector(`[data-item-index="${idx}"]`) as HTMLElement | null;
+  const currentItem = listElement.querySelector<HTMLElement>(`[data-item-index="${idx}"]`);
   if (!currentItem) return;
 
   scrollNavElementIntoView(currentItem);

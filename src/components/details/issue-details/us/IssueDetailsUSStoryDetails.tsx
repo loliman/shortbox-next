@@ -252,6 +252,8 @@ function StoryDetailsSidebar(props: Readonly<{
   us: boolean;
   hasGermanPublished: boolean;
 }>) {
+  const sidebarItem: Record<string, unknown> = props.currentItem;
+
   return (
     <Box
       sx={(theme) => ({
@@ -267,13 +269,13 @@ function StoryDetailsSidebar(props: Readonly<{
       })}
     >
       <StoryPeopleSection
-        item={(props.currentItem as Record<string, unknown>) || {}}
+        item={sidebarItem}
         us={props.us}
         includeTranslator
         translatorOptional
       />
 
-      <StoryAppearanceSection item={(props.currentItem as Record<string, unknown>) || {}} us={props.us} />
+      <StoryAppearanceSection item={sidebarItem} us={props.us} />
     </Box>
   );
 }

@@ -18,6 +18,8 @@ interface IssueDetailsDEStoryDetailsProps {
   [key: string]: unknown;
 }
 
+type StoryDetailItem = Record<string, unknown>;
+
 export function IssueDetailsDEStoryDetails(props: Readonly<IssueDetailsDEStoryDetailsProps>) {
   const storyArcs = Array.isArray(props.item?.parent?.issue?.arcs)
     ? props.item.parent.issue.arcs.filter(
@@ -25,7 +27,7 @@ export function IssueDetailsDEStoryDetails(props: Readonly<IssueDetailsDEStoryDe
           Boolean(arc && typeof arc === "object")
       )
     : [];
-  const item = (props.item ?? {}) as Record<string, unknown>;
+  const item: StoryDetailItem = props.item ?? {};
   return (
     <React.Fragment>
       {storyArcs.length > 0 ? (

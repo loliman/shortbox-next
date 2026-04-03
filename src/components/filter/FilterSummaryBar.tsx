@@ -21,6 +21,14 @@ type FilterSummaryBarProps = {
   compactLayout?: boolean;
 };
 
+function toSelectedRoot(selected: FilterSummaryBarProps["selected"]): SelectedRoot | null {
+  if (!selected || "us" in selected && !("publisher" in selected) && !("series" in selected) && !("issue" in selected)) {
+    return null;
+  }
+
+  return selected as SelectedRoot;
+}
+
 export default function FilterSummaryBar(props: Readonly<FilterSummaryBarProps>) {
   const { isPending, push } = usePendingNavigation();
   const us = Boolean(props.us);
@@ -34,6 +42,7 @@ export default function FilterSummaryBar(props: Readonly<FilterSummaryBarProps>)
   const visible = filterLabels.slice(0, MAX_CHIPS);
   const hiddenCount = Math.max(0, filterLabels.length - visible.length);
   const compactLayout = Boolean(props.compactLayout);
+  const selectedRoot = toSelectedRoot(props.selected);
 
   return (
     <Box
@@ -85,7 +94,7 @@ export default function FilterSummaryBar(props: Readonly<FilterSummaryBarProps>)
               push(
                 buildRouteHref(us ? "/filter/us" : "/filter/de", props.query, {
                   filter: props.query?.filter ?? null,
-                  from: generateSeoUrl((props.selected || { us }) as SelectedRoot, us),
+                  from: selectedRoot ? generateSeoUrl(selectedRoot, us) : (us ? "/us" : "/de"),
                 })
               );
             }}
@@ -98,12 +107,11 @@ export default function FilterSummaryBar(props: Readonly<FilterSummaryBarProps>)
             disabled={false}
             onClick={() => {
               if (isPending) return;
-              const target = props.selected || { us };
-              if (!props.selected) {
+              if (!selectedRoot) {
                 push(us ? "/us" : "/de");
                 return;
               }
-              push(generateSeoUrl(target, us));
+              push(generateSeoUrl(selectedRoot, us));
             }}
           >
             Zurücksetzen

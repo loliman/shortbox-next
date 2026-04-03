@@ -6,6 +6,7 @@ import type { PreviewIssue } from "@/src/components/issue-preview/utils/issuePre
 import { readInitialNavigationData } from "@/src/lib/read/navigation-read";
 import { createHomeMetadata } from "@/src/lib/routes/metadata";
 import { buildHierarchyLevel, normalizePageQuery } from "@/src/lib/routes/page-state";
+import { isDatabaseUnavailable } from "@/src/lib/prisma/is-database-unavailable";
 import { readServerSession } from "@/src/lib/server/session";
 
 export const dynamic = "force-dynamic";
@@ -29,23 +30,38 @@ export default async function UsHomePage({
   const selected = { us: true };
   const level = buildHierarchyLevel(selected);
   const filterQuery = typeof query?.filter === "string" ? query.filter : null;
-  const [navigationData, initialHomeData] = await Promise.all([
-    readInitialNavigationData({
-      us: true,
-      query,
-      selected,
-      loggedIn: Boolean(session?.loggedIn),
-    }),
-    readHomeFeed({
-      us: true,
-      offset: 0,
-      limit: 50,
-      order: typeof query?.order === "string" ? query.order : null,
-      direction: typeof query?.direction === "string" ? query.direction : null,
-      filter: parseFilter(filterQuery),
-      loggedIn: Boolean(session?.loggedIn),
-    }),
-  ]);
+  let initialFilterCount = 0;
+  let initialItems: PreviewIssue[] = [];
+  let initialHasMore = false;
+  let initialNextCursor: string | null = null;
+
+  try {
+    const [navigationData, initialHomeData] = await Promise.all([
+      readInitialNavigationData({
+        us: true,
+        query,
+        selected,
+        loggedIn: Boolean(session?.loggedIn),
+      }),
+      readHomeFeed({
+        us: true,
+        offset: 0,
+        limit: 50,
+        order: typeof query?.order === "string" ? query.order : null,
+        direction: typeof query?.direction === "string" ? query.direction : null,
+        filter: parseFilter(filterQuery),
+        loggedIn: Boolean(session?.loggedIn),
+      }),
+    ]);
+    initialFilterCount = navigationData.initialFilterCount ?? 0;
+    initialItems = initialHomeData.items.filter(Boolean) as PreviewIssue[];
+    initialHasMore = initialHomeData.hasMore;
+    initialNextCursor = initialHomeData.nextCursor;
+  } catch (error) {
+    if (!isDatabaseUnavailable(error)) throw error;
+    console.warn("us home fallback: database unavailable, rendering empty initial state");
+  }
+
   return (
     <Home
       selected={selected}
@@ -53,10 +69,10 @@ export default async function UsHomePage({
       us={true}
       query={query}
       session={session}
-      initialFilterCount={navigationData.initialFilterCount}
-      initialItems={initialHomeData.items.filter(Boolean) as PreviewIssue[]}
-      initialHasMore={initialHomeData.hasMore}
-      initialNextCursor={initialHomeData.nextCursor}
+      initialFilterCount={initialFilterCount}
+      initialItems={initialItems}
+      initialHasMore={initialHasMore}
+      initialNextCursor={initialNextCursor}
     />
   );
 }
