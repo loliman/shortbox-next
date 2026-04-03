@@ -43,6 +43,66 @@ function normalizeUniqueNames(values: Array<{ name?: unknown }>): string[] {
   return [...unique.values()];
 }
 
+function readReleasedates(values: FilterValues) {
+  const releasedateExact = values.releasedateExact.trim();
+  if (releasedateExact) {
+    return [{ compare: "=", date: releasedateExact }];
+  }
+
+  const releasedateFrom = values.releasedateFrom.trim();
+  const releasedateTo = values.releasedateTo.trim();
+  const releasedates = [];
+  if (releasedateFrom) releasedates.push({ compare: ">=", date: releasedateFrom });
+  if (releasedateTo) releasedates.push({ compare: "<=", date: releasedateTo });
+  return releasedates;
+}
+
+function readSeriesPayload(values: FilterValues) {
+  return values.series
+    .map((entry) => {
+      const normalized = stripItem(entry);
+      const volume = Number(normalized.volume);
+      if (!Number.isFinite(volume)) return null;
+      normalized.volume = volume;
+      return normalized;
+    })
+    .filter((entry): entry is Record<string, unknown> => entry !== null);
+}
+
+function readNumberPayload(values: FilterValues) {
+  const numbers = [];
+  const numberVariant = "";
+  const numberExact = splitExactNumbers(values.numberExact);
+  if (numberExact.length > 0) {
+    numberExact.forEach((number) => {
+      numbers.push({ compare: "=", number, variant: numberVariant });
+    });
+    return numbers;
+  }
+
+  const numberFrom = values.numberFrom.trim();
+  const numberTo = values.numberTo.trim();
+  if (numberFrom) numbers.push({ compare: ">=", number: numberFrom, variant: numberVariant });
+  if (numberTo) numbers.push({ compare: "<=", number: numberTo, variant: numberVariant });
+  return numbers;
+}
+
+function applyCollectionFlags(payload: FilterSubmitValues, values: FilterValues) {
+  if (values.onlyCollected) {
+    payload.onlyCollected = true;
+    return;
+  }
+
+  if (values.onlyNotCollectedNoOwnedVariants) {
+    payload.onlyNotCollectedNoOwnedVariants = true;
+    return;
+  }
+
+  if (values.onlyNotCollected) {
+    payload.onlyNotCollected = true;
+  }
+}
+
 export function serializeFilterValues(
   values: FilterValues,
   us: boolean
@@ -57,16 +117,7 @@ export function serializeFilterValues(
     payload.withVariants = true;
   }
 
-  const releasedateExact = values.releasedateExact.trim();
-  const releasedateFrom = values.releasedateFrom.trim();
-  const releasedateTo = values.releasedateTo.trim();
-  const releasedates = [];
-  if (releasedateExact) {
-    releasedates.push({ compare: "=", date: releasedateExact });
-  } else {
-    if (releasedateFrom) releasedates.push({ compare: ">=", date: releasedateFrom });
-    if (releasedateTo) releasedates.push({ compare: "<=", date: releasedateTo });
-  }
+  const releasedates = readReleasedates(values);
   if (releasedates.length > 0) {
     payload.releasedates = releasedates;
   }
@@ -80,15 +131,7 @@ export function serializeFilterValues(
   }
 
   if (values.series.length > 0) {
-    payload.series = values.series
-      .map((entry) => {
-        const normalized = stripItem(entry);
-        const volume = Number(normalized.volume);
-        if (!Number.isFinite(volume)) return null;
-        normalized.volume = volume;
-        return normalized;
-      })
-      .filter((entry): entry is Record<string, unknown> => Boolean(entry));
+    payload.series = readSeriesPayload(values);
   }
 
   if (values.genres.length > 0) {
@@ -96,19 +139,7 @@ export function serializeFilterValues(
     if (genres.length > 0) payload.genres = genres;
   }
 
-  const numbers = [];
-  const numberVariant = "";
-  const numberExact = splitExactNumbers(values.numberExact);
-  const numberFrom = values.numberFrom.trim();
-  const numberTo = values.numberTo.trim();
-  if (numberExact.length > 0) {
-    numberExact.forEach((number) => {
-      numbers.push({ compare: "=", number, variant: numberVariant });
-    });
-  } else {
-    if (numberFrom) numbers.push({ compare: ">=", number: numberFrom, variant: numberVariant });
-    if (numberTo) numbers.push({ compare: "<=", number: numberTo, variant: numberVariant });
-  }
+  const numbers = readNumberPayload(values);
   if (numbers.length > 0) {
     payload.numbers = numbers;
   }
@@ -163,12 +194,7 @@ export function serializeFilterValues(
     "onlyOnePrint",
     "notOnlyOnePrint"
   );
-  if (values.onlyCollected) payload.onlyCollected = true;
-  if (!values.onlyCollected && values.onlyNotCollectedNoOwnedVariants) {
-    payload.onlyNotCollectedNoOwnedVariants = true;
-  } else if (!values.onlyCollected && values.onlyNotCollected) {
-    payload.onlyNotCollected = true;
-  }
+  applyCollectionFlags(payload, values);
   if (values.noComicguideId) payload.noComicguideId = true;
   if (values.noContent) payload.noContent = true;
 

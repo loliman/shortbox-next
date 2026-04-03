@@ -4,7 +4,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import FilterSwitch from "./FilterSwitch";
 
-describe.skip("FilterSwitch", () => {
+describe("FilterSwitch", () => {
   it("toggles switch through user click", async () => {
     const user = userEvent.setup();
     const onToggle = jest.fn();

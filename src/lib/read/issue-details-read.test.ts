@@ -1,18 +1,19 @@
 jest.mock("server-only", () => ({}), { virtual: true });
 
-const findMany = jest.fn();
-const findUnique = jest.fn();
-
 jest.mock("../prisma/client", () => ({
   prisma: {
     issue: {
-      findMany,
-      findUnique,
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
     },
   },
 }));
 
+import { prisma } from "../prisma/client";
 import { readIssueDetailStories, readIssueDetails } from "./issue-details-read";
+
+const findMany = prisma.issue.findMany as jest.Mock;
+const findUnique = prisma.issue.findUnique as jest.Mock;
 
 function createIssueRecord(overrides: Record<string, unknown> = {}) {
   return {

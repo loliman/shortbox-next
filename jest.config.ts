@@ -1,17 +1,17 @@
+import nextJest from "next/jest.js";
 import type { Config } from "jest";
 
+const createJestConfig = nextJest({
+  dir: "./",
+});
+
 const config: Config = {
-  preset: "ts-jest",
   // The default repository baseline is node-friendly Jest tests. Some existing
   // browser-oriented and Vitest-style tests are still present in the repo but
   // are not yet part of this execution model.
   testEnvironment: "node",
   roots: ["<rootDir>/src"],
   testMatch: ["**/*.test.ts", "**/*.test.tsx"],
-  moduleNameMapper: {
-    "^@/src/(.*)$": "<rootDir>/src/$1",
-    "^@/(.*)$": "<rootDir>/$1",
-  },
   testPathIgnorePatterns: [
     "/node_modules/",
     "src/components/top-bar/SearchBar.test.tsx",
@@ -27,8 +27,8 @@ const config: Config = {
     "src/components/restricted/editor/issue-editor/IssueEditorHints.test.tsx",
     "src/components/fab/AddFab.test.tsx",
     "src/components/footer/FooterLinks.test.tsx",
-    "src/components/generic/AppContext.test.tsx"
+    "src/components/generic/AppContext.test.tsx",
   ],
 };
 
-export default config;
+export default createJestConfig(config);

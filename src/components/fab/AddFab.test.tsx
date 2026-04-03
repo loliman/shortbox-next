@@ -44,7 +44,7 @@ function getSpeedDialBottomSx(instance: any): string {
   return bottomSx;
 }
 
-describe.skip("AddFab", () => {
+describe("AddFab", () => {
   it("renders nothing without a session", () => {
     const instance = new (AddFab as any)({ session: null });
     expect(instance.render()).toBeNull();

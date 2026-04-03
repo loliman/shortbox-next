@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 
 import FooterLinks from "./FooterLinks";
 
-describe.skip("FooterLinks", () => {
+describe("FooterLinks", () => {
   it("renders footer links and forwards navigation", () => {
     const navigate = jest.fn();
     render(<FooterLinks navigate={navigate} isPhonePortrait={false} />);

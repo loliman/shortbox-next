@@ -241,7 +241,7 @@ function Privacy() {
               >
                 Informationsseite der EU-Kommission
               </a>
-              ).
+              {" "}).
             </Typography>
           </Stack>
 
@@ -266,7 +266,7 @@ function Privacy() {
               <Box component="span" sx={{ display: "block" }} />
               Sie haben das Recht zu verlangen, dass die Sie betreffenden Daten, die Sie uns
               bereitgestellt haben nach Maßgabe der gesetzlichen Vorgaben zu erhalten und deren
-              Übermittlung an andere Verantwortliche zu fordern.{" "}
+              Übermittlung an andere Verantwortliche zu fordern.
               <Box component="span" sx={{ display: "block" }} />
               <Box component="span" sx={{ display: "block" }} />
               Sie haben ferner nach Maßgabe der gesetzlichen Vorgaben das Recht, eine Beschwerde bei
@@ -304,7 +304,7 @@ function Privacy() {
               oder in ihrer Verarbeitung eingeschränkt. Sofern nicht im Rahmen dieser
               Datenschutzerklärung ausdrücklich angegeben, werden die bei uns gespeicherten Daten
               gelöscht, sobald sie für ihre Zweckbestimmung nicht mehr erforderlich sind und der
-              Löschung keine gesetzlichen Aufbewahrungspflichten entgegenstehen.{" "}
+              Löschung keine gesetzlichen Aufbewahrungspflichten entgegenstehen.
               <Box component="span" sx={{ display: "block" }} />
               <Box component="span" sx={{ display: "block" }} />
               Sofern die Daten nicht gelöscht werden, weil sie für andere und gesetzlich zulässige
@@ -357,7 +357,7 @@ function Privacy() {
               zu Zwecken der Darstellung der Bilder im Browser der Nutzer verwendet. Die Einbindung
               erfolgt auf Grundlage unserer berechtigten Interessen an einer korrekten und
               vollständigen Darstellung von US Covern, sowie Berücksichtigung möglicher
-              lizenzrechtlicher Restriktionen für deren Einbindung. Datenschutzerklärung:
+              lizenzrechtlicher Restriktionen für deren Einbindung. Datenschutzerklärung:{" "}
               <a
                 target="_blank"
                 rel="noopener noreferrer nofollow"
@@ -378,7 +378,7 @@ function Privacy() {
               Zwecken der Darstellung der Bilder im Browser der Nutzer verwendet. Die Einbindung
               erfolgt auf Grundlage unserer berechtigten Interessen an einer korrekten und
               vollständigen Darstellung von Covern deutscher Ausgaben, sowie Berücksichtigung
-              möglicher lizenzrechtlicher Restriktionen für deren Einbindung. Datenschutzerklärung:
+              möglicher lizenzrechtlicher Restriktionen für deren Einbindung. Datenschutzerklärung:{" "}
               <a
                 target="_blank"
                 rel="noopener noreferrer nofollow"

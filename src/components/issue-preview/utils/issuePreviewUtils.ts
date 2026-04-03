@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { getPreferredCoverUrl } from "../../generic/coverUrl";
 
 interface StoryParent {
-  children?: Array<unknown | null> | null;
+  children?: Array<Record<string, unknown> | null> | null;
   collectedmultipletimes?: boolean | null;
 }
 
@@ -17,8 +17,8 @@ interface StoryLike {
   exclusive?: boolean | null;
   onlyoneprint?: boolean | null;
   onlytb?: boolean | null;
-  reprintOf?: unknown;
-  reprints?: Array<unknown | null> | null;
+  reprintOf?: Record<string, unknown> | null;
+  reprints?: Array<Record<string, unknown> | null> | null;
   parent?: StoryParent | null;
   children?: Array<StoryChild | null> | null;
   collectedmultipletimes?: boolean | null;
@@ -75,11 +75,7 @@ export function getIssueVariantLabel(issue: PreviewIssue): string {
   return variant;
 }
 
-export function getIssuePreviewCover(
-  issue: PreviewIssue,
-  us: boolean
-): { coverUrl: string; blurCover: boolean } {
-  void us;
+export function getIssuePreviewCover(issue: PreviewIssue): { coverUrl: string; blurCover: boolean } {
   const coverUrl = getPreferredCoverUrl(issue);
   if (coverUrl) return { coverUrl, blurCover: false };
 

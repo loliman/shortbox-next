@@ -230,7 +230,7 @@ function StoryGermanPublishedSection(props: Readonly<{
                 key={toIssueRowKey(relation, idx)}
                 issue={child.issue}
                 number={child.number}
-                subtitle={addinfoText ? addinfoText : null}
+                subtitle={addinfoText || null}
                 titleSuffix={child.issue.title ? " - " + child.issue.title : ""}
                 parentLink={parentLink}
                 routeUs={false}

@@ -4,7 +4,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import FormActions from "./FormActions";
 
-describe.skip("FormActions", () => {
+describe("FormActions", () => {
   it("invokes reset/cancel/submit handlers when enabled", async () => {
     const user = userEvent.setup();
     const onReset = jest.fn();

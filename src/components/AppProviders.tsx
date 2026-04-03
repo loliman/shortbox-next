@@ -59,11 +59,11 @@ function ThemeModeBridge(props: Readonly<AppProvidersProps>) {
   }, [themeMode]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (globalThis.window === undefined) return;
 
-    const phoneMediaQuery = window.matchMedia(PHONE_MEDIA_QUERY);
-    const desktopMediaQuery = window.matchMedia(DESKTOP_MEDIA_QUERY);
-    const landscapeMediaQuery = window.matchMedia(LANDSCAPE_MEDIA_QUERY);
+    const phoneMediaQuery = globalThis.matchMedia(PHONE_MEDIA_QUERY);
+    const desktopMediaQuery = globalThis.matchMedia(DESKTOP_MEDIA_QUERY);
+    const landscapeMediaQuery = globalThis.matchMedia(LANDSCAPE_MEDIA_QUERY);
 
     const writeResponsiveGuessCookie = () => {
       const guess = {
@@ -79,15 +79,15 @@ function ThemeModeBridge(props: Readonly<AppProvidersProps>) {
     phoneMediaQuery.addEventListener("change", writeResponsiveGuessCookie);
     desktopMediaQuery.addEventListener("change", writeResponsiveGuessCookie);
     landscapeMediaQuery.addEventListener("change", writeResponsiveGuessCookie);
-    window.addEventListener("resize", writeResponsiveGuessCookie);
-    window.addEventListener("orientationchange", writeResponsiveGuessCookie);
+    globalThis.addEventListener("resize", writeResponsiveGuessCookie);
+    globalThis.addEventListener("orientationchange", writeResponsiveGuessCookie);
 
     return () => {
       phoneMediaQuery.removeEventListener("change", writeResponsiveGuessCookie);
       desktopMediaQuery.removeEventListener("change", writeResponsiveGuessCookie);
       landscapeMediaQuery.removeEventListener("change", writeResponsiveGuessCookie);
-      window.removeEventListener("resize", writeResponsiveGuessCookie);
-      window.removeEventListener("orientationchange", writeResponsiveGuessCookie);
+      globalThis.removeEventListener("resize", writeResponsiveGuessCookie);
+      globalThis.removeEventListener("orientationchange", writeResponsiveGuessCookie);
     };
   }, []);
 

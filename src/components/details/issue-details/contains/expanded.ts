@@ -135,7 +135,7 @@ function matchesNumberFilters(compareIssue: IssueLike, filter: ExpandedFilter): 
 
   const filterNumbers = toArray(filter.numbers);
   return filterNumbers.some((number) => {
-    if (!number || number.number === undefined || !number.compare) return false;
+    if (number?.number === undefined || !number?.compare) return false;
 
     const comparison = compareIssueNumbers(String(compareIssue.number), String(number.number));
     return (

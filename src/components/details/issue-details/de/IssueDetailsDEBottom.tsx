@@ -10,15 +10,17 @@ import type { ItemLike } from "../contains/expanded";
 import { readIssueDetailStories } from "@/src/lib/read/issue-details-read";
 
 interface IssueDetailsDEBottomProps {
-  issue?: {
-    id?: string | number | null;
-    storyOwnerId?: string | number | null;
-    comicguideid?: string | number | null;
-    series?: Record<string, unknown>;
-    number?: string | number;
-  };
+  issue?: IssueDetailsDeBottomIssue;
   [key: string]: unknown;
 }
+
+type IssueDetailsDeBottomIssue = {
+  id?: string | number | null;
+  storyOwnerId?: string | number | null;
+  comicguideid?: string | number | null;
+  series?: Record<string, unknown>;
+  number?: string | number;
+};
 
 export async function IssueDetailsDEBottom(props: Readonly<IssueDetailsDEBottomProps>) {
   const issue = props.issue ?? {};

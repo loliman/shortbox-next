@@ -12,7 +12,7 @@ export type VariantIssue = {
     volume?: number | null;
     publisher?: { name?: string | null; us?: boolean | null } | null;
   } | null;
-  stories?: Array<unknown | null> | null;
+  stories?: Array<Record<string, unknown> | null> | null;
   storyOwner?: {
     number?: string | null;
     legacy_number?: string | null;

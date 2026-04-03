@@ -83,7 +83,7 @@ export function IssueVariants(props: Readonly<IssueVariantsProps>) {
     variants.find((variant) => buildIssueVariantKey(variant) === activeKey) || variants[0];
   const activeVariantHasOwnStories =
     Boolean(props.session) && hasOwnStoriesForBadge(activeVariant, props.issue.storyOwner);
-  const candidateActiveCoverUrl = getVariantCoverUrl(activeVariant, Boolean(props.us));
+  const candidateActiveCoverUrl = getVariantCoverUrl(activeVariant);
   const { resolvedUrl: activeCoverUrl, isLoading: isActiveCoverLoading } = useResolvedImageUrl(
     candidateActiveCoverUrl,
     NO_COVER_URL
@@ -524,8 +524,7 @@ function normalizeSortText(value: string | null | undefined): string {
   return value?.trim() || "";
 }
 
-function getVariantCoverUrl(variant: VariantIssue | null | undefined, us: boolean): string {
-  void us;
+function getVariantCoverUrl(variant: VariantIssue | null | undefined): string {
   const coverUrl = variant ? getPreferredCoverUrl(variant) : "";
   if (coverUrl) return coverUrl;
   return NO_COVER_URL;
