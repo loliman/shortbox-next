@@ -85,6 +85,67 @@ function extractRealityTerms(filter: RuntimeFilter) {
     : splitFilterTerms(filter.realities as string | null | undefined);
 }
 
+function readDirectFormats(filter: RuntimeFilter) {
+  return (filter.formats || [])
+    .map((format) => readTextValue(format))
+    .filter((format) => format.length > 0);
+}
+
+function readDirectPublisherNames(filter: RuntimeFilter) {
+  return (filter.publishers || [])
+    .map((publisher) => readTextValue(publisher?.name))
+    .filter((name) => name.length > 0);
+}
+
+function readDirectSeriesConditions(filter: RuntimeFilter) {
+  return (filter.series || [])
+    .map((series) => {
+      const title = readTextValue(series?.title);
+      const volume = typeof series?.volume === "number" ? series.volume : null;
+      if (!title || volume === null) return null;
+      return { title, volume: BigInt(volume) };
+    })
+    .filter((entry): entry is { title: string; volume: bigint } => Boolean(entry));
+}
+
+function buildArcTermIssueWhere(term: string, us: boolean): Prisma.IssueWhereInput {
+  if (us) {
+    return {
+      arcs: {
+        some: {
+          arc: {
+            title: {
+              contains: term,
+              mode: "insensitive",
+            },
+          },
+        },
+      },
+    };
+  }
+
+  return {
+    stories: {
+      some: {
+        parent: {
+          issue: {
+            arcs: {
+              some: {
+                arc: {
+                  title: {
+                    contains: term,
+                    mode: "insensitive",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+}
+
 function parseFilterDate(raw: string | null | undefined): Date | null {
   const value = readTextValue(raw);
   if (!value) return null;
@@ -149,9 +210,7 @@ export function buildDirectIssueFilterWhere(
     },
   ];
 
-  const formats = (runtimeFilter.formats || [])
-    .map((format) => readTextValue(format))
-    .filter((format) => format.length > 0);
+  const formats = readDirectFormats(runtimeFilter);
   if (formats.length > 0) and.push({ format: { in: formats } });
 
   and.push(...buildReleaseDateWhereClauses(runtimeFilter.releasedates));
@@ -167,9 +226,7 @@ export function buildDirectIssueFilterWhere(
   if (runtimeFilter.onlyCollected) and.push({ collected: true });
   if (runtimeFilter.onlyNotCollected) and.push({ collected: false });
 
-  const publisherNames = (runtimeFilter.publishers || [])
-    .map((publisher) => readTextValue(publisher?.name))
-    .filter((name) => name.length > 0);
+  const publisherNames = readDirectPublisherNames(runtimeFilter);
   if (publisherNames.length > 0) {
     and.push({
       series: {
@@ -182,14 +239,7 @@ export function buildDirectIssueFilterWhere(
     });
   }
 
-  const seriesConditions = (runtimeFilter.series || [])
-    .map((series) => {
-      const title = readTextValue(series?.title);
-      const volume = typeof series?.volume === "number" ? series.volume : null;
-      if (!title || volume === null) return null;
-      return { title, volume: BigInt(volume) };
-    })
-    .filter((entry): entry is { title: string; volume: bigint } => Boolean(entry));
+  const seriesConditions = readDirectSeriesConditions(runtimeFilter);
   if (seriesConditions.length > 0) {
     and.push({
       OR: seriesConditions.map((series) => ({
@@ -218,41 +268,7 @@ export function buildDirectIssueFilterWhere(
   const arcTerms = extractArcTerms(runtimeFilter);
   if (arcTerms.length > 0) {
     and.push({
-      AND: arcTerms.map((term) =>
-        runtimeFilter.us
-          ? {
-              arcs: {
-                some: {
-                  arc: {
-                    title: {
-                      contains: term,
-                      mode: "insensitive",
-                    },
-                  },
-                },
-              },
-            }
-          : {
-              stories: {
-                some: {
-                  parent: {
-                    issue: {
-                      arcs: {
-                        some: {
-                          arc: {
-                            title: {
-                              contains: term,
-                              mode: "insensitive",
-                            },
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            }
-      ),
+      AND: arcTerms.map((term) => buildArcTermIssueWhere(term, Boolean(runtimeFilter.us))),
     });
   }
 

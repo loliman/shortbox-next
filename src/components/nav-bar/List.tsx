@@ -78,7 +78,7 @@ function applyInitialViewportSelection(input: {
   initialViewportSelection: InitialViewportSelection | null;
   navStateKey: string;
   selectedRowKey: string | null;
-  initialViewportAppliedKeyRef: React.MutableRefObject<string | null>;
+  initialViewportAppliedKeyRef: { current: string | null };
   scrollRowIntoView: (rowKey: string, force?: boolean, behavior?: ScrollBehavior) => boolean;
 }) {
   if (!input.canUseInitialViewportModel) return false;

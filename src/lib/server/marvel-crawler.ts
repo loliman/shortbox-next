@@ -1103,8 +1103,7 @@ function parseArcsFromPartOf($: cheerio.CheerioAPI): CrawledArc[] {
       const valueNode = $(el).find(".pi-data-value").first();
       return { label, value, valueNode };
     })
-    .filter(({ label, value }) => label === "part of" || /^part of the\b/i.test(value))
-    .filter(({ value }) => /part of the/i.test(value) && value.length <= 320);
+    .filter(({ label, value }) => isPartOfArcCandidate(label, value));
 
   const arcs: CrawledArc[] = [];
   const trailingArcMetadataPattern = /\s+\(([^()]+)\)\s*$/;
@@ -1150,15 +1149,12 @@ function parseArcsFromPartOf($: cheerio.CheerioAPI): CrawledArc[] {
     arcs.push({ title: normalizedTitle, type });
   };
 
-  for (const candidate of candidates) {
-    const html = candidate.valueNode.html() || "";
-    if (!html) continue;
-
+  const collectSegmentArcMatches = (html: string) => {
     const segments = html
       .split(/<br\s*\/?>/i)
       .map((segment) => ws(segment))
       .filter(Boolean);
-    if (segments.length === 0) continue;
+    const matches: Array<{ title: string; type: string }> = [];
 
     for (const segment of segments) {
       const $$ = cheerio.load(`<root>${segment}</root>`);
@@ -1170,14 +1166,23 @@ function parseArcsFromPartOf($: cheerio.CheerioAPI): CrawledArc[] {
       const segmentTypeMatch = segmentTypePattern.exec(segmentText);
       const segmentType = segmentTypeMatch ? segmentTypeMatch[1] : "";
       const linkedArcs = collectNormalizedEntityNamesFromLinks($$, root);
-
-      for (const arcTitle of linkedArcs) {
-        addArc(arcTitle, segmentType);
-      }
+      linkedArcs.forEach((title) => matches.push({ title, type: segmentType }));
     }
+
+    return matches;
+  };
+
+  for (const candidate of candidates) {
+    const html = candidate.valueNode.html() || "";
+    if (!html) continue;
+    collectSegmentArcMatches(html).forEach(({ title, type }) => addArc(title, type));
   }
 
   return arcs;
+}
+
+function isPartOfArcCandidate(label: string, value: string) {
+  return (label === "part of" || /^part of the\b/i.test(value)) && /part of the/i.test(value) && value.length <= 320;
 }
 
 /* ====================

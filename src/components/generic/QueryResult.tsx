@@ -57,14 +57,13 @@ export default function QueryResult(props: Readonly<QueryResultProps>) {
 
 function buildPlaceholders(
   placeholder: React.ReactElement<{ key?: React.Key }> | undefined,
-  placeholderCount: number | undefined
+  placeholderCount = 1
 ) {
   if (!placeholder) return null;
 
   const rendered: React.ReactElement[] = [];
-  const count = placeholderCount || 1;
 
-  for (let index = 0; index < count; index += 1) {
+  for (let index = 0; index < placeholderCount; index += 1) {
     rendered.push(
       React.cloneElement(placeholder, {
         key: index,

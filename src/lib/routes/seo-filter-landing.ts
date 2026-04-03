@@ -8,7 +8,6 @@ import {
   generatePersonSlug,
 } from "../slug-builder";
 import {
-  parseAppearanceSlug,
   parseArcSlug,
   parseGenreSlug,
   parsePersonSlug,
@@ -156,67 +155,60 @@ async function findAppearanceNameBySlug(slug: string): Promise<string | null> {
   }
 }
 
-export async function resolveSeoFilterLanding(
-  input: ResolveInput
-): Promise<ResolvedSeoFilterLanding | null> {
-  const safeSlug = validateSlug(input.slug);
-  if (!safeSlug) return null;
+async function resolvePersonLanding(input: ResolveInput, safeSlug: string) {
+  const parsed = parsePersonSlug(safeSlug);
+  if (!parsed) return null;
 
-  if (input.kind === "person") {
-    const parsed = parsePersonSlug(safeSlug);
-    if (!parsed) return null;
+  const match = await findAutocompleteMatch<{ name?: string }>({
+    source: "individuals",
+    variables: { pattern: parsed },
+    matches: (entry) => generatePersonSlug(readEntryName(entry)) === safeSlug,
+  });
+  if (!match?.name) return null;
 
-    const match = await findAutocompleteMatch<{ name?: string }>({
-      source: "individuals",
-      variables: { pattern: parsed },
-      matches: (entry) => generatePersonSlug(readEntryName(entry)) === safeSlug,
-    });
+  return makeResolved({
+    us: input.us,
+    kind: input.kind,
+    canonicalSlug: generatePersonSlug(match.name),
+    entityLabel: match.name,
+    filterPayload: { individuals: [{ name: match.name }] },
+  });
+}
 
-    if (!match?.name) return null;
+async function resolveArcLanding(input: ResolveInput, safeSlug: string) {
+  const parsed = parseArcSlug(safeSlug);
+  if (!parsed) return null;
 
-    return makeResolved({
-      us: input.us,
-      kind: input.kind,
-      canonicalSlug: generatePersonSlug(match.name),
-      entityLabel: match.name,
-      filterPayload: { individuals: [{ name: match.name }] },
-    });
-  }
+  const match = await findAutocompleteMatch<{ title?: string }>({
+    source: "arcs",
+    variables: { pattern: parsed },
+    matches: (entry) => generateArcSlug(readEntryTitle(entry)) === safeSlug,
+  });
+  if (!match?.title) return null;
 
-  if (input.kind === "arc") {
-    const parsed = parseArcSlug(safeSlug);
-    if (!parsed) return null;
+  return makeResolved({
+    us: input.us,
+    kind: input.kind,
+    canonicalSlug: generateArcSlug(match.title),
+    entityLabel: match.title,
+    filterPayload: { arcs: [{ title: match.title }] },
+  });
+}
 
-    const match = await findAutocompleteMatch<{ title?: string }>({
-      source: "arcs",
-      variables: { pattern: parsed },
-      matches: (entry) => generateArcSlug(readEntryTitle(entry)) === safeSlug,
-    });
+async function resolveAppearanceLanding(input: ResolveInput, safeSlug: string) {
+  const matchName = await findAppearanceNameBySlug(safeSlug);
+  if (!matchName) return null;
 
-    if (!match?.title) return null;
+  return makeResolved({
+    us: input.us,
+    kind: input.kind,
+    canonicalSlug: generateAppearanceSlug(matchName),
+    entityLabel: matchName,
+    filterPayload: { appearances: [{ name: matchName }] },
+  });
+}
 
-    return makeResolved({
-      us: input.us,
-      kind: input.kind,
-      canonicalSlug: generateArcSlug(match.title),
-      entityLabel: match.title,
-      filterPayload: { arcs: [{ title: match.title }] },
-    });
-  }
-
-  if (input.kind === "appearance") {
-    const matchName = await findAppearanceNameBySlug(safeSlug);
-    if (!matchName) return null;
-
-    return makeResolved({
-      us: input.us,
-      kind: input.kind,
-      canonicalSlug: generateAppearanceSlug(matchName),
-      entityLabel: matchName,
-      filterPayload: { appearances: [{ name: matchName }] },
-    });
-  }
-
+async function resolveGenreLanding(input: ResolveInput, safeSlug: string) {
   const parsed = parseGenreSlug(safeSlug);
   if (!parsed) return null;
 
@@ -225,7 +217,6 @@ export async function resolveSeoFilterLanding(
     variables: { pattern: parsed },
     matches: (entry) => generateGenreSlug(readEntryName(entry)) === safeSlug,
   });
-
   if (!match?.name) return null;
 
   return makeResolved({
@@ -235,4 +226,16 @@ export async function resolveSeoFilterLanding(
     entityLabel: match.name,
     filterPayload: { genres: [match.name] },
   });
+}
+
+export async function resolveSeoFilterLanding(
+  input: ResolveInput
+): Promise<ResolvedSeoFilterLanding | null> {
+  const safeSlug = validateSlug(input.slug);
+  if (!safeSlug) return null;
+
+  if (input.kind === "person") return resolvePersonLanding(input, safeSlug);
+  if (input.kind === "arc") return resolveArcLanding(input, safeSlug);
+  if (input.kind === "appearance") return resolveAppearanceLanding(input, safeSlug);
+  return resolveGenreLanding(input, safeSlug);
 }

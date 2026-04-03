@@ -170,11 +170,9 @@ function readLegacyIssueRouteParams(
   const legacyPublisher = decodeURIComponent(params.publisher);
   const legacySeries = decodeURIComponent(params.series);
   const legacyIssue = decodeURIComponent(params.issue);
-  const formatSlug = hasFormatParam
-    ? routeFormat || undefined
-    : legacyFormatSegment && !hasLegacyVariantSeparator
-      ? legacyFormatSegment
-      : undefined;
+  let formatSlug: string | undefined;
+  if (hasFormatParam) formatSlug = routeFormat || undefined;
+  else if (legacyFormatSegment && !hasLegacyVariantSeparator) formatSlug = legacyFormatSegment;
   const variantSlug = hasFormatParam ? routeVariant || undefined : undefined;
   const parsed = parseIssueUrl(legacyPublisher, legacySeries, legacyIssue, formatSlug, variantSlug);
 
@@ -190,16 +188,15 @@ function readLegacySeriesSelection(params: RouteParams, selected: SelectedRoot) 
   const hasSeparator = separatorIndex > -1;
   const legacySeparatorIndex = seriesValue.lastIndexOf("_");
   const hasLegacySeparator = !hasSeparator && legacySeparatorIndex > -1;
-  const title = hasSeparator
-    ? seriesValue.substring(0, separatorIndex)
-    : hasLegacySeparator
-      ? seriesValue.substring(0, legacySeparatorIndex)
-      : seriesValue;
-  const volumeText = hasSeparator
-    ? seriesValue.substring(separatorIndex + volumeSeparator.length)
-    : hasLegacySeparator
-      ? seriesValue.substring(legacySeparatorIndex + 1)
-      : "1";
+  let title = seriesValue;
+  let volumeText = "1";
+  if (hasSeparator) {
+    title = seriesValue.substring(0, separatorIndex);
+    volumeText = seriesValue.substring(separatorIndex + volumeSeparator.length);
+  } else if (hasLegacySeparator) {
+    title = seriesValue.substring(0, legacySeparatorIndex);
+    volumeText = seriesValue.substring(legacySeparatorIndex + 1);
+  }
   const parsedVolume = Number.parseInt(volumeText, 10);
 
   selected.series = {
@@ -277,6 +274,26 @@ function buildIssueLabel(item: SelectedRoot["issue"]): string {
   );
 }
 
+function buildParsedLegacySeriesSelection(
+  legacyPublisher: string,
+  legacySeries: string,
+  selected: SelectedRoot
+) {
+  const parsedPublisher = parsePublisherSlug(legacyPublisher);
+  const parsedSeries = parseSeriesSlug(legacySeries);
+  if (!parsedPublisher || !parsedSeries) return null;
+
+  return {
+    ...selected,
+    series: {
+      title: parsedSeries.title,
+      volume: parsedSeries.volume,
+      startyear: parsedSeries.year || undefined,
+      publisher: { name: parsedPublisher },
+    },
+  };
+}
+
 export function getSelected(params: RouteParams, us: boolean): SelectedRoot {
   const selected: SelectedRoot = { us };
 
@@ -318,17 +335,8 @@ export function getSelected(params: RouteParams, us: boolean): SelectedRoot {
   }
 
   if (legacyPublisher && legacySeries && !legacyIssue) {
-    const parsedPublisher = parsePublisherSlug(legacyPublisher);
-    const parsedSeries = parseSeriesSlug(legacySeries);
-    if (parsedPublisher && parsedSeries) {
-      selected.series = {
-        title: parsedSeries.title,
-        volume: parsedSeries.volume,
-        startyear: parsedSeries.year || undefined,
-        publisher: { name: parsedPublisher },
-      };
-      return selected;
-    }
+    const parsedSeriesSelection = buildParsedLegacySeriesSelection(legacyPublisher, legacySeries, selected);
+    if (parsedSeriesSelection) return parsedSeriesSelection;
   }
 
   if (legacyPublisher && !legacySeries && !legacyIssue) {

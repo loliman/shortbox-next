@@ -212,32 +212,42 @@ function analyzeChildGroup(childrenInGroup: StoryWithIssue[]) {
   let tbCount = 0;
   let notTbCount = 0;
 
+  const updateEarliest = (
+    currentId: bigint | null,
+    currentTimestamp: number,
+    child: StoryWithIssue,
+    releaseTimestamp: number
+  ) => {
+    const childId = toPositiveInt(child.id) || Number.MAX_SAFE_INTEGER;
+    const bestId = currentId == null ? Number.MAX_SAFE_INTEGER : Number(currentId);
+    if (releaseTimestamp < currentTimestamp) return { id: child.id, timestamp: releaseTimestamp };
+    if (releaseTimestamp === currentTimestamp && childId < bestId) {
+      return { id: child.id, timestamp: currentTimestamp };
+    }
+    return { id: currentId, timestamp: currentTimestamp };
+  };
+
   for (const child of childrenInGroup) {
     const childIssue = child.issue;
-    const isPocketBook = isPocketBookFormat(childIssue?.format);
-    if (isPocketBook) tbCount += 1;
+    if (isPocketBookFormat(childIssue?.format)) tbCount += 1;
     else notTbCount += 1;
 
     const releaseTimestamp = toDateTimestamp(childIssue?.releaseDate);
-    const childId = toPositiveInt(child.id) || Number.MAX_SAFE_INTEGER;
     if (isPartialPublicationStart(child.part)) {
-      const bestId = firstPartialChildId == null ? Number.MAX_SAFE_INTEGER : Number(firstPartialChildId);
-      if (releaseTimestamp < firstPartialTimestamp) {
-        firstPartialTimestamp = releaseTimestamp;
-        firstPartialChildId = child.id;
-      } else if (releaseTimestamp === firstPartialTimestamp && childId < bestId) {
-        firstPartialChildId = child.id;
-      }
+      const nextPartial = updateEarliest(
+        firstPartialChildId,
+        firstPartialTimestamp,
+        child,
+        releaseTimestamp
+      );
+      firstPartialChildId = nextPartial.id;
+      firstPartialTimestamp = nextPartial.timestamp;
     }
 
     if (isCompletePublication(child.part)) {
-      const bestId = firstFullChildId == null ? Number.MAX_SAFE_INTEGER : Number(firstFullChildId);
-      if (releaseTimestamp < firstFullTimestamp) {
-        firstFullTimestamp = releaseTimestamp;
-        firstFullChildId = child.id;
-      } else if (releaseTimestamp === firstFullTimestamp && childId < bestId) {
-        firstFullChildId = child.id;
-      }
+      const nextFull = updateEarliest(firstFullChildId, firstFullTimestamp, child, releaseTimestamp);
+      firstFullChildId = nextFull.id;
+      firstFullTimestamp = nextFull.timestamp;
     }
   }
 

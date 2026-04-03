@@ -156,11 +156,13 @@ export function getIssuePreviewFlags(
 ): IssuePreviewFlags {
   const stories = readStories(issue);
   const flags = readStoryFlags(stories, us);
-  const collectionState = hasSession
-    ? us
+  let collectionState = { collected: false, collectedMultipleTimes: false, sellable: 0 };
+
+  if (hasSession) {
+    collectionState = us
       ? readUsCollectionState(stories, Boolean(issue.collected))
-      : readDeCollectionState(stories, Boolean(issue.collected))
-    : { collected: false, collectedMultipleTimes: false, sellable: 0 };
+      : readDeCollectionState(stories, Boolean(issue.collected));
+  }
 
   return {
     collected: collectionState.collected,

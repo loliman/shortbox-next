@@ -148,10 +148,11 @@ function applySelectionAction(
         return selected.filter(
           (entry) => `${entry.name}${entry.type}` !== `${payload.removedValue?.name}${payload.type}`
         );
+      } else {
+        const previous = selected.find((entry) => entry.name === payload.removedValue?.name);
+        if (previous) removeIndividualType(previous, payload.type);
+        return selected;
       }
-      const previous = selected.find((entry) => entry.name === payload.removedValue?.name);
-      if (previous) removeIndividualType(previous, payload.type);
-      return selected;
     case "clear":
       if (appearanceMode) return selected.filter((entry) => entry.type !== payload.type);
       selected.forEach((entry) => removeIndividualType(entry, payload.type));

@@ -475,27 +475,28 @@ function matchesIndividuals(issue: FilterIssueRecord, individuals: RuntimeFilter
 }
 
 function collectStorySwitchConditions(stories: FilterStoryShape[], filter: RuntimeFilter): boolean[] {
-  const conditions: boolean[] = [];
-  if (filter.firstPrint) conditions.push(stories.some((story) => story.firstApp));
-  if (filter.notFirstPrint) conditions.push(stories.some((story) => !story.firstApp));
-  if (filter.onlyPrint) conditions.push(stories.some((story) => story.onlyApp));
-  if (filter.notOnlyPrint) conditions.push(stories.some((story) => !story.onlyApp));
-  if (filter.onlyTb) conditions.push(stories.some((story) => story.onlyTb));
-  if (filter.notOnlyTb) conditions.push(stories.some((story) => !story.onlyTb));
-  if (filter.exclusive) conditions.push(stories.some((story) => !story.parent));
-  if (filter.notExclusive) conditions.push(stories.some((story) => story.parent != null));
-  if (filter.reprint) conditions.push(stories.length > 0 && stories.every((story) => !story.firstApp));
-  if (filter.notReprint)
-    conditions.push(stories.length === 0 || stories.some((story) => story.firstApp));
-  if (filter.otherOnlyTb) conditions.push(stories.some((story) => story.otherOnlyTb));
-  if (filter.notOtherOnlyTb) conditions.push(stories.some((story) => !story.otherOnlyTb));
-  if (filter.noPrint)
-    conditions.push(stories.length === 0 || stories.some((story) => !story.firstApp && !story.onlyApp));
-  if (filter.notNoPrint)
-    conditions.push(stories.some((story) => story.firstApp || story.onlyApp));
-  if (filter.onlyOnePrint) conditions.push(stories.some((story) => story.onlyOnePrint));
-  if (filter.notOnlyOnePrint) conditions.push(stories.some((story) => !story.onlyOnePrint));
-  return conditions;
+  const conditionChecks: Array<[boolean | undefined, boolean]> = [
+    [filter.firstPrint, stories.some((story) => story.firstApp)],
+    [filter.notFirstPrint, stories.some((story) => !story.firstApp)],
+    [filter.onlyPrint, stories.some((story) => story.onlyApp)],
+    [filter.notOnlyPrint, stories.some((story) => !story.onlyApp)],
+    [filter.onlyTb, stories.some((story) => story.onlyTb)],
+    [filter.notOnlyTb, stories.some((story) => !story.onlyTb)],
+    [filter.exclusive, stories.some((story) => !story.parent)],
+    [filter.notExclusive, stories.some((story) => story.parent != null)],
+    [filter.reprint, stories.length > 0 && stories.every((story) => !story.firstApp)],
+    [filter.notReprint, stories.length === 0 || stories.some((story) => story.firstApp)],
+    [filter.otherOnlyTb, stories.some((story) => story.otherOnlyTb)],
+    [filter.notOtherOnlyTb, stories.some((story) => !story.otherOnlyTb)],
+    [filter.noPrint, stories.length === 0 || stories.some((story) => !story.firstApp && !story.onlyApp)],
+    [filter.notNoPrint, stories.some((story) => story.firstApp || story.onlyApp)],
+    [filter.onlyOnePrint, stories.some((story) => story.onlyOnePrint)],
+    [filter.notOnlyOnePrint, stories.some((story) => !story.onlyOnePrint)],
+  ];
+
+  return conditionChecks
+    .filter(([enabled]) => Boolean(enabled))
+    .map(([, result]) => result);
 }
 
 function matchesStorySwitches(issue: FilterIssueRecord, filter: RuntimeFilter): boolean {

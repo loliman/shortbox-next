@@ -48,6 +48,8 @@ const issueMetadataSelect = Prisma.validator<Prisma.IssueSelect>()({
   },
 });
 
+type IssueMetadataRecord = Prisma.IssueGetPayload<{ select: typeof issueMetadataSelect }>;
+
 function pickIssueMetadataCandidate(
   matchingCandidates: Array<IssueSelectionCandidate & { id: bigint }>,
   hasExplicitVariantSelection: boolean
@@ -74,64 +76,57 @@ function getMatchingIssueMetadataCandidates(
   );
 }
 
-export async function readIssueMetadataQuery(selection: IssueSelectionInput) {
-  const normalizedFormat = normalizeIssueOptionalString(selection.format) ?? undefined;
-  const normalizedVariant = normalizeIssueOptionalString(selection.variant) ?? undefined;
-  const hasExplicitVariantSelection = hasExplicitIssueVariantSelection(selection);
-  const normalizedStartYear = normalizeStartYear(selection.startyear);
-
-  const exactCandidates = await prisma.issue.findMany({
-    where: {
-      number: selection.number,
-      ...(hasExplicitVariantSelection ? { format: normalizedFormat } : {}),
-      ...(hasExplicitVariantSelection ? { variant: normalizedVariant } : {}),
-      series: {
-        title: selection.series,
-        volume: BigInt(selection.volume),
-        ...(normalizedStartYear ? { startYear: normalizedStartYear } : {}),
-        publisher: {
-          name: selection.publisher,
-          original: selection.us,
-        },
-      },
+function buildIssueMetadataCandidateWhere(
+  selection: IssueSelectionInput,
+  normalizedFormat: string | undefined,
+  normalizedVariant: string | undefined,
+  hasExplicitVariantSelection: boolean,
+  normalizedStartYear: bigint | undefined,
+  exactSeriesMatch: boolean
+): Prisma.IssueWhereInput {
+  return {
+    number: selection.number,
+    ...(hasExplicitVariantSelection ? { format: normalizedFormat } : {}),
+    ...(hasExplicitVariantSelection ? { variant: normalizedVariant } : {}),
+    series: {
+      ...(exactSeriesMatch ? { title: selection.series } : {}),
+      volume: BigInt(selection.volume),
+      ...(normalizedStartYear ? { startYear: normalizedStartYear } : {}),
+      publisher: exactSeriesMatch
+        ? {
+            name: selection.publisher,
+            original: selection.us,
+          }
+        : {
+            original: selection.us,
+          },
     },
+  };
+}
+
+async function readIssueMetadataCandidates(
+  selection: IssueSelectionInput,
+  normalizedFormat: string | undefined,
+  normalizedVariant: string | undefined,
+  hasExplicitVariantSelection: boolean,
+  normalizedStartYear: bigint | undefined,
+  exactSeriesMatch: boolean
+) {
+  return prisma.issue.findMany({
+    where: buildIssueMetadataCandidateWhere(
+      selection,
+      normalizedFormat,
+      normalizedVariant,
+      hasExplicitVariantSelection,
+      normalizedStartYear,
+      exactSeriesMatch
+    ),
     select: issueMetadataCandidateSelect,
     orderBy: [{ id: "asc" }],
   });
+}
 
-  const fallbackCandidates =
-    exactCandidates.length > 0
-      ? []
-      : await prisma.issue.findMany({
-          where: {
-            number: selection.number,
-            ...(hasExplicitVariantSelection ? { format: normalizedFormat } : {}),
-            ...(hasExplicitVariantSelection ? { variant: normalizedVariant } : {}),
-            series: {
-              volume: BigInt(selection.volume),
-              ...(normalizedStartYear ? { startYear: normalizedStartYear } : {}),
-              publisher: {
-                original: selection.us,
-              },
-            },
-          },
-          select: issueMetadataCandidateSelect,
-          orderBy: [{ id: "asc" }],
-        });
-
-  const resolvedCandidates = exactCandidates.length > 0 ? exactCandidates : fallbackCandidates;
-  const matchingCandidates = getMatchingIssueMetadataCandidates(resolvedCandidates, selection);
-  const currentCandidate = pickIssueMetadataCandidate(matchingCandidates, hasExplicitVariantSelection);
-
-  if (!currentCandidate) return null;
-
-  const issue = await prisma.issue.findUnique({
-    where: {
-      id: currentCandidate.id,
-    },
-    select: issueMetadataSelect,
-  });
-
+function toResolvedIssueMetadata(issue: IssueMetadataRecord | null) {
   if (!issue) return null;
 
   return {
@@ -151,6 +146,49 @@ export async function readIssueMetadataQuery(selection: IssueSelectionInput) {
         }
       : null,
   };
+}
+
+export async function readIssueMetadataQuery(selection: IssueSelectionInput) {
+  const normalizedFormat = normalizeIssueOptionalString(selection.format) ?? undefined;
+  const normalizedVariant = normalizeIssueOptionalString(selection.variant) ?? undefined;
+  const hasExplicitVariantSelection = hasExplicitIssueVariantSelection(selection);
+  const normalizedStartYear = normalizeStartYear(selection.startyear);
+
+  const exactCandidates = await readIssueMetadataCandidates(
+    selection,
+    normalizedFormat,
+    normalizedVariant,
+    hasExplicitVariantSelection,
+    normalizedStartYear,
+    true
+  );
+
+  const fallbackCandidates =
+    exactCandidates.length > 0
+      ? []
+      : await readIssueMetadataCandidates(
+          selection,
+          normalizedFormat,
+          normalizedVariant,
+          hasExplicitVariantSelection,
+          normalizedStartYear,
+          false
+        );
+
+  const resolvedCandidates = exactCandidates.length > 0 ? exactCandidates : fallbackCandidates;
+  const matchingCandidates = getMatchingIssueMetadataCandidates(resolvedCandidates, selection);
+  const currentCandidate = pickIssueMetadataCandidate(matchingCandidates, hasExplicitVariantSelection);
+
+  if (!currentCandidate) return null;
+
+  const issue = await prisma.issue.findUnique({
+    where: {
+      id: currentCandidate.id,
+    },
+    select: issueMetadataSelect,
+  });
+
+  return toResolvedIssueMetadata(issue);
 }
 
 function normalizeStartYear(startyear: IssueSelectionInput["startyear"]) {

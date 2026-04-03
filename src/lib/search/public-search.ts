@@ -298,12 +298,12 @@ function toCandidate(row: SearchIndexRow, parsed: ParsedSearchPattern): NodeCand
   if (type === "issue" && !matchesParsedIssue(row, parsed, context)) return null;
   if (type === "series" && !matchesParsedSeries(row, parsed)) return null;
 
-  const relevance =
-    type === "series"
-      ? scoreSeriesCandidate(row, parsed, context, baseRelevance)
-      : type === "issue"
-        ? scoreIssueCandidate(row, parsed, context, baseRelevance)
-        : baseRelevance;
+  let relevance = baseRelevance;
+  if (type === "series") {
+    relevance = scoreSeriesCandidate(row, parsed, context, baseRelevance);
+  } else if (type === "issue") {
+    relevance = scoreIssueCandidate(row, parsed, context, baseRelevance);
+  }
 
   return {
     type,
@@ -626,6 +626,51 @@ function appendSeriesIssues(
   }
 }
 
+function sortSeriesBlockCandidates(
+  nodes: NodeCandidate[],
+  normalizedTitleQuery: string,
+  volumeQuery?: number
+) {
+  return nodes.filter((node) => node.type === "series").sort((left, right) => {
+    const leftExactSeries = hasExactSeriesMatch(left, normalizedTitleQuery, volumeQuery);
+    const rightExactSeries = hasExactSeriesMatch(right, normalizedTitleQuery, volumeQuery);
+    if (leftExactSeries !== rightExactSeries) return leftExactSeries ? -1 : 1;
+    return sortSeriesCandidates(left, right);
+  });
+}
+
+function appendRemainingIssues(
+  result: NodeCandidate[],
+  issues: NodeCandidate[],
+  consumedIssueKeys: Set<string>,
+  counts: { issues: number },
+  maxIssues: number
+) {
+  if (counts.issues >= maxIssues) return;
+
+  const remainingIssues = issues
+    .filter((issue) => !consumedIssueKeys.has(`${issue.url}::${issue.label}`))
+    .sort((left, right) => {
+      if (left.relevance !== right.relevance) return right.relevance - left.relevance;
+      return sortIssueCandidates(left, right);
+    });
+
+  for (const issue of remainingIssues) {
+    if (counts.issues >= maxIssues) break;
+    result.push(issue);
+    counts.issues += 1;
+  }
+}
+
+function appendPublishers(result: NodeCandidate[], publishers: NodeCandidate[], maxPublishers: number) {
+  let addedPublishers = 0;
+  for (const publisher of publishers) {
+    if (addedPublishers >= maxPublishers) break;
+    result.push(publisher);
+    addedPublishers += 1;
+  }
+}
+
 function buildSeriesFirstBlocks(
   nodes: NodeCandidate[],
   limits: {
@@ -640,12 +685,7 @@ function buildSeriesFirstBlocks(
 ) {
   const normalizedTitleQuery = normalizeForSearch(limits.titleQuery || "");
   const normalizedIssueNumberQuery = normalizeForSearch(limits.issueNumberQuery || "");
-  const series = nodes.filter((node) => node.type === "series").sort((left, right) => {
-    const leftExactSeries = hasExactSeriesMatch(left, normalizedTitleQuery, limits.volumeQuery);
-    const rightExactSeries = hasExactSeriesMatch(right, normalizedTitleQuery, limits.volumeQuery);
-    if (leftExactSeries !== rightExactSeries) return leftExactSeries ? -1 : 1;
-    return sortSeriesCandidates(left, right);
-  });
+  const series = sortSeriesBlockCandidates(nodes, normalizedTitleQuery, limits.volumeQuery);
   const issues = dedupeIssuesBySeriesAndNumber(nodes.filter((node) => node.type === "issue"));
   const publishers = nodes.filter((node) => node.type === "publisher").sort(sortSeriesCandidates);
   const issuesBySeries = buildIssuesBySeries(issues);
@@ -677,26 +717,8 @@ function buildSeriesFirstBlocks(
     );
   }
 
-  if (counts.issues < limits.maxIssues) {
-    const remainingIssues = issues
-      .filter((issue) => !consumedIssueKeys.has(`${issue.url}::${issue.label}`))
-      .sort((left, right) => {
-        if (left.relevance !== right.relevance) return right.relevance - left.relevance;
-        return sortIssueCandidates(left, right);
-      });
-    for (const issue of remainingIssues) {
-      if (counts.issues >= limits.maxIssues) break;
-      result.push(issue);
-      counts.issues += 1;
-    }
-  }
-
-  let addedPublishers = 0;
-  for (const publisher of publishers) {
-    if (addedPublishers >= limits.maxPublishers) break;
-    result.push(publisher);
-    addedPublishers += 1;
-  }
+  appendRemainingIssues(result, issues, consumedIssueKeys, counts, limits.maxIssues);
+  appendPublishers(result, publishers, limits.maxPublishers);
 
   return result;
 }

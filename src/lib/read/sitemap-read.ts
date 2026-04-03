@@ -94,6 +94,18 @@ function isMissingColumnError(error: unknown): boolean {
   return typeof error === "object" && error !== null && "code" in error && error.code === "P2022";
 }
 
+function addGenreLandingEntries(
+  entries: Map<string, SitemapEntry>,
+  genreValue: unknown,
+  updatedAt?: Date | null
+) {
+  for (const genre of splitGenres(genreValue)) {
+    if (!generateGenreSlug(genre)) continue;
+    mergeEntry(entries, buildGenreFilterUrl("de", genre), updatedAt);
+    mergeEntry(entries, buildGenreFilterUrl("us", genre), updatedAt);
+  }
+}
+
 export function readHomeSitemapEntries(): SitemapEntry[] {
   return [{ path: "/de" }, { path: "/us" }];
 }
@@ -340,12 +352,7 @@ export async function readGenreLandingSitemapEntries(): Promise<SitemapEntry[]> 
       cursor = rows.at(-1)?.id;
 
       for (const row of rows) {
-        for (const genre of splitGenres(row.genre)) {
-          if (!generateGenreSlug(genre)) continue;
-
-          mergeEntry(entries, buildGenreFilterUrl("de", genre), row.updatedAt);
-          mergeEntry(entries, buildGenreFilterUrl("us", genre), row.updatedAt);
-        }
+        addGenreLandingEntries(entries, row.genre, row.updatedAt);
       }
     }
   } catch (error) {
