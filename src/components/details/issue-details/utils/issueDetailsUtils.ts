@@ -40,7 +40,7 @@ export function getContainsItemKey(
   idx: number
 ): string {
   const type = item?.__typename || "item";
-  const number = item?.number || String(idx);
+  const number = readIssueDetailsText(item?.number) || String(idx);
   return `${type}|${number}|${idx}`;
 }
 
@@ -48,7 +48,8 @@ export function getVariantKey(
   variant: { format?: string | null; variant?: string | null; number?: string | number | null },
   idx: number
 ): string {
-  return `${variant.format || ""}|${variant.variant || ""}|${variant.number || idx}`;
+  const variantNumber = readIssueDetailsText(variant.number) || String(idx);
+  return `${variant.format || ""}|${variant.variant || ""}|${variantNumber}`;
 }
 
 export function buildIssueVariantKey(issue: { format?: string | null; variant?: string | null }): string {
@@ -57,7 +58,7 @@ export function buildIssueVariantKey(issue: { format?: string | null; variant?: 
 
 export function compareIssueNumbers(issueNumber: string, filterNumber: string): number {
   const parseSortableIssueNumber = (value: string): number | null => {
-    const trimmed = String(value).trim();
+    const trimmed = readIssueDetailsText(value);
     const unicodeFractionMatch = trimmed.match(/^(-?\d+)?\s*([¼½¾])$/);
     if (unicodeFractionMatch) {
       const whole = Number(unicodeFractionMatch[1] || 0);
@@ -96,4 +97,10 @@ export function compareIssueNumbers(issueNumber: string, filterNumber: string): 
     numeric: true,
     sensitivity: "base",
   });
+}
+
+function readIssueDetailsText(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return "";
 }

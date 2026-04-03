@@ -1315,8 +1315,9 @@ function getFileTitleFromLink($: cheerio.CheerioAPI, link: cheerio.Cheerio<any>)
   const image = link.find("img").first();
   const imageDataName = image.attr("data-image-name");
   const imageDataKey = image.attr("data-image-key");
+  const imageSourceName = typeof imageDataName === "string" ? imageDataName : imageDataKey || "";
   const imageName = ws(
-    (typeof imageDataName === "string" ? imageDataName : imageDataKey || "").replace(/^File:/i, ""),
+    imageSourceName.replace(/^File:/i, ""),
   );
   if (imageName) return `File:${imageName}`;
 

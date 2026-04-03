@@ -9,11 +9,13 @@ export function generateComicGuideUrl(issue: IssueLike): string {
 }
 
 export function generateMarvelDbUrl(issue: IssueLike): string {
+  const volume = issue.series?.volume != null ? String(issue.series.volume) : "";
+  const issueNumber = issue.number || "";
   const path =
     encodeURIComponent(issue.series?.title || "") +
     "_Vol_" +
-    String(issue.series?.volume ?? "") +
+    volume +
     "_" +
-    (issue.number ?? "");
+    issueNumber;
   return "https://marvel.fandom.com/wiki/" + path.split("%20").join("_");
 }
