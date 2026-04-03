@@ -6,9 +6,15 @@ on:
     branches:
       - main
 
+concurrency:
+  group: validate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  lint:
+  quality:
+    name: Quality
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -25,3 +31,92 @@ jobs:
 
       - name: Run ESLint
         run: npm run lint
+
+      - name: Validate Prisma schema
+        run: npm run prisma:validate
+
+      - name: Run typecheck
+        run: npm run typecheck
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+  a11y:
+    name: Accessibility
+    runs-on: ubuntu-latest
+    needs: quality
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app
+        run: npm run build
+
+      - name: Run pa11y audit
+        run: /bin/zsh -lc 'AUDIT_LIMIT=5 PA11Y_WAIT_MS=3000 npm run test:a11y:pa11y'
+
+  seo:
+    name: SEO Smoke
+    runs-on: ubuntu-latest
+    needs: quality
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app
+        run: npm run build
+
+      - name: Start app
+        run: npm run start > /tmp/shortbox-start.log 2>&1 &
+
+      - name: Wait for app
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:3000/de > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "App did not become ready in time."
+          exit 1
+
+      - name: Run SEO smoke test
+        env:
+          BASE_URL: http://127.0.0.1:3000
+        run: npm run test:seo:smoke
+
+      - name: Run sitemap smoke
+        env:
+          BASE_URL: http://127.0.0.1:3000
+          SITEMAP_LIMIT: 25
+        run: npm run test:seo:sitemap
+
+      - name: Upload app startup log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seo-startup-log
+          path: /tmp/shortbox-start.log
+          if-no-files-found: ignore

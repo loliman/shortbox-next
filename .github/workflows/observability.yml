@@ -1,0 +1,67 @@
+name: Observability
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: observability-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lighthouse:
+    name: Unlighthouse (${{ matrix.device }})
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        device:
+          - desktop
+          - mobile
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app
+        run: npm run build
+
+      - name: Run Unlighthouse audit
+        env:
+          AUDIT_LIMIT: 3
+          AUDIT_DEVICE: ${{ matrix.device }}
+        run: npm run test:seo:unlighthouse
+
+      - name: Upload Unlighthouse report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unlighthouse-report-${{ matrix.device }}
+          path: .unlighthouse
+          if-no-files-found: ignore
+
+      - name: Summarize policy
+        if: always()
+        run: |
+          {
+            echo "## Unlighthouse policy"
+            echo
+            echo "- This workflow is intentionally non-blocking."
+            echo "- Use it for trend visibility on main, not as a strict merge gate."
+            echo "- Blocking PR protection lives in the Validate workflow."
+          } >> "$GITHUB_STEP_SUMMARY"
