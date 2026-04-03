@@ -97,7 +97,7 @@ function TypedRoleAutocomplete({
         };
 
         if (action === "select-option" || action === "create-option") {
-          const lastValue = nextValues[nextValues.length - 1] || null;
+          const lastValue = nextValues.at(-1) || null;
           payload.option =
             toOption(details?.option || lastValue, queryResult.options, type) || undefined;
         }

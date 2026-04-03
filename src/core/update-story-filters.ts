@@ -59,13 +59,13 @@ export async function runUpdateStoryFilters(
     let processed = 0;
 
     for (const batch of batches) {
-      if (!dryRun) {
+      if (dryRun) {
+        processed += batch.length;
+      } else {
         for (const issueId of batch) {
           await updateStoryFilterFlagsForIssue(issueId);
           processed += 1;
         }
-      } else {
-        processed += batch.length;
       }
     }
 
@@ -82,4 +82,3 @@ export async function runUpdateStoryFilters(
     return null;
   }
 }
-

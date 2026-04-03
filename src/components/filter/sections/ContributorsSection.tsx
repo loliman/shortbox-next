@@ -142,7 +142,7 @@ function asSingleValue(
   details?: AutocompleteChangeDetails<Record<string, unknown>>
 ) {
   if (details?.option) return details.option;
-  if (Array.isArray(value)) return value[value.length - 1] || null;
+  if (Array.isArray(value)) return value.at(-1) || null;
   return value;
 }
 

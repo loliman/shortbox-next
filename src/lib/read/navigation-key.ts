@@ -33,12 +33,12 @@ export function parseNavigationSeriesKey(seriesKey: string) {
   if (rawParts.length < 3) return null;
 
   const publisher = rawParts[0] || "";
-  let volume = rawParts[rawParts.length - 1] || "";
+  let volume = rawParts.at(-1) || "";
   let startyear = "";
   let title = rawParts.slice(1, -1).join("|");
 
-  const maybeVolume = rawParts[rawParts.length - 2] || "";
-  const maybeStartYear = rawParts[rawParts.length - 1] || "";
+  const maybeVolume = rawParts.at(-2) || "";
+  const maybeStartYear = rawParts.at(-1) || "";
   const hasExplicitStartYear =
     rawParts.length >= 4 &&
     normalizeNavigationVolume(maybeVolume) !== "" &&

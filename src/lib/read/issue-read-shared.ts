@@ -37,7 +37,7 @@ export function buildConnectionFromNodes<T>(nodes: T[]): Connection<T> {
   return {
     edges,
     pageInfo: {
-      endCursor: edges.length > 0 ? edges[edges.length - 1]?.cursor ?? null : null,
+      endCursor: edges.length > 0 ? edges.at(-1)?.cursor ?? null : null,
       hasNextPage: false,
     },
   };
