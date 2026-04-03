@@ -66,6 +66,7 @@ npm test
 ```
 
 For the current automated test baseline and its limitations, see [Testing baseline](docs/workflows/testing-baseline.md).
+For the intended end-state across Jest, Playwright, visual regression, accessibility, and SEO coverage, see [Testing target picture](docs/workflows/testing-target-picture.md).
 For CI job structure, blocking rules, and Dependabot policy, see [CI and dependency automation](docs/workflows/ci-and-dependency-automation.md).
 
 SEO-specific checks against a running app:

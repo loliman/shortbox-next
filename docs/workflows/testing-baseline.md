@@ -4,6 +4,8 @@ This document records the repository's current test execution model as it exists
 
 For the GitHub Actions job layout, blocking rules, and dependency automation policy, see
 [CI and dependency automation](./ci-and-dependency-automation.md).
+For the intended end-state across unit, browser, visual, accessibility, and SEO checks, see
+[Testing target picture](./testing-target-picture.md).
 
 ## Official Command
 
@@ -105,7 +107,8 @@ The repository currently has these test categories:
 This document does not define a migration plan.
 
 For the intended future testing direction, see
-[ADR 004: Testing Target Model](../adr/004-testing-target-model.md).
+[ADR 004: Testing Target Model](../adr/004-testing-target-model.md) and
+[Testing target picture](./testing-target-picture.md).
 
 It only records the current baseline so agents can make safe choices now:
 

@@ -9,6 +9,9 @@ This document describes the repository's current GitHub automation model:
 
 It is the source of truth for CI and dependency update expectations.
 
+For the broader repository testing end-state, including the planned browser and visual layers that are not fully in place yet, see
+[Testing target picture](./testing-target-picture.md).
+
 ## Current CI Structure
 
 The repository currently uses two main GitHub Actions workflows for validation behavior:
