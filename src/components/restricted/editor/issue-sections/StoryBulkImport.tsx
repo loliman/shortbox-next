@@ -105,7 +105,6 @@ function StoryBulkImport(props: ContainsProps) {
               fullWidth
               size="small"
               disabled={props.disabled}
-              helperText="Enter ubernimmt direkt. Trennung per Komma, Semikolon oder Zeilenumbruch. Ohne Volume gilt Vol. 1."
               slotProps={{
                 formHelperText: {
                   sx: {

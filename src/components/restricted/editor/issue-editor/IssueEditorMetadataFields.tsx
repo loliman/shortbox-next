@@ -17,7 +17,7 @@ import { useAutocompleteQuery } from "../../../generic/useAutocompleteQuery";
 import { currencies, formats } from "./constants";
 import type { IssueEditorFormValues } from "./types";
 import type { AutocompleteSource } from "../../../../lib/read/autocomplete-read";
-import { buildVariantBatchLabels } from "@/src/util/issue-copy";
+import { buildVariantBatchLabels, clampIssueCopyBatchCount } from "@/src/util/issue-copy";
 
 const MIN_QUERY_LENGTH = 2;
 const DEBOUNCE_MS = 250;
@@ -67,7 +67,13 @@ function IssueEditorMetadataFields({
   const us = values.series.publisher.us;
   const formatLocked = Boolean(lockedFields?.format);
   const variantLocked = Boolean(lockedFields?.variant);
-  const previewLabels = showBatchCreate && batchEnabled ? buildVariantBatchLabels(values.copyBatch) : [];
+  const previewLabels =
+    showBatchCreate && batchEnabled
+      ? buildVariantBatchLabels({
+          ...values.copyBatch,
+          count: clampIssueCopyBatchCount(values.copyBatch.count),
+        })
+      : [];
 
   return (
     <Grid container spacing={2}>
@@ -116,23 +122,39 @@ function IssueEditorMetadataFields({
                 <Grid size={{ xs: 12, sm: 8, md: 6 }}>
                   <FastField
                     name="copyBatch.prefix"
-                    label="Praefix"
+                    label="Präfix"
                     component={TextField}
-                    helperText='Z. B. "Panini Exclusive"'
                     fullWidth
                   />
                 </Grid>
 
                 <Grid size={{ xs: 12, sm: 4, md: 3 }}>
-                  <FastField
-                    name="copyBatch.count"
-                    label="Anzahl"
-                    type="number"
-                    component={TextField}
-                    inputProps={{ min: 1, max: 26 }}
-                    helperText="1-26, immer A-Z"
-                    fullWidth
-                  />
+                  <FastField name="copyBatch.count">
+                    {({ field, form }: { field: { name: string; value: unknown; onBlur: (event: unknown) => void }; form: { touched: Record<string, unknown>; errors: Record<string, unknown>; setFieldValue: (field: string, value: unknown, shouldValidate?: boolean) => void } }) => (
+                      <TextField
+                        field={field}
+                        form={form}
+                        name="copyBatch.count"
+                        label="Anzahl"
+                        type="number"
+                        inputProps={{ min: 1, max: 26 }}
+                        fullWidth
+                        onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                          const nextValue = event.target.value;
+                          if (nextValue === "") {
+                            form.setFieldValue(field.name, "", true);
+                            return;
+                          }
+
+                          form.setFieldValue(
+                            field.name,
+                            clampIssueCopyBatchCount(nextValue),
+                            true
+                          );
+                        }}
+                      />
+                    )}
+                  </FastField>
                 </Grid>
 
                 <Grid size={{ xs: 12 }}>

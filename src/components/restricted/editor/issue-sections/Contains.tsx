@@ -12,7 +12,7 @@ interface ContainsListProps extends ContainsProps {
 
 function Contains(props: ContainsListProps) {
   if (!props.items || props.items.length === 0)
-    return <Typography color="text.secondary">Noch keine Geschichten hinterlegt.</Typography>;
+    return null;
 
   return (
     <Box>

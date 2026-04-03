@@ -5,10 +5,24 @@ import { invalidateNavigationCache } from "@/src/lib/server/revalidate";
 import { SeriesSchema } from "@/src/util/yupSchema";
 import * as Yup from "yup";
 
-const SeriesBodySchema = Yup.object({
-  item: SeriesSchema.optional(),
-  old: SeriesSchema.optional(),
-});
+async function validateSeriesRequestBody(
+  rawBody: unknown,
+  options?: Readonly<{ requireOld?: boolean }>
+) {
+  const body = (rawBody && typeof rawBody === "object" ? rawBody : {}) as {
+    item?: unknown;
+    old?: unknown;
+  };
+
+  const item = await SeriesSchema.validate(body.item || {}, { stripUnknown: true });
+  const old = options?.requireOld
+    ? await SeriesSchema.validate(body.old || {}, { stripUnknown: true })
+    : body.old
+      ? await SeriesSchema.validate(body.old, { stripUnknown: true })
+      : undefined;
+
+  return { item, old };
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +30,7 @@ export async function POST(request: NextRequest) {
     if (auth.response) return auth.response;
 
     const rawBody = await request.json();
-    const body = await SeriesBodySchema.validate(rawBody, { stripUnknown: true });
+    const body = await validateSeriesRequestBody(rawBody);
 
     const result = await createSeries((body.item as never) || ({} as never));
     if (!result.success) {
@@ -37,7 +51,7 @@ export async function PATCH(request: NextRequest) {
     if (auth.response) return auth.response;
 
     const rawBody = await request.json();
-    const body = await SeriesBodySchema.validate(rawBody, { stripUnknown: true });
+    const body = await validateSeriesRequestBody(rawBody, { requireOld: true });
 
     const result = await editSeries((body.old as never) || ({} as never), (body.item as never) || ({} as never));
     if (!result.success) {
@@ -58,7 +72,7 @@ export async function DELETE(request: NextRequest) {
     if (auth.response) return auth.response;
 
     const rawBody = await request.json();
-    const body = await SeriesBodySchema.validate(rawBody, { stripUnknown: true });
+    const body = await validateSeriesRequestBody(rawBody);
 
     const result = await deleteSeriesByLookup((body.item as never) || ({} as never));
     if (!result.success) {

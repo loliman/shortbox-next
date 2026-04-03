@@ -10,13 +10,27 @@ export interface NormalizedIssueCopyBatch {
 }
 
 const VARIANT_SUFFIXES = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+export const MAX_VARIANT_BATCH_COUNT = VARIANT_SUFFIXES.length;
+
+export function clampIssueCopyBatchCount(
+  value: IssueCopyBatchInput["count"],
+  fallback = 1
+): number {
+  if (value === null || value === undefined || value === "") return fallback;
+
+  const parsed =
+    typeof value === "number" ? Math.trunc(value) : Number.parseInt(String(value).trim(), 10);
+
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(MAX_VARIANT_BATCH_COUNT, Math.max(1, parsed));
+}
 
 function toCount(value: IssueCopyBatchInput["count"]): number {
   if (value === null || value === undefined || value === "") return 1;
   const parsed =
     typeof value === "number" ? Math.trunc(value) : Number.parseInt(String(value).trim(), 10);
 
-  if (!Number.isFinite(parsed) || parsed < 1 || parsed > VARIANT_SUFFIXES.length) {
+  if (!Number.isFinite(parsed) || parsed < 1 || parsed > MAX_VARIANT_BATCH_COUNT) {
     throw new Error("Anzahl muss zwischen 1 und 26 liegen");
   }
 

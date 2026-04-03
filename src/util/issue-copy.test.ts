@@ -1,5 +1,6 @@
 import {
   buildVariantBatchLabels,
+  clampIssueCopyBatchCount,
   normalizeIssueCopyBatch,
   shouldGenerateVariantBatch,
 } from "./issue-copy";
@@ -26,6 +27,12 @@ describe("issue-copy-service", () => {
 
   it("should_normalize_empty_batch_to_single_variant_defaults", () => {
     expect(normalizeIssueCopyBatch()).toEqual({ count: 1, prefix: "" });
+  });
+
+  it("should_clamp_batch_count_to_alphabet_bounds", () => {
+    expect(clampIssueCopyBatchCount(27)).toBe(26);
+    expect(clampIssueCopyBatchCount(0)).toBe(1);
+    expect(clampIssueCopyBatchCount("9")).toBe(9);
   });
 
   it("should_throw_when_batch_count_exceeds_alphabet", () => {

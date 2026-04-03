@@ -100,7 +100,7 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
               backgroundImage: isCoverLoading
                 ? "linear-gradient(110deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.14) 50%, rgba(0, 0, 0, 0.04) 75%)"
                 : usesFallbackCover
-                  ? "linear-gradient(135deg, rgba(17,17,17,0.08), rgba(17,17,17,0.03) 44%, rgba(17,17,17,0) 100%)"
+                  ? `linear-gradient(rgba(255,255,255,0.08), rgba(255,255,255,0.08)), url(${NO_COVER_URL})`
                   : `url(${effectiveCoverUrl})`,
               backgroundRepeat: "no-repeat",
               backgroundPosition: isCoverLoading ? "200% 0" : "center",
@@ -134,7 +134,7 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
                 backgroundImage: isCoverLoading
                   ? "linear-gradient(110deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.04) 75%)"
                   : usesFallbackCover
-                    ? "linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03) 44%, rgba(255,255,255,0) 100%)"
+                    ? `linear-gradient(rgba(0,0,0,0.08), rgba(0,0,0,0.08)), url(${NO_COVER_URL})`
                     : `url(${effectiveCoverUrl})`,
                 "&::after":
                   effectiveCoverUrl === NO_COVER_URL

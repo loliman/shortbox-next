@@ -83,24 +83,12 @@ export default function FormPageShell({
       {actions ? (
         <Box
           sx={{
-            position: "fixed",
-            left: "50%",
-            transform: "translateX(-50%)",
+            position: "sticky",
             bottom: { xs: 72, sm: 88 },
-            width: {
-              xs: "calc(100% - 16px)",
-              sm: "calc(100% - 32px)",
-              md: "calc(100% - 48px)",
-              lg: "min(1120px, calc(100% - 64px))",
-            },
             zIndex: 1200,
           }}
         >
-          <StickyActionBar
-            sx={{ mx: "auto" }}
-          >
-            {actions}
-          </StickyActionBar>
+          <StickyActionBar>{actions}</StickyActionBar>
         </Box>
       ) : null}
     </Stack>

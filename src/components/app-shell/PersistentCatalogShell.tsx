@@ -90,21 +90,6 @@ export default async function PersistentCatalogShell(
               }}
             >
               <Box
-                aria-hidden
-                sx={{
-                  position: "absolute",
-                  right: { xs: -12, sm: -16 },
-                  bottom: { xs: -12, sm: -16 },
-                  width: "min(100%, 70vw)",
-                  height: "45%",
-                  background:
-                    "radial-gradient(circle at 100% 100%, rgba(17,17,17,0.08), rgba(17,17,17,0) 58%)",
-                  opacity: 1,
-                  pointerEvents: "none",
-                  zIndex: 0,
-                }}
-              />
-              <Box
                 className="main-content"
                 sx={{
                   position: "relative",
