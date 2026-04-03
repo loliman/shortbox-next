@@ -24,12 +24,28 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: shortbox
+          POSTGRES_USER: shortbox
+          POSTGRES_PASSWORD: shortbox
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U shortbox -d shortbox"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
     strategy:
       fail-fast: false
       matrix:
         device:
           - desktop
           - mobile
+    env:
+      DATABASE_URL: postgresql://shortbox:shortbox@127.0.0.1:5432/shortbox?schema=shortbox
 
     steps:
       - name: Checkout
@@ -52,6 +68,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Sync Prisma schema
+        run: npx prisma db push
+
+      - name: Seed CI fixtures
+        run: node scripts/seed-ci-fixtures.mjs
 
       - name: Build app
         run: npm run build

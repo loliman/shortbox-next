@@ -34,6 +34,8 @@ type ResolveInput = {
   slug: string | null | undefined;
 };
 
+const SEO_AUTOCOMPLETE_PAGE_SIZE = 250;
+
 function localeFromUs(us: boolean): "de" | "us" {
   return us ? "us" : "de";
 }
@@ -108,6 +110,31 @@ function readTextValue(value: unknown): string {
   return "";
 }
 
+async function findAutocompleteMatch<TEntry>(
+  input: {
+    source: "individuals" | "arcs" | "apps" | "genres";
+    variables: Record<string, unknown>;
+    matches: (entry: TEntry) => boolean;
+  }
+): Promise<TEntry | null> {
+  let offset = 0;
+
+  while (true) {
+    const list = await readAutocompleteItems({
+      source: input.source,
+      variables: input.variables,
+      offset,
+      limit: SEO_AUTOCOMPLETE_PAGE_SIZE,
+    });
+
+    const match = list.items.find((entry) => input.matches(entry as TEntry));
+    if (match) return match as TEntry;
+    if (!list.hasMore) return null;
+
+    offset += SEO_AUTOCOMPLETE_PAGE_SIZE;
+  }
+}
+
 export async function resolveSeoFilterLanding(
   input: ResolveInput
 ): Promise<ResolvedSeoFilterLanding | null> {
@@ -118,16 +145,11 @@ export async function resolveSeoFilterLanding(
     const parsed = parsePersonSlug(safeSlug);
     if (!parsed) return null;
 
-    const list = await readAutocompleteItems({
+    const match = await findAutocompleteMatch<{ name?: string }>({
       source: "individuals",
       variables: { pattern: parsed },
-      offset: 0,
-      limit: 250,
+      matches: (entry) => generatePersonSlug(readEntryName(entry)) === safeSlug,
     });
-
-    const match = list.items.find((entry) => generatePersonSlug(readEntryName(entry)) === safeSlug) as
-      | { name?: string }
-      | undefined;
 
     if (!match?.name) return null;
 
@@ -144,16 +166,11 @@ export async function resolveSeoFilterLanding(
     const parsed = parseArcSlug(safeSlug);
     if (!parsed) return null;
 
-    const list = await readAutocompleteItems({
+    const match = await findAutocompleteMatch<{ title?: string }>({
       source: "arcs",
       variables: { pattern: parsed },
-      offset: 0,
-      limit: 250,
+      matches: (entry) => generateArcSlug(readEntryTitle(entry)) === safeSlug,
     });
-
-    const match = list.items.find((entry) => generateArcSlug(readEntryTitle(entry)) === safeSlug) as
-      | { title?: string }
-      | undefined;
 
     if (!match?.title) return null;
 
@@ -170,16 +187,11 @@ export async function resolveSeoFilterLanding(
     const parsed = parseAppearanceSlug(safeSlug);
     if (!parsed) return null;
 
-    const list = await readAutocompleteItems({
+    const match = await findAutocompleteMatch<{ name?: string }>({
       source: "apps",
       variables: { pattern: parsed },
-      offset: 0,
-      limit: 250,
+      matches: (entry) => generateAppearanceSlug(readEntryName(entry)) === safeSlug,
     });
-
-    const match = list.items.find(
-      (entry) => generateAppearanceSlug(readEntryName(entry)) === safeSlug
-    ) as { name?: string } | undefined;
 
     if (!match?.name) return null;
 
@@ -195,16 +207,11 @@ export async function resolveSeoFilterLanding(
   const parsed = parseGenreSlug(safeSlug);
   if (!parsed) return null;
 
-  const list = await readAutocompleteItems({
+  const match = await findAutocompleteMatch<{ name?: string }>({
     source: "genres",
     variables: { pattern: parsed },
-    offset: 0,
-    limit: 250,
+    matches: (entry) => generateGenreSlug(readEntryName(entry)) === safeSlug,
   });
-
-  const match = list.items.find((entry) => generateGenreSlug(readEntryName(entry)) === safeSlug) as
-    | { name?: string }
-    | undefined;
 
   if (!match?.name) return null;
 

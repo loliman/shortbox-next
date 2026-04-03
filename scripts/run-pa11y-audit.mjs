@@ -10,6 +10,7 @@ const DEFAULT_TIMEOUT_MS = 60_000;
 const DEFAULT_LEVEL = "error";
 const DEFAULT_THRESHOLD = 0;
 const DEFAULT_PA11Y_CONFIG_FILE = path.resolve(process.cwd(), "scripts/pa11y-overrides.json");
+const DEFAULT_CHROME_ARGS = ["--no-sandbox", "--disable-setuid-sandbox"];
 
 async function main() {
   const routes = await loadAuditRoutes();
@@ -34,6 +35,9 @@ async function main() {
         threshold,
         wait,
         timeout,
+        chromeLaunchConfig: {
+          args: getChromeLaunchArgs(),
+        },
         ...(routeOverrides.ignore.length > 0 ? { ignore: routeOverrides.ignore } : {}),
         ...(routeOverrides.hideElements.length > 0
           ? { hideElements: routeOverrides.hideElements.join(", ") }
@@ -147,6 +151,18 @@ function summarizeIssues(issues) {
 function parseInteger(value, fallback) {
   const parsed = Number.parseInt(String(value || "").trim(), 10);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function getChromeLaunchArgs() {
+  const configured = String(process.env.PA11Y_CHROME_ARGS || "").trim();
+  if (configured) {
+    return configured
+      .split(/\s+/)
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+  }
+
+  return process.env.CI ? DEFAULT_CHROME_ARGS : [];
 }
 
 function normalizeStringArray(value) {
