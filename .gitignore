@@ -4,6 +4,7 @@ out
 coverage
 dist
 .unlighthouse
+*.tsbuildinfo
 *.log
 .DS_Store
 .idea
