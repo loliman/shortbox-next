@@ -39,11 +39,11 @@ export function useAutocompleteQuery<TOption>({
   const [debouncedInputKey, setDebouncedInputKey] = React.useState(inputKey);
 
   React.useEffect(() => {
-    const handle = window.setTimeout(() => {
+    const handle = globalThis.setTimeout(() => {
       setDebouncedInputKey(inputKey);
     }, debounceMs);
 
-    return () => window.clearTimeout(handle);
+    return () => globalThis.clearTimeout(handle);
   }, [inputKey, debounceMs]);
 
   const parsedInputVariables = React.useMemo(

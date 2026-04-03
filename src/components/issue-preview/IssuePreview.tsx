@@ -57,6 +57,21 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
     : !us && flags.hasFirstApp
         ? "secondary"
         : "default";
+  const borderLeftColorByAccent = {
+    success: "success.main",
+    secondary: "secondary.main",
+    default: "divider",
+  } as const;
+  const lightBackgroundImage = isCoverLoading
+    ? "linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)), linear-gradient(110deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.14) 50%, rgba(0, 0, 0, 0.04) 75%)"
+    : usesFallbackCover
+      ? `linear-gradient(rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.22)), linear-gradient(to right, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.58) 40%, rgba(255, 255, 255, 0.08) 100%), url(${NO_COVER_URL})`
+      : `linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.3)), linear-gradient(to right, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.62) 40%, rgba(255, 255, 255, 0) 100%), url(${effectiveCoverUrl})`;
+  const darkBackgroundImage = isCoverLoading
+    ? "linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), linear-gradient(110deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.04) 75%)"
+    : usesFallbackCover
+      ? `linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), linear-gradient(to right, rgba(0, 0, 0, 0.84) 0%, rgba(0, 0, 0, 0.54) 40%, rgba(0, 0, 0, 0.08) 100%), url(${NO_COVER_URL})`
+      : `linear-gradient(rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.28)), linear-gradient(to right, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.58) 40%, rgba(0, 0, 0, 0.08) 100%), url(${effectiveCoverUrl})`;
 
   return (
     <Box data-audit-ignore-pa11y="issue-preview" ref={setElement}>
@@ -64,19 +79,9 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
         sx={(theme) => ({
           backgroundColor: "background.paper",
           borderLeft: "4px solid",
-          borderLeftColor:
-            accentKey === "success"
-              ? theme.palette.success.main
-              : accentKey === "secondary"
-                  ? theme.palette.secondary.main
-                  : theme.palette.divider,
+          borderLeftColor: theme.palette[borderLeftColorByAccent[accentKey]] ?? theme.palette.divider,
           boxShadow: theme.shadows[2],
-          backgroundImage:
-            isCoverLoading
-              ? "linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)), linear-gradient(110deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.14) 50%, rgba(0, 0, 0, 0.04) 75%)"
-              : usesFallbackCover
-                ? `linear-gradient(rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.22)), linear-gradient(to right, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.58) 40%, rgba(255, 255, 255, 0.08) 100%), url(${NO_COVER_URL})`
-                : `linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.3)), linear-gradient(to right, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.62) 40%, rgba(255, 255, 255, 0) 100%), url(${effectiveCoverUrl})`,
+          backgroundImage: lightBackgroundImage,
           backgroundRepeat: isCoverLoading ? "no-repeat, no-repeat" : "no-repeat, no-repeat, no-repeat",
           backgroundPosition: isCoverLoading ? "0 0, 200% 0" : "0 0, 0 0, 100% 50%",
           backgroundSize: isCoverLoading ? "100% 100%, 220% 100%" : "100% 100%, 100% 100%, cover",
@@ -90,11 +95,7 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
           transition: "transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease",
           opacity: isNavigating ? 0.76 : 1,
           ...theme.applyStyles("dark", {
-            backgroundImage: isCoverLoading
-              ? "linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), linear-gradient(110deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.04) 75%)"
-              : usesFallbackCover
-                ? `linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), linear-gradient(to right, rgba(0, 0, 0, 0.84) 0%, rgba(0, 0, 0, 0.54) 40%, rgba(0, 0, 0, 0.08) 100%), url(${NO_COVER_URL})`
-                : `linear-gradient(rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.28)), linear-gradient(to right, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.58) 40%, rgba(0, 0, 0, 0.08) 100%), url(${effectiveCoverUrl})`,
+            backgroundImage: darkBackgroundImage,
           }),
         })}
       >

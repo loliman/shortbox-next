@@ -20,7 +20,7 @@ export async function createPublisher(item: PublisherInput): Promise<Result<Retu
       data: {
         name: normalizeText(item.name),
         original: Boolean(item.us),
-        addInfo: String(item.addinfo || ""),
+        addInfo: String(item.addinfo ?? ""),
         startYear: BigInt(Number(item.startyear ?? 0)),
         endYear: normalizeYear(item.endyear),
         createdAt: now,
@@ -54,7 +54,7 @@ export async function editPublisher(oldItem: PublisherInput, item: PublisherInpu
       data: {
         name: normalizeText(item.name),
         original: Boolean(item.us ?? existing.original),
-        addInfo: String(item.addinfo || ""),
+        addInfo: String(item.addinfo ?? ""),
         startYear: BigInt(Number(item.startyear ?? 0)),
         endYear: normalizeYear(item.endyear),
         updatedAt: new Date(),
@@ -92,7 +92,7 @@ export async function deletePublisherByLookup(item: PublisherInput): Promise<Res
       for (const series of existing.series) {
         const deleted = await deleteSeriesByLookup(
           {
-            title: series.title || "",
+            title: series.title ?? "",
             volume: Number(series.volume),
             publisher: {
               name: existing.name,

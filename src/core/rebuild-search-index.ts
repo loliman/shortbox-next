@@ -98,9 +98,9 @@ export async function runRebuildSearchIndex(
   }
 
   for (const seriesItem of series) {
-    const publisherName = seriesItem.publisher?.name || "";
+    const publisherName = seriesItem.publisher?.name ?? "";
     const us = Boolean(seriesItem.publisher?.original);
-    const seriesTitle = seriesItem.title || "";
+    const seriesTitle = seriesItem.title ?? "";
     const seriesVolume = Number(seriesItem.volume);
     const seriesStartyear = Number(seriesItem.startYear);
     const seriesEndyear = seriesItem.endYear == null ? 0 : Number(seriesItem.endYear);

@@ -92,19 +92,18 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
         previewImportActive={resolvedPreviewImportActive}
         navigationLoading={props.navigationLoading}
       />
-      {showNavigation
-        ? resolvedSession?.canWrite ? (
-            <AddFab
-              session={resolvedSession}
-              level={props.level}
-              selected={props.selected}
-              us={props.us}
-              previewImportActive={resolvedPreviewImportActive}
-            />
-          ) : props.us ? null : (
-            <ErrorFab level={props.level} selected={props.selected} us={props.us} />
-          )
-        : null}
+      {showNavigation && resolvedSession?.canWrite ? (
+        <AddFab
+          session={resolvedSession}
+          level={props.level}
+          selected={props.selected}
+          us={props.us}
+          previewImportActive={resolvedPreviewImportActive}
+        />
+      ) : null}
+      {showNavigation && !resolvedSession?.canWrite && !props.us ? (
+        <ErrorFab level={props.level} selected={props.selected} us={props.us} />
+      ) : null}
 
       <Box
         component="main"

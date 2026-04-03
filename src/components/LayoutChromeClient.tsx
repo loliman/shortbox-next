@@ -40,9 +40,9 @@ export default function LayoutChromeClient(props: Readonly<LayoutChromeClientPro
   const showNavigation = props.showNavigation ?? true;
   const navigationInstanceKey = [
     props.us,
-    String(props.query?.filter || ""),
-    String(props.query?.routeFilterKind || ""),
-    String(props.query?.routeFilterSlug || ""),
+    String(props.query?.filter ?? ""),
+    String(props.query?.routeFilterKind ?? ""),
+    String(props.query?.routeFilterSlug ?? ""),
     getSelectedPathKey(props.selected),
   ].join("|");
   const theme = useTheme();

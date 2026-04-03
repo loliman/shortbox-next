@@ -125,18 +125,18 @@ export function IssueVariants(props: Readonly<IssueVariantsProps>) {
     if (!el) return;
     const onScroll = () => updateScrollControls();
     el.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    const raf = window.requestAnimationFrame(onScroll);
+    globalThis.addEventListener("resize", onScroll);
+    const raf = globalThis.requestAnimationFrame(onScroll);
     return () => {
       el.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      window.cancelAnimationFrame(raf);
+      globalThis.removeEventListener("resize", onScroll);
+      globalThis.cancelAnimationFrame(raf);
     };
   }, [updateScrollControls, variants.length]);
 
   React.useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
-    const media = window.matchMedia("(hover: hover) and (pointer: fine)");
+    if (typeof globalThis.window === "undefined" || typeof globalThis.matchMedia !== "function") return;
+    const media = globalThis.matchMedia("(hover: hover) and (pointer: fine)");
     const apply = () => setIsHoverCapable(media.matches);
     apply();
     if (typeof media.addEventListener === "function") {

@@ -67,7 +67,7 @@ export async function findPublicSearchNodes(input: {
   us: boolean;
   offset?: number;
 }): Promise<PublicSearchNode[]> {
-  const pattern = String(input.pattern || "").trim();
+  const pattern = String(input.pattern ?? "").trim();
   if (!pattern) return [];
 
   const parsed = parseSearchPattern(pattern);

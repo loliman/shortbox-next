@@ -48,7 +48,7 @@ function toJsonOrNull(value: unknown) {
 
 function parseFilteredIssueIds(filteredIssueIdsJson: string | null) {
   if (!filteredIssueIdsJson) return null;
-  return (JSON.parse(filteredIssueIdsJson) as Array<string | number>).map((value) => BigInt(value));
+  return (JSON.parse(filteredIssueIdsJson) as Array<string | number>).map(BigInt);
 }
 
 export async function readNavigationPublishers(scope: NavigationScope) {

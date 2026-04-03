@@ -48,12 +48,12 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
   const compactLayout = Boolean(ownProps.compactLayout);
 
   useEffect(() => {
-    const handle = window.setTimeout(() => {
+    const handle = globalThis.setTimeout(() => {
       setDebouncedPattern(pattern.trim());
     }, 250);
 
     return () => {
-      window.clearTimeout(handle);
+      globalThis.clearTimeout(handle);
     };
   }, [pattern]);
 

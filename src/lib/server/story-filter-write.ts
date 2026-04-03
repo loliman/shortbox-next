@@ -86,11 +86,11 @@ async function resolveRecursiveRelatedParentIds(initialParentIds: number[]): Pro
   while (frontier.length > 0) {
     const [rowsById, rowsByReprint] = await Promise.all([
       prisma.story.findMany({
-        where: { id: { in: frontier.map((id) => BigInt(id)) } },
+        where: { id: { in: frontier.map(BigInt) } },
         select: { id: true, fkReprint: true },
       }),
       prisma.story.findMany({
-        where: { fkReprint: { in: frontier.map((id) => BigInt(id)) } },
+        where: { fkReprint: { in: frontier.map(BigInt) } },
         select: { id: true, fkReprint: true },
       }),
     ]);
@@ -186,7 +186,7 @@ async function updateStoryFilterFlagsForParents(parentStoryIds: Iterable<number>
   if (recursiveParentIds.length === 0) return;
 
   const parentStoriesRaw = await prisma.story.findMany({
-    where: { id: { in: recursiveParentIds.map((id) => BigInt(id)) } },
+    where: { id: { in: recursiveParentIds.map(BigInt) } },
     select: {
       id: true,
       fkReprint: true,
@@ -208,7 +208,7 @@ async function updateStoryFilterFlagsForParents(parentStoryIds: Iterable<number>
   const allParentIds = Array.from(parentStoryById.keys());
 
   const childrenRaw = await prisma.story.findMany({
-    where: { fkParent: { in: allParentIds.map((id) => BigInt(id)) } },
+    where: { fkParent: { in: allParentIds.map(BigInt) } },
     include: {
       issue: {
         select: {

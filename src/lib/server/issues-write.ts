@@ -779,7 +779,7 @@ async function filterUsParentStoryIds(storyIds: readonly number[], executor: Pri
   if (numericStoryIds.length === 0) return new Set<number>();
 
   const stories = await executor.story.findMany({
-    where: { id: { in: numericStoryIds.map((id) => BigInt(id)) } },
+    where: { id: { in: numericStoryIds.map(BigInt) } },
     select: {
       id: true,
       issue: {
@@ -813,7 +813,7 @@ async function resolveIssueIdsFromStoryIds(storyIds: readonly number[], executor
   if (numericStoryIds.length === 0) return [];
 
   const stories = await executor.story.findMany({
-    where: { id: { in: numericStoryIds.map((id) => BigInt(id)) } },
+    where: { id: { in: numericStoryIds.map(BigInt) } },
     select: { fkIssue: true },
   });
 

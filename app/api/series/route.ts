@@ -15,11 +15,14 @@ async function validateSeriesRequestBody(
   };
 
   const item = await SeriesSchema.validate(body.item || {}, { stripUnknown: true });
-  const old = options?.requireOld
-    ? await SeriesSchema.validate(body.old || {}, { stripUnknown: true })
-    : body.old
-      ? await SeriesSchema.validate(body.old, { stripUnknown: true })
-      : undefined;
+  let old: unknown;
+  if (options?.requireOld) {
+    old = await SeriesSchema.validate(body.old || {}, { stripUnknown: true });
+  } else if (body.old) {
+    old = await SeriesSchema.validate(body.old, { stripUnknown: true });
+  } else {
+    old = undefined;
+  }
 
   return { item, old };
 }

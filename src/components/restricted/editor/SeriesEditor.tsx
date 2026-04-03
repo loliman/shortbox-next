@@ -61,16 +61,16 @@ type SeriesMutationResult = {
 
 function createInitialSeriesValues(defaultValues?: SeriesFormValues): SeriesFormValues {
   return {
-    title: String(defaultValues?.title || ""),
-    genre: String(defaultValues?.genre || ""),
+    title: String(defaultValues?.title ?? ""),
+    genre: String(defaultValues?.genre ?? ""),
     publisher: {
-      name: String(defaultValues?.publisher?.name || ""),
+      name: String(defaultValues?.publisher?.name ?? ""),
       us: Boolean(defaultValues?.publisher?.us),
     },
     volume: Number(defaultValues?.volume ?? 1),
     startyear: Number(defaultValues?.startyear ?? 1900),
     endyear: Number(defaultValues?.endyear ?? 1900),
-    addinfo: String(defaultValues?.addinfo || ""),
+    addinfo: String(defaultValues?.addinfo ?? ""),
   };
 }
 

@@ -94,12 +94,12 @@ function makeResolved(input: {
 
 function readEntryName(entry: unknown): string {
   if (!entry || typeof entry !== "object") return "";
-  return String((entry as { name?: unknown }).name || "");
+  return String((entry as { name?: unknown }).name ?? "");
 }
 
 function readEntryTitle(entry: unknown): string {
   if (!entry || typeof entry !== "object") return "";
-  return String((entry as { title?: unknown }).title || "");
+  return String((entry as { title?: unknown }).title ?? "");
 }
 
 export async function resolveSeoFilterLanding(
@@ -210,4 +210,3 @@ export async function resolveSeoFilterLanding(
     filterPayload: { genres: [match.name] },
   });
 }
-

@@ -159,14 +159,14 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
           return;
         }
         attempts += 1;
-        frameId = window.requestAnimationFrame(run);
+        frameId = globalThis.requestAnimationFrame(run);
       };
 
-      frameId = window.requestAnimationFrame(run);
+      frameId = globalThis.requestAnimationFrame(run);
 
       return () => {
         cancelled = true;
-        if (frameId) window.cancelAnimationFrame(frameId);
+        if (frameId) globalThis.cancelAnimationFrame(frameId);
       };
     },
     [

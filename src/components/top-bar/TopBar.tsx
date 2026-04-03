@@ -257,7 +257,7 @@ export default function TopBar(ownProps: TopBarProps) {
 
       attempts += 1;
       if (attempts > maxAttempts) return;
-      window.setTimeout(tryFocus, 48);
+      globalThis.setTimeout(tryFocus, 48);
     };
 
     tryFocus();
@@ -278,7 +278,7 @@ export default function TopBar(ownProps: TopBarProps) {
       event.preventDefault();
       if (compactLayout) {
         setMobileSearchOpen(true);
-        window.requestAnimationFrame(() => {
+        globalThis.requestAnimationFrame(() => {
           focusQuickSearchInput();
         });
         return;
@@ -287,8 +287,8 @@ export default function TopBar(ownProps: TopBarProps) {
       focusQuickSearchInput();
     };
 
-    window.addEventListener("keydown", handleShortcut);
-    return () => window.removeEventListener("keydown", handleShortcut);
+    globalThis.addEventListener("keydown", handleShortcut);
+    return () => globalThis.removeEventListener("keydown", handleShortcut);
   }, [compactLayout, focusQuickSearchInput]);
 
   return (

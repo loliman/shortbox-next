@@ -125,7 +125,7 @@ const deleteByIds = async (
   dryRun: boolean
 ) => {
   if (dryRun || ids.length === 0) return;
-  await deleteFn(ids.map((id) => BigInt(id)));
+  await deleteFn(ids.map(BigInt));
 };
 
 const distinctOwnerIdsForActiveRefs = async (
@@ -145,7 +145,7 @@ const distinctOwnerIdsForActiveRefs = async (
   return owners;
 };
 
-const toBigIntIds = (ids: Set<number>) => [...ids].map((id) => BigInt(id));
+const toBigIntIds = (ids: Set<number>) => [...ids].map(BigInt);
 
 const mapOwnerRows = <T extends bigint>(rows: Array<T>, key: "fkIndividual" | "fkAppearance" | "fkArc") =>
   rows.map((row) => ({ ownerId: (row as unknown as Record<string, bigint>)[key] }));

@@ -198,9 +198,10 @@ export default function PersistentCatalogChromeClient(
           us={props.us}
           previewImportActive={props.previewImportActive}
         />
-      ) : props.us || level === HierarchyLevel.ROOT ? null : (
+      ) : null}
+      {!props.session?.canWrite && !props.us && level !== HierarchyLevel.ROOT ? (
         <DeferredErrorFab level={level} selected={selected} us={props.us} />
-      )}
+      ) : null}
     </>
   );
 }

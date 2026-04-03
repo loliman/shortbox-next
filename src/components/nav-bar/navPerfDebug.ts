@@ -26,26 +26,26 @@ const EVENT_LIMIT = 300;
 const MARK_PREFIX = "shortbox-nav:";
 
 export function isNavPerfDebugEnabled() {
-  if (typeof window === "undefined") return false;
+  if (typeof globalThis.window === "undefined") return false;
 
   try {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(globalThis.location.search);
     if (params.get(QUERY_FLAG) === "1") return true;
   } catch {
     // Ignore URL parsing issues in debug helper.
   }
 
   try {
-    return window.localStorage.getItem(STORAGE_KEY) === "1";
+    return globalThis.localStorage.getItem(STORAGE_KEY) === "1";
   } catch {
     return false;
   }
 }
 
 export function resetNavPerfSession(sessionKey: string, detail?: NavPerfDetail) {
-  if (!isNavPerfDebugEnabled() || typeof window === "undefined") return;
+  if (!isNavPerfDebugEnabled() || typeof globalThis.window === "undefined") return;
 
-  window.__SHORTBOX_NAV_DEBUG__ = {
+  globalThis.__SHORTBOX_NAV_DEBUG__ = {
     sessionKey,
     events: [],
   };
@@ -55,11 +55,11 @@ export function resetNavPerfSession(sessionKey: string, detail?: NavPerfDetail) 
 }
 
 export function markNavPerf(name: string, detail?: NavPerfDetail) {
-  if (!isNavPerfDebugEnabled() || typeof window === "undefined") return;
+  if (!isNavPerfDebugEnabled() || typeof globalThis.window === "undefined") return;
 
   const markName = `${MARK_PREFIX}${name}`;
   try {
-    window.performance.mark(markName);
+    globalThis.performance.mark(markName);
   } catch {
     // Ignore unsupported performance API issues in debug helper.
   }
@@ -68,12 +68,12 @@ export function markNavPerf(name: string, detail?: NavPerfDetail) {
 }
 
 export function measureNavPerf(name: string, start: string, end: string, detail?: NavPerfDetail) {
-  if (!isNavPerfDebugEnabled() || typeof window === "undefined") return null;
+  if (!isNavPerfDebugEnabled() || typeof globalThis.window === "undefined") return null;
 
   const measureName = `${MARK_PREFIX}${name}`;
   try {
-    window.performance.measure(measureName, `${MARK_PREFIX}${start}`, `${MARK_PREFIX}${end}`);
-    const entries = window.performance.getEntriesByName(measureName, "measure");
+    globalThis.performance.measure(measureName, `${MARK_PREFIX}${start}`, `${MARK_PREFIX}${end}`);
+    const entries = globalThis.performance.getEntriesByName(measureName, "measure");
     const duration = entries.at(-1)?.duration ?? null;
     pushNavPerfEvent(`${name}:measure`, duration == null ? detail : { ...detail, duration });
     return duration;
@@ -83,7 +83,7 @@ export function measureNavPerf(name: string, start: string, end: string, detail?
 }
 
 export function observeNavLongTasks() {
-  if (!isNavPerfDebugEnabled() || typeof window === "undefined") return () => {};
+  if (!isNavPerfDebugEnabled() || typeof globalThis.window === "undefined") return () => {};
   if (typeof PerformanceObserver === "undefined") return () => {};
 
   try {
@@ -105,9 +105,9 @@ export function observeNavLongTasks() {
 }
 
 export function printNavPerfSummary(label = "sidebar") {
-  if (!isNavPerfDebugEnabled() || typeof window === "undefined") return;
+  if (!isNavPerfDebugEnabled() || typeof globalThis.window === "undefined") return;
 
-  const store = window.__SHORTBOX_NAV_DEBUG__;
+  const store = globalThis.__SHORTBOX_NAV_DEBUG__;
   if (!store) return;
 
   const rows = store.events.map((event) => ({
@@ -124,11 +124,11 @@ export function printNavPerfSummary(label = "sidebar") {
 }
 
 function pushNavPerfEvent(name: string, detail?: NavPerfDetail) {
-  if (typeof window === "undefined") return;
+  if (typeof globalThis.window === "undefined") return;
 
   const store =
-    window.__SHORTBOX_NAV_DEBUG__ ??
-    (window.__SHORTBOX_NAV_DEBUG__ = {
+    globalThis.__SHORTBOX_NAV_DEBUG__ ??
+    (globalThis.__SHORTBOX_NAV_DEBUG__ = {
       sessionKey: "unknown",
       events: [],
     });
@@ -144,8 +144,8 @@ function pushNavPerfEvent(name: string, detail?: NavPerfDetail) {
 
 function safeClearPerformanceEntries() {
   try {
-    window.performance.clearMarks();
-    window.performance.clearMeasures();
+    globalThis.performance.clearMarks();
+    globalThis.performance.clearMeasures();
   } catch {
     // Ignore unsupported performance API issues in debug helper.
   }

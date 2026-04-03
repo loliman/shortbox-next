@@ -47,7 +47,7 @@ function splitMultiValueString(value: string): string[] {
 }
 
 function normalizeText(value: unknown): string {
-  return String(value || "")
+  return String(value ?? "")
     .trim()
     .toLowerCase();
 }
@@ -56,7 +56,7 @@ function normalizeGenreFilters(rawGenres: unknown): FieldItem[] {
   const uniqueGenres = new Map<string, FieldItem>();
 
   const addGenre = (value: unknown) => {
-    const name = String(value || "").trim();
+    const name = String(value ?? "").trim();
     if (!name) return;
 
     const key = normalizeText(name);
@@ -88,7 +88,7 @@ function normalizeArcFilters(rawArcs: unknown): FilterValues["arcs"] {
     return rawArcs
       .map((entry) => {
         if (!entry || typeof entry !== "object" || Array.isArray(entry)) return null;
-        const title = String((entry as { title?: unknown }).title || "").trim();
+        const title = String((entry as { title?: unknown }).title ?? "").trim();
         if (!title) return null;
         const typeValue = (entry as { type?: unknown }).type;
         return typeof typeValue === "string" && typeValue.trim()
@@ -110,7 +110,7 @@ function normalizeAppearanceFilters(rawAppearances: unknown): FilterValues["appe
     return rawAppearances
       .map((entry) => {
         if (!entry || typeof entry !== "object" || Array.isArray(entry)) return null;
-        const name = String((entry as { name?: unknown }).name || "").trim();
+        const name = String((entry as { name?: unknown }).name ?? "").trim();
         if (!name) return null;
         const typeValue = (entry as { type?: unknown }).type;
         return typeof typeValue === "string" && typeValue.trim()

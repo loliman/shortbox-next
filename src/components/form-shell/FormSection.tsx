@@ -20,6 +20,9 @@ export default function FormSection({
   children,
   sx,
 }: Readonly<FormSectionProps>) {
+  const sectionSx = Array.isArray(sx) ? sx : sx ? [sx] : [];
+  const headerSpacing = description ? 0.5 : 0;
+
   return (
     <Paper
       elevation={0}
@@ -29,12 +32,12 @@ export default function FormSection({
           p: { xs: 2, sm: 2.5 },
           boxShadow: "none",
         }),
-        ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
+        ...sectionSx,
       ]}
     >
       <Stack spacing={2}>
         {title || description ? (
-          <Stack spacing={description ? 0.5 : 0}>
+          <Stack spacing={headerSpacing}>
             {title ? (
               <Typography
                 sx={{

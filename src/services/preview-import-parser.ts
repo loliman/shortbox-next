@@ -619,13 +619,18 @@ function parseMetadataLines(lines: string[], fallbackReleaseDate?: string) {
     pages: pages ? Number.parseInt(pages, 10) : undefined,
     format: parseFormat(joined),
     price: parsePrice(joined),
-    releaseDate: releaseDate
-      ? toIsoDate(releaseDate)
-      : fallbackReleaseDate && fallbackReleaseDate !== "1900-01-01"
-        ? fallbackReleaseDate
-        : undefined,
+    releaseDate: resolveIssueReleaseDate(releaseDate, fallbackReleaseDate),
     limitation: limitation || "",
   };
+}
+
+function resolveIssueReleaseDate(
+  releaseDate: string | undefined,
+  fallbackReleaseDate: string | undefined
+) {
+  if (releaseDate) return toIsoDate(releaseDate);
+  if (fallbackReleaseDate && fallbackReleaseDate !== "1900-01-01") return fallbackReleaseDate;
+  return undefined;
 }
 
 function parseFormat(line: string) {

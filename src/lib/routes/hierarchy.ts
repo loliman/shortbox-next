@@ -179,11 +179,14 @@ export function getSelected(params: RouteParams, us: boolean): SelectedRoot {
   // (/[publisher]/[series]/[issue]/[format]/[variant]) and legacy
   // (/[publisher]/[series]/[issue]/[variant]) so both formats resolve.
   if (legacyPublisher && legacySeries && legacyIssue) {
-    const formatSlug = hasFormatParam
-      ? routeFormat || undefined
-      : legacyFormatSegment && !hasLegacyVariantSeparator
-        ? legacyFormatSegment
-        : undefined;
+    let formatSlug: string | undefined;
+    if (hasFormatParam) {
+      formatSlug = routeFormat || undefined;
+    } else if (legacyFormatSegment && !hasLegacyVariantSeparator) {
+      formatSlug = legacyFormatSegment;
+    } else {
+      formatSlug = undefined;
+    }
     const variantSlug = hasFormatParam ? routeVariant || undefined : undefined;
     const parsed = parseIssueUrl(
       legacyPublisher,

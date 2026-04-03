@@ -38,11 +38,11 @@ function ThemeModeBridge(props: Readonly<AppProvidersProps>) {
   );
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
+    const frame = globalThis.requestAnimationFrame(() => {
       setMounted(true);
     });
     return () => {
-      window.cancelAnimationFrame(frame);
+      globalThis.cancelAnimationFrame(frame);
     };
   }, []);
 
@@ -80,26 +80,26 @@ function ThemeModeBridge(props: Readonly<AppProvidersProps>) {
     const elapsed = startedAt == null ? 0 : now - startedAt;
     const remaining = Math.max(0, MIN_NAVIGATION_FEEDBACK_MS - elapsed);
 
-    const timeout = window.setTimeout(() => {
+    const timeout = globalThis.setTimeout(() => {
       navigationStartedAtRef.current = null;
       setNavigationPending(false);
     }, remaining);
 
     return () => {
-      window.clearTimeout(timeout);
+      globalThis.clearTimeout(timeout);
     };
   }, [navigationPending, routeKey]);
 
   useEffect(() => {
     if (!navigationPending) return;
 
-    const timeout = window.setTimeout(() => {
+    const timeout = globalThis.setTimeout(() => {
       navigationStartedAtRef.current = null;
       setNavigationPending(false);
     }, MAX_NAVIGATION_FEEDBACK_MS);
 
     return () => {
-      window.clearTimeout(timeout);
+      globalThis.clearTimeout(timeout);
     };
   }, [navigationPending]);
 

@@ -95,55 +95,60 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
     issueForVariants.comicguideid !== undefined &&
     String(issueForVariants.comicguideid).trim() !== "" &&
     String(issueForVariants.comicguideid) !== "0";
-  const coverAttribution = hasComicGuideAttribution ? (
-    <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.82, textAlign: "left" }}>
-      Das Cover für&nbsp;
-      <a
-        href={generateComicGuideUrl(issueForVariants)}
-        rel="noopener noreferrer nofollow"
-        target="_blank"
-      >
-        <IssueReferenceInline
-          seriesLabel={generateLabel({ series: issueForVariants.series })}
-          number={issueForVariants.number}
-          legacy_number={issueForVariants.legacy_number}
-        />
-      </a>
-      &nbsp;wird bereitgestellt vom&nbsp;
-      <a href="https://www.comicguide.de" rel="noopener noreferrer nofollow" target="_blank">
-        deutschen ComicGuide
-      </a>
-      &nbsp;und darf nicht ohne Genehmigung weiterverbreitet werden.
-    </Typography>
-  ) : us ? (
-    <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.82, textAlign: "left" }}>
-      Informationen über&nbsp;
-      <a
-        href={generateMarvelDbUrl(issueForVariants)}
-        rel="noopener noreferrer nofollow"
-        target="_blank"
-      >
-        <IssueReferenceInline
-          seriesLabel={generateLabel({ series: issueForVariants.series })}
-          number={issueForVariants.number}
-          legacy_number={issueForVariants.legacy_number}
-        />
-      </a>
-      &nbsp;werden bezogen aus der&nbsp;
-      <a href="https://marvel.fandom.com" rel="noopener noreferrer nofollow" target="_blank">
-        Marvel Database
-      </a>
-      &nbsp;und stehen unter der&nbsp;
-      <a
-        href="https://creativecommons.org/licenses/by/3.0/de/"
-        rel="noopener noreferrer nofollow"
-        target="_blank"
-      >
-        Creative Commons License 3.0
-      </a>
-      &nbsp;. Die Informationen wurden aufbereitet und unter Umständen ergänzt.&nbsp;
-    </Typography>
-  ) : null;
+  let coverAttribution: React.ReactNode = null;
+  if (hasComicGuideAttribution) {
+    coverAttribution = (
+      <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.82, textAlign: "left" }}>
+        Das Cover für&nbsp;
+        <a
+          href={generateComicGuideUrl(issueForVariants)}
+          rel="noopener noreferrer nofollow"
+          target="_blank"
+        >
+          <IssueReferenceInline
+            seriesLabel={generateLabel({ series: issueForVariants.series })}
+            number={issueForVariants.number}
+            legacy_number={issueForVariants.legacy_number}
+          />
+        </a>
+        &nbsp;wird bereitgestellt vom&nbsp;
+        <a href="https://www.comicguide.de" rel="noopener noreferrer nofollow" target="_blank">
+          deutschen ComicGuide
+        </a>
+        &nbsp;und darf nicht ohne Genehmigung weiterverbreitet werden.
+      </Typography>
+    );
+  } else if (us) {
+    coverAttribution = (
+      <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.82, textAlign: "left" }}>
+        Informationen über&nbsp;
+        <a
+          href={generateMarvelDbUrl(issueForVariants)}
+          rel="noopener noreferrer nofollow"
+          target="_blank"
+        >
+          <IssueReferenceInline
+            seriesLabel={generateLabel({ series: issueForVariants.series })}
+            number={issueForVariants.number}
+            legacy_number={issueForVariants.legacy_number}
+          />
+        </a>
+        &nbsp;werden bezogen aus der&nbsp;
+        <a href="https://marvel.fandom.com" rel="noopener noreferrer nofollow" target="_blank">
+          Marvel Database
+        </a>
+        &nbsp;und stehen unter der&nbsp;
+        <a
+          href="https://creativecommons.org/licenses/by/3.0/de/"
+          rel="noopener noreferrer nofollow"
+          target="_blank"
+        >
+          Creative Commons License 3.0
+        </a>
+        &nbsp;. Die Informationen wurden aufbereitet und unter Umständen ergänzt.&nbsp;
+      </Typography>
+    );
+  }
   const desktopColumnScrollSx = {
     minWidth: 0,
     minHeight: 0,

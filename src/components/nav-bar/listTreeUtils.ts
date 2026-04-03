@@ -323,9 +323,9 @@ export function scrollNavElementIntoView(
   options?: { behavior?: ScrollBehavior }
 ) {
   const prefersReducedMotion =
-    typeof window !== "undefined" &&
-    typeof window.matchMedia === "function" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    typeof globalThis.window !== "undefined" &&
+    typeof globalThis.matchMedia === "function" &&
+    globalThis.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const behavior = prefersReducedMotion ? "auto" : (options?.behavior ?? "smooth");
 
   if (container) {

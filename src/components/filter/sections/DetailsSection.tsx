@@ -445,7 +445,7 @@ function asFormatArray(value: unknown) {
   return value
     .map((entry) => {
       if (!entry || typeof entry !== "object" || Array.isArray(entry)) return null;
-      const name = String((entry as { name?: unknown }).name || "").trim();
+      const name = String((entry as { name?: unknown }).name ?? "").trim();
       if (!name) return null;
       return { name };
     })
@@ -482,13 +482,13 @@ function sanitizeGenreList(values: Array<string | FieldItem>) {
 function getGenreName(entry: unknown) {
   if (typeof entry === "string") return entry;
   if (entry && typeof entry === "object" && !Array.isArray(entry)) {
-    return String((entry as { name?: unknown }).name || "");
+    return String((entry as { name?: unknown }).name ?? "");
   }
   return "";
 }
 
 function normalizeText(value: unknown) {
-  return String(value || "")
+  return String(value ?? "")
     .trim()
     .toLowerCase();
 }
@@ -498,7 +498,7 @@ export default DetailsSection;
 function formatSeriesLabel(entry: unknown) {
   const option = entry as { title?: unknown; volume?: unknown; startyear?: unknown };
   return getSeriesLabel({
-    title: String(option?.title || ""),
+    title: String(option?.title ?? ""),
     volume: option?.volume as string | number | null | undefined,
     startyear: option?.startyear as string | number | null | undefined,
   });

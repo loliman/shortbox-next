@@ -52,15 +52,16 @@ export function toChipList(
         const typename = item.__typename || (isAppearanceFallback ? "Appearance" : "Individual");
         const label = item.name || item.title || "Unbekannt";
         const locale = props.us ? "us" : "de";
-
-        const targetHref =
-          typename === "Appearance"
-            ? buildAppearanceFilterUrl(locale, item.name || "")
-            : typename === "Arc"
-              ? buildArcFilterUrl(locale, item.title || item.name || "")
-              : typename === "Genre"
-                ? buildGenreFilterUrl(locale, item.name || item.title || "")
-                : buildPersonFilterUrl(locale, item.name || "");
+        let targetHref: string;
+        if (typename === "Appearance") {
+          targetHref = buildAppearanceFilterUrl(locale, item.name || "");
+        } else if (typename === "Arc") {
+          targetHref = buildArcFilterUrl(locale, item.title || item.name || "");
+        } else if (typename === "Genre") {
+          targetHref = buildGenreFilterUrl(locale, item.name || item.title || "");
+        } else {
+          targetHref = buildPersonFilterUrl(locale, item.name || "");
+        }
 
         return (
           <Chip
@@ -72,8 +73,8 @@ export function toChipList(
                 props.navigate(targetHref);
                 return;
               }
-              if (typeof window !== "undefined") {
-                window.location.href = targetHref;
+              if (typeof globalThis.window !== "undefined") {
+                globalThis.location.href = targetHref;
               }
             }}
           />

@@ -37,10 +37,10 @@ function focusAndScrollToStory(index: number) {
   const tryFocus = () => {
     attempts += 1;
     if (run() || attempts >= maxAttempts) return;
-    window.setTimeout(tryFocus, 40);
+    globalThis.setTimeout(tryFocus, 40);
   };
 
-  requestAnimationFrame(tryFocus);
+  globalThis.requestAnimationFrame(tryFocus);
 }
 
 function AddContainsButton(props: AddContainsButtonProps) {

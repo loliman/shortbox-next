@@ -78,6 +78,9 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
   const currentView = getListingView(query);
   const sortLabelId = `${instanceId}-sort-container-label`;
   const sortSelectId = `${instanceId}-sort-container-select`;
+  const gridTemplateColumns = compactLayout
+    ? (showPendingIndicator ? "auto 1fr auto auto" : "1fr auto auto")
+    : (showPendingIndicator ? "auto minmax(220px, 1fr) auto auto" : "minmax(220px, 1fr) auto auto");
 
   const target = selected || { us };
 
@@ -85,13 +88,7 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
     <Box
       sx={{
         display: "grid",
-        gridTemplateColumns: compactLayout
-          ? showPendingIndicator
-            ? "auto 1fr auto auto"
-            : "1fr auto auto"
-          : showPendingIndicator
-            ? "auto minmax(220px, 1fr) auto auto"
-            : "minmax(220px, 1fr) auto auto",
+        gridTemplateColumns,
         alignItems: "center",
         gap: 1,
         width: compactLayout ? "100%" : "auto",

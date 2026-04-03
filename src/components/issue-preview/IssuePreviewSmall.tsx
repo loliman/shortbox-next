@@ -51,6 +51,32 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
   const url = buildRouteHref(getIssueUrl(props.issue, us), props.query);
   const issueLabel = getIssueLabel(props.issue);
   const { isNavigating, handleClick } = usePreviewNavigation(url);
+  const backgroundImage = isCoverLoading
+    ? "linear-gradient(110deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.14) 50%, rgba(0, 0, 0, 0.04) 75%)"
+    : usesFallbackCover
+      ? `linear-gradient(rgba(255,255,255,0.08), rgba(255,255,255,0.08)), url(${NO_COVER_URL})`
+      : `url(${effectiveCoverUrl})`;
+  const darkBackgroundImage = isCoverLoading
+    ? "linear-gradient(110deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.04) 75%)"
+    : usesFallbackCover
+      ? `linear-gradient(rgba(0,0,0,0.08), rgba(0,0,0,0.08)), url(${NO_COVER_URL})`
+      : `url(${effectiveCoverUrl})`;
+  const coverOverlay =
+    effectiveCoverUrl === NO_COVER_URL
+      ? {
+          content: '""',
+          position: "absolute",
+          inset: 0,
+          background: "linear-gradient(135deg, rgba(0,0,0,0.06), rgba(0,0,0,0) 45%)",
+        }
+      : undefined;
+  const darkCoverOverlay =
+    effectiveCoverUrl === NO_COVER_URL
+      ? {
+          background:
+            "linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0) 45%)",
+        }
+      : undefined;
 
   return (
     <Card
@@ -97,11 +123,7 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
               aspectRatio: "1 / 1.5",
               width: "100%",
               backgroundColor: "rgba(0, 0, 0, 0.04)",
-              backgroundImage: isCoverLoading
-                ? "linear-gradient(110deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.14) 50%, rgba(0, 0, 0, 0.04) 75%)"
-                : usesFallbackCover
-                  ? `linear-gradient(rgba(255,255,255,0.08), rgba(255,255,255,0.08)), url(${NO_COVER_URL})`
-                  : `url(${effectiveCoverUrl})`,
+              backgroundImage,
               backgroundRepeat: "no-repeat",
               backgroundPosition: isCoverLoading ? "200% 0" : "center",
               backgroundSize: isCoverLoading ? "220% 100%" : "cover",
@@ -110,15 +132,7 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
                 "0%": { backgroundPosition: "220% 0" },
                 "100%": { backgroundPosition: "-20% 0" },
               },
-              "&::after":
-                effectiveCoverUrl === NO_COVER_URL
-                  ? {
-                      content: '""',
-                      position: "absolute",
-                      inset: 0,
-                      background: "linear-gradient(135deg, rgba(0,0,0,0.06), rgba(0,0,0,0) 45%)",
-                    }
-                  : undefined,
+              "&::after": coverOverlay,
               "&::before": {
                 content: '""',
                 position: "absolute",
@@ -131,18 +145,8 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
               },
               ...theme.applyStyles("dark", {
                 backgroundColor: "rgba(0, 0, 0, 0.3)",
-                backgroundImage: isCoverLoading
-                  ? "linear-gradient(110deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.04) 75%)"
-                  : usesFallbackCover
-                    ? `linear-gradient(rgba(0,0,0,0.08), rgba(0,0,0,0.08)), url(${NO_COVER_URL})`
-                    : `url(${effectiveCoverUrl})`,
-                "&::after":
-                  effectiveCoverUrl === NO_COVER_URL
-                    ? {
-                        background:
-                          "linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0) 45%)",
-                      }
-                    : undefined,
+                backgroundImage: darkBackgroundImage,
+                "&::after": darkCoverOverlay,
                 "&::before": {
                   mixBlendMode: "screen",
                 },

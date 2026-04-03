@@ -91,12 +91,15 @@ function StoryFieldsNonExclusive(props: StoryFieldsNonExclusiveProps) {
           }}
           onChange={(_, option) => {
             const selectedOption = Array.isArray(option) ? option[0] || null : option;
-            const selected = isOptionLike(selectedOption)
-              ? { ...selectedOption, volume: selectedOption.volume || 0 }
-              : getNextStoryParentSeriesSelection(
-                  typeof selectedOption === "string" ? selectedOption : null,
-                  Number(parentSeries.volume || 1)
-                );
+            let selected;
+            if (isOptionLike(selectedOption)) {
+              selected = { ...selectedOption, volume: selectedOption.volume || 0 };
+            } else {
+              selected = getNextStoryParentSeriesSelection(
+                typeof selectedOption === "string" ? selectedOption : null,
+                Number(parentSeries.volume || 1)
+              );
+            }
 
             setFieldValue(`stories[${index}].parent.issue.series`, selected);
           }}

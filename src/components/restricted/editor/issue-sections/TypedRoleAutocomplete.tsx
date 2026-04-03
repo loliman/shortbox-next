@@ -34,7 +34,7 @@ function TypedRoleAutocomplete({
   disabled,
 }: TypedRoleAutocompleteProps) {
   const selectedValues = sanitizeEntries(values);
-  const pattern = String(getPattern(selectedValues, "name", type) || "");
+  const pattern = String(getPattern(selectedValues, "name", type) ?? "");
 
   const queryResult = useAutocompleteQuery<FieldItem>({
     source,

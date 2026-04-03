@@ -77,7 +77,7 @@ export function generateItemTitle(item: ItemTitleLike, us: boolean) {
     let title =
       generateSelectionLabel({ series: item.parent.issue.series as ItemTitleIssueLike["series"] }) +
       " #" +
-      String(item.parent.issue.number || "");
+      safeValue(item.parent.issue.number);
     title +=
       item.__typename !== "Cover" &&
       (item.parent.number || 0) > 0 &&

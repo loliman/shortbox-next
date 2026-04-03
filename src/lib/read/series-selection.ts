@@ -35,7 +35,7 @@ export function matchesSeriesSelectionBySlug(
     candidate.publisher?.original ?? candidate.publisher?.us ?? null;
   if (Boolean(candidatePublisherUs) !== Boolean(selection.us)) return false;
 
-  const candidatePublisherSlug = generatePublisherSlug(String(candidate.publisher?.name || ""));
+  const candidatePublisherSlug = generatePublisherSlug(String(candidate.publisher?.name ?? ""));
   const expectedPublisherSlug = generatePublisherSlug(selection.publisher);
   if (candidatePublisherSlug !== expectedPublisherSlug) return false;
 
@@ -44,7 +44,7 @@ export function matchesSeriesSelectionBySlug(
 
   if (expectedStartYear !== null) {
     const candidateSeriesSlug = generateSeriesSlug(
-      String(candidate.title || ""),
+      String(candidate.title ?? ""),
       candidateStartYear,
       candidateVolume
     );
@@ -56,6 +56,5 @@ export function matchesSeriesSelectionBySlug(
     return candidateSeriesSlug === expectedSeriesSlug;
   }
 
-  return slugify(String(candidate.title || "")) === slugify(selection.series);
+  return slugify(String(candidate.title ?? "")) === slugify(selection.series);
 }
-

@@ -99,8 +99,12 @@ export default async function DeSeriesPage({
   ]);
   if (!initialData?.details) notFound();
   const details = initialData.details as Record<string, unknown>;
-  const resolvedPublisherName = String((details.publisher as Record<string, unknown> | undefined)?.name || selectedSeries?.publisher?.name || "");
-  const resolvedSeriesTitle = String(details.title || selectedSeries?.title || "");
+  const resolvedPublisherName = String(
+    (details.publisher as Record<string, unknown> | undefined)?.name ??
+      selectedSeries?.publisher?.name ??
+      ""
+  );
+  const resolvedSeriesTitle = String(details.title ?? selectedSeries?.title ?? "");
   const resolvedSeriesYear = details.startyear as string | number | null | undefined;
   const resolvedSeriesVolume = details.volume as string | number | null | undefined;
   const breadcrumbJsonLd = buildSeriesBreadcrumbStructuredData({

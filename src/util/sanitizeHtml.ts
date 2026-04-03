@@ -7,7 +7,7 @@ const ALLOWED_TAG_SET = new Set(ALLOWED_TAGS);
 const ALLOWED_ATTR_SET = new Set(ALLOWED_ATTR);
 
 function hardenLinks(html: string): string {
-  if (typeof window === "undefined") return html;
+  if (typeof globalThis.window === "undefined") return html;
 
   const template = document.createElement("template");
   template.innerHTML = html;
@@ -63,7 +63,7 @@ function sanitizeHtmlOnServer(input: string): string {
 export function sanitizeHtml(input: string | null | undefined): string {
   if (!input) return "";
 
-  if (typeof window === "undefined") {
+  if (typeof globalThis.window === "undefined") {
     return sanitizeHtmlOnServer(input);
   }
 

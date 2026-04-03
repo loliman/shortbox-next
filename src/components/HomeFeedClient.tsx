@@ -169,8 +169,8 @@ export default function HomeFeedClient(props: Readonly<HomeFeedClientProps>) {
       void loadPage(items.length, nextCursor);
     };
 
-    window.addEventListener("scroll", onWindowScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onWindowScroll);
+    globalThis.addEventListener("scroll", onWindowScroll, { passive: true });
+    return () => globalThis.removeEventListener("scroll", onWindowScroll);
   }, [fetchingMore, hasMore, items.length, loadPage, nextCursor]);
 
   const loadingIndicator = hasMore && fetchingMore ? <LoadingDots /> : null;

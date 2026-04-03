@@ -1,8 +1,9 @@
 type OptionValue = Record<string, unknown>;
+const toOptionKeyPart = (value: unknown) => String(value ?? "");
 
 export function getPublisherOptionKey(option: OptionValue | string) {
   if (typeof option === "string") return option;
-  return `${String(option.name || "")}::${String(option.us ?? "")}`;
+  return `${toOptionKeyPart(option.name)}::${toOptionKeyPart(option.us)}`;
 }
 
 export function getSeriesOptionKey(option: OptionValue | string) {
@@ -10,10 +11,10 @@ export function getSeriesOptionKey(option: OptionValue | string) {
 
   const publisher = (option.publisher || {}) as { name?: unknown; us?: unknown };
   return [
-    String(option.title || ""),
-    String(option.volume || ""),
-    String(option.startyear || ""),
-    String(publisher.name || ""),
-    String(publisher.us ?? ""),
+    toOptionKeyPart(option.title),
+    toOptionKeyPart(option.volume),
+    toOptionKeyPart(option.startyear),
+    toOptionKeyPart(publisher.name),
+    toOptionKeyPart(publisher.us),
   ].join("::");
 }

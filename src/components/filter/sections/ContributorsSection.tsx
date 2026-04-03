@@ -96,7 +96,7 @@ function ContributorAutocomplete({
             : "Keine Ergebnisse gefunden"
       }
       onListboxScroll={query.onListboxScroll}
-      getOptionLabel={(option) => String((option as { name?: unknown })?.name || "")}
+      getOptionLabel={(option) => String((option as { name?: unknown })?.name ?? "")}
       isOptionEqualToValue={(option, value) =>
         normalizeText(option.name) === normalizeText((value as { name?: unknown })?.name)
       }

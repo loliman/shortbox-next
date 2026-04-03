@@ -62,19 +62,19 @@ export function useBranchWindowing(
 
     const scheduleSync = () => {
       if (frameId || cancelled) return;
-      frameId = window.requestAnimationFrame(syncWindowToScrollPosition);
+      frameId = globalThis.requestAnimationFrame(syncWindowToScrollPosition);
     };
 
     const scrollContainer = navScrollContainerRef.current;
     scheduleSync();
     scrollContainer.addEventListener("scroll", scheduleSync, { passive: true });
-    window.addEventListener("resize", scheduleSync);
+    globalThis.addEventListener("resize", scheduleSync);
 
     return () => {
       cancelled = true;
       scrollContainer.removeEventListener("scroll", scheduleSync);
-      window.removeEventListener("resize", scheduleSync);
-      if (frameId) window.cancelAnimationFrame(frameId);
+      globalThis.removeEventListener("resize", scheduleSync);
+      if (frameId) globalThis.cancelAnimationFrame(frameId);
     };
   }, [branchListRef, navScrollContainerRef, rowHeight, totalCount, windowingEnabled]);
 
@@ -93,11 +93,11 @@ export function useBranchWindowing(
       });
     };
 
-    frameId = window.requestAnimationFrame(run);
+    frameId = globalThis.requestAnimationFrame(run);
 
     return () => {
       cancelled = true;
-      if (frameId) window.cancelAnimationFrame(frameId);
+      if (frameId) globalThis.cancelAnimationFrame(frameId);
     };
   }, [
     deferProgressiveRendering,

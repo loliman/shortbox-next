@@ -44,12 +44,12 @@ export function buildConnectionFromNodes<T>(nodes: T[]): Connection<T> {
 }
 
 export function normalizeSortField(field?: string | null) {
-  const normalized = String(field || "").trim().toLowerCase();
+  const normalized = String(field ?? "").trim().toLowerCase();
   return ALLOWED_LAST_EDITED_SORT_FIELDS.has(normalized) ? normalized : "updatedat";
 }
 
 export function normalizeSortDirection(direction?: string | null): SortDirection {
-  return String(direction || "").trim().toLowerCase() === "asc" ? "asc" : "desc";
+  return String(direction ?? "").trim().toLowerCase() === "asc" ? "asc" : "desc";
 }
 
 export function normalizeText(value: unknown) {

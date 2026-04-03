@@ -208,7 +208,7 @@ export async function readLastEditedIssues(
     ...(filteredIssueIds
       ? {
           id: {
-            in: filteredIssueIds.map((id) => BigInt(id)),
+            in: filteredIssueIds.map(BigInt),
           },
         }
       : {}),
@@ -274,7 +274,7 @@ export async function readIssueNavigationNodes(
       ...(filteredIssueIds
         ? {
             id: {
-              in: filteredIssueIds.map((id) => BigInt(id)),
+              in: filteredIssueIds.map(BigInt),
             },
           }
         : {}),
@@ -349,7 +349,7 @@ export async function readIssuesByIds(ids: readonly number[]) {
   const rows = await prisma.issue.findMany({
     where: {
       id: {
-        in: ids.map((id) => BigInt(id)),
+        in: ids.map(BigInt),
       },
     },
     include: createPreviewIssueInclude(),

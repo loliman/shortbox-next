@@ -42,8 +42,8 @@ class ErrorFabBase extends React.Component<ErrorFabProps, ErrorFabState> {
     this.updateBottomBarHeight();
     this.addViewportListeners();
 
-    if (typeof window !== "undefined") {
-      this.rafId = window.requestAnimationFrame(() => {
+    if (typeof globalThis.window !== "undefined") {
+      this.rafId = globalThis.requestAnimationFrame(() => {
         this.observeBottomBar();
         this.updateBottomBarHeight();
       });
@@ -53,8 +53,8 @@ class ErrorFabBase extends React.Component<ErrorFabProps, ErrorFabState> {
   componentWillUnmount(): void {
     this.removeViewportListeners();
     this.resizeObserver?.disconnect();
-    if (typeof window !== "undefined" && this.rafId !== undefined) {
-      window.cancelAnimationFrame(this.rafId);
+    if (typeof globalThis.window !== "undefined" && this.rafId !== undefined) {
+      globalThis.cancelAnimationFrame(this.rafId);
     }
   }
 
@@ -194,15 +194,15 @@ class ErrorFabBase extends React.Component<ErrorFabProps, ErrorFabState> {
   };
 
   private addViewportListeners() {
-    if (typeof window === "undefined") return;
-    window.addEventListener("resize", this.handleViewportChange);
-    window.addEventListener("orientationchange", this.handleViewportChange);
+    if (typeof globalThis.window === "undefined") return;
+    globalThis.addEventListener("resize", this.handleViewportChange);
+    globalThis.addEventListener("orientationchange", this.handleViewportChange);
   }
 
   private removeViewportListeners() {
-    if (typeof window === "undefined") return;
-    window.removeEventListener("resize", this.handleViewportChange);
-    window.removeEventListener("orientationchange", this.handleViewportChange);
+    if (typeof globalThis.window === "undefined") return;
+    globalThis.removeEventListener("resize", this.handleViewportChange);
+    globalThis.removeEventListener("orientationchange", this.handleViewportChange);
   }
 
   private handleViewportChange = () => {

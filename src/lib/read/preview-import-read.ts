@@ -41,11 +41,11 @@ export async function readDeSeriesByTitle(title: string) {
   });
 
   return candidates
-    .filter((entry) => normalizeSeriesTitleKey(String(entry.title || "")) === normalizedTitle)
+    .filter((entry) => normalizeSeriesTitleKey(String(entry.title ?? "")) === normalizedTitle)
     .map((entry) => ({
-      title: String(entry.title || ""),
-      volume: Number(entry.volume || 0),
-      publisherName: String(entry.publisher?.name || ""),
+      title: String(entry.title ?? ""),
+      volume: Number(entry.volume ?? 0),
+      publisherName: String(entry.publisher?.name ?? ""),
     }))
     .filter((entry) => entry.title && entry.volume > 0 && entry.publisherName);
 }

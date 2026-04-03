@@ -110,12 +110,14 @@ export function createRouteMetadata(input: {
   noIndex?: boolean;
 }): Metadata {
   const queryMode = getRouteQueryMode(input.searchParams);
-  const robots =
-    queryMode === "search"
-      ? buildRobots(false, false)
-      : input.noIndex || queryMode === "variant"
-        ? buildRobots(false, true)
-        : undefined;
+  let robots: Metadata["robots"];
+  if (queryMode === "search") {
+    robots = buildRobots(false, false);
+  } else if (input.noIndex || queryMode === "variant") {
+    robots = buildRobots(false, true);
+  } else {
+    robots = undefined;
+  }
 
   return createPageMetadata({
     title: input.title,
@@ -159,4 +161,3 @@ export function createWorkspaceMetadata(title: string): Metadata {
     noIndex: true,
   });
 }
-

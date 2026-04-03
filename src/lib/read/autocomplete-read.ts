@@ -429,7 +429,7 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
 }
 
 function normalizePattern(value: unknown) {
-  return String(value || "").trim();
+  return String(value ?? "").trim();
 }
 
 function normalizePositiveInt(value: number | undefined, fallback: number) {

@@ -33,7 +33,7 @@ function normalizeUniqueNames(values: Array<{ name?: unknown }>): string[] {
   const unique = new Map<string, string>();
 
   values.forEach((entry) => {
-    const name = String(entry.name || "").trim();
+    const name = String(entry.name ?? "").trim();
     if (!name) return;
 
     const key = name.toLowerCase();

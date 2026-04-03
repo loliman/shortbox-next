@@ -62,7 +62,7 @@ function splitFilterTerms(value: string | null | undefined): string[] {
 function extractArcTerms(filter: RuntimeFilter) {
   return Array.isArray(filter.arcs)
     ? dedupeTerms(
-        filter.arcs.map((arc) => String(arc?.title || "").trim()).filter((arc) => arc.length > 0)
+        filter.arcs.map((arc) => String(arc?.title ?? "").trim()).filter((arc) => arc.length > 0)
       )
     : splitFilterTerms(filter.arcs as string | null | undefined);
 }
@@ -71,7 +71,7 @@ function extractAppearanceTerms(filter: RuntimeFilter) {
   return Array.isArray(filter.appearances)
     ? dedupeTerms(
         filter.appearances
-          .map((appearance) => String(appearance?.name || "").trim())
+          .map((appearance) => String(appearance?.name ?? "").trim())
           .filter((appearance) => appearance.length > 0)
       )
     : splitFilterTerms(filter.appearances as string | null | undefined);
@@ -81,14 +81,14 @@ function extractRealityTerms(filter: RuntimeFilter) {
   return Array.isArray(filter.realities)
     ? dedupeTerms(
         filter.realities
-          .map((reality) => String(reality?.name || "").trim())
+          .map((reality) => String(reality?.name ?? "").trim())
           .filter((reality) => reality.length > 0)
       )
     : splitFilterTerms(filter.realities as string | null | undefined);
 }
 
 function parseFilterDate(raw: string | null | undefined): Date | null {
-  const value = String(raw || "").trim();
+  const value = String(raw ?? "").trim();
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
@@ -467,7 +467,7 @@ const resolveFilterStateCached = cache(
     return {
       directIssueWhere: null,
       filteredIssueIds,
-      filteredIssueIdsBigInt: filteredIssueIds ? filteredIssueIds.map((id) => BigInt(id)) : null,
+      filteredIssueIdsBigInt: filteredIssueIds ? filteredIssueIds.map(BigInt) : null,
       initialFilterCount: filteredIssueIds ? filteredIssueIds.length : undefined,
     };
   }

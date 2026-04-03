@@ -1,5 +1,5 @@
 export function normalizeText(value: unknown) {
-  return String(value || "").trim();
+  return value == null ? "" : String(value).trim();
 }
 
 export function normalizeOptionalText(value: unknown) {
@@ -35,7 +35,7 @@ export function normalizeDbIds(values: readonly number[]) {
 }
 
 export function normalizeStoryTitleKey(value: unknown): string {
-  return String(value || "")
+  return String(value ?? "")
     .trim()
     .toLowerCase()
     .replace(/[_:;,.!?'"()\-]+/g, " ")
