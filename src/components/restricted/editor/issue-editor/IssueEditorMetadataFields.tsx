@@ -85,7 +85,7 @@ function IssueEditorMetadataFields({
             expanded={Boolean(batchEnabled)}
             onChange={(_event, expanded) => {
               setFieldValue("copyBatch.enabled", expanded);
-              if (!expanded) {
+              if (expanded !== true) {
                 setFieldValue("copyBatch.count", 1, false);
                 setFieldValue("copyBatch.prefix", "", false);
               }

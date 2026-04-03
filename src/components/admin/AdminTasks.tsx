@@ -107,10 +107,13 @@ const resolveVisualState = (run: RunLike | null | undefined): VisualState => {
 
   const summary = (run.summary ?? "").toLowerCase();
   const workerState = getWorkerStateFromDetails(run.details);
+  const isQueued = workerState === "queued" || summary.includes("queued");
+  const isRunning = workerState === "running" || summary.includes("running");
+  const isPending = !run.finishedAt || isQueued || isRunning;
 
-  if (!run.finishedAt || summary.includes("queued") || summary.includes("running")) {
-    if (workerState === "running" || summary.includes("running")) return "running";
-    if (workerState === "queued" || summary.includes("queued")) return "queued";
+  if (isPending) {
+    if (isRunning) return "running";
+    if (isQueued) return "queued";
   }
 
   if (hasFailedItemsInSummary(summary)) return "failed";

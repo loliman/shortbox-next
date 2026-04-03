@@ -13,21 +13,21 @@ export function getTodayLocalDate(): Date {
 
 export function collectIssueArcs(issueData: Issue, us: boolean) {
   if (us) {
-    return (issueData.arcs || [])
+    return (issueData.arcs ?? [])
       .filter((arc): arc is ArcLike => Boolean(arc?.title))
       .map((arc) => ({
-        title: arc.title || "",
-        type: arc.type || "STORYARC",
+        title: arc.title ?? "",
+        type: arc.type ?? "STORYARC",
       }));
   }
 
   const deduped = new Map<string, { title: string; type: string }>();
-  for (const story of issueData.stories || []) {
-    for (const arc of story?.parent?.issue?.arcs || []) {
+  for (const story of issueData.stories ?? []) {
+    for (const arc of story?.parent?.issue?.arcs ?? []) {
       if (!arc?.title) continue;
-      const key = `${arc.type || "STORYARC"}|${arc.title}`;
+      const key = `${arc.type ?? "STORYARC"}|${arc.title}`;
       if (!deduped.has(key)) {
-        deduped.set(key, { title: arc.title, type: arc.type || "STORYARC" });
+        deduped.set(key, { title: arc.title, type: arc.type ?? "STORYARC" });
       }
     }
   }
@@ -39,7 +39,7 @@ export function getContainsItemKey(
   item: { __typename?: string | null; number?: string | number | null },
   idx: number
 ): string {
-  const type = item?.__typename || "item";
+  const type = item?.__typename ?? "item";
   const number = readIssueDetailsText(item?.number) || String(idx);
   return `${type}|${number}|${idx}`;
 }
@@ -49,11 +49,11 @@ export function getVariantKey(
   idx: number
 ): string {
   const variantNumber = readIssueDetailsText(variant.number) || String(idx);
-  return `${variant.format || ""}|${variant.variant || ""}|${variantNumber}`;
+  return `${variant.format ?? ""}|${variant.variant ?? ""}|${variantNumber}`;
 }
 
 export function buildIssueVariantKey(issue: { format?: string | null; variant?: string | null }): string {
-  return [slugify(issue.format || ""), slugify(issue.variant || "")].join("|");
+  return [slugify(issue.format ?? ""), slugify(issue.variant ?? "")].join("|");
 }
 
 export function compareIssueNumbers(issueNumber: string, filterNumber: string): number {

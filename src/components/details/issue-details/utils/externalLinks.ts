@@ -10,9 +10,10 @@ export function generateComicGuideUrl(issue: IssueLike): string {
 
 export function generateMarvelDbUrl(issue: IssueLike): string {
   const volume = issue.series?.volume != null ? String(issue.series.volume) : "";
-  const issueNumber = issue.number || "";
+  const issueNumber = issue.number ?? "";
+  const seriesTitle = issue.series?.title ?? "";
   const path =
-    encodeURIComponent(issue.series?.title || "") +
+    encodeURIComponent(seriesTitle) +
     "_Vol_" +
     volume +
     "_" +

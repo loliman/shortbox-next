@@ -85,7 +85,7 @@ function revealStoryErrorPanel(errorPath: string) {
 
   const summary = card.querySelector<HTMLElement>(".MuiAccordionSummary-root");
   const expanded = summary?.getAttribute("aria-expanded") === "true";
-  if (!expanded) {
+  if (expanded !== true) {
     summary?.click();
   }
 }
