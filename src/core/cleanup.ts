@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma/client";
 
 const MAX_REPORTED_ITEMS = 100;
@@ -147,11 +148,13 @@ const distinctOwnerIdsForActiveRefs = async (
 
 const toBigIntIds = (ids: Set<number>) => [...ids].map(BigInt);
 
-const mapOwnerRows = <T extends bigint>(rows: Array<T>, key: "fkIndividual" | "fkAppearance" | "fkArc") =>
-  rows.map((row) => ({ ownerId: (row as unknown as Record<string, bigint>)[key] }));
+type OwnerKey = "fkIndividual" | "fkAppearance" | "fkArc";
+
+const mapOwnerRows = <K extends OwnerKey>(rows: Array<Record<K, bigint>>, key: K) =>
+  rows.map((row) => ({ ownerId: row[key] }));
 
 const readLinkedIndividualIdsForIssues = (
-  tx: typeof prisma,
+  tx: Prisma.TransactionClient,
   activeIssueIds: Set<number>
 ) =>
   distinctOwnerIdsForActiveRefs(
@@ -167,7 +170,7 @@ const readLinkedIndividualIdsForIssues = (
   );
 
 const readLinkedIndividualIdsForStories = (
-  tx: typeof prisma,
+  tx: Prisma.TransactionClient,
   activeStoryIds: Set<number>
 ) =>
   distinctOwnerIdsForActiveRefs(
@@ -183,7 +186,7 @@ const readLinkedIndividualIdsForStories = (
   );
 
 const readLinkedIndividualIdsForCovers = (
-  tx: typeof prisma,
+  tx: Prisma.TransactionClient,
   activeCoverIds: Set<number>
 ) =>
   distinctOwnerIdsForActiveRefs(
@@ -199,7 +202,7 @@ const readLinkedIndividualIdsForCovers = (
   );
 
 const readLinkedAppearanceIdsForStories = (
-  tx: typeof prisma,
+  tx: Prisma.TransactionClient,
   activeStoryIds: Set<number>
 ) =>
   distinctOwnerIdsForActiveRefs(
@@ -215,7 +218,7 @@ const readLinkedAppearanceIdsForStories = (
   );
 
 const readLinkedArcIdsForIssues = (
-  tx: typeof prisma,
+  tx: Prisma.TransactionClient,
   activeIssueIds: Set<number>
 ) =>
   distinctOwnerIdsForActiveRefs(
