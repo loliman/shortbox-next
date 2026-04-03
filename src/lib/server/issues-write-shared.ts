@@ -40,7 +40,7 @@ export function normalizeDbIds(values: readonly number[]) {
 export function normalizeStoryTitleKey(value: unknown): string {
   return normalizeText(value)
     .toLowerCase()
-    .replaceAll(/[_:;,.!?'"()\-]+/g, " ")
+    .replaceAll(/[-_:;,.!?'()]+/g, " ")
     .replaceAll(/\s+/g, " ")
     .trim();
 }

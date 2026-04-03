@@ -143,7 +143,7 @@ export class UserService {
 
     const userRecord = await readUserByName(name);
 
-    if (!userRecord || !userRecord.password) {
+    if (!userRecord?.password) {
       await this.registerLoginFailure(loginRateLimitKey);
       return null;
     }

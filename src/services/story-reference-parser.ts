@@ -16,12 +16,7 @@ interface StoryReferenceContext {
 
 const DASH_PATTERN = /[‐‑–—]/g;
 const VOLUME_PATTERN = /\s+(?:vol(?:ume)?|v)\.?\s*(\d+)$/i;
-const ISSUE_NUMBER_TOKEN_PATTERN = /#?\d+[A-Za-z]?(?:-#?\d+[A-Za-z]?)?/;
-const ISSUE_REFERENCE_PATTERN = new RegExp(
-  `((?:annual\\s+\\d+(?:-\\d+)?)|(?:${ISSUE_NUMBER_TOKEN_PATTERN.source}))$`,
-  "i"
-);
-const CONTEXT_ISSUE_PATTERN = /^(?:annual\s+\d+(?:-\d+)?|\d+[A-Za-z]?(?:-\d+[A-Za-z]?)?)$/i;
+const CONTEXT_ISSUE_PATTERN = /^(?:annual\s+\d+(?:-\d+)?|\d+[A-Z]?(?:-\d+[A-Z]?)?)$/i;
 const ANNUAL_RANGE_PATTERN = /^annual\s+(\d+)(?:-(\d+))?$/i;
 const NUMERIC_RANGE_PATTERN = /^(\d+)([A-Za-z]?)(?:-(\d+)([A-Za-z]?))?$/;
 
@@ -62,11 +57,10 @@ function parseSegment(
     return createContextReferences(context, contextIssueNumbers);
   }
 
-  const issueMatch = ISSUE_REFERENCE_PATTERN.exec(segment);
-  if (!issueMatch) return null;
+  const splitSegment = splitSeriesAndIssueSpec(segment);
+  if (!splitSegment) return null;
 
-  const rawIssueSpec = issueMatch[1]?.trim() || "";
-  const rawSeriesSpec = segment.slice(0, Math.max(0, segment.length - rawIssueSpec.length)).trim();
+  const { rawIssueSpec, rawSeriesSpec } = splitSegment;
   if (!rawSeriesSpec) return null;
 
   const parsedSeriesContext = parseSeriesContext(rawSeriesSpec);
@@ -146,7 +140,7 @@ function parseSeriesContext(rawSeriesSpec: string): StoryReferenceContext | null
 }
 
 function parseContextIssueNumbers(value: string): string[] | null {
-  const normalized = stripTrailingPunctuation(value).replace(/^#/, "").trim();
+  const normalized = stripLeadingHash(stripTrailingPunctuation(value));
   if (!normalized) return null;
   if (!CONTEXT_ISSUE_PATTERN.test(normalized)) {
     return null;
@@ -156,7 +150,7 @@ function parseContextIssueNumbers(value: string): string[] | null {
 }
 
 function parseIssueNumbers(value: string): string[] | null {
-  const normalized = stripTrailingPunctuation(value).replace(/^#/, "").trim();
+  const normalized = stripLeadingHash(stripTrailingPunctuation(value));
   if (!normalized) return null;
 
   const annualIssueNumbers = parseAnnualIssueNumbers(normalized);
@@ -221,5 +215,34 @@ function normalizeInput(input: string) {
 }
 
 function stripTrailingPunctuation(value: string) {
-  return value.replaceAll(/[.,]+$/g, "").trim();
+  let end = value.length;
+  while (end > 0) {
+    const char = value[end - 1];
+    if (char !== "." && char !== "," && !/\s/.test(char || "")) break;
+    end -= 1;
+  }
+  return value.slice(0, end).trim();
+}
+
+function stripLeadingHash(value: string) {
+  return value.startsWith("#") ? value.slice(1).trim() : value.trim();
+}
+
+function splitSeriesAndIssueSpec(segment: string) {
+  const trimmed = segment.trim();
+  const annualMatch = /(.*\S)\s+(annual\s+\d+(?:-\d+)?)$/i.exec(trimmed);
+  if (annualMatch) {
+    return {
+      rawSeriesSpec: annualMatch[1]?.trim() || "",
+      rawIssueSpec: annualMatch[2]?.trim() || "",
+    };
+  }
+
+  const numericMatch = /(.*\S)\s+(#?\d+[A-Z]?(?:-#?\d+[A-Z]?)?)$/i.exec(trimmed);
+  if (!numericMatch) return null;
+
+  return {
+    rawSeriesSpec: numericMatch[1]?.trim() || "",
+    rawIssueSpec: numericMatch[2]?.trim() || "",
+  };
 }

@@ -30,7 +30,7 @@ export async function generateSeoFilterPageMetadata(input: {
   us: boolean;
   kind: SeoFilterKind;
   slug: string;
-  searchParams?: Record<string, string | string[] | undefined> | undefined;
+  searchParams: Record<string, string | string[] | undefined> | undefined;
 }): Promise<Metadata> {
   const resolved = await resolveSeoFilterLanding({
     us: input.us,
@@ -62,7 +62,7 @@ export async function renderSeoFilterHomePage(input: {
   us: boolean;
   kind: SeoFilterKind;
   slug: string;
-  searchParams?: Promise<Record<string, string | string[] | undefined> | undefined>;
+  searchParams: Promise<Record<string, string | string[] | undefined> | undefined> | undefined;
 }) {
   const [resolvedSearchParams, session, resolvedFilter] = await Promise.all([
     input.searchParams,

@@ -250,9 +250,9 @@ const findUSIssueIdsWithoutDEReference = ({
 
   const resolvePublisherOriginalByIssue = (issueId: number): boolean | null => {
     const issue = issueById.get(issueId);
-    if (!issue) return null;
-    const seriesItem = issue.fkSeries != null ? seriesById.get(issue.fkSeries) : null;
-    if (!seriesItem || seriesItem.fkPublisher == null) return null;
+    if (issue?.fkSeries == null) return null;
+    const seriesItem = seriesById.get(issue.fkSeries);
+    if (seriesItem?.fkPublisher == null) return null;
     const publisher = publisherById.get(seriesItem.fkPublisher);
     return publisher ? Boolean(publisher.original) : null;
   };
@@ -269,8 +269,9 @@ const findUSIssueIdsWithoutDEReference = ({
     if (seriesId == null) return;
     const groupKey = `${seriesId}::${issue.number}`;
     issueGroupKeyById.set(issue.id, groupKey);
-    if (!usIssueIdsByGroupKey.has(groupKey)) usIssueIdsByGroupKey.set(groupKey, new Set<number>());
-    usIssueIdsByGroupKey.get(groupKey)?.add(issue.id);
+    const groupIssueIds = usIssueIdsByGroupKey.get(groupKey) ?? new Set<number>();
+    groupIssueIds.add(issue.id);
+    usIssueIdsByGroupKey.set(groupKey, groupIssueIds);
   });
 
   const storyById = new Map<number, StoryRow>();
@@ -474,11 +475,8 @@ export async function runCleanup(
       addStage(
         toStageResult("0) US issues without any DE reference chain", step0IssueIds, (id) => {
           const issue = issueById.get(id);
-          const seriesItem = issue && issue.fkSeries != null ? seriesById.get(issue.fkSeries) : null;
-          const publisher =
-            seriesItem && seriesItem.fkPublisher != null
-              ? publisherById.get(seriesItem.fkPublisher)
-              : null;
+          const seriesItem = issue?.fkSeries == null ? undefined : seriesById.get(issue.fkSeries);
+          const publisher = seriesItem?.fkPublisher == null ? undefined : publisherById.get(seriesItem.fkPublisher);
           return `Issue#${id} number=${issue?.number || "?"} variant=${issue?.variant || ""} series="${seriesItem?.title || "?"}" publisher="${publisher?.name || "?"}"`;
         })
       );

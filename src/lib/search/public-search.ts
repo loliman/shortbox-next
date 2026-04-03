@@ -316,10 +316,25 @@ function parseSearchPattern(input: string): ParsedSearchPattern {
 }
 
 function cleanSearchToken(token: string): string {
-  return token
-    .trim()
-    .replace(/^[^0-9a-zA-Z]+/, "")
-    .replace(/[^0-9a-zA-Z/]+$/, "");
+  const trimmed = token.trim();
+  let start = 0;
+  let end = trimmed.length;
+
+  while (start < end && isSearchNoiseCharacter(trimmed[start], false)) {
+    start += 1;
+  }
+
+  while (end > start && isSearchNoiseCharacter(trimmed[end - 1], true)) {
+    end -= 1;
+  }
+
+  return trimmed.slice(start, end);
+}
+
+function isSearchNoiseCharacter(char: string | undefined, allowSlash: boolean): boolean {
+  if (!char) return false;
+  if (/[0-9a-zA-Z]/.test(char)) return false;
+  return allowSlash ? char !== "/" : true;
 }
 
 function hasStructuredQualifier(parsed: ParsedSearchPattern): boolean {

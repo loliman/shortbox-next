@@ -30,8 +30,6 @@ type RuntimeFilter = Filter & {
   numbers?: Array<(NumberFilter & { variant?: string | null }) | null>;
 };
 
-const MULTI_FILTER_SEPARATOR_REGEX = /\s*\|\|\s*/g;
-
 const supportedDirectFilterKeys = new Set([
   "us",
   "formats",
@@ -56,7 +54,7 @@ function dedupeTerms(values: string[]) {
 
 function splitFilterTerms(value: string | null | undefined): string[] {
   if (!value) return [];
-  return dedupeTerms(value.split(MULTI_FILTER_SEPARATOR_REGEX));
+  return dedupeTerms(value.split("||"));
 }
 
 function extractArcTerms(filter: RuntimeFilter) {

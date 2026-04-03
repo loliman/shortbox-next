@@ -33,7 +33,12 @@ type MetadataSearchParamsInput = Record<string, string | string[] | undefined> |
 type RouteQueryMode = "clean" | "tracking" | "variant" | "search";
 
 function normalizeMetadataTitle(title: string): string {
-  return title.replace(/\s*\|\s*shortbox\s*$/i, "").trim();
+  const trimmedTitle = title.trim();
+  const separatorIndex = trimmedTitle.lastIndexOf("|");
+  if (separatorIndex < 0) return trimmedTitle;
+
+  const suffix = trimmedTitle.slice(separatorIndex + 1).trim().toLowerCase();
+  return suffix === "shortbox" ? trimmedTitle.slice(0, separatorIndex).trim() : trimmedTitle;
 }
 
 function buildRobots(index: boolean, follow: boolean): NonNullable<Metadata["robots"]> {

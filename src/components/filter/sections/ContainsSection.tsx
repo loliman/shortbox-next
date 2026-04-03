@@ -96,8 +96,8 @@ function ContainsSection({
           size="small"
           exclusive
           value={mode}
-          onChange={(_, nextMode: "any" | "include" | "exclude" | null) => {
-            const targetMode = nextMode ?? "any";
+          onChange={(_, nextMode: "any" | "include" | "exclude" | null = "any") => {
+            const targetMode = nextMode;
             setFieldValue(field, targetMode === "include");
             setFieldValue(negatedField, targetMode === "exclude");
           }}

@@ -18,79 +18,33 @@ type IssueMetadataResult = Awaited<ReturnType<typeof readIssueMetadataQuery>>;
 type IssueSelectionOptions = IssueSelectionInput;
 
 const readIssueDetailsCached = cache(
-  async (
-    us: boolean,
-    publisher: string,
-    series: string,
-    volume: number,
-    startyear: number | undefined,
-    number: string,
-    format: string | undefined,
-    variant: string | undefined
-  ) =>
-    readIssueDetailsQuery({
-      us,
-      publisher,
-      series,
-      volume,
-      startyear,
-      number,
-      format,
-      variant,
-    })
+  async (options: IssueSelectionOptions) => readIssueDetailsQuery(options)
 );
 
 const readIssueMetadataCached = cache(
-  async (
-    us: boolean,
-    publisher: string,
-    series: string,
-    volume: number,
-    startyear: number | undefined,
-    number: string,
-    format: string | undefined,
-    variant: string | undefined
-  ) =>
-    readIssueMetadataQuery({
-      us,
-      publisher,
-      series,
-      volume,
-      startyear,
-      number,
-      format,
-      variant,
-    })
+  async (options: IssueSelectionOptions) => readIssueMetadataQuery(options)
 );
 
 export async function readIssueDetails(
   options: IssueSelectionOptions
 ): Promise<IssueDetailsResult> {
-  return readIssueDetailsCached(
-    options.us,
-    options.publisher,
-    options.series,
-    options.volume,
-    Number(options.startyear || 0) || undefined,
-    options.number,
-    options.format || undefined,
-    options.variant || undefined
-  );
+  return readIssueDetailsCached({
+    ...options,
+    startyear: Number(options.startyear || 0) || undefined,
+    format: options.format || undefined,
+    variant: options.variant || undefined,
+  });
 }
 
 export async function readIssueMetadata(
   options: IssueSelectionOptions
 ): Promise<IssueMetadataResult> {
-  return readIssueMetadataCached(
-    options.us,
-    options.publisher,
-    options.series,
-    options.volume,
-    Number(options.startyear || 0) || undefined,
-    options.number,
-    options.format || undefined,
-    options.variant || undefined
-  );
+  return readIssueMetadataCached({
+    ...options,
+    startyear: Number(options.startyear || 0) || undefined,
+    format: options.format || undefined,
+    variant: options.variant || undefined,
+  });
 }
 
 export async function readChangeRequests(options?: {

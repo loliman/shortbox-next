@@ -102,10 +102,8 @@ export function buildIssueCreateDefaultValues(
       selectedUs
     );
   } else if (level === HierarchyLevel.ISSUE) {
-    defaults.series = normalizeSeries(
-      ((selected.issue as { series?: Record<string, unknown> }) || {}).series,
-      selectedUs
-    );
+    const selectedIssue = selected.issue as { series?: Record<string, unknown> } | undefined;
+    defaults.series = normalizeSeries(selectedIssue?.series, selectedUs);
   }
 
   return defaults;

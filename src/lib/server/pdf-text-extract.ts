@@ -51,11 +51,14 @@ function toPageLines(items: Array<{ str?: string; transform?: number[] }>) {
     rows.set(key, row);
   }
 
-  return Array.from(rows.entries())
-    .sort((left, right) => Number(right[0]) - Number(left[0]))
+  const sortedRows = Array.from(rows.entries()).toSorted(
+    (left, right) => Number(right[0]) - Number(left[0])
+  );
+
+  return sortedRows
     .map(([, row]) =>
       row
-        .sort((left, right) => left.x - right.x)
+        .toSorted((left, right) => left.x - right.x)
         .map((entry) => entry.text)
         .join(" ")
         .replaceAll(/\s+/g, " ")

@@ -15,7 +15,7 @@
 export function slugify(text: string | null | undefined): string {
   if (!text) return "";
 
-  return text
+  const normalized = text
     .trim()
     // German umlauts — must run BEFORE .normalize("NFD") so that ä is replaced with "ae"
     // rather than being decomposed to a+combining-diaeresis and then just yielding "a".
@@ -32,9 +32,24 @@ export function slugify(text: string | null | undefined): string {
     // Drop everything that is not a-z, 0-9 or hyphen
     .replaceAll(/[^a-z0-9-]/g, "")
     // Collapse consecutive hyphens
-    .replaceAll(/-+/g, "-")
-    // Strip leading/trailing hyphens
-    .replaceAll(/^-+|-+$/g, "");
+    .replaceAll(/-+/g, "-");
+
+  return trimHyphenEdges(normalized);
+}
+
+function trimHyphenEdges(value: string): string {
+  let start = 0;
+  let end = value.length;
+
+  while (value[start] === "-") {
+    start += 1;
+  }
+
+  while (end > start && value[end - 1] === "-") {
+    end -= 1;
+  }
+
+  return value.slice(start, end);
 }
 
 /**
@@ -123,6 +138,17 @@ export interface IssueUrlSegments {
   variantSlug?: string;
 }
 
+type BuildIssueUrlSegmentsInput = {
+  locale: "de" | "us";
+  publisherName: string | null | undefined;
+  seriesTitle: string | null | undefined;
+  seriesStartYear: number | null | undefined;
+  seriesVolume: number | null | undefined;
+  issueNumber: string | null | undefined;
+  format?: string | null | undefined;
+  variant?: string | null | undefined;
+};
+
 /**
  * Generate full issue URL path
  * Example: /de/marvel/amazing-spider-man-1963-vol1/1/heft/standard
@@ -149,22 +175,13 @@ export function buildIssueUrlPath(segments: IssueUrlSegments): string {
 /**
  * Helper to build all URL segments from issue data
  */
-export function buildIssueUrlSegments(
-  locale: "de" | "us",
-  publisherName: string | null | undefined,
-  seriesTitle: string | null | undefined,
-  seriesStartYear: number | null | undefined,
-  seriesVolume: number | null | undefined,
-  issueNumber: string | null | undefined,
-  format?: string | null | undefined,
-  variant?: string | null | undefined
-): IssueUrlSegments {
+export function buildIssueUrlSegments(input: BuildIssueUrlSegmentsInput): IssueUrlSegments {
   return {
-    locale,
-    publisherSlug: generatePublisherSlug(publisherName),
-    seriesSlug: generateSeriesSlug(seriesTitle, seriesStartYear, seriesVolume),
-    issueNumber: issueNumber ?? "",
-    formatSlug: format ? generateFormatSlug(format) : undefined,
-    variantSlug: variant ? generateVariantSlug(variant) : undefined,
+    locale: input.locale,
+    publisherSlug: generatePublisherSlug(input.publisherName),
+    seriesSlug: generateSeriesSlug(input.seriesTitle, input.seriesStartYear, input.seriesVolume),
+    issueNumber: input.issueNumber ?? "",
+    formatSlug: input.format ? generateFormatSlug(input.format) : undefined,
+    variantSlug: input.variant ? generateVariantSlug(input.variant) : undefined,
   };
 }

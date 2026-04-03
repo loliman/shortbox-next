@@ -5,7 +5,16 @@ function createClientItemId() {
     return crypto.randomUUID();
   }
 
-  return `story-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  return `story-${Date.now()}-${createPseudoRandomToken()}`;
+}
+
+function createPseudoRandomToken() {
+  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    const values = crypto.getRandomValues(new Uint32Array(2));
+    return Array.from(values, (value) => value.toString(36)).join("");
+  }
+
+  return `${Date.now().toString(36)}-fallback`;
 }
 
 export const storyDefault: FieldItem = {

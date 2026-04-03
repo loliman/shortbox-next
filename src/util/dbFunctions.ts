@@ -3,16 +3,27 @@ import { romanize } from "./util";
 const toSafeString = (value: unknown): string =>
   typeof value === "string" || typeof value === "number" ? String(value) : "";
 
-export const createNodeUrl = (
-  type: string,
-  original: boolean,
-  publisherName: string,
-  seriesTitle: string,
-  seriesVolume: number,
-  number: string,
-  format: string,
-  variant: string
-): string => {
+type CreateNodeUrlInput = {
+  type: string;
+  original: boolean;
+  publisherName: string;
+  seriesTitle: string;
+  seriesVolume: number;
+  number: string;
+  format: string;
+  variant: string;
+};
+
+export const createNodeUrl = ({
+  type,
+  original,
+  publisherName,
+  seriesTitle,
+  seriesVolume,
+  number,
+  format,
+  variant,
+}: CreateNodeUrlInput): string => {
   let url = original ? "/us/" : "/de/";
   url += encodeURIComponent(publisherName);
   if (type !== "publisher") {

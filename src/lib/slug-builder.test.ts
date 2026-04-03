@@ -275,16 +275,16 @@ describe("slug-builder", () => {
   describe("buildIssueUrlSegments", () => {
     it("should_buildAllSegments_when_allDataProvided", () => {
       expect(
-        buildIssueUrlSegments(
-          "de",
-          "Marvel",
-          "Amazing Spider-Man",
-          1963,
-          1,
-          "1",
-          "Heft",
-          "Kiosk Ausgabe"
-        )
+        buildIssueUrlSegments({
+          locale: "de",
+          publisherName: "Marvel",
+          seriesTitle: "Amazing Spider-Man",
+          seriesStartYear: 1963,
+          seriesVolume: 1,
+          issueNumber: "1",
+          format: "Heft",
+          variant: "Kiosk Ausgabe",
+        })
       ).toEqual({
         locale: "de",
         publisherSlug: "marvel",
@@ -296,7 +296,14 @@ describe("slug-builder", () => {
     });
     it("should_omitFormatAndVariant_when_notProvided", () => {
       expect(
-        buildIssueUrlSegments("us", "Marvel", "Spider-Man", undefined, 1, "100")
+        buildIssueUrlSegments({
+          locale: "us",
+          publisherName: "Marvel",
+          seriesTitle: "Spider-Man",
+          seriesStartYear: undefined,
+          seriesVolume: 1,
+          issueNumber: "100",
+        })
       ).toEqual({
         locale: "us",
         publisherSlug: "marvel",

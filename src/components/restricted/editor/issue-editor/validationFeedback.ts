@@ -46,7 +46,7 @@ export function findFirstErrorPath(errors: unknown, prefix = ""): string {
 }
 
 export function focusEditorErrorField(errorPath: string) {
-  if (!errorPath || typeof globalThis.document === "undefined") return;
+  if (!errorPath || globalThis.document === undefined) return;
 
   globalThis.requestAnimationFrame(() => {
     revealStoryErrorPanel(errorPath);

@@ -31,9 +31,9 @@ const KNOWN_FORMATS = [
   "Album Hardcover",
 ] as const;
 const TITLE_ACRONYMS = new Set(["HC", "SC", "XL"]);
-const ISSUE_NUMBER_PATTERN = /^Nr\.\s*(\d+[A-Za-z]?)$/i;
+const ISSUE_NUMBER_PATTERN = /^Nr\.\s*(\d+[A-Z]?)$/i;
 const STORY_REFERENCE_PATTERN =
-  /^(.*\S)\s+(\d+[A-Za-z]?|Annual\s+\d+)(?:-(\d+[A-Za-z]?))?$/i;
+  /^(.*\S)\s+(\d+[A-Z]?|Annual\s+\d+)(?:-(\d+[A-Z]?))?$/i;
 const TITLE_LETTER_PATTERN = /[^A-Za-zÄÖÜäöüß]/g;
 const TITLE_UPPERCASE_PATTERN = /[^A-ZÄÖÜ]/g;
 
@@ -372,10 +372,8 @@ function toTitleCasePart(part: string) {
   if (!trimmed) return "";
   if (TITLE_ACRONYMS.has(trimmed)) return trimmed;
 
-  const prefixPattern = /^[^A-Za-zÄÖÜäöüß]*/;
-  const suffixPattern = /[^A-Za-zÄÖÜäöüß]*$/;
-  const prefixMatch = prefixPattern.exec(trimmed)?.[0] || "";
-  const suffixMatch = suffixPattern.exec(trimmed)?.[0] || "";
+  const prefixMatch = readLeadingNonTitleCharacters(trimmed);
+  const suffixMatch = readTrailingNonTitleCharacters(trimmed);
   const core = trimmed.slice(prefixMatch.length, trimmed.length - suffixMatch.length);
   if (!core) return trimmed;
 
@@ -488,16 +486,15 @@ function deriveExplicitIssueNumber(lines: string[], localCodeIndex: number) {
 }
 
 function stripTrailingIssueList(value: string) {
-  return normalizeTitle(value.replaceAll(/\s+\d+(?:\s*\+\s*\d+)+\s*$/, ""));
+  return normalizeTitle(removeTrailingIssueList(value));
 }
 
 function deriveBandTitle(lines: string[], localCodeIndex: number) {
-  const bandTitlePattern = /^BAND\s+\d+:\s*(.*)$/i;
   for (let index = localCodeIndex - 1; index >= Math.max(0, localCodeIndex - 5); index -= 1) {
-    const bandMatch = bandTitlePattern.exec(lines[index] || "");
-    if (!bandMatch) continue;
+    const bandTitle = extractBandTitle(lines[index] || "");
+    if (!bandTitle) continue;
 
-    const sameLineTitle = normalizeTitle(readTextValue(bandMatch[1]).replaceAll(/\(\d{4}\)/g, ""));
+    const sameLineTitle = normalizeTitle(readTextValue(bandTitle).replaceAll(/\(\d{4}\)/g, ""));
     if (sameLineTitle) {
       const split = splitTitleAndNumber(sameLineTitle);
       return {
@@ -550,9 +547,7 @@ function parseContentReference(contentLine: string) {
   const normalized = contentLine.replace(/^Inhalt:\s*/i, "").trim();
   if (!normalized) return null;
 
-  const references = normalized
-    .split(/\s*;\s*/)
-    .flatMap((segment) => segment.split(/\s*,\s*(?=[A-ZÄÖÜ])/))
+  const references = splitStoryReferenceSegments(normalized)
     .map((segment) => segment.trim())
     .filter(Boolean)
     .flatMap((segment) => parseStoryReferenceSegment(segment));
@@ -603,7 +598,7 @@ function looksLikeMetadataContextLine(line: string) {
   return (
     PRODUCT_CODE_PATTERN.test(line) ||
     DATE_PATTERN.test(line) ||
-    /(\d+)\s*S\./i.test(line) ||
+    readPageCount(line) !== undefined ||
     PRICE_PATTERN.test(line) ||
     /\b(?:HC|SC)\b/i.test(line) ||
     /\b(?:Softcover|Hardcover|Heft|Mini Heft|Magazin|Prestige|Taschenbuch|Album)\b/i.test(line) ||
@@ -618,7 +613,7 @@ function looksLikeMetadataContextLine(line: string) {
 function parseMetadataLines(lines: string[], fallbackReleaseDate?: string) {
   const joined = lines.join(" | ");
   const issueCode = PRODUCT_CODE_PATTERN.exec(joined)?.[1];
-  const pages = /(\d+)\s*S\./i.exec(joined)?.[1];
+  const pages = readPageCount(joined);
   const releaseDate = DATE_PATTERN.exec(joined)?.[1];
   const limitation = /auf\s+(\d+)\s+Ex\./i.exec(joined)?.[1];
 
@@ -677,7 +672,108 @@ function createId(prefix: string) {
     return `${prefix}-${crypto.randomUUID()}`;
   }
 
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  return `${prefix}-${Date.now()}-${createPseudoRandomToken()}`;
+}
+
+function readLeadingNonTitleCharacters(value: string) {
+  let index = 0;
+  while (index < value.length && !isTitleCharacter(value[index])) {
+    index += 1;
+  }
+  return value.slice(0, index);
+}
+
+function readTrailingNonTitleCharacters(value: string) {
+  let index = value.length - 1;
+  while (index >= 0 && !isTitleCharacter(value[index])) {
+    index -= 1;
+  }
+  return value.slice(index + 1);
+}
+
+function isTitleCharacter(char: string | undefined) {
+  if (!char) return false;
+  return /[A-Za-zÄÖÜäöüß]/.test(char);
+}
+
+function removeTrailingIssueList(value: string) {
+  let index = value.length;
+  let issueCount = 0;
+
+  while (index > 0) {
+    while (index > 0 && /\s/.test(value[index - 1] || "")) {
+      index -= 1;
+    }
+
+    const numberEnd = index;
+    while (index > 0 && /\d/.test(value[index - 1] || "")) {
+      index -= 1;
+    }
+    if (numberEnd === index) break;
+    issueCount += 1;
+
+    while (index > 0 && /\s/.test(value[index - 1] || "")) {
+      index -= 1;
+    }
+
+    if (index === 0 || value[index - 1] !== "+") break;
+    index -= 1;
+  }
+
+  return issueCount > 1 ? value.slice(0, index).trimEnd() : value;
+}
+
+function extractBandTitle(line: string) {
+  const trimmed = line.trim();
+  if (!trimmed.toUpperCase().startsWith("BAND ")) return "";
+
+  const colonIndex = trimmed.indexOf(":");
+  if (colonIndex < 0) return "";
+
+  const header = trimmed.slice(0, colonIndex);
+  const digits = header.replaceAll(/\D/g, "");
+  if (!digits) return "";
+
+  return trimmed.slice(colonIndex + 1).trim();
+}
+
+function splitStoryReferenceSegments(value: string) {
+  const semicolonSeparated = value.split(";").map((segment) => segment.trim()).filter(Boolean);
+  return semicolonSeparated.flatMap((segment) => {
+    const parts: string[] = [];
+    let current = "";
+
+    for (let index = 0; index < segment.length; index += 1) {
+      const char = segment[index] || "";
+      const next = segment[index + 1] || "";
+      if (char === "," && /\s/.test(next)) {
+        const remainder = segment.slice(index + 1).trimStart();
+        if (/^[A-ZÄÖÜ]/.test(remainder)) {
+          parts.push(current.trim());
+          current = "";
+          continue;
+        }
+      }
+      current += char;
+    }
+
+    parts.push(current.trim());
+    return parts.filter(Boolean);
+  });
+}
+
+function readPageCount(value: string) {
+  const match = /(\d+)\s*S\./i.exec(value);
+  return match?.[1];
+}
+
+function createPseudoRandomToken() {
+  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    const values = crypto.getRandomValues(new Uint32Array(2));
+    return Array.from(values, (value) => value.toString(36)).join("");
+  }
+
+  return `${Date.now().toString(36)}-fallback`;
 }
 
 function createEmptyIssueValues(): PreviewImportDraft["values"] {

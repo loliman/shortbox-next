@@ -193,11 +193,45 @@ function buildAutocompleteId(input: {
     input.placeholder ||
     "autocomplete";
 
-  return `autocomplete-${preferredText
-    .toLowerCase()
-    .trim()
-    .replaceAll(/[^a-z0-9]+/g, "-")
-    .replaceAll(/^-+|-+$/g, "")}`;
+  return `autocomplete-${slugifyAutocompleteLabel(preferredText)}`;
+}
+
+function slugifyAutocompleteLabel(value: string): string {
+  const normalized = value.toLowerCase().trim();
+  let result = "";
+  let previousWasSeparator = false;
+
+  for (const char of normalized) {
+    const isAsciiLetter = char >= "a" && char <= "z";
+    const isDigit = char >= "0" && char <= "9";
+    if (isAsciiLetter || isDigit) {
+      result += char;
+      previousWasSeparator = false;
+      continue;
+    }
+
+    if (!previousWasSeparator) {
+      result += "-";
+      previousWasSeparator = true;
+    }
+  }
+
+  return trimHyphenEdges(result);
+}
+
+function trimHyphenEdges(value: string): string {
+  let start = 0;
+  let end = value.length;
+
+  while (value[start] === "-") {
+    start += 1;
+  }
+
+  while (end > start && value[end - 1] === "-") {
+    end -= 1;
+  }
+
+  return value.slice(start, end);
 }
 
 export default AutocompleteBase;

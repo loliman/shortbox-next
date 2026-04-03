@@ -58,16 +58,16 @@ export interface DetailPageUrlInput {
  * // → "/de/marvel/amazing-spider-man-1963-vol1/1/heft/standard"
  */
 export function buildDetailPageUrl(input: DetailPageUrlInput): string {
-  const segments = buildIssueUrlSegments(
-    input.locale,
-    input.publisherName,
-    input.seriesTitle,
-    input.seriesYear,
-    input.seriesVolume,
-    input.issueNumber,
-    input.format,
-    input.variant
-  );
+  const segments = buildIssueUrlSegments({
+    locale: input.locale,
+    publisherName: input.publisherName,
+    seriesTitle: input.seriesTitle,
+    seriesStartYear: input.seriesYear,
+    seriesVolume: input.seriesVolume,
+    issueNumber: input.issueNumber,
+    format: input.format,
+    variant: input.variant,
+  });
   return buildIssueUrlPath(segments);
 }
 

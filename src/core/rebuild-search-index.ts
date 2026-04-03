@@ -91,7 +91,16 @@ export async function runRebuildSearchIndex(
       issue_variant: null,
       issue_title: null,
       label: publisher.name,
-      url: createNodeUrl("publisher", us, publisher.name, "", 0, "", "", ""),
+      url: createNodeUrl({
+        type: "publisher",
+        original: us,
+        publisherName: publisher.name,
+        seriesTitle: "",
+        seriesVolume: 0,
+        number: "",
+        format: "",
+        variant: "",
+      }),
       search_text: normalizeSearchText(publisher.name),
     });
     publisherRows += 1;
@@ -133,7 +142,16 @@ export async function runRebuildSearchIndex(
       issue_variant: null,
       issue_title: null,
       label,
-      url: createNodeUrl("series", us, publisherName, seriesTitle, seriesVolume, "", "", ""),
+      url: createNodeUrl({
+        type: "series",
+        original: us,
+        publisherName,
+        seriesTitle,
+        seriesVolume,
+        number: "",
+        format: "",
+        variant: "",
+      }),
       search_text: normalizeSearchText(
         `${publisherName} ${seriesTitle} vol ${seriesVolume} ${seriesStartyear} ${seriesEndyear || ""}`
       ),
@@ -185,16 +203,16 @@ export async function runRebuildSearchIndex(
       issue_variant: issueVariant,
       issue_title: issueTitle,
       label,
-      url: createNodeUrl(
-        "issue",
-        us,
+      url: createNodeUrl({
+        type: "issue",
+        original: us,
         publisherName,
         seriesTitle,
         seriesVolume,
-        issueNumber,
-        issueFormat,
-        issueVariant
-      ),
+        number: issueNumber,
+        format: issueFormat,
+        variant: issueVariant,
+      }),
       search_text: normalizeSearchText(
         `${publisherName} ${seriesTitle} vol ${seriesVolume} ${seriesStartyear} ${seriesEndyear} ${issueNumber} ${issueLegacyNumber} ${issueFormat} ${issueVariant} ${issueTitle}`
       ),

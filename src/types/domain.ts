@@ -33,9 +33,11 @@ export interface StoryParent {
 
 type NullableNodeList<T> = Array<T | null> | null;
 type SelectedRootTypeName = "Publisher" | "Series" | "Issue";
+type OptionalNumberLike = number | string | null;
+type OptionalId = string | number | null;
 
 export interface Story {
-  number?: number | string | null;
+  number?: OptionalNumberLike;
   title?: string | null;
   part?: string | null;
   addinfo?: string | null;
@@ -49,7 +51,7 @@ export interface Story {
 }
 
 export interface Publisher {
-  id?: string | number | null;
+  id?: OptionalId;
   name?: string | null;
   us?: boolean | null;
   addinfo?: string | null;
@@ -60,7 +62,7 @@ export interface Publisher {
 }
 
 export interface Series {
-  id?: string | number | null;
+  id?: OptionalId;
   title?: string | null;
   volume?: number | null;
   startyear?: number | null;
@@ -72,7 +74,7 @@ export interface Series {
 }
 
 export interface Issue {
-  id?: string | number | null;
+  id?: OptionalId;
   number: string;
   legacy_number?: string | null;
   title?: string | null;
@@ -82,7 +84,7 @@ export interface Issue {
   verified?: boolean | null;
   collected?: boolean | null;
   addinfo?: string | null;
-  comicguideid?: string | number | null;
+  comicguideid?: OptionalId;
   isbn?: string | null;
   pages?: number | null;
   price?: number | null;

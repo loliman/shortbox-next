@@ -50,7 +50,7 @@ class ContainsItem extends React.Component<ContainsItemProps> {
     const itemTitle = normalizeDisplayStoryTitle(this.props.item.title);
     const parentTitle = itemTitle ? undefined : normalizeDisplayStoryTitle(parent.title);
     const storyTitle = itemTitle ?? parentTitle ?? "";
-    const storyTitleLabel = storyTitle !== "" ? storyTitle : "Story";
+    const storyTitleLabel = storyTitle === "" ? "Story" : storyTitle;
 
     const addinfoText = buildAddinfoText(this.props.item);
 

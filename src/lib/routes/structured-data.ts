@@ -133,8 +133,8 @@ export function buildSeriesBreadcrumbStructuredData(input: {
   locale: Locale;
   publisherName: string;
   seriesTitle: string;
-  seriesYear?: number | string | null;
-  seriesVolume?: number | string | null;
+  seriesYear?: OptionalNumberish;
+  seriesVolume?: OptionalNumberish;
 }) {
   const year = toPositiveNumber(input.seriesYear);
   const volume = toPositiveNumber(input.seriesVolume) || 1;

@@ -2,7 +2,6 @@ import { Prisma } from "@prisma/client";
 import { readFilterIssues } from "./filter-service-read";
 import type { Filter, NumberFilter } from "../../types/query-data";
 
-const MULTI_FILTER_SEPARATOR_REGEX = /\s*\|\|\s*/g;
 const TRANSLATOR_STORY_INDIVIDUAL_TYPE = "TRANSLATOR";
 
 type RuntimeFilter = Filter & {
@@ -105,7 +104,7 @@ function matchesGenrePattern(genre: string, pattern: string): boolean {
 
 function splitFilterTerms(value: string | null | undefined): string[] {
   if (!value) return [];
-  return dedupeTerms(value.split(MULTI_FILTER_SEPARATOR_REGEX));
+  return dedupeTerms(value.split("||"));
 }
 
 function collectNamedTerms<T extends { name?: string | null }>(
@@ -281,9 +280,7 @@ function hasAppearanceTerms(filter: RuntimeFilter): boolean {
 }
 
 function hasRealityTerms(filter: RuntimeFilter): boolean {
-  const realityTerms = Array.isArray(filter.realities)
-    ? filter.realities
-    : splitFilterTerms(typeof filter.realities === "string" ? filter.realities : undefined);
+  const realityTerms = collectNamedTerms(filter.realities);
   return realityTerms.length > 0;
 }
 

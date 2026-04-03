@@ -1,4 +1,4 @@
-/* eslint-disable */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as cheerio from "cheerio";
 import type { AnyNode, Element } from "domhandler";
 import { request } from "undici";
