@@ -13,7 +13,7 @@ export function getPublisherOptionKey(option: OptionValue | string) {
 export function getSeriesOptionKey(option: OptionValue | string) {
   if (typeof option === "string") return option;
 
-  const publisher = (option.publisher || {}) as { name?: unknown; us?: unknown };
+  const publisher = (option.publisher ?? {}) as { name?: unknown; us?: unknown };
   return [
     toOptionKeyPart(option.title),
     toOptionKeyPart(option.volume),

@@ -157,11 +157,11 @@ async function parseBlockToDrafts(
       index > 0 ? metadataIndexes[index - 1] : storyIndex
     )
   );
-  const contentLine = block.find((line) => /^Inhalt:/i.test(line)) || "";
+  const contentLine = block.find((line) => /^Inhalt:/i.test(line)) ?? "";
   const mainDraft = await buildDraft({
     draftId: createId(`draft-${blockIndex + 1}`),
     sourceTitle,
-    metadataLines: metadataGroups[0] || [],
+    metadataLines: metadataGroups[0] ?? [],
     contentLine,
     seriesReader,
     isVariant: false,
@@ -200,7 +200,7 @@ async function parseCodeAnchoredDrafts(
     .flatMap((line, index) =>
       Array.from(line.matchAll(new RegExp(PRODUCT_CODE_PATTERN.source, "g"))).map((match) => ({
         index,
-        code: match[1] || "",
+        code: match[1] ?? "",
       }))
     )
     .filter((entry) => entry.code);
@@ -218,7 +218,7 @@ async function parseCodeAnchoredDrafts(
     const sourceTitle = deriveCodeAnchoredSourceTitle(windowLines, localCodeIndex, code);
 
     const metadataLines = collectCodeMetadataWindow(windowLines, localCodeIndex);
-    const contentLine = windowLines.find((line) => /^Inhalt:/i.test(line)) || "";
+    const contentLine = windowLines.find((line) => /^Inhalt:/i.test(line)) ?? "";
     const draft = await buildDraft({
       draftId: createId(`code-draft-${code}`),
       sourceTitle,

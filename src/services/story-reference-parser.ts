@@ -163,9 +163,9 @@ function parseIssueNumbers(value: string): string[] | null {
   const numericRangeMatch = /^(\d+)([A-Za-z]?)(?:-(\d+)([A-Za-z]?))?$/.exec(normalized);
   if (numericRangeMatch) {
     const start = Number.parseInt(numericRangeMatch[1], 10);
-    const startSuffix = numericRangeMatch[2] || "";
+    const startSuffix = numericRangeMatch[2] ?? "";
     const end = numericRangeMatch[3] ? Number.parseInt(numericRangeMatch[3], 10) : start;
-    const endSuffix = numericRangeMatch[4] || startSuffix;
+    const endSuffix = numericRangeMatch[4] ?? startSuffix;
 
     if (!numericRangeMatch[3]) {
       return [`${start}${startSuffix}`];
