@@ -9,7 +9,7 @@ A specification describes *what* to build, what the boundaries of the feature ar
 - Identify feature scope and clear non-goals to avoid over-engineering.
 - Specify exact Domain and Business rules mapping to `AGENTS.md`.
 - Capture potential risks, edge cases, and architectural constraints.
-- Ensure consensus on the goal before an Implementation Plan (`docs/plans`) is formulated.
+- Ensure consensus on the goal before an Implementation Plan (`plans`) is formulated.
 
 ## Usage
 

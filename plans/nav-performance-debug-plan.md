@@ -2,7 +2,7 @@
 
 ## Paired Spec
 
-- `docs/specs/nav-performance-debug-spec.md`
+- `specs/nav-performance-debug-spec.md`
 
 ## File Changes
 

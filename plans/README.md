@@ -2,7 +2,7 @@
 
 This folder contains **Implementation Plans**.
 
-While a specification (`docs/specs`) describes *what* to build, an implementation plan describes *how* to build it. It translates a feature specification into concrete, actionable steps and file-level changes.
+While a specification (`specs`) describes *what* to build, an implementation plan describes *how* to build it. It translates a feature specification into concrete, actionable steps and file-level changes.
 
 ## Purpose
 

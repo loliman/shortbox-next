@@ -23,8 +23,8 @@ Add build-time accessibility and Lighthouse-style audits that run against the bu
 ## Affected Areas
 - `package.json`
 - `scripts/`
-- `docs/specs/`
-- `docs/plans/`
+- `specs/`
+- `plans/`
 
 ## Architectural Placement
 - orchestration scripts belong in `scripts/`

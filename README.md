@@ -23,13 +23,13 @@ Start here:
 
 - [AGENTS.md](AGENTS.md) for repository-wide architecture, layering rules, and agent working style
 - [AI feature workflow](docs/workflows/ai-feature-development.md) for the expected delivery sequence for non-trivial changes
-- Existing specs in `docs/specs/` as examples for scope, business rules, risks, and acceptance criteria
-- Existing plans in `docs/plans/` as examples for file changes, layer placement, and verification
+- Existing specs in `specs/` as examples for scope, business rules, risks, and acceptance criteria
+- Existing plans in `plans/` as examples for file changes, layer placement, and verification
 
 For non-trivial work:
 
-1. Create or update a spec in `docs/specs/`.
-2. Create or update the paired plan in `docs/plans/`.
+1. Create or update a spec in `specs/`.
+2. Create or update the paired plan in `plans/`.
 3. Implement in small steps that respect the documented layers.
 4. Run the planned validation locally.
 5. Review against the spec, plan, and architecture rules.

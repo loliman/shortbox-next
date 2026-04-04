@@ -1,6 +1,6 @@
 # Build Audit Tooling Plan
 
-Spec: [`docs/specs/build-audit-tooling-spec.md`](/Users/christian/shortbox/shortbox-next/docs/specs/build-audit-tooling-spec.md)
+Spec: [`specs/build-audit-tooling-spec.md`](/Users/christian/shortbox/shortbox-next/specs/build-audit-tooling-spec.md)
 
 ## Files
 - update `package.json`

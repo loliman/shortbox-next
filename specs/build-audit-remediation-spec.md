@@ -26,8 +26,8 @@ Reduce the highest-signal accessibility audit failures reported by the existing 
 ## Affected Areas
 - `src/components/`
 - small supporting tests where a pure helper or rendering contract can be covered safely
-- `docs/specs/`
-- `docs/plans/`
+- `specs/`
+- `plans/`
 
 ## Business Rules
 - `de` and `us` remain domain scopes, not locales

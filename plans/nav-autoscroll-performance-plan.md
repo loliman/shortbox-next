@@ -2,7 +2,7 @@
 
 ## Paired Spec
 
-- `docs/specs/nav-autoscroll-performance-spec.md`
+- `specs/nav-autoscroll-performance-spec.md`
 
 ## File Changes
 

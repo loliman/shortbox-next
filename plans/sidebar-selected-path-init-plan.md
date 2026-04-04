@@ -2,7 +2,7 @@
 
 ## Paired Spec
 
-- `docs/specs/sidebar-initial-viewport-spec.md`
+- `specs/sidebar-initial-viewport-spec.md`
 
 ## File Changes
 

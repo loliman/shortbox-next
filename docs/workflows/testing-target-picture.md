@@ -19,11 +19,8 @@ The repository already has:
 - non-blocking performance observability
 - a checked-in DB snapshot fixture for realistic route-level `a11y` and `seo` checks
 
-What is still missing is a complete testing shape that covers:
+What is still intentionally incomplete is the visual side of the target picture:
 
-- multi-step browser behavior
-- route-level regressions
-- selected-path and navigation stability
 - visual presentation regressions in complex UI surfaces
 
 This document defines that target shape so future work can be deliberate and incremental instead of re-deciding the testing model during feature work.
@@ -34,13 +31,11 @@ Part of the target-state work is to evaluate whether existing tests are still us
 
 It also assumes that test code should eventually meet the same basic TypeScript quality bar as application code.
 
-The current repository still uses a pragmatic split where the dedicated CI typecheck focuses on runtime code and leaves test files to Jest.
-
-That is a temporary stabilization choice, not the desired long-term state.
+The repository now includes test files in the blocking dedicated typecheck again.
 
 ## Target Testing Layers
 
-The intended testing model has four layers.
+The intended testing model has five layers.
 
 ### 1. Unit And Regression Tests
 
@@ -123,6 +118,7 @@ Current fixture model for this layer:
 - that database is populated from a checked-in snapshot, not from ad hoc synthetic rows
 - the current reference snapshot is `Marvel Horror Classic Collection 1`
 - this issue was chosen because it has a rich graph of stories, parents, related source issues, individuals, and appearances
+- the same seeded ephemeral database model should be treated as the source of truth for browser smoke coverage as well
 
 ## What Each Layer Should Own
 
@@ -136,6 +132,19 @@ The repository should converge on this responsibility split:
 - Unlighthouse owns performance observation, not merge blocking
 
 This split matters because the main failure mode in mixed test suites is trying to force one tool to cover every kind of risk.
+
+## Current Implemented State
+
+The repository currently has the following target-picture pieces materially in place:
+
+- Jest as the default unit/regression runner
+- a smaller, cleaner Jest tree after removing low-signal mocked workflow tests
+- Playwright smoke coverage for seeded `de` and `us` browser flows
+- blocking `quality`, `a11y`, `seo`, and `e2e-smoke`
+- non-blocking `observability`
+- test files back under blocking TypeScript validation
+
+The main major piece still intentionally outstanding is visual regression tooling.
 
 ## Quality Of The Existing Test Suite
 
@@ -194,9 +203,11 @@ The intended CI shape is:
   - `npm run test:seo:sitemap`
 - `e2e-smoke`
   - `npm ci`
+  - `npx prisma db push`
+  - `node scripts/seed-ci-fixtures.mjs`
   - `npm run build`
-  - `npm run start`
-  - small Playwright smoke suite
+  - `npx playwright install --with-deps chromium`
+  - `npm run test:e2e:smoke`
 
 ### Non-Blocking Or Scheduled
 
@@ -219,66 +230,32 @@ The intended end-state is:
 - test files should not stay permanently outside the repository's type-safety model
 - runner and environment mismatches should be solved with clearer boundaries, not with blanket test exclusion forever
 
-Acceptable future shapes include:
+The repository now follows the preferred unified direction:
 
-- one unified typecheck that includes `*.test.ts` and `*.test.tsx`
-- or a split model where application code and test code are type-checked in separate blocking steps
+- one blocking typecheck includes `*.test.ts` and `*.test.tsx`
 
 What is explicitly not the target:
 
 - treating test exclusion as the permanent steady state
 - using `*.test.ts(x)` exclusion as a substitute for cleaning up mixed-runner or badly placed tests
 
-## Recommended Rollout Order
+## Remaining Follow-Up Order
 
-The repository should not attempt a big-bang testing migration.
+The repository has already completed the core Jest/browser/typecheck reset. The next remaining follow-up order is:
 
-Use this order instead.
-
-### Phase 1: Keep The Current Baseline Stable
-
-Already largely in place:
-
-- Jest as the default runner
-- typecheck focused on application code
-- blocking quality, accessibility, and SEO workflows
-- DB-backed snapshot fixtures for route-level `a11y` and `seo`
-
-Success criteria:
-
-- no new `vitest` usage
-- no new mixed-runner tests
-- new pure logic tests default to Jest
-- the checked-in route fixture remains intentional and understandable rather than becoming an accidental data dump
-
-Known temporary limitation:
-
-- `*.test.ts` and `*.test.tsx` are still excluded from the current dedicated CI typecheck
-- this is acceptable only as a short-term stabilization boundary while the suite is cleaned up
-- it should not be mistaken for the desired target state
-
-### Phase 2: Add A Minimal Playwright Smoke Layer
+### 1. Keep The New Baseline Clean
 
 First goal:
 
-- 3 to 5 robust tests only
+- preserve the current ownership split
 
-Recommended first smoke scenarios for this repository:
+Ongoing rules:
 
-1. home page loads and key navigation shell is present
-2. publisher -> series -> issue navigation works from a canonical path
-3. selected navigation path is visible and stable after initial load
-4. search opens and a result navigation succeeds
-5. mobile drawer or compact-layout navigation smoke works on a narrow viewport
+- keep Jest focused on unit/regression and small component-unit behavior
+- keep browser flows in Playwright
+- do not reintroduce mocked workflow tests as ignored debt
 
-Success criteria:
-
-- tests run against a production build
-- tests avoid brittle timing assertions
-- tests target stable canonical routes and selectors
-- the suite is fast enough to become a PR gate
-
-### Phase 3: Introduce Visual Regression Deliberately
+### 2. Introduce Visual Regression Deliberately
 
 First goal:
 
@@ -296,24 +273,6 @@ Success criteria:
 - stories are intentionally authored for regression coverage
 - visual checks focus on reusable UI states, not entire pages first
 - the visual pipeline does not try to replace Playwright
-
-### Phase 4: Migrate Or Retire Legacy Test Mismatches
-
-Focus:
-
-- remaining `vitest` usage
-- tests that fight the current Jest baseline
-- tests that should really be Playwright or Storybook/Chromatic coverage instead
-- tests whose value is questionable and should be retired rather than migrated
-- the current blanket exclusion of test files from the dedicated CI typecheck
-
-Success criteria:
-
-- repository defaults are easy to explain
-- test placement matches test purpose
-- future agents do not need to guess which runner to use
-- low-signal or redundant tests have been removed instead of being preserved by default
-- test files are no longer globally excluded from TypeScript validation without explicit justification
 
 ## E2E Scope Guidance For Future Work
 
@@ -391,7 +350,6 @@ The testing stack should become clearer over time, not more mixed.
 The testing target should be considered materially in place when:
 
 - Jest remains the default unit and regression runner
-- no new `vitest` coverage is being added
 - a small Playwright smoke layer exists and blocks PRs
 - a visual regression path exists for reusable UI surfaces
 - current accessibility and SEO guards remain in place

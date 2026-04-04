@@ -1,6 +1,6 @@
 # Navigation Feedback Plan
 
-Spec: [`docs/specs/navigation-feedback-spec.md`](/Users/christian/shortbox/shortbox-next/docs/specs/navigation-feedback-spec.md)
+Spec: [`specs/navigation-feedback-spec.md`](/Users/christian/shortbox/shortbox-next/specs/navigation-feedback-spec.md)
 
 ## Files
 - add shared navigation feedback state in `src/components/generic/`

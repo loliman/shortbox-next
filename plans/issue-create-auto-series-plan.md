@@ -1,6 +1,6 @@
 # Issue Create Auto Series Plan
 
-Spec: [docs/specs/issue-create-auto-series-spec.md](/Users/christian/shortbox/shortbox-next/docs/specs/issue-create-auto-series-spec.md)
+Spec: [specs/issue-create-auto-series-spec.md](/Users/christian/shortbox/shortbox-next/specs/issue-create-auto-series-spec.md)
 
 ## Files
 - update `src/lib/server/issues-write.ts`

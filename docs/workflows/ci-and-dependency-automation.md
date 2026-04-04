@@ -29,7 +29,7 @@ All workflows currently use Node `25`.
 
 `Validate` is the merge-gating workflow for pull requests and pushes to `main`.
 
-It is intentionally split into three jobs:
+It is intentionally split into four blocking jobs:
 
 ### `quality`
 
@@ -103,6 +103,32 @@ Database model:
 - it uses the same checked-in Marvel Horror snapshot as the `a11y` job
 - this keeps sitemap and metadata checks closer to real route behavior than a no-data fallback build
 
+### `e2e-smoke`
+
+Purpose:
+
+- protect real browser navigation and seeded route workflows
+
+Runs:
+
+- `npm ci`
+- `npx prisma db push`
+- `node scripts/seed-ci-fixtures.mjs`
+- `npm run build`
+- `npx playwright install --with-deps chromium`
+- `npm run test:e2e:smoke`
+
+Why it blocks:
+
+- this is the browser owner for `de` and `us` route/workflow confidence
+- these regressions are not represented well by mocked Jest tests
+
+Database model:
+
+- this job also runs against a disposable Postgres service in GitHub Actions
+- it uses the same checked-in Marvel Horror snapshot as `a11y` and `seo`
+- the initial smoke suite covers seeded canonical flows in both `de` and `us`
+
 ## Non-Blocking Workflow: Observability
 
 `Observability` runs on:
@@ -171,11 +197,27 @@ npm run test:seo:smoke
 SITEMAP_LIMIT=25 npm run test:seo:sitemap
 ```
 
+### E2E Smoke
+
+```bash
+npx prisma db push
+node scripts/seed-ci-fixtures.mjs
+npm run build
+npx playwright install chromium
+npm run test:e2e:smoke
+```
+
 Notes:
 
 - the SEO scripts default to `http://127.0.0.1:3000` or `http://localhost:3000`
 - in CI, the workflow explicitly waits for the app before running the SEO smoke scripts
-- locally, the DB-backed smoke path expects a reachable Postgres instance that matches `DATABASE_URL`
+- the seeded ephemeral Postgres model used in GitHub Actions is the source of truth for `a11y`, `seo`, and `e2e-smoke`
+- if these checks are reproduced locally, they should be reproduced against the same model:
+  - start an ephemeral Postgres instance
+  - run `npx prisma db push`
+  - run `node scripts/seed-ci-fixtures.mjs`
+  - then run the build/start/test commands
+- these checks are not intended to depend on a long-lived local developer database
 
 ## CI Fixture Strategy
 
@@ -226,21 +268,13 @@ The repository now uses a dedicated TypeScript config for CI type checking:
 
 - [`tsconfig.typecheck.json`](../../tsconfig.typecheck.json)
 
-This configuration excludes `*.test.ts` and `*.test.tsx` from the main application typecheck.
+This configuration now includes test files again.
 
 Why:
 
-- the test suite is already validated through Jest
-- mixing legacy and modern test styles inside the main app typecheck produced CI noise
-- the blocking `typecheck` step should focus on application/runtime code, not test-runner mismatches
-
-This is a pragmatic repository boundary, not a claim that test types never matter.
-
-Important:
-
-- this is the current implementation detail, not the intended long-term target
-- the repository should converge toward test files being type-checked again once the suite is cleaned up and runner boundaries are clearer
-- the preferred end-state is either a unified typecheck including tests or a separate blocking test-typecheck job
+- the repository no longer treats test exclusion as an acceptable steady state
+- the Jest tree has been cleaned up enough to participate in blocking validation
+- the blocking `typecheck` step now reflects the intended repository quality bar for both runtime code and tests
 
 ## Dependabot Policy
 

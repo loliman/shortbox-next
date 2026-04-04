@@ -44,34 +44,33 @@ Examples of the current baseline in practice include:
 
 ## Current Mismatches And Limits
 
-The repository currently contains mixed test styles.
+The repository no longer treats mixed-runner tests as an active baseline.
 
-Most important mismatch:
+Current reality:
 
 - `npm test` uses Jest
-- multiple existing tests import `vitest` or use `vi`
-- Jest still discovers those files because they match `*.test.ts` or `*.test.tsx`
+- browser and route-level confidence is owned by Playwright via `npm run test:e2e:smoke`
+- low-signal, heavily mocked UI workflow tests have been removed instead of being carried as ignored debt
 
-There are also tests that use browser-style or UI test support, for example imports from:
+There are still Jest tests that use browser-style helpers such as:
 
 - `@testing-library/react`
 - `@testing-library/user-event`
-- `@apollo/client/testing`
 
-Those tests are part of the repository's current Jest suite when they either stay node-friendly or opt into `jsdom` explicitly.
+Those tests are only kept when they remain small, focused, and stable enough to still fit a unit-test model.
 
-Observed repository state on April 3, 2026:
+Observed repository state on April 4, 2026:
 
 - `npm test -- --runInBand` passes for the current repository test suite
 - the suite includes pure logic tests and selected `jsdom`-based component tests
 - Jest remains the official runner and source of truth for automated local validation
 
-Observed repository state on April 4, 2026:
-
 - route-level `a11y` and `seo` CI checks now run against a disposable Postgres database
 - that database is seeded from a checked-in fixture snapshot instead of ad hoc synthetic rows
 - the current reference fixture is [`Marvel Horror Classic Collection 1`](../../scripts/fixtures/marvel-horror-classic-collection-1.json)
 - the seed entry point is [`scripts/seed-ci-fixtures.mjs`](../../scripts/seed-ci-fixtures.mjs)
+- Playwright smoke coverage exists for seeded `de` and `us` browser flows
+- the dedicated blocking typecheck includes test files again
 
 Today, the main constraint is not test discovery but keeping new tests aligned with the current Jest-based setup.
 
@@ -89,16 +88,15 @@ Use the current default baseline when the code under test is:
 For new tests under the current baseline:
 
 - use Jest as the runner
-- do not import from `vitest`
-- do not use `vi`
 - add `jsdom` only when the test truly needs browser APIs
 - keep new UI-heavy tests deliberate and scoped so the default Jest run stays reliable
+- move route and workflow confidence to Playwright instead of recreating it with mocks in Jest
 
-If you need coverage for UI-heavy behavior right now, prefer one of these incremental options instead of guessing:
+If you need coverage for behavior that crosses route, navigation, search, or responsive-shell boundaries:
 
 - extract and test a pure helper behind the component
 - add a pure regression or parity test around the business logic that drives the UI
-- document the gap if the behavior genuinely requires a browser-oriented setup that does not exist yet
+- add or extend Playwright smoke coverage if the real risk is browser behavior
 
 ## Current Categories In Practice
 
@@ -108,7 +106,7 @@ The repository currently has these test categories:
 - regression and parity tests: supported when they stay node-friendly
 - React/component tests with browser-style helpers: supported when configured for Jest and `jsdom`
 - DB-backed route smoke checks in CI: currently used by `a11y` and `seo`
-- mixed-runner tests: avoid reintroducing them while Jest remains the official command
+- Playwright browser smokes: used for real `de` and `us` route/workflow confidence
 
 ## What This Document Does Not Claim
 
@@ -123,4 +121,4 @@ It only records the current baseline so agents can make safe choices now:
 - `npm test` is authoritative today
 - Jest is the current runner
 - node-friendly Jest tests are the safe default
-- Vitest-style and browser-oriented tests remain unresolved and should be handled deliberately later, not implicitly during feature work
+- browser-oriented route and workflow tests should be handled in Playwright, not recreated in Jest

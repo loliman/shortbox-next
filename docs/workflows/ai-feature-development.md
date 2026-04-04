@@ -7,25 +7,25 @@ Use AI coding agents in a controlled, repeatable way for feature delivery.
 
 Non-trivial feature work should create and pair two documents before product code changes:
 
-- a spec in `docs/specs/`
-- a plan in `docs/plans/`
+- a spec in `specs/`
+- a plan in `plans/`
 
 Use the repository templates:
 
-- use an existing spec in `docs/specs/` as the closest template
-- use the paired plan in `docs/plans/` as the closest template
+- use an existing spec in `specs/` as the closest template
+- use the paired plan in `plans/` as the closest template
 
 ## Naming Convention
 
 Specs and plans should use the same feature stem so humans and agents can pair them quickly.
 
 Pattern:
-- `docs/specs/<feature-stem>-spec.md`
-- `docs/plans/<feature-stem>-plan.md`
+- `specs/<feature-stem>-spec.md`
+- `plans/<feature-stem>-plan.md`
 
 Example:
-- `docs/specs/creator-bibliography-spec.md`
-- `docs/plans/creator-bibliography-plan.md`
+- `specs/creator-bibliography-spec.md`
+- `plans/creator-bibliography-plan.md`
 
 Rules:
 - use lowercase kebab-case
@@ -36,10 +36,10 @@ Rules:
 ## Workflow
 
 ### 1. Specification
-Create a feature spec in `docs/specs/` using the closest existing spec as a template.
+Create a feature spec in `specs/` using the closest existing spec as a template.
 
 Example:
-- `docs/specs/creator-bibliography-spec.md`
+- `specs/creator-bibliography-spec.md`
 
 The spec should describe:
 - goal
@@ -59,10 +59,10 @@ The spec is the source of truth for:
 - which architectural boundaries the implementation must respect
 
 ### 2. Implementation Plan
-Create a plan in `docs/plans/` using the closest existing plan as a template.
+Create a plan in `plans/` using the closest existing plan as a template.
 
 Example:
-- `docs/plans/creator-bibliography-plan.md`
+- `plans/creator-bibliography-plan.md`
 
 The plan should contain:
 - proposed file changes

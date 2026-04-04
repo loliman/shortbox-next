@@ -7,8 +7,7 @@ Accepted
 The repository currently has a mixed testing landscape:
 
 - Jest is the current official command via `npm test`
-- some tests still use `vitest`
-- some UI-oriented tests assume browser-style tooling that is not part of the current safe baseline
+- some legacy UI-oriented tests historically assumed browser-style tooling that did not fit the safe baseline
 
 This makes the repository harder to extend safely with coding agents because the default testing path is not yet aligned with the full test tree.
 
@@ -42,20 +41,18 @@ The supported future default does **not** include:
 - the repository can move toward a cleaner and more explainable AI-first workflow
 
 ### Negative
-- existing `vitest` tests will need migration or removal over time
-- some current UI-oriented tests may need to be re-expressed as Storybook, Chromatic, Jest, or Playwright coverage
-- the current baseline and the target model will differ for a while during migration
+- some current UI-oriented tests need to be removed rather than preserved
+- some current UI-oriented tests need to be re-expressed as Storybook, Chromatic, Jest, or Playwright coverage
+- the repository needs deliberate ownership boundaries to avoid recreating the old mixed state
 
 ## Migration Posture
-This decision does not require a big-bang rewrite.
-
-Migration should be incremental:
+Migration posture:
 
 1. keep documenting the current baseline separately from the target model
 2. use Jest for new unit tests
-3. stop adding new `vitest` coverage
-4. migrate or retire existing `vitest` tests in small batches
-5. introduce Storybook/Chromatic and Playwright deliberately, not implicitly
+3. keep route and workflow confidence in Playwright instead of recreating it with mocked Jest tests
+4. retire low-signal tests instead of preserving them as ignored debt
+5. introduce Storybook/Chromatic deliberately, not implicitly
 
 Until migration is complete, treat:
 

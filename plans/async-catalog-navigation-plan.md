@@ -2,7 +2,7 @@
 
 ## Paired Spec
 
-- `docs/specs/async-catalog-navigation-spec.md`
+- `specs/async-catalog-navigation-spec.md`
 
 ## File Changes
 

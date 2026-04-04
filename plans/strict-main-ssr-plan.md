@@ -1,6 +1,6 @@
 # Strict Main SSR Plan
 
-Spec: [`docs/specs/strict-main-ssr-spec.md`](/Users/christian/shortbox/shortbox-next/docs/specs/strict-main-ssr-spec.md)
+Spec: [`specs/strict-main-ssr-spec.md`](/Users/christian/shortbox/shortbox-next/specs/strict-main-ssr-spec.md)
 
 ## Files
 - inspect and likely replace the client-rooted catalog layouts:

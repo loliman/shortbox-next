@@ -1,6 +1,6 @@
 # Build Audit Remediation Plan
 
-Spec: [`docs/specs/build-audit-remediation-spec.md`](/Users/christian/shortbox/shortbox-next/docs/specs/build-audit-remediation-spec.md)
+Spec: [`specs/build-audit-remediation-spec.md`](/Users/christian/shortbox/shortbox-next/specs/build-audit-remediation-spec.md)
 
 ## Files
 - inspect existing audit scripts in `scripts/`

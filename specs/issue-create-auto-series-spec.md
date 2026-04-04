@@ -22,8 +22,8 @@ Allow the issue editor to create an issue for a not-yet-existing series by autom
 - the success snackbar explicitly mentions that the series was created automatically
 
 ## Affected Areas
-- `docs/specs/`
-- `docs/plans/`
+- `specs/`
+- `plans/`
 - `app/api/issues/route.ts`
 - `src/lib/server/issues-write.ts`
 - `src/components/restricted/editor/`

@@ -2,7 +2,7 @@
 
 ## Paired Spec
 
-- `docs/specs/nav-virtualization-spec.md`
+- `specs/nav-virtualization-spec.md`
 
 ## File Changes
 
