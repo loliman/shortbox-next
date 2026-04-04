@@ -15,7 +15,6 @@ interface StoryReferenceContext {
 }
 
 const DASH_PATTERN = /[‐‑–—]/g;
-const VOLUME_PATTERN = /\s+(?:vol(?:ume)?|v)\.?\s*(\d+)$/i;
 const ANNUAL_RANGE_PATTERN = /^annual\s+(\d+)(?:-(\d+))?$/i;
 const NUMERIC_RANGE_PATTERN = /^(\d+)([A-Za-z]?)(?:-(\d+)([A-Za-z]?))?$/;
 
@@ -125,14 +124,9 @@ function createContextReferences(
 
 function parseSeriesContext(rawSeriesSpec: string): StoryReferenceContext | null {
   const seriesSpec = stripTrailingPunctuation(rawSeriesSpec);
-  const volumeMatch = VOLUME_PATTERN.exec(seriesSpec);
-  const volume = volumeMatch ? Number.parseInt(volumeMatch[1], 10) : 1;
-  const volumeMatchIndex = volumeMatch?.index;
-  const seriesTitle = stripTrailingPunctuation(
-    volumeMatchIndex === undefined
-      ? seriesSpec
-      : seriesSpec.slice(0, Math.max(0, volumeMatchIndex)).trim()
-  );
+  const parsedVolume = readTrailingVolume(seriesSpec);
+  const volume = parsedVolume?.volume ?? 1;
+  const seriesTitle = stripTrailingPunctuation(parsedVolume?.title ?? seriesSpec);
   if (!seriesTitle || !Number.isFinite(volume) || volume <= 0) return null;
 
   return { seriesTitle, volume };
@@ -229,24 +223,71 @@ function stripLeadingHash(value: string) {
 
 function splitSeriesAndIssueSpec(segment: string) {
   const trimmed = segment.trim();
-  const annualMatch = /(.*\S)\s+(annual\s+\d+(?:-\d+)?)$/i.exec(trimmed);
+  const annualMatch = splitTrailingAnnualIssueSpec(trimmed);
   if (annualMatch) {
     return {
-      rawSeriesSpec: annualMatch[1]?.trim() || "",
-      rawIssueSpec: annualMatch[2]?.trim() || "",
+      rawSeriesSpec: annualMatch.rawSeriesSpec,
+      rawIssueSpec: annualMatch.rawIssueSpec,
     };
   }
 
-  const numericMatch = /(.*\S)\s+(#?\d+[A-Z]?(?:-#?\d+[A-Z]?)?)$/i.exec(trimmed);
+  const numericMatch = splitTrailingNumericIssueSpec(trimmed);
   if (!numericMatch) return null;
 
   return {
-    rawSeriesSpec: numericMatch[1]?.trim() || "",
-    rawIssueSpec: numericMatch[2]?.trim() || "",
+    rawSeriesSpec: numericMatch.rawSeriesSpec,
+    rawIssueSpec: numericMatch.rawIssueSpec,
   };
 }
 
 function isContextIssueSpec(value: string) {
   if (/^annual\s+\d+(?:-\d+)?$/i.test(value)) return true;
   return /^\d+[A-Z]?(?:-\d+[A-Z]?)?$/i.test(value);
+}
+
+function readTrailingVolume(seriesSpec: string) {
+  const lower = seriesSpec.toLowerCase();
+  const markers = [" volume", " vol", " v"];
+
+  for (const marker of markers) {
+    const markerIndex = lower.lastIndexOf(marker);
+    if (markerIndex < 0) continue;
+
+    const rawSuffix = seriesSpec.slice(markerIndex + marker.length).trim();
+    const suffix = rawSuffix.startsWith(".") ? rawSuffix.slice(1).trim() : rawSuffix;
+    if (!/^\d+$/.test(suffix)) continue;
+
+    return {
+      title: seriesSpec.slice(0, markerIndex).trim(),
+      volume: Number.parseInt(suffix, 10),
+    };
+  }
+
+  return null;
+}
+
+function splitTrailingAnnualIssueSpec(segment: string) {
+  const lower = segment.toLowerCase();
+  const annualIndex = lower.lastIndexOf(" annual ");
+  if (annualIndex <= 0) return null;
+
+  const rawSeriesSpec = segment.slice(0, annualIndex).trim();
+  const rawIssueSpec = segment.slice(annualIndex + 1).trim();
+  if (!rawSeriesSpec || !/^annual\s+\d+(?:-\d+)?$/i.test(rawIssueSpec)) return null;
+
+  return { rawSeriesSpec, rawIssueSpec };
+}
+
+function splitTrailingNumericIssueSpec(segment: string) {
+  for (let index = segment.length - 1; index >= 0; index -= 1) {
+    if (segment[index] !== " ") continue;
+
+    const rawSeriesSpec = segment.slice(0, index).trim();
+    const rawIssueSpec = segment.slice(index + 1).trim();
+    if (!rawSeriesSpec || !rawIssueSpec) continue;
+    if (!/^#?\d+[A-Z]?(?:-#?\d+[A-Z]?)?$/i.test(rawIssueSpec)) continue;
+    return { rawSeriesSpec, rawIssueSpec };
+  }
+
+  return null;
 }

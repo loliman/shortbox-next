@@ -146,6 +146,137 @@ function buildArcTermIssueWhere(term: string, us: boolean): Prisma.IssueWhereInp
   };
 }
 
+function buildAppearanceTermIssueWhere(term: string, us: boolean): Prisma.IssueWhereInput {
+  return {
+    OR: [
+      {
+        stories: {
+          some: {
+            appearances: {
+              some: {
+                appearance: {
+                  name: {
+                    contains: term,
+                    mode: "insensitive",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      {
+        stories: {
+          some: {
+            children: {
+              some: {
+                appearances: {
+                  some: {
+                    appearance: {
+                      name: {
+                        contains: term,
+                        mode: "insensitive",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      ...(us
+        ? []
+        : [
+            {
+              stories: {
+                some: {
+                  parent: {
+                    appearances: {
+                      some: {
+                        appearance: {
+                          name: {
+                            contains: term,
+                            mode: "insensitive",
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            } satisfies Prisma.IssueWhereInput,
+          ]),
+    ],
+  };
+}
+
+function buildRealityTermIssueWhere(term: string, us: boolean): Prisma.IssueWhereInput {
+  const marker = `(${term})`;
+  return {
+    OR: [
+      {
+        stories: {
+          some: {
+            appearances: {
+              some: {
+                appearance: {
+                  name: {
+                    contains: marker,
+                    mode: "insensitive",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      {
+        stories: {
+          some: {
+            children: {
+              some: {
+                appearances: {
+                  some: {
+                    appearance: {
+                      name: {
+                        contains: marker,
+                        mode: "insensitive",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      ...(us
+        ? []
+        : [
+            {
+              stories: {
+                some: {
+                  parent: {
+                    appearances: {
+                      some: {
+                        appearance: {
+                          name: {
+                            contains: marker,
+                            mode: "insensitive",
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            } satisfies Prisma.IssueWhereInput,
+          ]),
+    ],
+  };
+}
+
 function parseFilterDate(raw: string | null | undefined): Date | null {
   const value = readTextValue(raw);
   if (!value) return null;
@@ -275,139 +406,14 @@ export function buildDirectIssueFilterWhere(
   const appearanceTerms = extractAppearanceTerms(runtimeFilter);
   if (appearanceTerms.length > 0) {
     and.push({
-      AND: appearanceTerms.map((term) => ({
-        OR: [
-          {
-            stories: {
-              some: {
-                appearances: {
-                  some: {
-                    appearance: {
-                      name: {
-                        contains: term,
-                        mode: "insensitive",
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-          {
-            stories: {
-              some: {
-                children: {
-                  some: {
-                    appearances: {
-                      some: {
-                        appearance: {
-                          name: {
-                            contains: term,
-                            mode: "insensitive",
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-          ...(runtimeFilter.us
-            ? []
-            : [
-                {
-                  stories: {
-                    some: {
-                      parent: {
-                        appearances: {
-                          some: {
-                            appearance: {
-                              name: {
-                                contains: term,
-                                mode: "insensitive",
-                              },
-                            },
-                          },
-                        },
-                      },
-                    },
-                  },
-                } satisfies Prisma.IssueWhereInput,
-              ]),
-        ],
-      })),
+      AND: appearanceTerms.map((term) => buildAppearanceTermIssueWhere(term, Boolean(runtimeFilter.us))),
     });
   }
 
   const realityTerms = extractRealityTerms(runtimeFilter);
   if (realityTerms.length > 0) {
     and.push({
-      AND: realityTerms.map((term) => {
-        const marker = `(${term})`;
-        return {
-          OR: [
-            {
-              stories: {
-                some: {
-                  appearances: {
-                    some: {
-                      appearance: {
-                        name: {
-                          contains: marker,
-                          mode: "insensitive",
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-            {
-              stories: {
-                some: {
-                  children: {
-                    some: {
-                      appearances: {
-                        some: {
-                          appearance: {
-                            name: {
-                              contains: marker,
-                              mode: "insensitive",
-                            },
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-            ...(runtimeFilter.us
-              ? []
-              : [
-                  {
-                    stories: {
-                      some: {
-                        parent: {
-                          appearances: {
-                            some: {
-                              appearance: {
-                                name: {
-                                  contains: marker,
-                                  mode: "insensitive",
-                                },
-                              },
-                            },
-                          },
-                        },
-                      },
-                    },
-                  } satisfies Prisma.IssueWhereInput,
-                ]),
-          ],
-        };
-      }),
+      AND: realityTerms.map((term) => buildRealityTermIssueWhere(term, Boolean(runtimeFilter.us))),
     });
   }
 

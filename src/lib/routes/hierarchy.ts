@@ -294,9 +294,7 @@ function buildParsedLegacySeriesSelection(
   };
 }
 
-export function getSelected(params: RouteParams, us: boolean): SelectedRoot {
-  const selected: SelectedRoot = { us };
-
+function readLegacyRouteContext(params: RouteParams) {
   const legacyPublisher = params.publisher ? decodeURIComponent(params.publisher) : "";
   const legacySeries = params.series ? decodeURIComponent(params.series) : "";
   const legacyIssue = params.issue ? decodeURIComponent(params.issue) : "";
@@ -304,43 +302,68 @@ export function getSelected(params: RouteParams, us: boolean): SelectedRoot {
   const routeFormat = params.format ? decodeURIComponent(params.format) : "";
   const routeVariant = params.variant ? decodeURIComponent(params.variant) : "";
   const legacyFormatSegment = hasFormatParam ? "" : routeVariant;
-  const hasLegacyVariantSeparator = legacyFormatSegment.includes("_");
 
-  // Check if this is a new SEO-friendly URL structure
-  if (params.publisherSlug && params.seriesSlug && params.issueNumber) {
-    const parsed = parseIssueUrl(
-      params.publisherSlug,
-      params.seriesSlug,
-      params.issueNumber,
-      params.formatSlug,
-      params.variantSlug
-    );
+  return {
+    legacyPublisher,
+    legacySeries,
+    legacyIssue,
+    hasFormatParam,
+    routeFormat,
+    routeVariant,
+    legacyFormatSegment,
+    hasLegacyVariantSeparator: legacyFormatSegment.includes("_"),
+  };
+}
 
-    if (parsed) return buildSelectedIssueFromParsedIssue(parsed, us);
-  }
+function readSeoIssueSelection(params: RouteParams, us: boolean) {
+  if (!params.publisherSlug || !params.seriesSlug || !params.issueNumber) return null;
+  const parsed = parseIssueUrl(
+    params.publisherSlug,
+    params.seriesSlug,
+    params.issueNumber,
+    params.formatSlug,
+    params.variantSlug
+  );
+  return parsed ? buildSelectedIssueFromParsedIssue(parsed, us) : null;
+}
+
+function readLegacyIssueSelection(params: RouteParams, us: boolean, context: ReturnType<typeof readLegacyRouteContext>) {
+  if (!context.legacyPublisher || !context.legacySeries || !context.legacyIssue) return null;
+  const parsedIssueSelection = readLegacyIssueRouteParams(
+    params,
+    context.hasFormatParam,
+    context.routeFormat,
+    context.routeVariant,
+    context.legacyFormatSegment,
+    context.hasLegacyVariantSeparator
+  );
+  return parsedIssueSelection ? { ...parsedIssueSelection, us } : null;
+}
+
+export function getSelected(params: RouteParams, us: boolean): SelectedRoot {
+  const selected: SelectedRoot = { us };
+  const context = readLegacyRouteContext(params);
+
+  const seoIssueSelection = readSeoIssueSelection(params, us);
+  if (seoIssueSelection) return seoIssueSelection;
 
   // Also support SEO slugs on existing dynamic param names
   // (/[publisher]/[series]/[issue]/[format]/[variant]) and legacy
   // (/[publisher]/[series]/[issue]/[variant]) so both formats resolve.
-  if (legacyPublisher && legacySeries && legacyIssue) {
-    const parsedIssueSelection = readLegacyIssueRouteParams(
-      params,
-      hasFormatParam,
-      routeFormat,
-      routeVariant,
-      legacyFormatSegment,
-      hasLegacyVariantSeparator
-    );
-    if (parsedIssueSelection) return { ...parsedIssueSelection, us };
-  }
+  const legacyIssueSelection = readLegacyIssueSelection(params, us, context);
+  if (legacyIssueSelection) return legacyIssueSelection;
 
-  if (legacyPublisher && legacySeries && !legacyIssue) {
-    const parsedSeriesSelection = buildParsedLegacySeriesSelection(legacyPublisher, legacySeries, selected);
+  if (context.legacyPublisher && context.legacySeries && !context.legacyIssue) {
+    const parsedSeriesSelection = buildParsedLegacySeriesSelection(
+      context.legacyPublisher,
+      context.legacySeries,
+      selected
+    );
     if (parsedSeriesSelection) return parsedSeriesSelection;
   }
 
-  if (legacyPublisher && !legacySeries && !legacyIssue) {
-    const parsedPublisher = parsePublisherSlug(legacyPublisher);
+  if (context.legacyPublisher && !context.legacySeries && !context.legacyIssue) {
+    const parsedPublisher = parsePublisherSlug(context.legacyPublisher);
     if (parsedPublisher) {
       selected.publisher = { name: parsedPublisher };
       return selected;
@@ -356,10 +379,10 @@ export function getSelected(params: RouteParams, us: boolean): SelectedRoot {
   applyLegacyIssueSelection(
     selected,
     params,
-    hasFormatParam,
-    routeFormat,
-    routeVariant,
-    legacyFormatSegment
+    context.hasFormatParam,
+    context.routeFormat,
+    context.routeVariant,
+    context.legacyFormatSegment
   );
 
   return selected;

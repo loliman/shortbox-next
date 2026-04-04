@@ -763,8 +763,18 @@ function splitStoryReferenceSegments(value: string) {
 }
 
 function readPageCount(value: string) {
-  const match = /(\d+)\s*S\./i.exec(value);
-  return match?.[1];
+  const lower = value.toLowerCase();
+  const markerIndex = lower.indexOf("s.");
+  if (markerIndex < 0) return undefined;
+
+  let end = markerIndex;
+  while (end > 0 && /\s/.test(value[end - 1] || "")) end -= 1;
+
+  let start = end;
+  while (start > 0 && /\d/.test(value[start - 1] || "")) start -= 1;
+
+  const digits = value.slice(start, end);
+  return digits && /^\d+$/.test(digits) ? digits : undefined;
 }
 
 function createPseudoRandomToken() {

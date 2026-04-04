@@ -141,16 +141,25 @@ function ws(s: string) {
 }
 
 function normalizeCrawlerEntityValue(raw: string): string {
+  const collapsePunctuationSpacing = (value: string) => {
+    let normalized = value;
+    for (const punct of [",", ".", ";", ":", "!", "?"]) {
+      normalized = normalized.replaceAll(` ${punct}`, punct);
+    }
+    return normalized;
+  };
+
   const normalized = ws(
-    raw
-      .replaceAll(/[\u00A0\u2007\u202F]/g, " ")
-      .replaceAll(/[\u200B-\u200D\uFEFF]/g, "")
-      .replaceAll(/[‘’`´]/g, "'")
-      .replaceAll(/[“”]/g, '"')
-      .replaceAll(/[‐‑–—]/g, "-")
-      .replaceAll(/\s+([,.;:!?])/g, "$1")
-      .replaceAll(/\(\s+/g, "(")
-      .replaceAll(/\s+\)/g, ")"),
+    collapsePunctuationSpacing(
+      raw
+        .replaceAll(/[\u00A0\u2007\u202F]/g, " ")
+        .replaceAll(/[\u200B-\u200D\uFEFF]/g, "")
+        .replaceAll(/[‘’`´]/g, "'")
+        .replaceAll(/[“”]/g, '"')
+        .replaceAll(/[‐‑–—]/g, "-")
+        .replaceAll("( ", "(")
+        .replaceAll(" )", ")")
+    ),
   );
   if (!normalized) return "";
 
@@ -366,11 +375,12 @@ function normalizeTitleKey(value: string): string {
 }
 
 function canonicalSeriesTitle(value: string): string {
-  const normalized = ws(value)
-    .replaceAll("_", " ")
-    .replaceAll(/\s*\/\s*/g, " and ")
-    .replaceAll(/\s*&\s*/g, " and ")
-    .replace(/\s+(HC|TPB|SC|GN|OGN)$/i, "");
+  const normalized = stripTrailingFormatSuffix(
+    normalizeDelimitedAnd(
+      normalizeDelimitedAnd(ws(value).replaceAll("_", " "), "/"),
+      "&"
+    )
+  );
   if (normalizeTitleKey(normalized) === "marvelpointone") return "Point One";
   if (normalizeTitleKey(normalized) === "allnewalldifferentmarvelpointone") {
     return "All-New, All-Different Point One";
@@ -414,11 +424,34 @@ function extractContainedIssueStoryTitleFromCaption(
     node = (node as AnyNode).nextSibling || null;
   }
 
-  const trailingText = ws(fragments.join(" ").replaceAll(/^["“”']+|["“”']+$/g, ""));
+  const trailingText = ws(trimWrappedQuotes(fragments.join(" ")));
   if (trailingText) return trailingText;
 
   const captionText = ws(caption.text());
   return captionText;
+}
+
+function trimWrappedQuotes(value: string) {
+  let start = 0;
+  let end = value.length;
+  while (start < end && [`"`, "“", "”", "'"].includes(value[start] || "")) start += 1;
+  while (end > start && [`"`, "“", "”", "'"].includes(value[end - 1] || "")) end -= 1;
+  return value.slice(start, end);
+}
+
+function normalizeDelimitedAnd(value: string, delimiter: string) {
+  return value.split(delimiter).map((part) => ws(part)).join(" and ");
+}
+
+function stripTrailingFormatSuffix(value: string) {
+  const suffixes = [" HC", " TPB", " SC", " GN", " OGN"];
+  const upper = value.toUpperCase();
+  for (const suffix of suffixes) {
+    if (upper.endsWith(suffix)) {
+      return value.slice(0, -suffix.length).trimEnd();
+    }
+  }
+  return value;
 }
 
 async function apiGet(params: Record<string, string>): Promise<any> {
@@ -607,14 +640,12 @@ function cleanAppearanceName(raw: string): string {
     "first full appearance",
     "unnamed",
   ]);
-  const removableSuffixPattern = /\s*\(([^()]+)\)\s*$/;
-
   while (true) {
-    const match = removableSuffixPattern.exec(value);
-    if (!match) break;
-    const normalized = normalizeHeader(match[1]);
+    const trailingParenthetical = readTrailingParenthetical(value);
+    if (!trailingParenthetical) break;
+    const normalized = normalizeHeader(trailingParenthetical.content);
     if (!removableSuffixes.has(normalized)) break;
-    value = ws(value.slice(0, value.length - match[0].length));
+    value = ws(trailingParenthetical.head);
   }
 
   value = ws(
@@ -1106,15 +1137,14 @@ function parseArcsFromPartOf($: cheerio.CheerioAPI): CrawledArc[] {
     .filter(({ label, value }) => isPartOfArcCandidate(label, value));
 
   const arcs: CrawledArc[] = [];
-  const trailingArcMetadataPattern = /\s+\(([^()]+)\)\s*$/;
   const stripTrailingArcMetadata = (value: string): string => {
     let cleaned = value;
 
     while (true) {
-      const match = trailingArcMetadataPattern.exec(cleaned);
-      if (!match) break;
+      const trailingParenthetical = readTrailingParenthetical(cleaned);
+      if (!trailingParenthetical) break;
 
-      const meta = normalizeHeader(match[1]);
+      const meta = normalizeHeader(trailingParenthetical.content);
       const hasArcMeta =
         /\bstory\s*arc\b/i.test(meta) ||
         /\bstoryline\b/i.test(meta) ||
@@ -1122,7 +1152,7 @@ function parseArcsFromPartOf($: cheerio.CheerioAPI): CrawledArc[] {
         /^arc$/i.test(meta);
       if (!hasArcMeta) break;
 
-      cleaned = ws(cleaned.slice(0, cleaned.length - match[0].length));
+      cleaned = ws(trailingParenthetical.head);
     }
 
     return cleaned;
@@ -1130,13 +1160,16 @@ function parseArcsFromPartOf($: cheerio.CheerioAPI): CrawledArc[] {
 
   const addArc = (titleRaw: string, typeRaw?: string) => {
     const title = normalizeCrawlerEntityValue(
-      titleRaw
-        .replace(/^Part of the\s+/i, "")
-        .replace(/\band\s*$/i, "")
-        .replace(/\.$/, "")
-        .replace(/\s+\((19|20)\d{2}\)\s*$/i, "")
-        .replace(/\s+\((event|storyline|arc)\)\s*$/i, "")
-        .replaceAll(/^["“]|["”]$/g, ""),
+      trimWrappedQuotes(
+        stripTrailingArcTypeMetadata(
+          stripTrailingArcYearMetadata(
+            titleRaw
+              .replace(/^Part of the\s+/i, "")
+              .replace(/\band\s*$/i, "")
+              .replace(/\.$/, "")
+          )
+        )
+      ),
     );
     const normalizedTitle = stripTrailingArcMetadata(title);
     if (!normalizedTitle) return;
@@ -1413,11 +1446,58 @@ function extractArtistsFromText(raw: string): string[] {
 function cleanVariantLabel(raw: string): string {
   const value = ws(raw.replace(/^\d+\s*-\s*/i, ""));
   if (!value) return "";
-  return ws(
-    value
-      .replace(/\s*\(?art by:\s*.*$/i, "")
-      .replace(/\s+variant\b$/i, ""),
-  );
+  return ws(stripVariantTail(stripArtBySuffix(value)));
+}
+
+function readTrailingParenthetical(value: string) {
+  const trimmed = value.trimEnd();
+  if (!trimmed.endsWith(")")) return null;
+
+  let depth = 0;
+  for (let index = trimmed.length - 1; index >= 0; index -= 1) {
+    const char = trimmed[index];
+    if (char === ")") depth += 1;
+    if (char === "(") {
+      depth -= 1;
+      if (depth === 0) {
+        return {
+          head: trimmed.slice(0, index).trimEnd(),
+          content: trimmed.slice(index + 1, -1).trim(),
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+function stripTrailingArcYearMetadata(value: string) {
+  const trailingParenthetical = readTrailingParenthetical(value);
+  if (!trailingParenthetical) return value;
+  return /^(19|20)\d{2}$/.test(trailingParenthetical.content) ? trailingParenthetical.head : value;
+}
+
+function stripTrailingArcTypeMetadata(value: string) {
+  const trailingParenthetical = readTrailingParenthetical(value);
+  if (!trailingParenthetical) return value;
+  const normalized = normalizeHeader(trailingParenthetical.content);
+  return normalized === "event" || normalized === "storyline" || normalized === "arc"
+    ? trailingParenthetical.head
+    : value;
+}
+
+function stripArtBySuffix(value: string) {
+  const lower = value.toLowerCase();
+  const artByIndex = lower.indexOf("art by:");
+  if (artByIndex < 0) return value;
+
+  let cutIndex = artByIndex;
+  while (cutIndex > 0 && /\s|\(/.test(value[cutIndex - 1] || "")) cutIndex -= 1;
+  return value.slice(0, cutIndex);
+}
+
+function stripVariantTail(value: string) {
+  return value.toLowerCase().endsWith(" variant") ? value.slice(0, -8) : value;
 }
 
 function isPlaceholderArtistName(value: string): boolean {
