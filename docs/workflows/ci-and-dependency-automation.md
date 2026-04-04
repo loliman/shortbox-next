@@ -161,6 +161,22 @@ That means:
 - treat Lighthouse score changes as investigation triggers
 - do not treat them as automatic merge blockers
 
+## SonarCloud And Coverage
+
+SonarCloud is currently a separate workflow and should be treated as a quality visibility layer, not as the source of truth for what tests run.
+
+For Jest component testing to matter in SonarCloud, coverage must be exported and consumed explicitly.
+
+Target expectation:
+
+- Jest produces LCOV coverage output
+- the SonarCloud workflow generates that coverage before scanning
+- [`sonar-project.properties`](../../sonar-project.properties) points SonarCloud at the generated LCOV file
+
+Without that wiring, SonarCloud can scan sources and tests but still miss actual Jest coverage results.
+
+This is especially important for the repository's component-testing strategy because the goal is not only to have good behavior-first tests, but also to make that coverage visible enough that Sonar signals stay useful.
+
 ## Local Command Mapping
 
 These are the local commands that correspond to the blocking CI jobs.

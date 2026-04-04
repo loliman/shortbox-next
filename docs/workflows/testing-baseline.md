@@ -6,6 +6,8 @@ For the GitHub Actions job layout, blocking rules, and dependency automation pol
 [CI and dependency automation](./ci-and-dependency-automation.md).
 For the intended end-state across unit, browser, visual, accessibility, and SEO checks, see
 [Testing target picture](./testing-target-picture.md).
+For the repository policy on behavior-first Jest component tests, see
+[Jest component testing policy](./testing-jest-component-policy.md).
 
 ## Official Command
 
@@ -58,6 +60,9 @@ There are still Jest tests that use browser-style helpers such as:
 - `@testing-library/user-event`
 
 Those tests are only kept when they remain small, focused, and stable enough to still fit a unit-test model.
+
+The behavior-first standard for those tests is defined in
+[Jest component testing policy](./testing-jest-component-policy.md).
 
 Observed repository state on April 4, 2026:
 

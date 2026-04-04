@@ -7,6 +7,7 @@ It is written as a practical hand-off document for future implementation work, n
 Use it together with:
 
 - [Testing baseline](./testing-baseline.md) for what runs reliably today
+- [Jest component testing policy](./testing-jest-component-policy.md) for behavior-first component coverage rules
 - [CI and dependency automation](./ci-and-dependency-automation.md) for the current GitHub Actions model
 - [ADR 004: Testing Target Model](../adr/004-testing-target-model.md) for the architectural decision behind the target stack
 
@@ -125,6 +126,7 @@ Current fixture model for this layer:
 The repository should converge on this responsibility split:
 
 - Jest owns pure logic, regression, parity, and extracted domain helpers
+- Jest component tests own small, behavior-first component contracts
 - Playwright owns end-to-end and browser-only interaction risk
 - Storybook/Chromatic owns appearance and snapshot-style visual regression
 - `pa11y` owns route-level accessibility guardrails
@@ -145,6 +147,8 @@ The repository currently has the following target-picture pieces materially in p
 - test files back under blocking TypeScript validation
 
 The main major piece still intentionally outstanding is visual regression tooling.
+
+The repository also still needs explicit coverage-to-Sonar wiring so that the quality of Jest coverage is visible in SonarCloud, not just locally.
 
 ## Quality Of The Existing Test Suite
 
