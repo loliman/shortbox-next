@@ -394,8 +394,14 @@ function normalizeWikiTitleForComparison(value: string): string {
 }
 
 function normalizeIssueNumberKey(value: string): string {
-  const normalized = ws(value)
-    .replace(/^(\d+[a-z.]*)\s*:\s+.*$/i, "$1")
+  const stripTrailingColonSuffix = (input: string) => {
+    const colonIndex = input.indexOf(":");
+    if (colonIndex < 0) return input;
+    const prefix = input.slice(0, colonIndex).trim();
+    return /^\d+[a-z.]*$/i.test(prefix) ? prefix : input;
+  };
+
+  const normalized = ws(stripTrailingColonSuffix(value))
     .toLowerCase()
     .replaceAll("_", " ")
     .replaceAll("a.i.", "ai")

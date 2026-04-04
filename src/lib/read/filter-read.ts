@@ -277,6 +277,70 @@ function buildRealityTermIssueWhere(term: string, us: boolean): Prisma.IssueWher
   };
 }
 
+function applyFormatsFilter(and: Prisma.IssueWhereInput[], filter: RuntimeFilter) {
+  const formats = readDirectFormats(filter);
+  if (formats.length > 0) and.push({ format: { in: formats } });
+}
+
+function applyVariantFilter(and: Prisma.IssueWhereInput[], filter: RuntimeFilter) {
+  if (!filter.withVariants || filter.onlyCollected) return;
+  and.push({
+    NOT: {
+      OR: [{ variant: null }, { variant: "" }],
+    },
+  });
+}
+
+function applyCollectedFilters(and: Prisma.IssueWhereInput[], filter: RuntimeFilter) {
+  if (filter.onlyCollected) and.push({ collected: true });
+  if (filter.onlyNotCollected) and.push({ collected: false });
+}
+
+function applyPublisherFilter(and: Prisma.IssueWhereInput[], filter: RuntimeFilter) {
+  const publisherNames = readDirectPublisherNames(filter);
+  if (publisherNames.length === 0) return;
+  and.push({
+    series: {
+      publisher: {
+        name: {
+          in: publisherNames,
+        },
+      },
+    },
+  });
+}
+
+function applySeriesFilter(and: Prisma.IssueWhereInput[], filter: RuntimeFilter) {
+  const seriesConditions = readDirectSeriesConditions(filter);
+  if (seriesConditions.length === 0) return;
+  and.push({
+    OR: seriesConditions.map((series) => ({
+      series: {
+        title: series.title,
+        volume: series.volume,
+      },
+    })),
+  });
+}
+
+function applyDirectTermFilters(and: Prisma.IssueWhereInput[], filter: RuntimeFilter) {
+  const us = Boolean(filter.us);
+  const arcTerms = extractArcTerms(filter);
+  if (arcTerms.length > 0) {
+    and.push({ AND: arcTerms.map((term) => buildArcTermIssueWhere(term, us)) });
+  }
+
+  const appearanceTerms = extractAppearanceTerms(filter);
+  if (appearanceTerms.length > 0) {
+    and.push({ AND: appearanceTerms.map((term) => buildAppearanceTermIssueWhere(term, us)) });
+  }
+
+  const realityTerms = extractRealityTerms(filter);
+  if (realityTerms.length > 0) {
+    and.push({ AND: realityTerms.map((term) => buildRealityTermIssueWhere(term, us)) });
+  }
+}
+
 function parseFilterDate(raw: string | null | undefined): Date | null {
   const value = readTextValue(raw);
   if (!value) return null;
@@ -341,46 +405,12 @@ export function buildDirectIssueFilterWhere(
     },
   ];
 
-  const formats = readDirectFormats(runtimeFilter);
-  if (formats.length > 0) and.push({ format: { in: formats } });
-
+  applyFormatsFilter(and, runtimeFilter);
   and.push(...buildReleaseDateWhereClauses(runtimeFilter.releasedates));
-
-  if (runtimeFilter.withVariants && !runtimeFilter.onlyCollected) {
-    and.push({
-      NOT: {
-        OR: [{ variant: null }, { variant: "" }],
-      },
-    });
-  }
-
-  if (runtimeFilter.onlyCollected) and.push({ collected: true });
-  if (runtimeFilter.onlyNotCollected) and.push({ collected: false });
-
-  const publisherNames = readDirectPublisherNames(runtimeFilter);
-  if (publisherNames.length > 0) {
-    and.push({
-      series: {
-        publisher: {
-          name: {
-            in: publisherNames,
-          },
-        },
-      },
-    });
-  }
-
-  const seriesConditions = readDirectSeriesConditions(runtimeFilter);
-  if (seriesConditions.length > 0) {
-    and.push({
-      OR: seriesConditions.map((series) => ({
-        series: {
-          title: series.title,
-          volume: series.volume,
-        },
-      })),
-    });
-  }
+  applyVariantFilter(and, runtimeFilter);
+  applyCollectedFilters(and, runtimeFilter);
+  applyPublisherFilter(and, runtimeFilter);
+  applySeriesFilter(and, runtimeFilter);
 
   if (runtimeFilter.noComicguideId) {
     and.push({
@@ -396,26 +426,7 @@ export function buildDirectIssueFilterWhere(
     });
   }
 
-  const arcTerms = extractArcTerms(runtimeFilter);
-  if (arcTerms.length > 0) {
-    and.push({
-      AND: arcTerms.map((term) => buildArcTermIssueWhere(term, Boolean(runtimeFilter.us))),
-    });
-  }
-
-  const appearanceTerms = extractAppearanceTerms(runtimeFilter);
-  if (appearanceTerms.length > 0) {
-    and.push({
-      AND: appearanceTerms.map((term) => buildAppearanceTermIssueWhere(term, Boolean(runtimeFilter.us))),
-    });
-  }
-
-  const realityTerms = extractRealityTerms(runtimeFilter);
-  if (realityTerms.length > 0) {
-    and.push({
-      AND: realityTerms.map((term) => buildRealityTermIssueWhere(term, Boolean(runtimeFilter.us))),
-    });
-  }
+  applyDirectTermFilters(and, runtimeFilter);
 
   return and.length === 1 ? and[0] : { AND: and };
 }
