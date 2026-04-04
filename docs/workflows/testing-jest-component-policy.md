@@ -199,6 +199,7 @@ The intended setup is:
 Required target wiring:
 
 - Jest should emit `coverage/lcov.info`
+- the repository command for that should be `npm run test:unit:coverage`
 - SonarCloud should read that file through `sonar-project.properties`
 - the SonarCloud workflow should generate coverage before the scan step
 

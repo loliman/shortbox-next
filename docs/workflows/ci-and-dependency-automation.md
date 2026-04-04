@@ -170,6 +170,7 @@ For Jest component testing to matter in SonarCloud, coverage must be exported an
 Target expectation:
 
 - Jest produces LCOV coverage output
+- the repository command for that is `npm run test:unit:coverage`
 - the SonarCloud workflow generates that coverage before scanning
 - [`sonar-project.properties`](../../sonar-project.properties) points SonarCloud at the generated LCOV file
 

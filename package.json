@@ -18,6 +18,7 @@
     "worker": "node --env-file=.env --import tsx src/worker/index.ts",
     "test": "jest",
     "test:unit": "jest --runInBand",
+    "test:unit:coverage": "jest --runInBand --coverage",
     "test:watch": "jest --watch",
     "test:e2e:smoke": "playwright test",
     "test:seo:smoke": "node scripts/seo-smoke-test.mjs",

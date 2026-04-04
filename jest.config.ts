@@ -12,6 +12,16 @@ const config: Config = {
   roots: ["<rootDir>/src"],
   testMatch: ["**/*.test.ts", "**/*.test.tsx"],
   testPathIgnorePatterns: ["/node_modules/"],
+  collectCoverageFrom: [
+    "src/**/*.{ts,tsx}",
+    "!src/**/*.d.ts",
+    "!src/**/*.test.{ts,tsx}",
+    "!src/types/**",
+    "!src/**/__mocks__/**",
+  ],
+  coverageDirectory: "<rootDir>/coverage",
+  coverageProvider: "v8",
+  coverageReporters: ["text", "lcov"],
 };
 
 export default createJestConfig(config);
