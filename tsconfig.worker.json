@@ -25,8 +25,6 @@
   "exclude": [
     "node_modules",
     ".next",
-    "src/**/*.test.ts",
-    "src/**/*.test.tsx",
     "src/services/MarvelCrawlerService.ts"
   ]
 }

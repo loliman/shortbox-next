@@ -7,15 +7,29 @@ import FilterSummaryBar from "./FilterSummaryBar";
 import type { SelectedRoot } from "../../types/domain";
 
 const push = jest.fn();
-const generateSeoUrl = jest.fn(() => "/generated-selected-route");
-const buildRouteHref = jest.fn(() => "/filter/de?from=%2Fgenerated-selected-route");
+const generateSeoUrlMock = jest.fn<
+  string,
+  [SelectedRoot, boolean]
+>(() => "/generated-selected-route");
+const buildRouteHrefMock = jest.fn<
+  string,
+  [
+    string,
+    (Record<string, unknown> | null | undefined)?,
+    (Record<string, string | number | boolean | null | undefined> | undefined)?
+  ]
+>(() => "/filter/de?from=%2Fgenerated-selected-route");
 
 jest.mock("../../lib/routes/hierarchy", () => ({
-  generateSeoUrl: (...args: unknown[]) => generateSeoUrl(...args),
+  generateSeoUrl: (selected: SelectedRoot, us: boolean) => generateSeoUrlMock(selected, us),
 }));
 
 jest.mock("../generic/routeHref", () => ({
-  buildRouteHref: (...args: unknown[]) => buildRouteHref(...args),
+  buildRouteHref: (
+    pathname: string,
+    currentQuery?: Record<string, unknown> | null,
+    nextQuery?: Record<string, string | number | boolean | null | undefined>
+  ) => buildRouteHrefMock(pathname, currentQuery, nextQuery),
 }));
 
 jest.mock("../generic/usePendingNavigation", () => ({
@@ -28,8 +42,8 @@ jest.mock("../generic/usePendingNavigation", () => ({
 describe("FilterSummaryBar", () => {
   beforeEach(() => {
     push.mockClear();
-    generateSeoUrl.mockClear();
-    buildRouteHref.mockClear();
+    generateSeoUrlMock.mockClear();
+    buildRouteHrefMock.mockClear();
   });
 
   it("renders nothing when no active filter can be parsed", () => {
@@ -82,8 +96,8 @@ describe("FilterSummaryBar", () => {
 
     await user.click(screen.getByRole("button", { name: "Bearbeiten" }));
 
-    expect(generateSeoUrl).toHaveBeenCalledWith(selected, false);
-    expect(buildRouteHref).toHaveBeenCalledWith(
+    expect(generateSeoUrlMock).toHaveBeenCalledWith(selected, false);
+    expect(buildRouteHrefMock).toHaveBeenCalledWith(
       "/filter/de",
       { filter },
       {
