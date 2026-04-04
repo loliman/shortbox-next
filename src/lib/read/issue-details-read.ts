@@ -564,21 +564,7 @@ function toIssueDetailsShape(issue: any, variants: any[]) {
     createdat: serializeIssueDate(issue.createdAt),
     updatedat: serializeIssueDate(issue.updatedAt),
     series: toIssueSeriesShape(issue.series),
-    stories: ownStories.map((story: any) => ({
-      parent: story.parent?.issue
-        ? {
-            issue: {
-              arcs: Array.isArray(story.parent.issue.arcs)
-                ? story.parent.issue.arcs.map((entry: any) => ({
-                    id: serializeIssueId(entry.arc.id),
-                    title: entry.arc.title || null,
-                    type: entry.arc.type || null,
-                  }))
-                : [],
-            },
-          }
-        : null,
-    })),
+    stories: ownStories.map((story: any) => toIssueDetailsStoryShape(story)),
     cover: issue.covers[0] ? toIssueCoverShape(issue.covers[0]) : null,
     individuals: issue.individuals.map(toIssueIndividualEntryShape),
     arcs: issue.arcs.map((entry: any) => ({
@@ -591,6 +577,29 @@ function toIssueDetailsShape(issue: any, variants: any[]) {
     storyOwnerId: storySourceIssue ? serializeIssueId(storySourceIssue.id) : null,
     inheritsStories,
     tags: [],
+  };
+}
+
+function toIssueDetailsStoryShape(story: any) {
+  const mappedStory = toIssueStoryShape(story, true);
+
+  if (!mappedStory.parent?.issue) return mappedStory;
+
+  return {
+    ...mappedStory,
+    parent: {
+      ...mappedStory.parent,
+      issue: {
+        ...mappedStory.parent.issue,
+        arcs: Array.isArray(story.parent?.issue?.arcs)
+          ? story.parent.issue.arcs.map((entry: any) => ({
+              id: serializeIssueId(entry.arc.id),
+              title: entry.arc.title || null,
+              type: entry.arc.type || null,
+            }))
+          : [],
+      },
+    },
   };
 }
 

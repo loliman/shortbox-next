@@ -5,6 +5,7 @@ import Box from "@mui/material/Box";
 import CardHeader from "@mui/material/CardHeader";
 import CardContent from "@mui/material/CardContent";
 import Paper from "@mui/material/Paper";
+import SnackbarContent from "@mui/material/SnackbarContent";
 import Typography from "@mui/material/Typography";
 import { generateIssueSubHeader } from "../../util/issues";
 import { generateLabel } from "../../lib/routes/hierarchy";
@@ -19,7 +20,7 @@ import type { VariantIssue } from "./issue-details/variants/types";
 import { IssueDetailsPreview } from "./issue-details/preview/IssueDetailsPreview";
 import { DetailsTable } from "./issue-details/DetailsTable";
 import type { PreviewIssue } from "../issue-preview/utils/issuePreviewUtils";
-import { collectIssueArcs } from "./issue-details/utils/issueDetailsUtils";
+import { collectIssueArcs, getTodayLocalDate } from "./issue-details/utils/issueDetailsUtils";
 import { generateComicGuideUrl, generateMarvelDbUrl } from "./issue-details/utils/externalLinks";
 import { IssueCoverGalleryClient } from "./issue-details/IssueCoverGalleryClient";
 import type { SessionData } from "../../types/session";
@@ -99,6 +100,8 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
   }
 
   const arcs = collectIssueArcs(issueForVariants, us);
+  const today = getTodayLocalDate();
+  const releaseDate = issueForVariants.releasedate ? new Date(issueForVariants.releasedate) : null;
   const breadcrumbJsonLd = buildIssueBreadcrumbStructuredData(issueForVariants, us ? "us" : "de");
   const comicIssueJsonLd = buildIssueComicStructuredData(issueForVariants, us ? "us" : "de");
   const coverGalleryIssues = buildCoverGalleryIssues(issueForVariants);
@@ -120,6 +123,17 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
       key={loadedIssue.id || "issue-details"}
       sx={{ width: "100%", display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}
     >
+      {releaseDate && today < releaseDate ? (
+        <SnackbarContent
+          id="notVerifiedWarning"
+          message="Diese Ausgabe ist noch nicht im Handel erhältlich und noch nicht vorab verifiziert worden. Die angezeigten Informationen weichen gegebenenfalls von den tatsächlichen Daten ab."
+          sx={{
+            width: { xs: "calc(100% - 16px)", sm: "100%" },
+            mx: "auto",
+            borderRadius: { xs: 1, sm: 0 },
+          }}
+        />
+      ) : null}
       {breadcrumbJsonLd ? (
         <script
           key={`issue-breadcrumb-jsonld-${loadedIssue.id || issueForVariants.number || "issue"}`}
