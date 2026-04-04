@@ -46,6 +46,10 @@ export function normalizeStoryTitleKey(value: unknown): string {
 }
 
 export function coerceReleaseDateForDb(value: unknown) {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
   const normalized = normalizeText(value);
   if (!normalized) return null;
   if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
