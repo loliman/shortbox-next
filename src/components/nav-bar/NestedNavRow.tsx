@@ -7,6 +7,7 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import IconButton from "@mui/material/IconButton";
 import Box from "@mui/material/Box";
+import { alpha } from "@mui/material/styles";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { getDepthPadding } from "./listTreeUtils";
@@ -52,20 +53,32 @@ export const NestedRow = React.memo(function NestedRow(props: Readonly<NestedRow
         selected={props.selected ?? false}
         disabled={props.disabled}
         onClick={handleClick}
-        sx={{
+        sx={(theme) => ({
           minWidth: 0,
           pr: 1,
           backgroundColor: "var(--mui-palette-background-paper)",
           color: "var(--mui-palette-text-primary)",
           "&:hover": { backgroundColor: "action.hover" },
-          "&.Mui-selected": { backgroundColor: "var(--mui-palette-background-paper)" },
-          "&.Mui-selected:hover": { backgroundColor: "action.hover" },
+          "&.Mui-selected": {
+            backgroundColor: alpha(theme.palette.primary.main, 0.14),
+            boxShadow: `inset 3px 0 0 ${theme.palette.primary.main}`,
+            ...theme.applyStyles("dark", {
+              backgroundColor: alpha(theme.palette.primary.light, 0.2),
+              boxShadow: `inset 3px 0 0 ${theme.palette.primary.light}`,
+            }),
+          },
+          "&.Mui-selected:hover": {
+            backgroundColor: alpha(theme.palette.primary.main, 0.2),
+            ...theme.applyStyles("dark", {
+              backgroundColor: alpha(theme.palette.primary.light, 0.28),
+            }),
+          },
           "& .MuiListItemText-primary": {
             color: "var(--mui-palette-text-primary) !important",
             WebkitTextFillColor: "var(--mui-palette-text-primary) !important",
             opacity: "1 !important",
           },
-        }}
+        })}
       >
         <ListItemText
           primary={props.label}

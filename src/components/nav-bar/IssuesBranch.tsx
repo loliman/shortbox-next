@@ -6,6 +6,7 @@ import MuiList from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
 import Typography from "@mui/material/Typography";
+import { alpha } from "@mui/material/styles";
 import type { Issue, SelectedRoot } from "../../types/domain";
 import CoverTooltip from "./CoverTooltip";
 import { NestedEmptyRow, NestedLoadingRow } from "./NestedNavRow";
@@ -296,20 +297,32 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
               disabled={props.navigationPending}
               data-nav-row-key={issueNavigationKey}
               data-nav-issue-number={issueNumber}
-              sx={{
+              sx={(theme) => ({
                 pl: getDepthPadding(2) + 1.3,
                 py: 0.3,
                 backgroundColor: "var(--mui-palette-background-paper)",
                 color: "var(--mui-palette-text-primary)",
                 "&:hover": { backgroundColor: "action.hover" },
-                "&.Mui-selected": { backgroundColor: "var(--mui-palette-background-paper)" },
-                "&.Mui-selected:hover": { backgroundColor: "action.hover" },
+                "&.Mui-selected": {
+                  backgroundColor: alpha(theme.palette.primary.main, 0.14),
+                  boxShadow: `inset 3px 0 0 ${theme.palette.primary.main}`,
+                  ...theme.applyStyles("dark", {
+                    backgroundColor: alpha(theme.palette.primary.light, 0.2),
+                    boxShadow: `inset 3px 0 0 ${theme.palette.primary.light}`,
+                  }),
+                },
+                "&.Mui-selected:hover": {
+                  backgroundColor: alpha(theme.palette.primary.main, 0.2),
+                  ...theme.applyStyles("dark", {
+                    backgroundColor: alpha(theme.palette.primary.light, 0.28),
+                  }),
+                },
                 "& .MuiListItemText-primary": {
                   color: "var(--mui-palette-text-primary) !important",
                   WebkitTextFillColor: "var(--mui-palette-text-primary) !important",
                   opacity: "1 !important",
                 },
-              }}
+              })}
               onClick={(e) =>
                 pushSelection(
                   e,

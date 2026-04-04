@@ -43,6 +43,7 @@ export async function withStartedAuditServer(runAudit) {
       ...process.env,
       PORT: String(port),
     },
+    detached: process.platform !== "win32",
     stdio: ["ignore", "pipe", "pipe"],
   });
 
@@ -102,7 +103,7 @@ async function waitForServerReady(baseUrl, server) {
 async function stopServer(server) {
   if (server.exitCode !== null) return;
 
-  server.kill("SIGTERM");
+  terminateServer(server, "SIGTERM");
   const finished = await Promise.race([
     onceExit(server),
     sleep(5_000).then(() => false),
@@ -110,8 +111,23 @@ async function stopServer(server) {
 
   if (finished) return;
 
-  server.kill("SIGKILL");
+  terminateServer(server, "SIGKILL");
   await onceExit(server);
+}
+
+function terminateServer(server, signal) {
+  if (server.exitCode !== null) return;
+
+  if (process.platform !== "win32" && typeof server.pid === "number") {
+    try {
+      process.kill(-server.pid, signal);
+      return;
+    } catch {
+      // fall back to killing just the parent process below
+    }
+  }
+
+  server.kill(signal);
 }
 
 function onceExit(server) {

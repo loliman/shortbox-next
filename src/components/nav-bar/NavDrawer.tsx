@@ -41,7 +41,8 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
     children,
   } = props;
   const drawerWidth = getNavDrawerWidth(temporary);
-  const navActionBottomOffset = temporary ? `calc(${COMPACT_BOTTOM_BAR_CLEARANCE} + 14px)` : 14;
+  const navActionBottomOffset = temporary ? `calc(${COMPACT_BOTTOM_BAR_CLEARANCE} + 14px)` : "14px";
+  const navActionRightOffset = "14px";
   const navListBottomPadding = temporary ? `calc(${COMPACT_BOTTOM_BAR_CLEARANCE} + 56px)` : 56;
   const paperSx = {
     width: drawerWidth,
@@ -66,18 +67,14 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
       <Box
         sx={{
           position: "absolute",
-          inset: 0,
+          right: navActionRightOffset,
+          bottom: navActionBottomOffset,
           zIndex: 2,
-          display: "flex",
-          alignItems: "flex-end",
-          justifyContent: "flex-end",
-          p: 1.75,
-          pb: navActionBottomOffset,
-          pointerEvents: "none",
+          pointerEvents: "auto",
         }}
       >
         <Tooltip describeChild title="Zur Auswahl springen">
-          <span>
+          <Box component="span" sx={{ display: "inline-flex", pointerEvents: "auto" }}>
             <IconButton
               aria-label="Zur Auswahl"
               onClick={onScrollToSelected}
@@ -105,7 +102,7 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
             >
               <MyLocationIcon sx={{ fontSize: 20 }} />
             </IconButton>
-          </span>
+          </Box>
         </Tooltip>
       </Box>
       <Box
