@@ -4,7 +4,10 @@ out
 coverage
 dist
 .unlighthouse
+playwright-report
+test-results
 *.tsbuildinfo
 *.log
 .DS_Store
 .idea
+/.swc/

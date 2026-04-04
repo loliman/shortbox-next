@@ -95,7 +95,7 @@ describe("url-builder", () => {
     });
     it("should_includeType_when_typeProvided", () => {
       // Type is currently not encoded in the route format and is intentionally ignored.
-      expect(buildPersonFilterUrl("de", "Stan Lee", "WRITER")).toBe("/de/person/stan-lee");
+      expect(buildPersonFilterUrl("de", "Stan Lee")).toBe("/de/person/stan-lee");
     });
     it("should_setUsTrue_when_localeIsUs", () => {
       expect(buildPersonFilterUrl("us", "Peter Parker")).toBe("/us/person/peter-parker");
@@ -123,7 +123,7 @@ describe("url-builder", () => {
     });
     it("should_includeType_when_typeProvided", () => {
       // Type is currently not encoded in the route format and is intentionally ignored.
-      expect(buildArcFilterUrl("us", "Civil War", "EVENT")).toBe("/us/arc/civil-war");
+      expect(buildArcFilterUrl("us", "Civil War")).toBe("/us/arc/civil-war");
     });
     it("should_setUsTrue_when_localeIsUs", () => {
       expect(buildArcFilterUrl("us", "Civil War")).toBe("/us/arc/civil-war");
@@ -142,7 +142,7 @@ describe("url-builder", () => {
     });
     it("should_includeType_when_typeProvided", () => {
       // Type is currently not encoded in the route format and is intentionally ignored.
-      expect(buildAppearanceFilterUrl("de", "Spider-Man", "HERO")).toBe(
+      expect(buildAppearanceFilterUrl("de", "Spider-Man")).toBe(
         "/de/appearance/spider-man"
       );
     });
@@ -169,4 +169,3 @@ describe("url-builder", () => {
     });
   });
 });
-

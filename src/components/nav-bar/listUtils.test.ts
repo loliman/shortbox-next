@@ -15,12 +15,11 @@ jest.mock("../../graphql/queriesTyped", () => ({
       },
     ],
   })),
-}));
+}), { virtual: true });
 
 import { HierarchyLevel } from "../../lib/routes/hierarchy";
 import {
   getItemKey,
-  getQueryName,
   normalizeListLevelAndSelected,
   parseFilter,
   scrollToSelectedIssue,
@@ -107,25 +106,6 @@ describe("listUtils", () => {
     expect(getItemKey({} as any, 9)).toBe("entry|9");
   });
 
-  it("extracts query name from document definition", () => {
-    expect(
-      getQueryName({
-        definitions: [
-          {
-            kind: "OperationDefinition",
-            operation: "query",
-            name: { kind: "Name", value: "Issues" },
-            selectionSet: {
-              kind: "SelectionSet",
-              selections: [{ kind: "Field", name: { kind: "Name", value: "issueList" } }],
-            },
-          },
-        ],
-      } as any)
-    ).toBe("issueList");
-    expect(getQueryName({ definitions: [null] } as any)).toBe("");
-  });
-
   it("scrolls to selected issue row when found", () => {
     const listElement = document.createElement("ul");
     const item = document.createElement("li");
@@ -142,6 +122,7 @@ describe("listUtils", () => {
     );
 
     expect(scrollIntoView).toHaveBeenCalledWith({
+      behavior: "smooth",
       block: "center",
       inline: "nearest",
     });

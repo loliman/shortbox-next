@@ -37,8 +37,8 @@ describe("FormActions", () => {
     const cancelButton = screen.getByRole("button", { name: "Abbrechen" });
     const submitButton = screen.getByRole("button", { name: "Filtern" });
 
-    expect(resetButton).toHaveAttribute("disabled");
-    expect(cancelButton).toHaveAttribute("disabled");
-    expect(submitButton).toHaveAttribute("disabled");
+    expect(resetButton).toHaveProperty("disabled", true);
+    expect(cancelButton).toHaveProperty("disabled", true);
+    expect(submitButton).toHaveProperty("disabled", true);
   });
 });

@@ -9,7 +9,7 @@ describe("validationFeedback", () => {
           title: "Pflichtfeld",
         },
         stories: [{ number: "Pflichtfeld" }],
-      })
+      } as any)
     ).toEqual({
       series: {
         publisher: { name: true },
@@ -26,7 +26,7 @@ describe("validationFeedback", () => {
           publisher: { name: "Pflichtfeld" },
           title: "Pflichtfeld",
         },
-      })
+      } as any)
     ).toBe("series.publisher.name");
   });
 
@@ -43,7 +43,7 @@ describe("validationFeedback", () => {
             },
           },
         ],
-      })
+      } as any)
     ).toBe("stories.1.parent.issue.series.title");
   });
 });

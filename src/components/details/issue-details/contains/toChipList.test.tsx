@@ -3,6 +3,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { toChipList } from "./toChipList";
 
+type ClickableChipElement = React.ReactElement<{ onClick?: () => void }>;
+
 describe("toChipList", () => {
   it("renders unknown chip when list is empty", () => {
     const html = renderToStaticMarkup(toChipList([], {}, "WRITER"));
@@ -17,9 +19,9 @@ describe("toChipList", () => {
       "HERO"
     ) as React.ReactElement<{ children: React.ReactNode }>;
 
-    const chips = React.Children.toArray(element.props.children) as React.ReactElement[];
+    const chips = React.Children.toArray(element.props.children) as ClickableChipElement[];
     const chip = chips[0];
-    chip.props.onClick?.({ type: "click" });
+    chip.props.onClick?.();
 
     expect(navigate).toHaveBeenCalledTimes(1);
     expect(navigate.mock.calls[0][0]).toBe("/de/appearance/spider-man");
@@ -33,8 +35,8 @@ describe("toChipList", () => {
       { us: true, navigate },
       "HERO"
     ) as React.ReactElement<{ children: React.ReactNode }>;
-    const arcChip = React.Children.toArray(arcElement.props.children)[0] as React.ReactElement;
-    arcChip.props.onClick?.({ type: "click" });
+    const arcChip = React.Children.toArray(arcElement.props.children)[0] as ClickableChipElement;
+    arcChip.props.onClick?.();
 
     expect(navigate.mock.calls[0][0]).toBe("/us/arc/maximum-carnage");
 
@@ -47,8 +49,8 @@ describe("toChipList", () => {
     ) as React.ReactElement<{ children: React.ReactNode }>;
     const individualChip = React.Children.toArray(
       individualElement.props.children
-    )[0] as React.ReactElement;
-    individualChip.props.onClick?.({ type: "click" });
+    )[0] as ClickableChipElement;
+    individualChip.props.onClick?.();
 
     expect(navigate.mock.calls[0][0]).toBe("/us/person/peter-parker");
   });
@@ -59,8 +61,8 @@ describe("toChipList", () => {
       children: React.ReactNode;
     }>;
 
-    const chip = React.Children.toArray(element.props.children)[0] as React.ReactElement;
-    chip.props.onClick?.({ type: "click" });
+    const chip = React.Children.toArray(element.props.children)[0] as ClickableChipElement;
+    chip.props.onClick?.();
 
     expect(navigate).toHaveBeenCalledTimes(1);
     expect(navigate.mock.calls[0][0]).toBe("/de/appearance/spider-man");
@@ -72,8 +74,8 @@ describe("toChipList", () => {
       children: React.ReactNode;
     }>;
 
-    const chip = React.Children.toArray(element.props.children)[0] as React.ReactElement;
-    chip.props.onClick?.({ type: "click" });
+    const chip = React.Children.toArray(element.props.children)[0] as ClickableChipElement;
+    chip.props.onClick?.();
 
     expect(navigate).toHaveBeenCalledTimes(1);
     expect(navigate.mock.calls[0][0]).toBe("/de/person/stan-lee");

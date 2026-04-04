@@ -19,6 +19,7 @@
     "test": "jest",
     "test:unit": "jest --runInBand",
     "test:watch": "jest --watch",
+    "test:e2e:smoke": "playwright test",
     "test:seo:smoke": "node scripts/seo-smoke-test.mjs",
     "test:seo:sitemap": "node scripts/sitemap-monitor.mjs",
     "test:a11y:pa11y": "node scripts/run-pa11y-audit.mjs",
@@ -58,6 +59,7 @@
   "devDependencies": {
     "@apollo/client": "^4.1.6",
     "@eslint/eslintrc": "^3.3.5",
+    "@playwright/test": "^1.59.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",

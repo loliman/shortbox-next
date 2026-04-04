@@ -326,11 +326,11 @@ describe("readIssueDetailsQuery", () => {
       storyOwnerId: "101",
     });
 
-    expect(stories[0]?.reprints?.map((entry: { issue?: { number?: string } }) => entry.issue?.number)).toEqual([
+    expect(stories[0]?.reprints?.map((entry: { issue: { number?: string } | null }) => entry.issue?.number)).toEqual([
       "5",
       "7",
     ]);
-    expect(stories[0]?.children?.map((entry: { issue?: { number?: string } }) => entry.issue?.number)).toEqual([
+    expect(stories[0]?.children?.map((entry: { issue: { number?: string } | null }) => entry.issue?.number)).toEqual([
       "8",
       "9",
     ]);

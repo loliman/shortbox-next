@@ -17,8 +17,7 @@ describe("issuePreviewUtils", () => {
       getIssuePreviewCover(
         {
           cover: { url: " https://cdn/direct.jpg " },
-        },
-        false
+        }
       )
     ).toEqual({
       coverUrl: "https://cdn/direct.jpg",
@@ -29,15 +28,14 @@ describe("issuePreviewUtils", () => {
       getIssuePreviewCover(
         {
           comicguideid: 12345,
-        },
-        false
+        }
       )
     ).toEqual({
       coverUrl: "https://www.comicguide.de/pics/large/12345.jpg",
       blurCover: false,
     });
 
-    expect(getIssuePreviewCover({}, false)).toEqual({
+    expect(getIssuePreviewCover({})).toEqual({
       coverUrl: "",
       blurCover: false,
     });
