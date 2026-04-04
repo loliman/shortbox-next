@@ -172,7 +172,7 @@ function PreviewImportQueueEditor(props: Readonly<{
       onSubmit={async (formValues, actions) => {
         actions.setSubmitting(true);
         try {
-          const variables = buildIssueMutationVariables(formValues, values, false);
+          const variables = buildIssueMutationVariables(formValues, false);
           const result = await mutationRequest<{ item?: { id?: string | number } }>({
             url: "/api/issues",
             method: "POST",

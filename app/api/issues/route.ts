@@ -45,7 +45,7 @@ export async function PATCH(request: NextRequest) {
     const rawBody = await request.json();
     const body = await validateEditIssueBody(rawBody);
 
-    const result = await editIssue((body.old as never) || ({} as never), (body.item as never) || ({} as never));
+    const result = await editIssue((body.item as never) || ({} as never));
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: result.statusCode || 400 });
     }

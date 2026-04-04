@@ -241,14 +241,11 @@ export async function createIssueBatch(
   }
 }
 
-export async function editIssue(oldItem: IssueInput, item: IssueInput): Promise<Result<IssueWriteItemResult>> {
+export async function editIssue(item: IssueInput): Promise<Result<IssueWriteItemResult>> {
   try {
     const res = await prisma.$transaction(async (tx) => {
-      const resolvedExisting = await resolveExistingIssueForEdit(oldItem, tx);
+      const resolvedExisting = await resolveExistingIssueForEdit(item, tx);
       if (resolvedExisting == null) throw new Error("Issue not found");
-
-      const oldSeriesId = resolvedExisting.fkSeries;
-      if (oldSeriesId == null) throw new Error("Series not found");
 
       const inheritsStories = await issueInheritsStories(resolvedExisting.id, tx);
       const newPublisher = await findPublisher(item.series?.publisher, tx);
@@ -285,8 +282,6 @@ export async function editIssue(oldItem: IssueInput, item: IssueInput): Promise<
         },
       });
 
-      await moveSiblingIssuesToSeries(oldItem.number, oldSeriesId, newSeries.id, updated.id, tx);
-
       if (shouldSyncIssueStories(item, inheritsStories, newPublisher.original)) {
         const removedUsParentStoryIds = await syncStoriesFromParentRefs(Number(updated.id), item, tx);
         await updateStoryFilterFlagsForIssue(Number(updated.id));
@@ -307,35 +302,35 @@ export async function editIssue(oldItem: IssueInput, item: IssueInput): Promise<
   }
 }
 
-async function resolveExistingIssueForEdit(oldItem: IssueInput, executor: PrismaExecutor) {
-  const oldIssueId = normalizeBigInt(oldItem.id);
-  if (oldIssueId != null) {
+async function resolveExistingIssueForEdit(item: IssueInput, executor: PrismaExecutor) {
+  const issueId = normalizeBigInt(item.id);
+  if (issueId != null) {
     const existingIssue = await executor.issue.findUnique({
       where: {
-        id: oldIssueId,
+        id: issueId,
       },
     });
     if (existingIssue) return existingIssue;
   }
 
-  const oldPublisher = await findPublisher(oldItem.series?.publisher, executor);
-  if (oldPublisher == null) throw new Error("Publisher not found");
+  const publisher = await findPublisher(item.series?.publisher, executor);
+  if (publisher == null) throw new Error("Publisher not found");
 
-  const oldSeries = await executor.series.findFirst({
+  const series = await executor.series.findFirst({
     where: {
-      title: normalizeText(oldItem.series?.title),
-      volume: BigInt(Number(oldItem.series?.volume ?? 0)),
-      fkPublisher: oldPublisher.id,
+      title: normalizeText(item.series?.title),
+      volume: BigInt(Number(item.series?.volume ?? 0)),
+      fkPublisher: publisher.id,
     },
   });
-  if (oldSeries == null) throw new Error("Series not found");
+  if (series == null) throw new Error("Series not found");
 
   const resolvedExistingMatch = await findIssueBySeriesIdentity(
     {
-      fkSeries: oldSeries.id,
-      number: oldItem.number,
-      format: oldItem.format,
-      variant: oldItem.variant,
+      fkSeries: series.id,
+      number: item.number,
+      format: item.format,
+      variant: item.variant,
     },
     executor
   );
@@ -391,31 +386,6 @@ function buildEditedIssueData(
       ? {}
       : { comicGuideId: normalizeBigInt(item.comicguideid) }),
   };
-}
-
-async function moveSiblingIssuesToSeries(
-  oldNumber: string | null | undefined,
-  oldSeriesId: bigint,
-  newSeriesId: bigint,
-  updatedIssueId: bigint,
-  executor: PrismaExecutor
-) {
-  if (oldSeriesId === newSeriesId) return;
-
-  const siblingIssuesToMove = await executor.issue.findMany({
-    where: {
-      number: normalizeText(oldNumber),
-      fkSeries: oldSeriesId,
-    },
-  });
-
-  for (const siblingIssue of siblingIssuesToMove) {
-    if (siblingIssue.id === updatedIssueId) continue;
-    await executor.issue.update({
-      where: { id: siblingIssue.id },
-      data: { fkSeries: newSeriesId, updatedAt: new Date() },
-    });
-  }
 }
 
 function shouldSyncIssueStories(item: IssueInput, inheritsStories: boolean, isUsPublisher: boolean) {

@@ -143,7 +143,7 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
       onSubmit={async (values, actions) => {
         actions.setSubmitting(true);
         try {
-          const variables = buildIssueMutationVariables(values, defaultValues, edit);
+          const variables = buildIssueMutationVariables(values, edit, props.id);
           const result = await mutationRequest<{
             item?: IssueMutationResult;
             items?: IssueMutationResult[];

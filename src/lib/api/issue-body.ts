@@ -18,7 +18,6 @@ const CreateIssueBodySchema = Yup.object({
 
 const EditIssueBodySchema = Yup.object({
   item: IssueSchema.required("Ausgabe wird benötigt"),
-  old: IssueSchema.required("Bisherige Ausgabe wird benötigt"),
 });
 
 const DeleteIssueBodySchema = Yup.object({

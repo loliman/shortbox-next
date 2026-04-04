@@ -95,10 +95,7 @@ export async function acceptChangeRequestById(id: unknown) {
       throw new Error("Change Request enthält keine gültigen Issue-Daten");
     }
 
-    const updatedIssueResult = await editIssue(
-      parsed.issue as Parameters<typeof editIssue>[0],
-      parsed.item as Parameters<typeof editIssue>[1]
-    );
+    const updatedIssueResult = await editIssue(parsed.item as Parameters<typeof editIssue>[0]);
     if (!updatedIssueResult.success) {
       return updatedIssueResult;
     }

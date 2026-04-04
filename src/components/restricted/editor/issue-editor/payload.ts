@@ -15,7 +15,6 @@ interface AppearanceEntry {
 
 interface MutationVariables {
   item: Record<string, unknown>;
-  old?: Record<string, unknown>;
   batch?: {
     count: number;
     prefix?: string;
@@ -223,8 +222,8 @@ function readTextValue(value: unknown): string {
 
 export function buildIssueMutationVariables(
   values: IssueEditorFormValues,
-  defaultValues: IssueEditorFormValues,
-  edit?: boolean
+  edit?: boolean,
+  issueId?: string | number
 ): MutationVariables {
   const usIssue = Boolean(values.series.publisher.us);
   const seriesPayload = stripItem(values.series) as Record<string, unknown>;
@@ -258,7 +257,10 @@ export function buildIssueMutationVariables(
   }
 
   const variables: MutationVariables = {
-    item: itemPayload,
+    item: {
+      ...itemPayload,
+      ...(edit && issueId != null ? { id: issueId } : {}),
+    },
   };
 
   if (!edit && shouldGenerateVariantBatch(values.copyBatch)) {
@@ -266,15 +268,6 @@ export function buildIssueMutationVariables(
     variables.batch = {
       count: batch.count,
       ...(batch.prefix ? { prefix: batch.prefix } : {}),
-    };
-  }
-
-  if (edit) {
-    variables.old = {
-      series: stripItem(defaultValues.series),
-      number: defaultValues.number,
-      format: defaultValues.format,
-      variant: defaultValues.variant,
     };
   }
 

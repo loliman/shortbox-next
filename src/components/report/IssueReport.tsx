@@ -78,17 +78,15 @@ function IssueReportView(props: Readonly<IssueReportProps>) {
               const sanitizedValues = sanitizeReportValues(values, issueDetails);
               const payload = buildIssueMutationVariables(
                 sanitizedValues,
-                defaultValues,
-                true
+                true,
+                readTextValue(issueDetails.id)
               );
 
               await mutationRequest({
                 url: "/api/change-requests",
                 method: "POST",
                 body: {
-                  issue: payload.old
-                    ? { ...payload.old, id: readTextValue(issueDetails.id) }
-                    : { id: readTextValue(issueDetails.id) },
+                  issue: { id: readTextValue(issueDetails.id) },
                   item: payload.item,
                 },
               });
