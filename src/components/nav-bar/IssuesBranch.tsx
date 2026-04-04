@@ -299,8 +299,16 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
               sx={{
                 pl: getDepthPadding(2) + 1.3,
                 py: 0.3,
-                "&.Mui-selected": { backgroundColor: "transparent" },
+                backgroundColor: "var(--mui-palette-background-paper)",
+                color: "var(--mui-palette-text-primary)",
+                "&:hover": { backgroundColor: "action.hover" },
+                "&.Mui-selected": { backgroundColor: "var(--mui-palette-background-paper)" },
                 "&.Mui-selected:hover": { backgroundColor: "action.hover" },
+                "& .MuiListItemText-primary": {
+                  color: "var(--mui-palette-text-primary) !important",
+                  WebkitTextFillColor: "var(--mui-palette-text-primary) !important",
+                  opacity: "1 !important",
+                },
               }}
               onClick={(e) =>
                 pushSelection(
@@ -322,6 +330,13 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
               <CoverTooltip issue={issueNode} us={us}>
                 <Box sx={{ width: "100%", minWidth: 0 }}>
                   <ListItemText
+                    sx={{
+                      "& .MuiListItemText-primary": {
+                        color: "var(--mui-palette-text-primary) !important",
+                        WebkitTextFillColor: "var(--mui-palette-text-primary) !important",
+                        opacity: "1 !important",
+                      },
+                    }}
                     primary={
                       <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
                         <Typography
@@ -332,13 +347,15 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
                             flex: 1,
                             fontSize: "0.9rem",
                             fontWeight: selected ? 700 : 400,
-                            color: theme.palette.mode === "dark" ? "#f5f5f5" : "#111111",
+                            color: "var(--mui-palette-text-primary) !important",
+                            WebkitTextFillColor: "var(--mui-palette-text-primary) !important",
                             opacity: 1,
                           })}
                         >
                           <Box
                             component="span"
                             sx={{
+                              color: "inherit",
                               display: "block",
                               minWidth: 0,
                               overflow: "hidden",

@@ -3,10 +3,12 @@ import { spawn } from "node:child_process";
 import { loadAuditRoutes, withStartedAuditServer } from "./audit-shared.mjs";
 
 const DEFAULT_DEVICE = "desktop";
+const DEFAULT_OUTPUT_PATH = ".unlighthouse";
 
 async function main() {
   const routes = await loadAuditRoutes();
   const budget = parseOptionalInteger(process.env.UNLIGHTHOUSE_BUDGET);
+  const outputPath = String(process.env.UNLIGHTHOUSE_OUTPUT_PATH || DEFAULT_OUTPUT_PATH).trim() || DEFAULT_OUTPUT_PATH;
   const device = String(process.env.AUDIT_DEVICE || DEFAULT_DEVICE).toLowerCase() === "mobile"
     ? "mobile"
     : "desktop";
@@ -16,6 +18,7 @@ async function main() {
     console.log(`Routes: ${routes.map((route) => route.path).join(", ")}`);
     console.log(`Device: ${device}`);
     console.log(`Budget: ${budget == null ? "none" : budget}`);
+    console.log(`Output: ${outputPath}`);
 
     const args = [
       "--site",
@@ -24,6 +27,8 @@ async function main() {
       routes.map((route) => route.path).join(","),
       "--reporter",
       "jsonExpanded",
+      "--output-path",
+      outputPath,
       "--no-cache",
       device === "mobile" ? "--mobile" : "--desktop",
     ];

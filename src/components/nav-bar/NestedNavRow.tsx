@@ -55,20 +55,36 @@ export const NestedRow = React.memo(function NestedRow(props: Readonly<NestedRow
         sx={{
           minWidth: 0,
           pr: 1,
-          "&.Mui-selected": { backgroundColor: "transparent" },
+          backgroundColor: "var(--mui-palette-background-paper)",
+          color: "var(--mui-palette-text-primary)",
+          "&:hover": { backgroundColor: "action.hover" },
+          "&.Mui-selected": { backgroundColor: "var(--mui-palette-background-paper)" },
           "&.Mui-selected:hover": { backgroundColor: "action.hover" },
+          "& .MuiListItemText-primary": {
+            color: "var(--mui-palette-text-primary) !important",
+            WebkitTextFillColor: "var(--mui-palette-text-primary) !important",
+            opacity: "1 !important",
+          },
         }}
       >
         <ListItemText
           primary={props.label}
+          sx={{
+            "& .MuiListItemText-primary": {
+              color: "var(--mui-palette-text-primary) !important",
+              WebkitTextFillColor: "var(--mui-palette-text-primary) !important",
+              opacity: "1 !important",
+            },
+          }}
           slotProps={{
             primary: {
               noWrap: true,
-              sx: (theme) => ({
+              sx: {
                 fontWeight: props.selected ? 700 : 400,
-                color: theme.palette.mode === "dark" ? "#f5f5f5" : "#111111",
+                color: "var(--mui-palette-text-primary) !important",
+                WebkitTextFillColor: "var(--mui-palette-text-primary) !important",
                 opacity: 1,
-              }),
+              },
             },
           }}
         />

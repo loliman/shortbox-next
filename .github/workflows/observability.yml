@@ -95,15 +95,16 @@ jobs:
         env:
           AUDIT_LIMIT: 3
           AUDIT_DEVICE: ${{ matrix.device }}
+          UNLIGHTHOUSE_OUTPUT_PATH: .unlighthouse
         run: npm run test:seo:unlighthouse
 
       - name: Upload Unlighthouse report
-        if: always()
+        if: ${{ always() && steps.audit.outcome == 'success' }}
         continue-on-error: true
         uses: actions/upload-artifact@v6
         with:
           name: unlighthouse-report-${{ matrix.device }}
-          path: .unlighthouse
+          path: .unlighthouse/ci-result.json
           if-no-files-found: ignore
 
       - name: Summarize policy

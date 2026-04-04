@@ -61,7 +61,6 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
 
   const drawerContent = (
     <Box
-      data-audit-ignore-pa11y="nav-drawer"
       sx={{ position: "relative", width: "100%", height: "100%", display: "flex", flexDirection: "column" }}
     >
       <Box
@@ -116,7 +115,6 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
       >
         <MuiList
           ref={listRef}
-          className="data-fade"
           sx={{
             width: "100%",
             p: 0,
