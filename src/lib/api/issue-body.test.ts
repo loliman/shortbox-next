@@ -82,4 +82,56 @@ describe("issue-body validation", () => {
       })
     ).rejects.toBeInstanceOf(Yup.ValidationError);
   });
+
+  it("strips unknown top-level and nested fields from create bodies", async () => {
+    await expect(
+      validateCreateIssueBody({
+        item: {
+          ...validIssue,
+          unknownNested: "remove me",
+          series: {
+            ...validIssue.series,
+            hidden: true,
+          },
+        },
+        rogue: "remove me",
+      })
+    ).resolves.toEqual(
+      expect.objectContaining({
+        item: expect.not.objectContaining({
+          unknownNested: expect.anything(),
+        }),
+      })
+    );
+  });
+
+  it("rejects batch counts below one and non-integer values", async () => {
+    await expect(
+      validateCreateIssueBody({
+        item: validIssue,
+        batch: {
+          count: 0,
+        },
+      })
+    ).rejects.toBeInstanceOf(Yup.ValidationError);
+
+    await expect(
+      validateCreateIssueBody({
+        item: validIssue,
+        batch: {
+          count: 2.5,
+        },
+      })
+    ).rejects.toBeInstanceOf(Yup.ValidationError);
+  });
+
+  it("rejects invalid edit and delete payloads when the required issue payload is missing", async () => {
+    await expect(
+      validateEditIssueBody({
+        old: validIssue,
+      })
+    ).rejects.toBeInstanceOf(Yup.ValidationError);
+
+    await expect(validateDeleteIssueBody({})).rejects.toBeInstanceOf(Yup.ValidationError);
+  });
 });
