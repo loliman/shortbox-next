@@ -236,6 +236,12 @@ Why:
 
 This is a pragmatic repository boundary, not a claim that test types never matter.
 
+Important:
+
+- this is the current implementation detail, not the intended long-term target
+- the repository should converge toward test files being type-checked again once the suite is cleaned up and runner boundaries are clearer
+- the preferred end-state is either a unified typecheck including tests or a separate blocking test-typecheck job
+
 ## Dependabot Policy
 
 Dependabot configuration lives in:

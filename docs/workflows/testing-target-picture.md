@@ -32,6 +32,12 @@ It also assumes that the current test inventory is not automatically correct jus
 
 Part of the target-state work is to evaluate whether existing tests are still useful, trustworthy, and placed in the right layer.
 
+It also assumes that test code should eventually meet the same basic TypeScript quality bar as application code.
+
+The current repository still uses a pragmatic split where the dedicated CI typecheck focuses on runtime code and leaves test files to Jest.
+
+That is a temporary stabilization choice, not the desired long-term state.
+
 ## Target Testing Layers
 
 The intended testing model has four layers.
@@ -205,6 +211,24 @@ The intended principle is:
 - correctness, accessibility, SEO, and core browser flows should block merges
 - performance trends and broader visual observation should stay visible without creating noisy PR failures
 
+### Target Typecheck Expectation
+
+The intended end-state is:
+
+- application code and test code both participate in TypeScript validation
+- test files should not stay permanently outside the repository's type-safety model
+- runner and environment mismatches should be solved with clearer boundaries, not with blanket test exclusion forever
+
+Acceptable future shapes include:
+
+- one unified typecheck that includes `*.test.ts` and `*.test.tsx`
+- or a split model where application code and test code are type-checked in separate blocking steps
+
+What is explicitly not the target:
+
+- treating test exclusion as the permanent steady state
+- using `*.test.ts(x)` exclusion as a substitute for cleaning up mixed-runner or badly placed tests
+
 ## Recommended Rollout Order
 
 The repository should not attempt a big-bang testing migration.
@@ -226,6 +250,12 @@ Success criteria:
 - no new mixed-runner tests
 - new pure logic tests default to Jest
 - the checked-in route fixture remains intentional and understandable rather than becoming an accidental data dump
+
+Known temporary limitation:
+
+- `*.test.ts` and `*.test.tsx` are still excluded from the current dedicated CI typecheck
+- this is acceptable only as a short-term stabilization boundary while the suite is cleaned up
+- it should not be mistaken for the desired target state
 
 ### Phase 2: Add A Minimal Playwright Smoke Layer
 
@@ -275,6 +305,7 @@ Focus:
 - tests that fight the current Jest baseline
 - tests that should really be Playwright or Storybook/Chromatic coverage instead
 - tests whose value is questionable and should be retired rather than migrated
+- the current blanket exclusion of test files from the dedicated CI typecheck
 
 Success criteria:
 
@@ -282,6 +313,7 @@ Success criteria:
 - test placement matches test purpose
 - future agents do not need to guess which runner to use
 - low-signal or redundant tests have been removed instead of being preserved by default
+- test files are no longer globally excluded from TypeScript validation without explicit justification
 
 ## E2E Scope Guidance For Future Work
 
@@ -365,6 +397,7 @@ The testing target should be considered materially in place when:
 - current accessibility and SEO guards remain in place
 - Unlighthouse remains observational rather than merge-blocking
 - the repository docs explain which tool to use for which kind of risk
+- test files are back under explicit TypeScript validation, either through the main typecheck or a dedicated blocking test-typecheck step
 
 ## Suggested First Follow-Up Task
 
