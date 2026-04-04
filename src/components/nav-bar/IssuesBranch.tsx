@@ -355,7 +355,7 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
                         <Typography
                           component="span"
                           noWrap
-                          sx={(theme) => ({
+                          sx={{
                             minWidth: 0,
                             flex: 1,
                             fontSize: "0.9rem",
@@ -363,7 +363,7 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
                             color: "var(--mui-palette-text-primary) !important",
                             WebkitTextFillColor: "var(--mui-palette-text-primary) !important",
                             opacity: 1,
-                          })}
+                          }}
                         >
                           <Box
                             component="span"
