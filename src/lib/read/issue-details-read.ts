@@ -193,6 +193,11 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
               publisher: true,
             },
           },
+          arcs: {
+            include: {
+              arc: true,
+            },
+          },
           covers: {
             orderBy: [{ number: "asc" }, { id: "asc" }],
             take: 1,
@@ -230,22 +235,6 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
   },
 });
 
-const issueArcStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
-  parent: {
-    include: {
-      issue: {
-        include: {
-          arcs: {
-            include: {
-              arc: true,
-            },
-          },
-        },
-      },
-    },
-  },
-});
-
 const issueSelectionCandidateSelect = Prisma.validator<Prisma.IssueSelect>()({
   id: true,
   number: true,
@@ -275,7 +264,7 @@ function createIssueDetailsInclude() {
     },
     stories: {
       orderBy: [{ number: "asc" }, { id: "asc" }],
-      include: issueArcStoryInclude,
+      include: issueDetailsStoryInclude,
     },
     arcs: {
       include: {
