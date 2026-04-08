@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireApiAdminSession } from "@/src/lib/server/guards";
 import { readActivePreviewImportQueue, replaceActivePreviewImportQueue, clearActivePreviewImportQueue, advanceActivePreviewImportQueue, rewindActivePreviewImportQueue } from "@/src/lib/server/preview-import-session";
 import { extractTextFromPdfBuffer } from "@/src/lib/server/pdf-text-extract";
+import { extractPdfLayoutFromBuffer } from "@/src/lib/server/pdf-layout-extract";
 import { readDeSeriesByTitle } from "@/src/lib/read/preview-import-read";
 import { parsePreviewImportQueue } from "@/src/services/preview-import-parser";
 
@@ -34,10 +35,15 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const text = await extractTextFromPdfBuffer(await file.arrayBuffer());
+    const buffer = await file.arrayBuffer();
+    const [text, layout] = await Promise.all([
+      extractTextFromPdfBuffer(buffer.slice(0)),
+      extractPdfLayoutFromBuffer(buffer.slice(0)),
+    ]);
     const queue = await parsePreviewImportQueue({
       fileName: file.name,
       text,
+      layout,
       seriesReader: {
         findDeSeriesByTitle: readDeSeriesByTitle,
       },
