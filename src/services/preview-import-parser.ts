@@ -4,7 +4,8 @@ import { analyzePreviewImportLayoutPages } from "./preview-import-layout";
 import { parseStoryReferences } from "./story-reference-parser";
 
 export interface PreviewImportSeriesMatchReader {
-  findDeSeriesByTitle(title: string): Promise<unknown[]>;
+  findDeSeriesByTitle(title: string): Promise<Array<{ title?: string; volume?: number }>>;
+  findUsSeriesByTitle?(title: string): Promise<Array<{ title?: string; volume?: number }>>;
 }
 
 export interface ParsePreviewImportOptions {
@@ -37,16 +38,17 @@ const TITLE_UPPERCASE_PATTERN = /[^A-ZÄÖÜ]/g;
 export async function parsePreviewImportQueue(
   options: ParsePreviewImportOptions
 ): Promise<PreviewImportQueue> {
+  const seriesReader = createCachedSeriesReader(options.seriesReader);
   const relevantPreviewText = extractRelevantPreviewText(options.text);
   const lines = normalizeLines(relevantPreviewText);
   const layoutDrafts = options.layout
-    ? await parseLayoutAnchoredDrafts(options.layout, options.seriesReader)
+    ? await parseLayoutAnchoredDrafts(options.layout, seriesReader)
     : [];
   const blocks = splitPreviewBlocks(lines);
   const blockDrafts = (
-    await Promise.all(blocks.map((block, index) => parseBlockToDrafts(block, index, options.seriesReader)))
+    await Promise.all(blocks.map((block, index) => parseBlockToDrafts(block, index, seriesReader)))
   ).flat();
-  const codeDrafts = await parseCodeAnchoredDrafts(lines, options.seriesReader, [...layoutDrafts, ...blockDrafts]);
+  const codeDrafts = await parseCodeAnchoredDrafts(lines, seriesReader, [...layoutDrafts, ...blockDrafts]);
   const drafts = sortPreviewDraftsByPdfOrder(
     fillMissingSiblingMetadata(
     attachDerivedVariantParents(
@@ -66,6 +68,36 @@ export async function parsePreviewImportQueue(
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     drafts,
+  };
+}
+
+function createCachedSeriesReader(seriesReader: PreviewImportSeriesMatchReader): PreviewImportSeriesMatchReader {
+  const cache = new Map<string, Promise<Array<{ title?: string; volume?: number }>>>();
+
+  function readCachedMatches(
+    scope: "de" | "us",
+    title: string,
+    reader: (() => Promise<Array<{ title?: string; volume?: number }>>) | undefined
+  ) {
+    const normalizedTitle = normalizeLooseSearchValue(title);
+    if (!normalizedTitle || !reader) return Promise.resolve([]);
+
+    const cacheKey = `${scope}:${normalizedTitle}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return cached;
+
+    const next = reader().catch(() => []);
+    cache.set(cacheKey, next);
+    return next;
+  }
+
+  return {
+    findDeSeriesByTitle(title: string) {
+      return readCachedMatches("de", title, () => seriesReader.findDeSeriesByTitle(title));
+    },
+    findUsSeriesByTitle(title: string) {
+      return readCachedMatches("us", title, () => seriesReader.findUsSeriesByTitle?.(title) ?? Promise.resolve([]));
+    },
   };
 }
 
@@ -961,7 +993,7 @@ async function buildDraft(input: {
   values.series.publisher.name = "Panini";
   values.series.publisher.us = false;
   values.series.title = parsedTitle.seriesTitle;
-  values.series.volume = 1;
+  values.series.volume = await resolveSeriesVolume(input.seriesReader, parsedTitle.seriesTitle, false);
   values.number = parsedTitle.number;
   values.title = parsedTitle.title;
   values.variant = input.isVariant ? deriveVariantLabel(input.variantIndex ?? 0) : "";
@@ -976,7 +1008,14 @@ async function buildDraft(input: {
   }
 
   if (!input.isVariant && contentReference) {
-    values.stories = contentReference.references.map((reference, index) =>
+    const storyReferences = await Promise.all(
+      contentReference.references.map(async (reference) => ({
+        ...reference,
+        volume: await resolveSeriesVolume(input.seriesReader, reference.seriesTitle, true),
+      }))
+    );
+
+    values.stories = storyReferences.map((reference, index) =>
       ensureFieldItemClientId({
         number: index + 1,
         title: "",
@@ -1015,6 +1054,26 @@ async function buildDraft(input: {
     warnings,
     values,
   };
+}
+
+async function resolveSeriesVolume(
+  seriesReader: PreviewImportSeriesMatchReader,
+  title: string,
+  us: boolean
+) {
+  const normalizedTitle = normalizeLooseSearchValue(title);
+  if (!normalizedTitle) return 1;
+
+  const matches = us
+    ? await (seriesReader.findUsSeriesByTitle?.(title) ?? Promise.resolve([]))
+    : await seriesReader.findDeSeriesByTitle(title);
+
+  const highestVolume = matches.reduce((currentHighest, match) => {
+    const nextVolume = Number(match.volume ?? 0);
+    return Number.isFinite(nextVolume) && nextVolume > currentHighest ? nextVolume : currentHighest;
+  }, 0);
+
+  return highestVolume > 0 ? highestVolume : 1;
 }
 
 function resolveSourceTitleFromContent(

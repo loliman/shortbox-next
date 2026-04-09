@@ -3,7 +3,7 @@ import { requireApiAdminSession } from "@/src/lib/server/guards";
 import { readActivePreviewImportQueue, replaceActivePreviewImportQueue, clearActivePreviewImportQueue, advanceActivePreviewImportQueue, rewindActivePreviewImportQueue } from "@/src/lib/server/preview-import-session";
 import { extractTextFromPdfBuffer } from "@/src/lib/server/pdf-text-extract";
 import { extractPdfLayoutFromBuffer } from "@/src/lib/server/pdf-layout-extract";
-import { readDeSeriesByTitle } from "@/src/lib/read/preview-import-read";
+import { readDeSeriesByTitle, readUsSeriesByTitle } from "@/src/lib/read/preview-import-read";
 import { parsePreviewImportQueue } from "@/src/services/preview-import-parser";
 
 export async function POST(request: NextRequest) {
@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
       layout,
       seriesReader: {
         findDeSeriesByTitle: readDeSeriesByTitle,
+        findUsSeriesByTitle: readUsSeriesByTitle,
       },
     });
     await replaceActivePreviewImportQueue(queue);

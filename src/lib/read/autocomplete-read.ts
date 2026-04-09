@@ -129,11 +129,7 @@ async function getSeriesItems(
         LEFT JOIN shortbox.publisher p
           ON p.id = s.fk_publisher
         WHERE ${pattern ? Prisma.sql`s.title ILIKE ${likePattern}` : Prisma.sql`TRUE`}
-          AND ${
-            publisherName && publisherName !== "*"
-              ? Prisma.sql`p.name = ${publisherName}`
-              : Prisma.sql`TRUE`
-          }
+          AND ${buildSeriesPublisherFilter(publisherName)}
           AND ${publisherUs === undefined ? Prisma.sql`TRUE` : Prisma.sql`p.original = ${publisherUs}`}
         ORDER BY s.title ASC, s.volume ASC, s.startyear ASC, s.id ASC
         OFFSET ${offset}
@@ -163,6 +159,17 @@ async function getSeriesItems(
   } catch {
     return { items: [], hasMore: false };
   }
+}
+
+function buildSeriesPublisherFilter(publisherName: string) {
+  if (!publisherName || publisherName === "*") return Prisma.sql`TRUE`;
+
+  return Prisma.sql`
+    (
+      p.name ILIKE ${publisherName}
+      OR p.name ILIKE ${`${publisherName}%`}
+    )
+  `;
 }
 
 async function getGenreItems(

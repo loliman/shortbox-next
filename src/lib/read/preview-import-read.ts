@@ -20,13 +20,21 @@ function normalizeSeriesTitleKey(value: string) {
 }
 
 export async function readDeSeriesByTitle(title: string) {
+  return readSeriesByTitle(title, false);
+}
+
+export async function readUsSeriesByTitle(title: string) {
+  return readSeriesByTitle(title, true);
+}
+
+async function readSeriesByTitle(title: string, us: boolean) {
   const normalizedTitle = normalizeSeriesTitleKey(title);
   if (!normalizedTitle) return [];
 
   const candidates = await prisma.series.findMany({
     where: {
       publisher: {
-        original: false,
+        original: us,
       },
     },
     select: {

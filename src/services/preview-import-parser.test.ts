@@ -174,6 +174,62 @@ describe("parsePreviewImportQueue", () => {
     ]);
   });
 
+  it("should_use_highest_de_volume_for_main_series_and_highest_us_volume_for_story_references", async () => {
+    const text = [
+      [
+        "9",
+        "N E U H E I T E N",
+        "SUPERGIRL 1",
+        "Inhalt: Supergirl 1-3, Action Comics 252",
+        "76 S. | Softcover | € 9,99",
+        "DSGIRL001",
+        "28.04.2026",
+      ].join("\n"),
+    ].join("\n\n");
+
+    const queue = await parsePreviewImportQueue({
+      fileName: "Panini-Vorschau-121.pdf",
+      text,
+      seriesReader: {
+        findDeSeriesByTitle: async (title: string) =>
+          title === "Supergirl"
+            ? [
+                { title: "Supergirl", volume: 1 },
+                { title: "Supergirl", volume: 4 },
+              ]
+            : [],
+        findUsSeriesByTitle: async (title: string) => {
+          if (title === "Supergirl") {
+            return [
+              { title: "Supergirl", volume: 2 },
+              { title: "Supergirl", volume: 7 },
+            ];
+          }
+
+          if (title === "Action Comics") {
+            return [{ title: "Action Comics", volume: 3 }];
+          }
+
+          return [];
+        },
+      },
+    });
+
+    expect(queue.drafts).toHaveLength(1);
+    expect(queue.drafts[0]?.values.series.volume).toBe(4);
+    expect(
+      queue.drafts[0]?.values.stories.map((story) => ({
+        title: (story.parent as { issue?: { series?: { title?: string; volume?: number } } })?.issue?.series?.title,
+        volume: (story.parent as { issue?: { series?: { title?: string; volume?: number } } })?.issue?.series?.volume,
+      }))
+    ).toEqual([
+      { title: "Supergirl", volume: 7 },
+      { title: "Supergirl", volume: 7 },
+      { title: "Supergirl", volume: 7 },
+      { title: "Action Comics", volume: 3 },
+    ]);
+  });
+
   it("should_split_must_have_collection_prefixes_into_series_and_title", async () => {
     const text = [
       [
