@@ -1658,8 +1658,10 @@ function looksLikeNarrativeContentLine(value: string) {
 
 function parseContentReference(contentLine: string) {
   if (!contentLine) return null;
-  const normalized = normalizeStoryReferenceText(
+  const normalized = normalizeMaterialContentConnectors(
+    normalizeStoryReferenceText(
     contentLine.replace(/^Inhalt:\s*/i, "").trim()
+    )
   );
   if (!normalized) return null;
 
@@ -1769,9 +1771,19 @@ function looksLikeStandaloneStoryReference(value: string) {
 function normalizeStoryReferenceText(value: string) {
   return value
     .replaceAll(/[–—−]/g, "-")
-    .replaceAll(/([A-Za-zÄÖÜäöüß])-\s+([A-Za-zÄÖÜäöüß])/g, "$1-$2")
+    .replaceAll(/([A-Za-zÄÖÜäöüß])-\s+([a-zäöüß])/g, "$1$2")
+    .replaceAll(/([A-Za-zÄÖÜäöüß])-\s+([A-ZÄÖÜ])/g, "$1-$2")
     .replaceAll(/\s+/g, " ")
     .trim();
+}
+
+function normalizeMaterialContentConnectors(value: string) {
+  return value
+    .replace(/\s*&\s+Material aus\b/gi, "; Material aus")
+    .replace(
+      /(\b(?:Annual\s+\d+|\d+[A-Z]?(?:-\d+[A-Z]?)?)\b)\s+und\s+(?=[A-ZÄÖÜ])/g,
+      "$1; "
+    );
 }
 
 function normalizeDashPunctuation(value: string) {
