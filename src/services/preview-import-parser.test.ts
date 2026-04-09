@@ -264,6 +264,68 @@ describe("parsePreviewImportQueue", () => {
     expect(byCode.get("DSTRAP001V")?.variantOfDraftId).toBe(byCode.get("DSTRAP001")?.id);
   });
 
+  it("should_order_queue_drafts_by_pdf_appearance_instead_of_parser_source_order", async () => {
+    const text = [
+      [
+        "5",
+        "N E U H E I T E N",
+        "BATMAN 109 + 110 + 111",
+        "Inhalt: Detective Comics 1103, Robin and Batman: Jason Todd 1 (Nr. 109)",
+        "76 S. | Heft | € 6,99",
+        "DBATMA109",
+        "07.04.2026",
+      ].join("\n"),
+      [
+        "6",
+        "N E U H E I T E N",
+        "ABSOLUTE SUPERMAN 4",
+        "Inhalt: Absolute Superman 10-12",
+        "84 S. | Softcover | € 9,99",
+        "DABSSM004",
+        "05.05.2026",
+      ].join("\n"),
+    ].join("\n\n");
+
+    const layout: PdfLayoutDocument = {
+      pages: [
+        {
+          pageNumber: 6,
+          width: 567,
+          height: 794,
+          items: [],
+          rows: [
+            { text: "N E U H E I T E N", items: [], xMin: 60, xMax: 180, y: 773, height: 11 },
+            { text: "ABSOLUTE SUPERMAN 4", items: [], xMin: 55, xMax: 230, y: 713, height: 20 },
+            { text: "Inhalt: Absolute Superman 10-12", items: [], xMin: 55, xMax: 250, y: 660, height: 11 },
+            { text: "DABSSM004 84 S. | Softcover | € 9,99 05.05.2026", items: [], xMin: 64, xMax: 300, y: 437, height: 11 },
+          ],
+          blocks: [
+            {
+              text: "DABSSM004 84 S. | Softcover | € 9,99 05.05.2026",
+              rows: [],
+              xMin: 64,
+              xMax: 300,
+              yTop: 442,
+              yBottom: 432,
+            },
+          ],
+        },
+      ],
+    };
+
+    const queue = await parsePreviewImportQueue({
+      fileName: "Panini-Vorschau-121.pdf",
+      text,
+      layout,
+      seriesReader: {
+        findDeSeriesByTitle: async () => [],
+      },
+    });
+
+    expect(queue.drafts[0]?.issueCode).toBe("DBATMA109");
+    expect(queue.drafts[1]?.issueCode).toBe("DABSSM004");
+  });
+
   it("should_use_multirow_layout_titles_without_content_for_lower_column_products", async () => {
     const text = [
       [

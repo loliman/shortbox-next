@@ -37,7 +37,8 @@ const TITLE_UPPERCASE_PATTERN = /[^A-ZÄÖÜ]/g;
 export async function parsePreviewImportQueue(
   options: ParsePreviewImportOptions
 ): Promise<PreviewImportQueue> {
-  const lines = normalizeLines(extractRelevantPreviewText(options.text));
+  const relevantPreviewText = extractRelevantPreviewText(options.text);
+  const lines = normalizeLines(relevantPreviewText);
   const layoutDrafts = options.layout
     ? await parseLayoutAnchoredDrafts(options.layout, options.seriesReader)
     : [];
@@ -46,10 +47,13 @@ export async function parsePreviewImportQueue(
     await Promise.all(blocks.map((block, index) => parseBlockToDrafts(block, index, options.seriesReader)))
   ).flat();
   const codeDrafts = await parseCodeAnchoredDrafts(lines, options.seriesReader, [...layoutDrafts, ...blockDrafts]);
-  const drafts = fillMissingSiblingMetadata(
+  const drafts = sortPreviewDraftsByPdfOrder(
+    fillMissingSiblingMetadata(
     attachDerivedVariantParents(
       dedupeDraftsByIssueCode([...layoutDrafts, ...blockDrafts, ...codeDrafts])
     )
+    ),
+    relevantPreviewText
   );
 
   if (drafts.length === 0) {
@@ -63,6 +67,39 @@ export async function parsePreviewImportQueue(
     updatedAt: new Date().toISOString(),
     drafts,
   };
+}
+
+function sortPreviewDraftsByPdfOrder(drafts: PreviewImportDraft[], relevantPreviewText: string) {
+  return [...drafts].sort((left, right) => {
+    const leftGroupKey = left.variantOfDraftId
+      ? drafts.find((draft) => draft.id === left.variantOfDraftId)?.issueCode ?? left.issueCode
+      : left.issueCode;
+    const rightGroupKey = right.variantOfDraftId
+      ? drafts.find((draft) => draft.id === right.variantOfDraftId)?.issueCode ?? right.issueCode
+      : right.issueCode;
+
+    const leftIndex = readIssueCodePosition(relevantPreviewText, leftGroupKey);
+    const rightIndex = readIssueCodePosition(relevantPreviewText, rightGroupKey);
+
+    if (leftIndex !== rightIndex) return leftIndex - rightIndex;
+    if (left.variantOfDraftId && !right.variantOfDraftId) return 1;
+    if (!left.variantOfDraftId && right.variantOfDraftId) return -1;
+
+    return readVariantRank(left.values.variant) - readVariantRank(right.values.variant);
+  });
+}
+
+function readIssueCodePosition(text: string, issueCode: string | undefined) {
+  if (!issueCode) return Number.MAX_SAFE_INTEGER;
+  const index = text.indexOf(issueCode);
+  return index >= 0 ? index : Number.MAX_SAFE_INTEGER;
+}
+
+function readVariantRank(variant: string | undefined) {
+  if (!variant) return 0;
+  const normalized = variant.trim().toUpperCase();
+  if (!normalized) return 0;
+  return normalized.charCodeAt(0) - 64;
 }
 
 function dedupeDraftsByIssueCode(drafts: PreviewImportDraft[]) {
