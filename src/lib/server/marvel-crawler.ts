@@ -393,6 +393,10 @@ function normalizeWikiTitleForComparison(value: string): string {
   return ws(value).replaceAll("_", " ").toLowerCase();
 }
 
+function normalizeLooseWikiTitleForComparison(value: string): string {
+  return normalizeTitleKey(value);
+}
+
 function normalizeIssueNumberKey(value: string): string {
   const stripTrailingColonSuffix = (input: string) => {
     const colonIndex = input.indexOf(":");
@@ -472,6 +476,63 @@ async function apiGet(params: Record<string, string>): Promise<any> {
   return JSON.parse(text);
 }
 
+function matchesResolvedPageTitleCandidate(requestedPageTitle: string, candidateTitle: string): boolean {
+  if (
+    normalizeWikiTitleForComparison(candidateTitle) ===
+    normalizeWikiTitleForComparison(requestedPageTitle)
+  ) {
+    return true;
+  }
+
+  const requestedSeries = parseSeriesPageTitle(requestedPageTitle);
+  const candidateSeries = parseSeriesPageTitle(candidateTitle);
+  if (
+    requestedSeries &&
+    candidateSeries &&
+    requestedSeries.volume === candidateSeries.volume &&
+    normalizeLooseWikiTitleForComparison(requestedSeries.seriesTitle) ===
+      normalizeLooseWikiTitleForComparison(candidateSeries.seriesTitle)
+  ) {
+    return true;
+  }
+
+  const requestedIssue = parseIssuePageTitle(requestedPageTitle);
+  const candidateIssue = parseIssuePageTitle(candidateTitle);
+  if (
+    requestedIssue &&
+    candidateIssue &&
+    requestedIssue.volume === candidateIssue.volume &&
+    normalizeIssueNumberKey(requestedIssue.issueNumber) === normalizeIssueNumberKey(candidateIssue.issueNumber) &&
+    normalizeLooseWikiTitleForComparison(requestedIssue.seriesTitle) ===
+      normalizeLooseWikiTitleForComparison(candidateIssue.seriesTitle)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+async function searchResolvedPageTitle(requestedPageTitle: string): Promise<string> {
+  const data = await apiGet({
+    action: "query",
+    list: "search",
+    srsearch: requestedPageTitle,
+    srwhat: "title",
+    srlimit: "10",
+  });
+
+  const results = Array.isArray(data?.query?.search) ? data.query.search : [];
+  for (const result of results) {
+    const candidateTitle = ws(typeof result?.title === "string" ? result.title : "");
+    if (!candidateTitle) continue;
+    if (matchesResolvedPageTitleCandidate(requestedPageTitle, candidateTitle)) {
+      return candidateTitle;
+    }
+  }
+
+  throw new Error(`No parse.text for page "${requestedPageTitle}"`);
+}
+
 async function resolvePageTitle(
   pageTitle: string,
   providedResolution?: PageTitleResolution,
@@ -509,7 +570,11 @@ async function resolvePageTitle(
     } catch {
       // fall through to exact not found
     }
-    throw new Error(`No parse.text for page "${requestedPageTitle}"`);
+
+    return {
+      requestedPageTitle,
+      resolvedPageTitle: await searchResolvedPageTitle(requestedPageTitle),
+    };
   })();
 
   pageTitleResolutionCache.set(requestedPageTitle, pending);

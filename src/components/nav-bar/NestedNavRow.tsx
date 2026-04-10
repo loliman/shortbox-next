@@ -40,11 +40,31 @@ export const NestedRow = React.memo(function NestedRow(props: Readonly<NestedRow
       component="div"
       disablePadding
       data-nav-row-key={props.navRowKey}
-      sx={{
+      sx={(theme) => ({
         pl: getDepthPadding(props.depth),
         borderTop: props.showDivider ? 1 : 0,
         borderColor: "divider",
-      }}
+        backgroundColor:
+          props.selected
+            ? alpha(
+                theme.palette.mode === "dark" ? theme.palette.primary.light : theme.palette.primary.main,
+                theme.palette.mode === "dark" ? 0.2 : 0.14
+              )
+            : "transparent",
+        boxShadow: props.selected
+          ? `inset 3px 0 0 ${
+              theme.palette.mode === "dark" ? theme.palette.primary.light : theme.palette.primary.main
+            }`
+          : "none",
+        "&:hover": props.selected
+          ? {
+              backgroundColor: alpha(
+                theme.palette.mode === "dark" ? theme.palette.primary.light : theme.palette.primary.main,
+                theme.palette.mode === "dark" ? 0.28 : 0.2
+              ),
+            }
+          : undefined,
+      })}
     >
       <ExpandToggle expanded={props.expanded} pending={props.pending} onToggle={handleToggle} />
       <ListItemButton
@@ -56,21 +76,22 @@ export const NestedRow = React.memo(function NestedRow(props: Readonly<NestedRow
         sx={(theme) => ({
           minWidth: 0,
           pr: 1,
-          backgroundColor: "var(--mui-palette-background-paper)",
+          backgroundColor: "transparent",
           color: "var(--mui-palette-text-primary)",
-          "&:hover": { backgroundColor: "action.hover" },
+          "&:hover": {
+            backgroundColor: props.selected ? "transparent" : "action.hover",
+          },
           "&.Mui-selected": {
-            backgroundColor: alpha(theme.palette.primary.main, 0.14),
-            boxShadow: `inset 3px 0 0 ${theme.palette.primary.main}`,
+            backgroundColor: "transparent",
+            boxShadow: "none",
             ...theme.applyStyles("dark", {
-              backgroundColor: alpha(theme.palette.primary.light, 0.2),
-              boxShadow: `inset 3px 0 0 ${theme.palette.primary.light}`,
+              backgroundColor: "transparent",
             }),
           },
           "&.Mui-selected:hover": {
-            backgroundColor: alpha(theme.palette.primary.main, 0.2),
+            backgroundColor: "transparent",
             ...theme.applyStyles("dark", {
-              backgroundColor: alpha(theme.palette.primary.light, 0.28),
+              backgroundColor: "transparent",
             }),
           },
           "& .MuiListItemText-primary": {

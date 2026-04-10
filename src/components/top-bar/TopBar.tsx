@@ -621,22 +621,22 @@ function GlobalNavigationIndicator() {
         left: 0,
         right: 0,
         bottom: -1,
-        height: 3,
+        height: 4,
         overflow: "hidden",
         pointerEvents: "none",
         backgroundColor: (theme) =>
-          theme.palette.mode === "dark" ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.28)",
+          theme.palette.mode === "dark" ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.38)",
         "&::after": {
           content: '""',
           position: "absolute",
           top: 0,
           bottom: 0,
-          width: "32%",
-          minWidth: 120,
+          width: "36%",
+          minWidth: 144,
           borderRadius: 999,
           background:
-            "linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,1), rgba(255,255,255,0))",
-          boxShadow: "0 0 14px rgba(255,255,255,0.45)",
+            "linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.98), rgba(255,255,255,0))",
+          boxShadow: "0 0 18px rgba(255,255,255,0.62)",
           animation: "shortboxNavigationIndicator 820ms linear infinite",
         },
         "@keyframes shortboxNavigationIndicator": {
