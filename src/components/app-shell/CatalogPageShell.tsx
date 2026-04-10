@@ -230,6 +230,21 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
                 position: "relative",
                 display: "flex",
                 flexDirection: "column",
+                "&::before": {
+                  content: '""',
+                  position: "absolute",
+                  right: { xs: 12, sm: 20, lg: 28 },
+                  bottom: { xs: 12, sm: 20, lg: 24 },
+                  width: { xs: 160, sm: 220, lg: 280 },
+                  height: { xs: 160, sm: 220, lg: 280 },
+                  backgroundImage: 'url("/background.png")',
+                  backgroundRepeat: "no-repeat",
+                  backgroundPosition: "right bottom",
+                  backgroundSize: "contain",
+                  opacity: { xs: 0.14, sm: 0.16, lg: 0.2 },
+                  pointerEvents: "none",
+                  zIndex: 0,
+                },
               }}
             >
               <Box
