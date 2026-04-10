@@ -92,6 +92,16 @@ function AutocompleteBase({
       isOptionRecord(option) && isOptionEqualToValue(option, selected),
     [isOptionEqualToValue]
   );
+  const resolvedValue = React.useMemo<AutocompleteBaseValue>(
+    () => {
+      if (!freeSolo || multiple || typeof inputValue !== "string") return value;
+      if (inputValue.length === 0) return null;
+      if (value == null || Array.isArray(value)) return inputValue;
+
+      return readOptionLabel(value) === inputValue ? value : inputValue;
+    },
+    [freeSolo, inputValue, multiple, readOptionLabel, value]
+  );
 
   const autocompleteId = React.useMemo(
     () => id || buildAutocompleteId({ inputAriaLabel, label, placeholder }),
@@ -129,7 +139,7 @@ function AutocompleteBase({
       disabled={disabled}
       loading={loading}
       options={options}
-      value={value}
+      value={resolvedValue}
       inputValue={inputValue}
       popupIcon={popupIcon ?? undefined}
       slotProps={{
