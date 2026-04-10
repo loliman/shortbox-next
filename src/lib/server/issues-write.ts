@@ -145,6 +145,42 @@ type ParentIssueRef = {
   storyTitle?: string;
 };
 
+type ParentIssueCache = Map<string, ParentIssueRef[]>;
+
+type ParentIssueLookup = {
+  title: string;
+  volume: number;
+  number: string;
+};
+
+type CrawledSeriesSnapshot = {
+  publisherName?: string;
+  title: string;
+  volume: number;
+  startyear?: number;
+  endyear?: number;
+};
+
+type ParentIssueResolution =
+  | {
+      kind: "refs";
+      refs: ParentIssueRef[];
+    }
+  | {
+      kind: "contained";
+      items: Array<{
+        lookup: ParentIssueLookup;
+        storyTitle?: string;
+      }>;
+    }
+  | {
+      kind: "issue";
+      crawledSeries: CrawledSeriesSnapshot;
+      crawledIssue: CrawledIssueLike;
+    };
+
+type ParentIssuePreflightCache = Map<string, Promise<ParentIssueResolution>>;
+
 type IssueInput = {
   id?: string | number | null;
   title?: string | null;
@@ -197,8 +233,9 @@ type IssueWriteBatchResult = {
 
 export async function createIssue(item: IssueInput): Promise<Result<IssueWriteItemResult>> {
   try {
+    const preflightCache = await prepareParentIssuePreflight(item);
     const res = await prisma.$transaction(async (tx) => {
-      return createIssueRecord(item, tx);
+      return createIssueRecord(item, tx, undefined, preflightCache);
     }, ISSUE_TRANSACTION_OPTIONS);
     return success(res);
   } catch (error) {
@@ -211,6 +248,7 @@ export async function createIssueBatch(
   batch: IssueCopyBatchInput
 ): Promise<Result<IssueWriteBatchResult>> {
   try {
+    const preflightCache = await prepareParentIssuePreflight(item);
     const res = await prisma.$transaction(async (tx) => {
       const variants = buildVariantBatchLabels(batch);
       const createdItems: Array<ReturnType<typeof toIssuePayload>> = [];
@@ -222,7 +260,9 @@ export async function createIssueBatch(
             ...item,
             variant,
           },
-          tx
+          tx,
+          undefined,
+          preflightCache
         );
         createdItems.push(createdResult.item);
         if (!meta?.createdSeries && createdResult.meta?.createdSeries) {
@@ -243,6 +283,7 @@ export async function createIssueBatch(
 
 export async function editIssue(item: IssueInput): Promise<Result<IssueWriteItemResult>> {
   try {
+    const preflightCache = await prepareParentIssuePreflight(item);
     const res = await prisma.$transaction(async (tx) => {
       const resolvedExisting = await resolveExistingIssueForEdit(item, tx);
       if (resolvedExisting == null) throw new Error("Issue not found");
@@ -283,7 +324,13 @@ export async function editIssue(item: IssueInput): Promise<Result<IssueWriteItem
       });
 
       if (shouldSyncIssueStories(item, inheritsStories, newPublisher.original)) {
-        const removedUsParentStoryIds = await syncStoriesFromParentRefs(Number(updated.id), item, tx);
+        const removedUsParentStoryIds = await syncStoriesFromParentRefs(
+          Number(updated.id),
+          item,
+          tx,
+          undefined,
+          preflightCache
+        );
         await updateStoryFilterFlagsForIssue(Number(updated.id));
         const removedUsIssueIds = await resolveIssueIdsFromStoryIds(removedUsParentStoryIds, tx);
         for (const removedUsIssueId of removedUsIssueIds) {
@@ -569,7 +616,12 @@ export async function deleteIssueByLookup(item: IssueInput, executor: PrismaExec
   }
 }
 
-async function createIssueRecord(item: IssueInput, tx: PrismaExecutor) {
+async function createIssueRecord(
+  item: IssueInput,
+  tx: PrismaExecutor,
+  parentIssueCache: ParentIssueCache = new Map(),
+  preflightCache?: ParentIssuePreflightCache
+) {
   const publisher = await findPublisher(item.series?.publisher, tx);
   if (!publisher) throw new Error("Publisher not found");
 
@@ -619,7 +671,7 @@ async function createIssueRecord(item: IssueInput, tx: PrismaExecutor) {
     },
   });
 
-  await syncStoriesFromParentRefs(Number(created.id), item, tx);
+  await syncStoriesFromParentRefs(Number(created.id), item, tx, parentIssueCache, preflightCache);
   await updateStoryFilterFlagsForIssue(Number(created.id));
 
   return {
@@ -657,27 +709,123 @@ async function createLinkedStoryRow(
   await linkStoryAppearances(Number(createdStory.id), story.appearances || [], executor);
 }
 
+function readStoryParentLookup(story: StoryInput): ParentIssueLookup | null {
+  const title = normalizeText(story.parent?.issue?.series?.title);
+  const volume = Number(story.parent?.issue?.series?.volume || 0);
+  const number = normalizeText(story.parent?.issue?.number);
+  if (!title || volume <= 0 || !number) return null;
+
+  return {
+    title,
+    volume,
+    number,
+  };
+}
+
+function getParentIssueCacheKey(input: { title: string; volume: number; number: string }) {
+  return `${input.title}::${input.volume}::${input.number}`;
+}
+
+async function prepareParentIssuePreflight(item: IssueInput) {
+  const preflightCache: ParentIssuePreflightCache = new Map();
+  const stories = Array.isArray(item.stories) ? item.stories : [];
+
+  for (const story of stories) {
+    const parentLookup = readStoryParentLookup(story);
+    if (!parentLookup) continue;
+    await resolveParentIssuePreflight(parentLookup, preflightCache);
+  }
+
+  return preflightCache;
+}
+
+async function resolveParentIssuePreflight(
+  parent: ParentIssueLookup,
+  cache: ParentIssuePreflightCache,
+  executor: PrismaExecutor = prisma
+): Promise<ParentIssueResolution> {
+  const cacheKey = getParentIssueCacheKey(parent);
+  const cached = cache.get(cacheKey);
+  if (cached) return cached;
+
+  const pending = (async (): Promise<ParentIssueResolution> => {
+    const localIssueRefs = await findLocalParentIssueRefs(parent, executor);
+    if (localIssueRefs.length > 0) {
+      return {
+        kind: "refs",
+        refs: localIssueRefs,
+      };
+    }
+
+    const crawledSeries = await crawler.crawlSeries(parent.title, parent.volume);
+    const crawledIssue = (await crawler.crawlIssue(
+      parent.title,
+      parent.volume,
+      parent.number
+    )) as CrawledIssueLike;
+
+    const normalizedCollectedIssues = normalizeCollectedIssues(crawledIssue);
+    if (normalizedCollectedIssues.length > 0) {
+      const containedItems: Array<{
+        lookup: ParentIssueLookup;
+        storyTitle?: string;
+      }> = [];
+      for (const containedIssue of normalizedCollectedIssues) {
+        const lookup = {
+          title: containedIssue.seriesTitle,
+          volume: containedIssue.seriesVolume,
+          number: containedIssue.number,
+        };
+        await resolveParentIssuePreflight(lookup, cache, executor);
+        containedItems.push({
+          lookup,
+          storyTitle: containedIssue.storyTitle,
+        });
+      }
+
+      if (containedItems.length > 0) {
+        return {
+          kind: "contained",
+          items: containedItems,
+        };
+      }
+    }
+
+    return {
+      kind: "issue",
+      crawledSeries: {
+        publisherName: crawledSeries.publisherName,
+        title: crawledSeries.title,
+        volume: crawledSeries.volume,
+        startyear: crawledSeries.startyear,
+        endyear: crawledSeries.endyear,
+      },
+      crawledIssue,
+    };
+  })();
+
+  cache.set(cacheKey, pending);
+  try {
+    return await pending;
+  } catch (error) {
+    cache.delete(cacheKey);
+    throw error;
+  }
+}
+
 async function resolveParentStoriesForInputStory(
   story: StoryInput,
-  parentIssueCache: Map<string, ParentIssueRef[]>,
-  executor: PrismaExecutor
+  parentIssueCache: ParentIssueCache,
+  executor: PrismaExecutor,
+  preflightCache?: ParentIssuePreflightCache
 ) {
-  const parentTitle = normalizeText(story.parent?.issue?.series?.title);
-  const parentVolume = Number(story.parent?.issue?.series?.volume || 0);
-  const parentNumber = normalizeText(story.parent?.issue?.number);
-  if (!parentTitle || parentVolume <= 0 || !parentNumber) return [];
+  const parentLookup = readStoryParentLookup(story);
+  if (!parentLookup) return [];
 
-  const cacheKey = `${parentTitle}::${parentVolume}::${parentNumber}`;
+  const cacheKey = getParentIssueCacheKey(parentLookup);
   let parentIssueRefs = parentIssueCache.get(cacheKey);
   if (parentIssueRefs == null) {
-    parentIssueRefs = await findOrCrawlParentIssueRefs(
-      {
-        title: parentTitle,
-        volume: parentVolume,
-        number: parentNumber,
-      },
-      executor
-    );
+    parentIssueRefs = await findOrCrawlParentIssueRefs(parentLookup, executor, preflightCache);
     parentIssueCache.set(cacheKey, parentIssueRefs);
   }
   if (parentIssueRefs.length === 0) return [];
@@ -733,7 +881,9 @@ function matchesResolvedParentStory(
 async function syncStoriesFromParentRefs(
   issueId: number,
   item: IssueInput,
-  executor: PrismaExecutor
+  executor: PrismaExecutor,
+  parentIssueCache: ParentIssueCache = new Map(),
+  preflightCache?: ParentIssuePreflightCache
 ) {
   const inputStories = Array.isArray(item.stories) ? item.stories : [];
 
@@ -766,7 +916,6 @@ async function syncStoriesFromParentRefs(
     return Array.from(oldUsParentStoryIds);
   }
 
-  const parentIssueCache = new Map<string, ParentIssueRef[]>();
   let nextStoryNumber = 1;
 
   for (const story of inputStories) {
@@ -777,7 +926,8 @@ async function syncStoriesFromParentRefs(
     const selectedParentStories = await resolveParentStoriesForInputStory(
       story,
       parentIssueCache,
-      executor
+      executor,
+      preflightCache
     );
 
     if (selectedParentStories.length === 0) {
@@ -849,15 +999,38 @@ async function resolveIssueIdsFromStoryIds(storyIds: readonly number[], executor
 }
 
 async function findOrCrawlParentIssueRefs(
-  parent: { title: string; volume: number; number: string },
-  executor: PrismaExecutor
+  parent: ParentIssueLookup,
+  executor: PrismaExecutor,
+  preflightCache?: ParentIssuePreflightCache
 ): Promise<ParentIssueRef[]> {
   const localIssueRefs = await findLocalParentIssueRefs(parent, executor);
   if (localIssueRefs.length > 0) return localIssueRefs;
 
-  const crawledSeries = await crawler.crawlSeries(parent.title, parent.volume);
-  const publisher = await findOrCreateUsPublisher(crawledSeries.publisherName, executor);
-  const series = await findOrCreateUsSeries(parent, crawledSeries, publisher.id, executor);
+  const resolution = preflightCache
+    ? await resolveParentIssuePreflight(parent, preflightCache)
+    : await resolveParentIssuePreflight(parent, new Map());
+
+  if (resolution.kind === "refs") {
+    return resolution.refs;
+  }
+
+  if (resolution.kind === "contained") {
+    const containedIssueRefs = new Map<string, ParentIssueRef>();
+    for (const containedItem of resolution.items) {
+      const refs = await findOrCrawlParentIssueRefs(containedItem.lookup, executor, preflightCache);
+      refs.forEach((ref) => {
+        const key = `${String(ref.issueId)}::${normalizeStoryTitleKey(containedItem.storyTitle || ref.storyTitle)}`;
+        containedIssueRefs.set(key, {
+          issueId: ref.issueId,
+          storyTitle: containedItem.storyTitle || ref.storyTitle,
+        });
+      });
+    }
+    return Array.from(containedIssueRefs.values());
+  }
+
+  const publisher = await findOrCreateUsPublisher(resolution.crawledSeries.publisherName, executor);
+  const series = await findOrCreateUsSeries(parent, resolution.crawledSeries, publisher.id, executor);
 
   const issue = await executor.issue.findFirst({
     where: {
@@ -869,11 +1042,7 @@ async function findOrCrawlParentIssueRefs(
   });
   if (issue) return [{ issueId: issue.id }];
 
-  const crawledIssue = (await crawler.crawlIssue(
-    parent.title,
-    parent.volume,
-    parent.number
-  )) as CrawledIssueLike;
+  const { crawledIssue } = resolution;
 
   const normalizedCollectedIssues = normalizeCollectedIssues(crawledIssue);
 
@@ -886,7 +1055,8 @@ async function findOrCrawlParentIssueRefs(
           volume: containedIssue.seriesVolume,
           number: containedIssue.number,
         },
-        executor
+        executor,
+        preflightCache
       );
       refs.forEach((ref) => {
         const key = `${String(ref.issueId)}::${normalizeStoryTitleKey(containedIssue.storyTitle || ref.storyTitle)}`;

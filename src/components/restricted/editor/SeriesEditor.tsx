@@ -152,6 +152,8 @@ function SeriesEditorView(props: Readonly<SeriesEditorProps>) {
           <Form style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
             <FormPageShell
               title={<TitleLine title={header} id={props.id} session={props.session} />}
+              busy={isSubmitting}
+              busyLabel="Serie wird gespeichert"
               headerAction={
                 <FormControlLabel
                   sx={{ m: 0 }}

@@ -27,6 +27,15 @@ export async function createSeries(item: SeriesInput): Promise<Result<ReturnType
     const publisher = await findPublisher(item.publisher, prisma);
     if (!publisher) return failure("Publisher not found", 404);
 
+    await assertSeriesIdentityIsAvailable(
+      {
+        title: item.title,
+        volume: item.volume,
+        publisherId: publisher.id,
+      },
+      prisma
+    );
+
     const now = new Date();
     const created = await prisma.series.create({
       data: {
@@ -68,6 +77,16 @@ export async function editSeries(oldItem: SeriesInput, item: SeriesInput): Promi
 
     const newPublisher = await findPublisher(item.publisher, prisma);
     if (!newPublisher) return failure("Publisher not found", 404);
+
+    await assertSeriesIdentityIsAvailable(
+      {
+        title: item.title,
+        volume: item.volume,
+        publisherId: newPublisher.id,
+        excludeId: existing.id,
+      },
+      prisma
+    );
 
     const updated = await prisma.series.update({
       where: {
@@ -156,6 +175,30 @@ async function findPublisher(publisher: PublisherRef | undefined, executor: Pris
       ...(typeof publisher?.us === "boolean" ? { original: publisher.us } : {}),
     },
   });
+}
+
+async function assertSeriesIdentityIsAvailable(
+  input: {
+    title?: string;
+    volume?: number;
+    publisherId: bigint;
+    excludeId?: bigint;
+  },
+  executor: PrismaExecutor
+) {
+  const duplicate = await executor.series.findFirst({
+    where: {
+      title: normalizeText(input.title),
+      volume: BigInt(Number(input.volume ?? 0)),
+      fkPublisher: input.publisherId,
+      ...(input.excludeId ? { NOT: { id: input.excludeId } } : {}),
+    },
+    select: { id: true },
+  });
+
+  if (duplicate) {
+    throw new Error("Series already exists");
+  }
 }
 
 function toSeriesPayload(series: {

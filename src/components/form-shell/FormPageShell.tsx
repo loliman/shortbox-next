@@ -5,6 +5,7 @@ import CardHeader from "@mui/material/CardHeader";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Box from "@mui/material/Box";
+import LinearProgress from "@mui/material/LinearProgress";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { editorSectionSx } from "../restricted/editor/editorLayout";
 import StickyActionBar from "./StickyActionBar";
@@ -21,6 +22,8 @@ interface FormPageShellProps {
   children: React.ReactNode;
   actions?: React.ReactNode;
   contentSx?: SxProps<Theme>;
+  busy?: boolean;
+  busyLabel?: React.ReactNode;
 }
 
 export default function FormPageShell({
@@ -35,6 +38,8 @@ export default function FormPageShell({
   children,
   actions,
   contentSx,
+  busy = false,
+  busyLabel,
 }: Readonly<FormPageShellProps>) {
   return (
     <Stack
@@ -43,8 +48,15 @@ export default function FormPageShell({
         minHeight: "100%",
         flex: 1,
       }}
+      aria-busy={busy}
     >
-      <Paper elevation={0} sx={editorSectionSx}>
+      <Paper
+        elevation={0}
+        sx={{
+          ...editorSectionSx,
+          pointerEvents: busy ? "none" : "auto",
+        }}
+      >
         <Box sx={{ position: "relative" }}>
           <CardHeader title={title} subheader={subtitle} action={headerAction} sx={headerSx} />
           {headerCenter ? (
@@ -63,22 +75,48 @@ export default function FormPageShell({
             </Box>
           ) : null}
         </Box>
+        {busy ? <LinearProgress aria-label={typeof busyLabel === "string" ? busyLabel : "Speichern"} /> : null}
         {headerContent ? <Box sx={{ px: { xs: 2, sm: 3 }, pb: 2 }}>{headerContent}</Box> : null}
         {tabs ? <Box sx={{ px: { xs: 1.25, sm: 1.75 }, pb: 1 }}>{tabs}</Box> : null}
       </Paper>
 
-      {notice ? <Paper elevation={0} sx={editorSectionSx}>{notice}</Paper> : null}
+      {notice ? (
+        <Paper
+          elevation={0}
+          sx={{
+            ...editorSectionSx,
+            pointerEvents: busy ? "none" : "auto",
+          }}
+        >
+          {notice}
+        </Paper>
+      ) : null}
 
-      <Stack
-        spacing={2.25}
-        sx={{
-          flexGrow: 1,
-          pb: actions ? { xs: 18, sm: 19 } : 0,
-          ...contentSx,
-        }}
-      >
-        {children}
-      </Stack>
+      <Box sx={{ position: "relative", flexGrow: 1 }}>
+        <Stack
+          spacing={2.25}
+          sx={{
+            flexGrow: 1,
+            pb: actions ? { xs: 18, sm: 19 } : 0,
+            ...contentSx,
+          }}
+        >
+          {children}
+        </Stack>
+
+        {busy ? (
+          <Box
+            aria-hidden="true"
+            sx={{
+              position: "absolute",
+              inset: 0,
+              zIndex: 1199,
+              backgroundColor: "rgba(255,255,255,0.02)",
+              cursor: "progress",
+            }}
+          />
+        ) : null}
+      </Box>
 
       {actions ? (
         <Box
@@ -86,6 +124,8 @@ export default function FormPageShell({
             position: "sticky",
             bottom: { xs: 72, sm: 88 },
             zIndex: 1200,
+            pointerEvents: busy ? "none" : "auto",
+            opacity: busy ? 0.88 : 1,
           }}
         >
           <StickyActionBar>{actions}</StickyActionBar>
