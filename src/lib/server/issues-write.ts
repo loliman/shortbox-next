@@ -2,7 +2,6 @@ import type { PrismaClient, Prisma } from "@prisma/client";
 import "server-only";
 
 import { prisma } from "../prisma/client";
-import { updateStoryFilterFlagsForIssue } from "./story-filter-write";
 import { MarvelCrawlerService } from "./marvel-crawler";
 import {
   linkCoverIndividuals,
@@ -324,18 +323,13 @@ export async function editIssue(item: IssueInput): Promise<Result<IssueWriteItem
       });
 
       if (shouldSyncIssueStories(item, inheritsStories, newPublisher.original)) {
-        const removedUsParentStoryIds = await syncStoriesFromParentRefs(
+        await syncStoriesFromParentRefs(
           Number(updated.id),
           item,
           tx,
           undefined,
           preflightCache
         );
-        await updateStoryFilterFlagsForIssue(Number(updated.id));
-        const removedUsIssueIds = await resolveIssueIdsFromStoryIds(removedUsParentStoryIds, tx);
-        for (const removedUsIssueId of removedUsIssueIds) {
-          await updateStoryFilterFlagsForIssue(removedUsIssueId);
-        }
       }
 
       return {
@@ -672,7 +666,6 @@ async function createIssueRecord(
   });
 
   await syncStoriesFromParentRefs(Number(created.id), item, tx, parentIssueCache, preflightCache);
-  await updateStoryFilterFlagsForIssue(Number(created.id));
 
   return {
     item: toIssuePayload(created),
@@ -982,20 +975,6 @@ async function filterUsParentStoryIds(storyIds: readonly number[], executor: Pri
   }
 
   return usStoryIds;
-}
-
-async function resolveIssueIdsFromStoryIds(storyIds: readonly number[], executor: PrismaExecutor) {
-  const numericStoryIds = normalizeDbIds(storyIds);
-  if (numericStoryIds.length === 0) return [];
-
-  const stories = await executor.story.findMany({
-    where: { id: { in: numericStoryIds.map(BigInt) } },
-    select: { fkIssue: true },
-  });
-
-  return Array.from(
-    new Set(stories.map((story) => Number(story.fkIssue || 0)).filter((id) => id > 0))
-  );
 }
 
 async function findOrCrawlParentIssueRefs(
