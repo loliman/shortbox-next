@@ -29,7 +29,7 @@ function StoryFieldsNonExclusive(props: Readonly<StoryFieldsNonExclusiveProps>) 
   };
   const parentIssue = parent.issue ?? {};
   const parentSeries = parentIssue.series ?? {};
-  const seriesPattern = readTextValue(parentSeries.title);
+  const seriesPattern = readInputValue(parentSeries.title);
 
   const seriesQuery = useAutocompleteQuery<FieldItem>({
     source: "series",
@@ -167,6 +167,12 @@ function getSeriesKey(value: unknown) {
 function readTextValue(value: unknown) {
   if (typeof value === "string") return value.trim();
   if (typeof value === "number") return String(value).trim();
+  return "";
+}
+
+function readInputValue(value: unknown) {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
   return "";
 }
 
