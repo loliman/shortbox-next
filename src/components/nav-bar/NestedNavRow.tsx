@@ -106,6 +106,7 @@ export const NestedRow = React.memo(function NestedRow(props: Readonly<NestedRow
       >
         <ListItemText
           primary={props.label}
+          title={props.label}
           sx={{
             "& .MuiListItemText-primary": {
               color: "var(--mui-palette-text-primary) !important",

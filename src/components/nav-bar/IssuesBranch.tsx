@@ -367,6 +367,7 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
                         >
                           <Box
                             component="span"
+                            title={createSidebarIssueLabel(issueNode, us)}
                             sx={{
                               color: "inherit",
                               display: "block",
