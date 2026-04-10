@@ -1427,4 +1427,63 @@ describe("parsePreviewImportQueue", () => {
 
     expect(batmanRobin?.values.price).toBe("18");
   });
+
+  it("should_keep_adjacent_spider_man_partner_titles_separate_on_parallel_layout_pages", async () => {
+    const text = [
+      [
+        "31",
+        "N E U H E I T E N",
+        "SPIDER-MAN & AVENGERS",
+        "SPIDER-MAN &",
+        "Story: Zeb Wells",
+        "DAREDEVIL",
+        "Zeichnungen: Joe Madureira, Greg Land, Leinil Francis Yu",
+        "Inhalt: Avenging Spider-Man 1-5",
+        "Storys: Paul Jenkins",
+        "Zeichnungen: Phil Winslade",
+        "Inhalt: Daredevil/Spider-Man (2001) 1-4",
+        "DSMPW001 124 S. | Hardcover | € 19,-30.06.2026",
+        "DSMPW003 108 S. | Hardcover | € 19,-30.06.2026",
+      ].join("\n"),
+    ].join("\n\n");
+
+    const layout: PdfLayoutDocument = {
+      pages: [
+        {
+          pageNumber: 33,
+          width: 595,
+          height: 842,
+          items: [],
+          rows: [
+            { text: "N E U H E I T E N", items: [], xMin: 53, xMax: 165, y: 773, height: 22 },
+            { text: "SPIDER-MAN & AVENGERS", items: [], xMin: 54, xMax: 275, y: 349, height: 24 },
+            { text: "SPIDER-MAN &", items: [], xMin: 313, xMax: 439, y: 349, height: 24 },
+            { text: "DAREDEVIL", items: [], xMin: 313, xMax: 408, y: 325, height: 24 },
+            { text: "Inhalt: Avenging Spider-Man 1-5", items: [], xMin: 54, xMax: 187, y: 310, height: 9 },
+            { text: "Inhalt: Daredevil/Spider-Man (2001) 1-4", items: [], xMin: 313, xMax: 520, y: 286, height: 9 },
+          ],
+          blocks: [
+            { text: "DSMPW001 124 S. | Hardcover | € 19,-30.06.2026", rows: [], xMin: 64, xMax: 269, yTop: 59, yBottom: 48 },
+            { text: "DSMPW003 108 S. | Hardcover | € 19,-30.06.2026", rows: [], xMin: 322, xMax: 527, yTop: 59, yBottom: 48 },
+          ],
+        },
+      ],
+    };
+
+    const queue = await parsePreviewImportQueue({
+      fileName: "Panini-Vorschau-121.pdf",
+      text,
+      layout,
+      seriesReader: {
+        findDeSeriesByTitle: async () => [],
+        findUsSeriesByTitle: async () => [],
+      },
+    });
+
+    const avengers = queue.drafts.find((draft) => draft.issueCode === "DSMPW001");
+    const daredevil = queue.drafts.find((draft) => draft.issueCode === "DSMPW003");
+
+    expect(avengers?.values.series.title).toBe("Spider-Man & Avengers");
+    expect(daredevil?.values.series.title).toBe("Spider-Man & Daredevil");
+  });
 });

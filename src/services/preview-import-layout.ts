@@ -159,6 +159,9 @@ function selectTitleRows(
     .filter((row) => isTitleLikeRow(row));
 
   if (titleRows.length > 1) return titleRows;
+  if (titleRows.length === 1 && contentRow && isSelfContainedTitleRow(titleRows[0])) {
+    return titleRows;
+  }
 
   const fallbackTitleRows = page.rows
     .filter((row) => row.y > titleFloor)
@@ -186,6 +189,13 @@ function selectTitleRows(
   }
 
   return selectBelowMetadataTitleRows(page, metadataBlock, stackedLayoutSplitY);
+}
+
+function isSelfContainedTitleRow(row: PdfLayoutRow | undefined) {
+  const text = row?.text.trim() || "";
+  if (!text) return false;
+
+  return !/[&:\/-]\s*$/.test(text);
 }
 
 function isTitleLikeRow(row: PdfLayoutRow) {
