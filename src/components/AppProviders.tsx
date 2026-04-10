@@ -2,6 +2,7 @@
 
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
 import CssBaseline from "@mui/material/CssBaseline";
+import GlobalStyles from "@mui/material/GlobalStyles";
 import { ThemeProvider, useColorScheme } from "@mui/material/styles";
 import { SnackbarProvider } from "notistack";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -22,11 +23,27 @@ const MAX_NAVIGATION_FEEDBACK_MS = 8000;
 const PHONE_MEDIA_QUERY = "(max-width:599.95px)";
 const DESKTOP_MEDIA_QUERY = "(min-width:1200px)";
 const LANDSCAPE_MEDIA_QUERY = "(orientation: landscape)";
+const EDITOR_SNACKBAR_TOP_OFFSET = {
+  xs: "calc(env(safe-area-inset-top, 0px) + 72px)",
+  sm: "calc(env(safe-area-inset-top, 0px) + 80px)",
+};
 
 type AppProvidersProps = {
   initialResponsiveGuess: InitialResponsiveGuess;
   children?: ReactNode;
 };
+
+function shouldUseTopSnackbars(pathname: string | null): boolean {
+  if (!pathname) return false;
+
+  return (
+    pathname.startsWith("/edit") ||
+    pathname.startsWith("/create") ||
+    pathname.startsWith("/copy") ||
+    pathname.startsWith("/report") ||
+    pathname.startsWith("/admin/preview-import")
+  );
+}
 
 function ThemeModeBridge(props: Readonly<AppProvidersProps>) {
   const { colorScheme, setColorScheme } = useColorScheme();
@@ -42,6 +59,13 @@ function ThemeModeBridge(props: Readonly<AppProvidersProps>) {
   const routeKey = useMemo(
     () => `${pathname || ""}?${searchParams?.toString() || ""}`,
     [pathname, searchParams]
+  );
+  const snackbarAnchorOrigin = useMemo(
+    () =>
+      shouldUseTopSnackbars(pathname)
+        ? { vertical: "top" as const, horizontal: "center" as const }
+        : { vertical: "bottom" as const, horizontal: "center" as const },
+    [pathname]
   );
 
   useEffect(() => {
@@ -164,11 +188,28 @@ function ThemeModeBridge(props: Readonly<AppProvidersProps>) {
     <SnackbarProvider
       maxSnack={4}
       autoHideDuration={3500}
-      anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      anchorOrigin={snackbarAnchorOrigin}
+      classes={{
+        containerAnchorOriginTopCenter: "app-snackbar-top-center",
+        containerAnchorOriginTopLeft: "app-snackbar-top-left",
+        containerAnchorOriginTopRight: "app-snackbar-top-right",
+      }}
     >
       <ThemeModeProvider themeMode={themeMode} themeReady={themeReady} toggleTheme={toggleTheme}>
         <NavigationFeedbackContext.Provider value={navigationFeedbackValue}>
           <ResponsiveGuessProvider initialGuess={props.initialResponsiveGuess}>
+            <GlobalStyles
+              styles={{
+                ".app-snackbar-top-center, .app-snackbar-top-left, .app-snackbar-top-right": {
+                  top: EDITOR_SNACKBAR_TOP_OFFSET.xs,
+                },
+                "@media (min-width:600px)": {
+                  ".app-snackbar-top-center, .app-snackbar-top-left, .app-snackbar-top-right": {
+                    top: EDITOR_SNACKBAR_TOP_OFFSET.sm,
+                  },
+                },
+              }}
+            />
             <CssBaseline />
             {props.children ?? null}
           </ResponsiveGuessProvider>
