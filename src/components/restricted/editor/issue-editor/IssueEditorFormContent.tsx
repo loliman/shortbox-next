@@ -41,7 +41,6 @@ function IssueEditorFormContent(props: Readonly<IssueEditorFormContentProps>) {
     <FormPageShell
       title={<TitleLine title={header} id={id} session={session} />}
       busy={isSubmitting}
-      busyLabel="Ausgabe wird gespeichert"
       headerAction={
         <FormControlLabel
           sx={{ m: 0 }}

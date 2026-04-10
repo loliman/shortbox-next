@@ -5,10 +5,10 @@ import CardHeader from "@mui/material/CardHeader";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Box from "@mui/material/Box";
-import LinearProgress from "@mui/material/LinearProgress";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { editorSectionSx } from "../restricted/editor/editorLayout";
 import StickyActionBar from "./StickyActionBar";
+import { useNavigationFeedbackContext } from "../generic/AppContext";
 
 interface FormPageShellProps {
   title: React.ReactNode;
@@ -23,7 +23,6 @@ interface FormPageShellProps {
   actions?: React.ReactNode;
   contentSx?: SxProps<Theme>;
   busy?: boolean;
-  busyLabel?: React.ReactNode;
 }
 
 export default function FormPageShell({
@@ -39,8 +38,17 @@ export default function FormPageShell({
   actions,
   contentSx,
   busy = false,
-  busyLabel,
 }: Readonly<FormPageShellProps>) {
+  const navigationFeedback = useNavigationFeedbackContext();
+
+  React.useEffect(() => {
+    navigationFeedback.setNavigationUiLoading(busy);
+
+    return () => {
+      navigationFeedback.setNavigationUiLoading(false);
+    };
+  }, [busy, navigationFeedback]);
+
   return (
     <Stack
       spacing={2.25}
@@ -75,7 +83,6 @@ export default function FormPageShell({
             </Box>
           ) : null}
         </Box>
-        {busy ? <LinearProgress aria-label={typeof busyLabel === "string" ? busyLabel : "Speichern"} /> : null}
         {headerContent ? <Box sx={{ px: { xs: 2, sm: 3 }, pb: 2 }}>{headerContent}</Box> : null}
         {tabs ? <Box sx={{ px: { xs: 1.25, sm: 1.75 }, pb: 1 }}>{tabs}</Box> : null}
       </Paper>

@@ -153,7 +153,6 @@ function SeriesEditorView(props: Readonly<SeriesEditorProps>) {
             <FormPageShell
               title={<TitleLine title={header} id={props.id} session={props.session} />}
               busy={isSubmitting}
-              busyLabel="Serie wird gespeichert"
               headerAction={
                 <FormControlLabel
                   sx={{ m: 0 }}
