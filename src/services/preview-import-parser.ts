@@ -990,7 +990,7 @@ async function buildDraft(input: {
   );
   const parsedTitle = splitTitleAndNumber(resolvedSourceTitle);
 
-  values.series.publisher.name = "Panini";
+  values.series.publisher.name = "Panini - Marvel & Icon";
   values.series.publisher.us = false;
   values.series.title = parsedTitle.seriesTitle;
   values.series.volume = await resolveSeriesVolume(input.seriesReader, parsedTitle.seriesTitle, false);
