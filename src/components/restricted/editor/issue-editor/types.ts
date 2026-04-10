@@ -86,6 +86,7 @@ export interface IssueEditorFormContentProps {
   onCancel: (event: MouseEvent<HTMLButtonElement>) => void;
   onSubmitMode: (copyMode: boolean) => void;
   notice?: ReactNode;
+  actionNotice?: ReactNode;
   actions?: ReactNode;
   showHints?: boolean;
   lockedFields?: {

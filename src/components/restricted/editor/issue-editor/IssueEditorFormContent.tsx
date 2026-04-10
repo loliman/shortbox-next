@@ -11,6 +11,7 @@ import TitleLine from "../../../generic/TitleLine";
 import { ContrastSwitch } from "../../../generic/ContrastSwitch";
 import FormPageShell from "../../../form-shell/FormPageShell";
 import FormSection from "../../../form-shell/FormSection";
+import Stack from "@mui/material/Stack";
 
 function IssueEditorFormContent(props: Readonly<IssueEditorFormContentProps>) {
   const {
@@ -30,6 +31,7 @@ function IssueEditorFormContent(props: Readonly<IssueEditorFormContentProps>) {
     onCancel,
     onSubmitMode,
     notice,
+    actionNotice,
     actions,
     showHints = true,
     lockedFields,
@@ -70,16 +72,19 @@ function IssueEditorFormContent(props: Readonly<IssueEditorFormContentProps>) {
         },
       })}
       actions={
-        actions || (
-          <IssueEditorActions
-            isSubmitting={isSubmitting}
-            submitLabel={submitLabel}
-            submitAndCopyLabel={submitAndCopyLabel}
-            resetForm={resetForm}
-            onCancel={onCancel}
-            onSubmitMode={onSubmitMode}
-          />
-        )
+        <Stack spacing={1.5}>
+          {actionNotice}
+          {actions || (
+            <IssueEditorActions
+              isSubmitting={isSubmitting}
+              submitLabel={submitLabel}
+              submitAndCopyLabel={submitAndCopyLabel}
+              resetForm={resetForm}
+              onCancel={onCancel}
+              onSubmitMode={onSubmitMode}
+            />
+          )}
+        </Stack>
       }
     >
       <IssueEditorSection title="Basisdaten">

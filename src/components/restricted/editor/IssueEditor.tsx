@@ -1,5 +1,6 @@
 "use client";
 
+import Alert from "@mui/material/Alert";
 import { useRouter } from "next/navigation";
 import { IssueSchema } from "../../../util/yupSchema";
 import { Form, Formik } from "formik";
@@ -92,6 +93,7 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
     setDefaultValues(normalizeIssueEditorValues(props.defaultValues));
   }, [props.defaultValues]);
   const [copyMode, setCopyMode] = React.useState(Boolean(props.copy));
+  const [validationMessage, setValidationMessage] = React.useState<string | null>(null);
   const copyModeRef = React.useRef(copyMode);
 
   React.useEffect(() => {
@@ -142,6 +144,7 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
       validationSchema={IssueSchema}
       onSubmit={async (values, actions) => {
         actions.setSubmitting(true);
+        setValidationMessage(null);
         try {
           const variables = buildIssueMutationVariables(values, edit, props.id);
           const result = await mutationRequest<{
@@ -226,16 +229,18 @@ function IssueEditorView(props: Readonly<IssueEditorProps>) {
                 const firstErrorPath = findFirstErrorPath(errors);
                 if (firstErrorPath) {
                   setTouched(buildTouchedFromErrors(errors), true);
-                  enqueueSnackbar("Bitte die markierten Pflichtfelder prüfen.", {
-                    variant: "error",
-                  });
+                  setValidationMessage("Bitte die markierten Pflichtfelder prüfen.");
                   focusEditorErrorField(firstErrorPath);
                   return;
                 }
 
+                setValidationMessage(null);
                 submitForm();
               });
             }}
+            actionNotice={
+              validationMessage ? <Alert severity="error">{validationMessage}</Alert> : null
+            }
             lockedFields={props.lockedFields}
           />
         </Form>

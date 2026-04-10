@@ -161,6 +161,7 @@ function PreviewImportQueueEditor(props: Readonly<{
 }>) {
   const router = useRouter();
   const snackbar = useSnackbarBridge();
+  const [validationMessage, setValidationMessage] = React.useState<string | null>(null);
   const draft = props.queue.currentDraft;
   const values = React.useMemo(() => structuredClone(draft.values), [draft.values]);
 
@@ -171,6 +172,7 @@ function PreviewImportQueueEditor(props: Readonly<{
       validationSchema={IssueSchema}
       onSubmit={async (formValues, actions) => {
         actions.setSubmitting(true);
+        setValidationMessage(null);
         try {
           const variables = buildIssueMutationVariables(formValues, false);
           const result = await mutationRequest<{ item?: { id?: string | number } }>({
@@ -223,13 +225,12 @@ function PreviewImportQueueEditor(props: Readonly<{
                 const firstErrorPath = findFirstErrorPath(errors);
                 if (firstErrorPath) {
                   setTouched(buildTouchedFromErrors(errors), true);
-                  snackbar.enqueueSnackbar("Bitte die markierten Pflichtfelder prüfen.", {
-                    variant: "error",
-                  });
+                  setValidationMessage("Bitte die markierten Pflichtfelder prüfen.");
                   focusEditorErrorField(firstErrorPath);
                   return;
                 }
 
+                setValidationMessage(null);
                 submitForm();
               });
             }}
@@ -323,13 +324,12 @@ function PreviewImportQueueEditor(props: Readonly<{
                         const firstErrorPath = findFirstErrorPath(errors);
                         if (firstErrorPath) {
                           setTouched(buildTouchedFromErrors(errors), true);
-                          snackbar.enqueueSnackbar("Bitte die markierten Pflichtfelder prüfen.", {
-                            variant: "error",
-                          });
+                          setValidationMessage("Bitte die markierten Pflichtfelder prüfen.");
                           focusEditorErrorField(firstErrorPath);
                           return;
                         }
 
+                        setValidationMessage(null);
                         submitForm();
                       });
                     }}
@@ -338,6 +338,9 @@ function PreviewImportQueueEditor(props: Readonly<{
                   </Button>
                 </Box>
               </Stack>
+            }
+            actionNotice={
+              validationMessage ? <Alert severity="error">{validationMessage}</Alert> : null
             }
             showHints
           />
