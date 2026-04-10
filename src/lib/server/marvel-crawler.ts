@@ -332,8 +332,19 @@ function normalizeAppearanceRole(roleRaw: string): string | undefined {
   return undefined;
 }
 
+function normalizeWikiPageTitlePart(value: string) {
+  return ws(
+    value
+      .replaceAll(/[\u00A0\u2007\u202F]/g, " ")
+      .replaceAll(/[\u200B-\u200D\uFEFF]/g, "")
+      .replaceAll(/[‘’`´]/g, "'")
+      .replaceAll(/[“”]/g, '"')
+      .replaceAll(/[‐‑–—]/g, "-")
+  );
+}
+
 function toUnderscoreTitle(s: string) {
-  return s.trim().replaceAll(" ", "_");
+  return normalizeWikiPageTitlePart(s).replaceAll(" ", "_");
 }
 
 function buildSeriesPageTitle(seriesTitle: string, volume: number) {
