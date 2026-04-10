@@ -210,6 +210,25 @@ export function pickPreferredIssueVariant<
   return [...groupedIssues].sort(compareIssueVariants)[0];
 }
 
+export function pickIssuePreviewStorySource<
+  T extends {
+    stories?: Array<unknown> | null;
+    format?: string | null;
+    variant?: string | null;
+    id?: bigint | number | string | null;
+  },
+>(groupedIssues: T[], currentIssue?: T | null): T | null {
+  if (currentIssue && Array.isArray(currentIssue.stories) && currentIssue.stories.length > 0) {
+    return currentIssue;
+  }
+
+  const storyBearingVariant = [...groupedIssues]
+    .sort(compareIssueVariants)
+    .find((issue) => Array.isArray(issue.stories) && issue.stories.length > 0);
+
+  return storyBearingVariant ?? currentIssue ?? groupedIssues[0] ?? null;
+}
+
 export function serializePreviewIssue(issue: {
   id: bigint;
   comicGuideId: bigint | null;
@@ -249,7 +268,31 @@ export function serializePreviewIssue(issue: {
       original: boolean;
     } | null;
   } | null;
+}, options?: {
+  storySourceIssue?: {
+    stories: Array<{
+      onlyApp: boolean;
+      firstApp: boolean;
+      otherOnlyTb: boolean;
+      onlyOnePrint: boolean;
+      onlyTb: boolean;
+      collectedMultipleTimes: boolean;
+      reprint: { id: bigint } | null;
+      reprintedBy: Array<{ id: bigint }>;
+      parent: {
+        children: Array<{ id: bigint }>;
+        collectedMultipleTimes: boolean;
+      } | null;
+      children: Array<{
+        id: bigint;
+        issue: { collected: boolean | null } | null;
+      }>;
+    }>;
+  } | null;
 }): Issue {
+  const storySourceIssue = options?.storySourceIssue ?? issue;
+  const stories = Array.isArray(storySourceIssue?.stories) ? storySourceIssue.stories : [];
+
   return {
     id: String(issue.id),
     comicguideid: issue.comicGuideId === null ? null : String(issue.comicGuideId),
@@ -265,7 +308,7 @@ export function serializePreviewIssue(issue: {
           url: issue.covers[0].url || null,
         }
       : null,
-    stories: issue.stories.map((story) => ({
+    stories: stories.map((story) => ({
       onlyapp: story.onlyApp,
       firstapp: story.firstApp,
       otheronlytb: story.otherOnlyTb,

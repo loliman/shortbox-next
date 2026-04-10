@@ -1,7 +1,17 @@
 import { readFileSync, writeFileSync } from "node:fs";
-import { extractTextFromPdfBuffer } from "../src/lib/server/pdf-text-extract";
-import { extractPdfLayoutFromBuffer } from "../src/lib/server/pdf-layout-extract";
-import { parsePreviewImportQueue } from "../src/services/preview-import-parser";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+
+function stubServerOnlyModule() {
+  const serverOnlyPath = require.resolve("server-only");
+  require.cache[serverOnlyPath] = {
+    id: serverOnlyPath,
+    filename: serverOnlyPath,
+    loaded: true,
+    exports: {},
+  };
+}
 
 function formatValue(value: unknown) {
   return value == null || value === "" ? "-" : String(value);
@@ -37,6 +47,7 @@ function storyTitle(story: Record<string, unknown>) {
 }
 
 async function main() {
+  stubServerOnlyModule();
   const pdfPath = process.argv[2];
   const outputPath = process.argv[3] ?? "/tmp/panini-vorschau-121.summary.txt";
 
@@ -49,6 +60,13 @@ async function main() {
     fileBuffer.byteOffset,
     fileBuffer.byteOffset + fileBuffer.byteLength
   );
+
+  const [{ extractTextFromPdfBuffer }, { extractPdfLayoutFromBuffer }, { parsePreviewImportQueue }] =
+    await Promise.all([
+      import("../src/lib/server/pdf-text-extract"),
+      import("../src/lib/server/pdf-layout-extract"),
+      import("../src/services/preview-import-parser"),
+    ]);
 
   const [text, layout] = await Promise.all([
     extractTextFromPdfBuffer(arrayBuffer.slice(0)),

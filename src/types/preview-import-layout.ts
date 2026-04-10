@@ -8,6 +8,8 @@ export interface PreviewImportLayoutAnchor {
   contentText: string;
   titleRows: PdfLayoutRow[];
   titleText: string;
+  collectionTitleRows: PdfLayoutRow[];
+  collectionTitleText: string;
   confidence: number;
 }
 

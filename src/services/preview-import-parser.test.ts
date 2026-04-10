@@ -1486,4 +1486,57 @@ describe("parsePreviewImportQueue", () => {
     expect(avengers?.values.series.title).toBe("Spider-Man & Avengers");
     expect(daredevil?.values.series.title).toBe("Spider-Man & Daredevil");
   });
+
+  it("should_map_collection_band_titles_to_collection_series_and_band_number", async () => {
+    const text = [
+      [
+        "31",
+        "N E U H E I T E N",
+        "DIE GROSSE SPIDER-MAN",
+        "COLLECTION",
+        "SPIDER-MAN & HULK",
+        "Inhalt: Amazing Spider-Man 119-120, 381-382, Marvel Team-Up 53-54",
+        "DSMPW006 140 S. | Hardcover | € 19,-30.06.2026",
+      ].join("\n"),
+    ].join("\n\n");
+
+    const layout: PdfLayoutDocument = {
+      pages: [
+        {
+          pageNumber: 31,
+          width: 567,
+          height: 794,
+          items: [],
+          rows: [
+            { text: "N E U H E I T E N", items: [], xMin: 54, xMax: 165, y: 773, height: 22 },
+            { text: "DIE GROSSE SPIDER-MAN", items: [], xMin: 55, xMax: 260, y: 708, height: 30 },
+            { text: "COLLECTION", items: [], xMin: 55, xMax: 178, y: 680, height: 30 },
+            { text: "SPIDER-MAN & HULK", items: [], xMin: 55, xMax: 231, y: 349, height: 24 },
+            { text: "Inhalt: Amazing Spider-Man 119-120, 381-382, Marvel Team-Up 53-54", items: [], xMin: 55, xMax: 315, y: 310, height: 9 },
+          ],
+          blocks: [
+            { text: "DSMPW006 140 S. | Hardcover | € 19,-30.06.2026", rows: [], xMin: 64, xMax: 269, yTop: 59, yBottom: 48 },
+          ],
+        },
+      ],
+    };
+
+    const queue = await parsePreviewImportQueue({
+      fileName: "Panini-Vorschau-121.pdf",
+      text,
+      layout,
+      seriesReader: {
+        findDeSeriesByTitle: async (title: string) =>
+          title === "Die Grosse Spider-Man Collection"
+            ? [{ title: "Die große Spider-Man Collection", volume: 1 }]
+            : [],
+        findUsSeriesByTitle: async () => [],
+      },
+    });
+
+    expect(queue.drafts).toHaveLength(1);
+    expect(queue.drafts[0]?.values.series.title).toBe("Die Grosse Spider-Man Collection");
+    expect(queue.drafts[0]?.values.title).toBe("Spider-Man & Hulk");
+    expect(queue.drafts[0]?.values.number).toBe("6");
+  });
 });

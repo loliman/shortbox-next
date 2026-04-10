@@ -561,4 +561,29 @@ describe("preview-import-layout", () => {
       "the DC Universe 1-4",
     ]);
   });
+
+  it("should_attach_collection_context_to_lower_band_anchors", () => {
+    const page: PdfLayoutPage = {
+      pageNumber: 31,
+      width: 567,
+      height: 794,
+      items: [],
+      rows: [
+        { text: "N E U H E I T E N", items: [], xMin: 54, xMax: 165, y: 773, height: 22 },
+        { text: "DIE GROSSE SPIDER-MAN", items: [], xMin: 55, xMax: 260, y: 708, height: 30 },
+        { text: "COLLECTION", items: [], xMin: 55, xMax: 178, y: 680, height: 30 },
+        { text: "SPIDER-MAN & HULK", items: [], xMin: 55, xMax: 231, y: 349, height: 24 },
+        { text: "Inhalt: Amazing Spider-Man 119-120", items: [], xMin: 55, xMax: 260, y: 310, height: 9 },
+        { text: "DSMPW006 140 S. | Hardcover | € 19,-30.06.2026", items: [], xMin: 64, xMax: 269, y: 53, height: 11 },
+      ],
+      blocks: [
+        { text: "DSMPW006 140 S. | Hardcover | € 19,-30.06.2026", rows: [], xMin: 64, xMax: 269, yTop: 59, yBottom: 48 },
+      ],
+    };
+
+    const analysis = analyzePreviewImportLayoutPage(page);
+
+    expect(analysis.anchors[0]?.titleText).toBe("SPIDER-MAN & HULK");
+    expect(analysis.anchors[0]?.collectionTitleText).toBe("DIE GROSSE SPIDER-MAN COLLECTION");
+  });
 });

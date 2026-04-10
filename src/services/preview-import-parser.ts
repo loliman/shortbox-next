@@ -243,6 +243,7 @@ function composeLayoutSourceTitle(anchor: {
   titleRows: Array<{ text: string; items?: Array<{ text: string; fillColor?: string }> }>;
   titleText: string;
   contentText?: string;
+  collectionTitleText?: string;
 }) {
   const cleanedTitleRows = cleanLayoutTitleRows(anchor.titleRows);
 
@@ -255,7 +256,6 @@ function composeLayoutSourceTitle(anchor: {
     .map((row) => trimDecorativeLetterWall(normalizeTitle(row.text)))
     .filter(Boolean);
   if (titleRows.length === 0) return "";
-  if (titleRows.length === 1) return trimDecorativeLetterWall(normalizeTitle(titleRows[0] || ""));
 
   const singleContentSeriesTitle = deriveSingleContentSeriesTitle(anchor.contentText || "");
   if (singleContentSeriesTitle) {
@@ -273,7 +273,17 @@ function composeLayoutSourceTitle(anchor: {
     return `${normalizeTitle(seriesWithNumberPrefix[1] || "")} ${seriesWithNumberPrefix[2] || "1"}: ${remainder}`;
   }
 
-  return normalizeDisplayTitle([first, remainder].filter(Boolean).join(" "));
+  const title = normalizeDisplayTitle([first, remainder].filter(Boolean).join(" "));
+  const collectionTitle = normalizeDisplayTitle(anchor.collectionTitleText || "");
+  if (collectionTitle && title) {
+    return `${collectionTitle}: ${title}`;
+  }
+
+  if (titleRows.length === 1) {
+    return trimDecorativeLetterWall(normalizeTitle(titleRows[0] || ""));
+  }
+
+  return title;
 }
 
 function cleanLayoutTitleRows(
@@ -989,12 +999,16 @@ async function buildDraft(input: {
     metadata.issueCode
   );
   const parsedTitle = splitTitleAndNumber(resolvedSourceTitle);
+  const derivedIssueNumber = deriveIssueNumberFromIssueCode(metadata.issueCode);
 
   values.series.publisher.name = "Panini - Marvel & Icon";
   values.series.publisher.us = false;
   values.series.title = parsedTitle.seriesTitle;
   values.series.volume = await resolveSeriesVolume(input.seriesReader, parsedTitle.seriesTitle, false);
-  values.number = parsedTitle.number;
+  values.number =
+    parsedTitle.deriveNumberFromIssueCode && derivedIssueNumber
+      ? derivedIssueNumber
+      : parsedTitle.number;
   values.title = parsedTitle.title;
   values.variant = input.isVariant ? deriveVariantLabel(input.variantIndex ?? 0) : "";
   values.pages = metadata.pages ?? values.pages;
@@ -1133,16 +1147,27 @@ function splitTitleAndNumber(sourceTitle: string) {
 
 function splitCollectionPrefixTitle(sourceTitle: string, parentheticalTitle: string) {
   const match = /^(DC Must-Have|DC Events|Marvel Must-Have|Marvel Events):\s+(.+)$/i.exec(sourceTitle);
-  if (!match) return null;
-  const normalizedCollectionTitle = normalizeDisplayTitle(match[2] ?? "");
-  const trimmedCollectionTitle = normalizeDisplayTitle(
-    normalizedCollectionTitle.replace(/\s+\d+[A-Za-z]?\s*$/i, "")
-  ) || normalizedCollectionTitle;
+  if (match) {
+    const normalizedCollectionTitle = normalizeDisplayTitle(match[2] ?? "");
+    const trimmedCollectionTitle = normalizeDisplayTitle(
+      normalizedCollectionTitle.replace(/\s+\d+[A-Za-z]?\s*$/i, "")
+    ) || normalizedCollectionTitle;
+
+    return {
+      seriesTitle: normalizeTitle(match[1] ?? ""),
+      number: "1",
+      title: normalizeDisplayTitle([trimmedCollectionTitle, parentheticalTitle].filter(Boolean).join(" ")),
+    };
+  }
+
+  const genericCollectionMatch = /^(.*\bCollection)\s*:\s+(.+)$/i.exec(sourceTitle);
+  if (!genericCollectionMatch) return null;
 
   return {
-    seriesTitle: normalizeTitle(match[1] ?? ""),
+    seriesTitle: normalizeTitle(genericCollectionMatch[1] ?? ""),
     number: "1",
-    title: normalizeDisplayTitle([trimmedCollectionTitle, parentheticalTitle].filter(Boolean).join(" ")),
+    title: normalizeDisplayTitle([genericCollectionMatch[2] ?? "", parentheticalTitle].filter(Boolean).join(" ")),
+    deriveNumberFromIssueCode: true,
   };
 }
 
@@ -2215,6 +2240,7 @@ function shouldPreferContentDerivedSourceTitle(
   const normalizedSourceTitle = normalizeTitle(sourceTitle);
   if (!normalizedSourceTitle) return true;
   if (normalizedSourceTitle === fallbackCode) return true;
+  if (splitCollectionPrefixTitle(normalizedSourceTitle, "")) return false;
   if (hasGroupedIssueTitle(normalizedSourceTitle)) return false;
   if (
     normalizedSourceTitle !== contentDerivedSourceTitle &&

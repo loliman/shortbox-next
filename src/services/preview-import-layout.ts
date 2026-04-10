@@ -24,7 +24,7 @@ export function analyzePreviewImportLayoutPage(page: PdfLayoutPage): PreviewImpo
 
   return {
     page,
-    anchors: inheritSiblingContext(anchors),
+    anchors: attachCollectionContext(page, inheritSiblingContext(anchors)),
     usesMultiColumnPattern,
   };
 }
@@ -55,6 +55,8 @@ function buildLayoutAnchor(
     contentText,
     titleRows,
     titleText,
+    collectionTitleRows: [],
+    collectionTitleText: "",
     confidence: scoreLayoutAnchorConfidence(titleText, contentRow),
   };
 }
@@ -542,6 +544,80 @@ function inheritSiblingContext(anchors: PreviewImportLayoutAnchor[]) {
       confidence: scoreLayoutAnchorConfidence(titleText, contentRow),
     };
   });
+}
+
+function attachCollectionContext(page: PdfLayoutPage, anchors: PreviewImportLayoutAnchor[]) {
+  const collectionTitleRows = selectCollectionTitleRows(page);
+  if (collectionTitleRows.length === 0) {
+    return anchors;
+  }
+
+  const collectionTitleText = collectionTitleRows.map((row) => row.text).join(" ").trim();
+  if (!collectionTitleText) {
+    return anchors;
+  }
+
+  const collectionBottomY = Math.min(...collectionTitleRows.map((row) => row.y));
+
+  return anchors.map((anchor) => {
+    const titleText = anchor.titleRows[0]?.text || anchor.titleText;
+    const metadataBelowCollection = anchor.metadataBlock.yTop < collectionBottomY - 80;
+
+    if (!metadataBelowCollection || !hasCollectionTitleAffinity(collectionTitleText, titleText)) {
+      return anchor;
+    }
+
+    return {
+      ...anchor,
+      collectionTitleRows,
+      collectionTitleText,
+    };
+  });
+}
+
+function selectCollectionTitleRows(page: PdfLayoutPage) {
+  const collectionRowIndex = page.rows.findIndex((row) => /\bCOLLECTION\b/i.test(row.text));
+  if (collectionRowIndex < 0) return [];
+
+  const collectionRow = page.rows[collectionRowIndex];
+  if (!collectionRow) return [];
+
+  const rows = [collectionRow];
+  for (let index = collectionRowIndex - 1; index >= 0; index -= 1) {
+    const candidate = page.rows[index];
+    if (!candidate) continue;
+    if (collectionRow.y - candidate.y > 48) break;
+    if (!isTitleLikeRow(candidate)) continue;
+    rows.unshift(candidate);
+    break;
+  }
+
+  return rows;
+}
+
+function normalizeLooseSearchValue(value: string) {
+  return value
+    .toLowerCase()
+    .replaceAll(/[’']/g, "")
+    .replaceAll(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function hasCollectionTitleAffinity(collectionTitle: string, title: string) {
+  const collectionTokens = tokenizeCollectionContext(collectionTitle);
+  const titleTokens = tokenizeCollectionContext(title);
+  if (collectionTokens.length === 0 || titleTokens.length === 0) return false;
+
+  const collectionSet = new Set(collectionTokens);
+  const sharedTokenCount = titleTokens.filter((token) => collectionSet.has(token)).length;
+  return sharedTokenCount >= Math.min(2, titleTokens.length);
+}
+
+function tokenizeCollectionContext(value: string) {
+  const ignoredTokens = new Set(["die", "der", "das", "grosse", "grosse", "gross", "collection"]);
+  return normalizeLooseSearchValue(value)
+    .split(/\s+/)
+    .filter((token) => token && !ignoredTokens.has(token));
 }
 
 function sliceRowToIssueCode(row: PdfLayoutRow, issueCode: string) {

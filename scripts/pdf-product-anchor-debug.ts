@@ -1,8 +1,20 @@
 import { readFileSync, writeFileSync } from "node:fs";
-import { extractPdfLayoutFromBuffer } from "../src/lib/server/pdf-layout-extract";
-import { analyzePreviewImportLayoutPages } from "../src/services/preview-import-layout";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+
+function stubServerOnlyModule() {
+  const serverOnlyPath = require.resolve("server-only");
+  require.cache[serverOnlyPath] = {
+    id: serverOnlyPath,
+    filename: serverOnlyPath,
+    loaded: true,
+    exports: {},
+  };
+}
 
 async function main() {
+  stubServerOnlyModule();
   const pdfPath = process.argv[2];
   const outputPath = process.argv[3] ?? "/tmp/pdf-product-anchor-debug.txt";
 
@@ -15,6 +27,11 @@ async function main() {
     fileBuffer.byteOffset,
     fileBuffer.byteOffset + fileBuffer.byteLength
   );
+
+  const [{ extractPdfLayoutFromBuffer }, { analyzePreviewImportLayoutPages }] = await Promise.all([
+    import("../src/lib/server/pdf-layout-extract"),
+    import("../src/services/preview-import-layout"),
+  ]);
 
   const layout = await extractPdfLayoutFromBuffer(arrayBuffer);
   const analyses = analyzePreviewImportLayoutPages(layout.pages);

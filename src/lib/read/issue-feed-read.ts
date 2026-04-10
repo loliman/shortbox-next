@@ -12,6 +12,7 @@ import {
   normalizeSortDirection,
   normalizeSortField,
   normalizeText,
+  pickIssuePreviewStorySource,
   pickPreferredIssueVariant,
   serializeNavbarIssue,
   serializePreviewIssue,
@@ -185,6 +186,65 @@ function createPreviewIssueInclude() {
   });
 }
 
+type PreviewIssueRow = Awaited<ReturnType<typeof prisma.issue.findMany>>[number];
+
+function buildIssueGroupKey(issue: { fkSeries?: bigint | null; number?: string | null }) {
+  if (!issue.fkSeries) return null;
+  const number = normalizeText(issue.number);
+  if (!number) return null;
+  return `${String(issue.fkSeries)}::${number}`;
+}
+
+async function serializeFeedPreviewIssues(rows: PreviewIssueRow[]) {
+  const groupKeys = Array.from(
+    new Set(rows.map((row) => buildIssueGroupKey(row)).filter((key): key is string => Boolean(key)))
+  );
+
+  let groupedVariantRows: PreviewIssueRow[] = [];
+  if (groupKeys.length > 0) {
+    const groupConditions = groupKeys
+      .map((groupKey) => {
+        const separatorIndex = groupKey.indexOf("::");
+        if (separatorIndex <= 0) return null;
+
+        const fkSeries = groupKey.slice(0, separatorIndex);
+        const number = groupKey.slice(separatorIndex + 2);
+        if (!fkSeries || !number) return null;
+
+        return {
+          fkSeries: BigInt(fkSeries),
+          number,
+        } satisfies Prisma.IssueWhereInput;
+      })
+      .filter((condition): condition is Prisma.IssueWhereInput => condition !== null);
+
+    if (groupConditions.length > 0) {
+      groupedVariantRows = await prisma.issue.findMany({
+        where: {
+          OR: groupConditions,
+        },
+        include: createPreviewIssueInclude(),
+      });
+    }
+  }
+
+  const groupedVariantsByKey = new Map<string, PreviewIssueRow[]>();
+  for (const groupedRow of groupedVariantRows) {
+    const groupKey = buildIssueGroupKey(groupedRow);
+    if (!groupKey) continue;
+    const existing = groupedVariantsByKey.get(groupKey) ?? [];
+    existing.push(groupedRow);
+    groupedVariantsByKey.set(groupKey, existing);
+  }
+
+  return rows.map((row) => {
+    const groupKey = buildIssueGroupKey(row);
+    const groupedVariants = groupKey ? groupedVariantsByKey.get(groupKey) ?? [row] : [row];
+    const storySourceIssue = pickIssuePreviewStorySource(groupedVariants, row);
+    return serializePreviewIssue(row, { storySourceIssue });
+  });
+}
+
 export async function readLastEditedIssues(
   filter: Filter | undefined,
   first: number | undefined,
@@ -227,7 +287,7 @@ export async function readLastEditedIssues(
     });
 
     const pageRows = rows.slice(0, limit);
-    const nodes = pageRows.map((row) => serializePreviewIssue(row));
+    const nodes = await serializeFeedPreviewIssues(pageRows);
     const connection = buildConnectionFromNodes(nodes);
     connection.pageInfo.hasNextPage = rows.length > limit;
     connection.pageInfo.endCursor = createFeedAnchorCursor(
@@ -247,7 +307,7 @@ export async function readLastEditedIssues(
   const sortedRows = sortLastEditedRows(rows, normalizeSortField(order), normalizeSortDirection(direction));
   const pageRows = sortedRows.slice(0, limit + 1);
   const hasNextPage = pageRows.length > limit;
-  const nodes = pageRows.slice(0, limit).map((row) => serializePreviewIssue(row));
+  const nodes = await serializeFeedPreviewIssues(pageRows.slice(0, limit));
   const connection = buildConnectionFromNodes(nodes);
   connection.pageInfo.hasNextPage = hasNextPage;
   return connection;

@@ -56,6 +56,7 @@ export const NestedRow = React.memo(function NestedRow(props: Readonly<NestedRow
               theme.palette.mode === "dark" ? theme.palette.primary.light : theme.palette.primary.main
             }`
           : "none",
+        color: "var(--mui-palette-text-primary)",
         "&:hover": props.selected
           ? {
               backgroundColor: alpha(
@@ -84,8 +85,10 @@ export const NestedRow = React.memo(function NestedRow(props: Readonly<NestedRow
           "&.Mui-selected": {
             backgroundColor: "transparent",
             boxShadow: "none",
+            color: "var(--mui-palette-text-primary)",
             ...theme.applyStyles("dark", {
               backgroundColor: "transparent",
+              color: "var(--mui-palette-text-primary)",
             }),
           },
           "&.Mui-selected:hover": {
@@ -162,18 +165,21 @@ const ExpandToggle = React.memo(function ExpandToggle(props: Readonly<ExpandTogg
   const Icon = props.expanded ? ExpandMoreIcon : ChevronRightIcon;
 
   return (
-    <ListItemIcon sx={{ minWidth: 32, justifyContent: "center" }}>
-      <IconButton
-        size="small"
-        aria-label={props.expanded ? "Einklappen" : "Ausklappen"}
-        onClick={(e) => {
-          e.stopPropagation();
-          props.onToggle();
-        }}
-      >
-        <Icon fontSize="small" />
-      </IconButton>
-    </ListItemIcon>
+      <ListItemIcon sx={{ minWidth: 32, justifyContent: "center" }}>
+        <IconButton
+          size="small"
+          aria-label={props.expanded ? "Einklappen" : "Ausklappen"}
+          onClick={(e) => {
+            e.stopPropagation();
+            props.onToggle();
+          }}
+          sx={{
+            color: "var(--mui-palette-text-primary)",
+          }}
+        >
+          <Icon fontSize="small" />
+        </IconButton>
+      </ListItemIcon>
   );
 });
 
