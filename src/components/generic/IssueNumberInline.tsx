@@ -30,12 +30,12 @@ export function IssueNumberInline(props: Readonly<IssueNumberInlineProps>) {
       {legacyLabel ? (
         <Box
           component="span"
-          sx={(theme) => ({
-            color: theme.palette.text.secondary,
+          sx={{
+            color: "text.secondary",
             fontSize: "0.85em",
             fontWeight: 400,
             whiteSpace: "nowrap",
-          })}
+          }}
         >
           {legacyLabel}
         </Box>
