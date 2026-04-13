@@ -12,6 +12,7 @@ import { getPreferredCoverUrl } from "../../generic/coverUrl";
 type IssueCoverProps = {
   issue: PreviewIssue;
   us: boolean;
+  embedded?: boolean;
 };
 
 export function IssueCover(props: Readonly<IssueCoverProps>) {
@@ -20,6 +21,7 @@ export function IssueCover(props: Readonly<IssueCoverProps>) {
   const [displayUrl, setDisplayUrl] = React.useState(coverUrl);
   const issueLabel = getIssueLabel(props.issue);
   const fallbackUrl = "/nocover.png";
+  const embedded = Boolean(props.embedded);
 
   React.useEffect(() => {
     setDisplayUrl(coverUrl);
@@ -33,13 +35,13 @@ export function IssueCover(props: Readonly<IssueCoverProps>) {
         sx={(theme) => ({
           width: "100%",
           height: "100%",
-          borderRadius: (theme) => `${Number(theme.shape.borderRadius) || 12}px`,
+          borderRadius: embedded ? 0 : `${Number(theme.shape.borderRadius) || 12}px`,
           overflow: "hidden",
           backgroundColor: theme.vars?.palette.background.paper ?? theme.palette.background.paper,
           backgroundImage:
             "linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(244,246,248,0.9) 100%)",
-          border: `1px solid ${theme.vars?.palette.divider ?? theme.palette.divider}`,
-          boxShadow: theme.shadows[2],
+          border: embedded ? "none" : `1px solid ${theme.vars?.palette.divider ?? theme.palette.divider}`,
+          boxShadow: embedded ? "none" : theme.shadows[2],
           cursor: "zoom-in",
           display: "block",
           transition:

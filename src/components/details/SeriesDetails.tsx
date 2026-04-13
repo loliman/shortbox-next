@@ -11,6 +11,8 @@ import type { SelectedRoot } from "../../types/domain";
 import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
 import type { SessionData } from "../../types/session";
 import type { PreviewIssue } from "../issue-preview/utils/issuePreviewUtils";
+import Box from "@mui/material/Box";
+import { detailsBackgroundSx } from "./detailsBackgroundSx";
 
 interface SeriesDetailsData {
   id?: string | number | null;
@@ -121,7 +123,7 @@ export default function SeriesDetails(props: Readonly<SeriesDetailsProps>) {
   };
 
   return (
-    <>
+    <Box sx={detailsBackgroundSx}>
       <CardHeader
         sx={{
           "& .MuiCardHeader-action": {
@@ -159,6 +161,6 @@ export default function SeriesDetails(props: Readonly<SeriesDetailsProps>) {
           showSort={false}
         />
       </CardContent>
-    </>
+    </Box>
   );
 }

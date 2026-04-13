@@ -20,6 +20,7 @@ interface IssueCoverGalleryClientProps {
   activeFormat?: string;
   activeVariant?: string;
   query?: Record<string, unknown> | null;
+  embedded?: boolean;
 }
 
 export function IssueCoverGalleryClient(props: Readonly<IssueCoverGalleryClientProps>) {
@@ -47,15 +48,16 @@ export function IssueCoverGalleryClient(props: Readonly<IssueCoverGalleryClientP
   return (
     <>
       <Box sx={{ display: { xs: "none", lg: "block" }, width: "100%" }}>
-        <IssueCoverGalleryFrame
-          us={props.us}
-          activeIssue={activeIssue}
-          activeIndex={activeIndex}
-          maxIndex={maxIndex}
-          issues={props.issues}
-          onNavigate={navigateToIssue}
-        />
-      </Box>
+            <IssueCoverGalleryFrame
+              us={props.us}
+              activeIssue={activeIssue}
+              activeIndex={activeIndex}
+              maxIndex={maxIndex}
+              issues={props.issues}
+              onNavigate={navigateToIssue}
+              embedded={props.embedded}
+            />
+          </Box>
 
       <Box sx={{ display: { xs: "block", lg: "none" }, width: "100%" }}>
         <Box sx={{ width: "100%", maxWidth: "min(100%, 480px)", mx: "auto", position: "relative" }}>
@@ -95,6 +97,7 @@ export function IssueCoverGalleryClient(props: Readonly<IssueCoverGalleryClientP
               maxIndex={maxIndex}
               issues={props.issues}
               onNavigate={navigateToIssue}
+              embedded={props.embedded}
             />
           </Collapse>
         </Box>
@@ -110,11 +113,12 @@ function IssueCoverGalleryFrame(props: Readonly<{
   maxIndex: number;
   issues: PreviewIssue[];
   onNavigate: (index: number) => void;
+  embedded?: boolean;
 }>) {
   return (
     <Box sx={{ position: "relative", width: "100%", paddingTop: "150%" }}>
       <Box sx={{ position: "absolute", inset: 0 }}>
-        <IssueCover us={props.us} issue={props.activeIssue} />
+        <IssueCover us={props.us} issue={props.activeIssue} embedded={props.embedded} />
       </Box>
 
       {props.issues.length > 1 ? (

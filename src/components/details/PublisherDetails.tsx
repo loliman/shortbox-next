@@ -12,6 +12,8 @@ import type { PreviewIssue } from "../issue-preview/utils/issuePreviewUtils";
 import type { Publisher, SelectedRoot } from "../../types/domain";
 import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
 import type { SessionData } from "../../types/session";
+import Box from "@mui/material/Box";
+import { detailsBackgroundSx } from "./detailsBackgroundSx";
 
 interface PublisherDetailsData extends Publisher {
   active?: boolean | null;
@@ -74,7 +76,7 @@ export default function PublisherDetails(props: Readonly<PublisherDetailsProps>)
         placeholderCount={1}
       />
     ) : (
-      <>
+      <Box sx={detailsBackgroundSx}>
         <CardHeader
           sx={{
             "& .MuiCardHeader-action": {
@@ -113,7 +115,7 @@ export default function PublisherDetails(props: Readonly<PublisherDetailsProps>)
             showSort={false}
           />
         </CardContent>
-      </>
+      </Box>
     )
   );
 }

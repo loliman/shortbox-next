@@ -7,6 +7,7 @@ import CardContent from "@mui/material/CardContent";
 import Paper from "@mui/material/Paper";
 import SnackbarContent from "@mui/material/SnackbarContent";
 import Typography from "@mui/material/Typography";
+import Divider from "@mui/material/Divider";
 import { generateIssueSubHeader } from "../../util/issues";
 import { generateLabel } from "../../lib/routes/hierarchy";
 import { isMockMode } from "../../app/mockMode";
@@ -29,6 +30,7 @@ import type { IssueDetailsSlotComponent } from "./issue-details/slotTypes";
 import DetailsHeaderActionBar from "./DetailsHeaderActionBar";
 import { buildIssueBreadcrumbStructuredData, buildIssueComicStructuredData } from "@/src/lib/routes/structured-data";
 import FilterSummaryBar from "../filter/FilterSummaryBar";
+import { detailsBackgroundSx } from "./detailsBackgroundSx";
 
 interface IssueDetailsProps {
   initialIssue?: unknown;
@@ -121,16 +123,23 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
   return (
     <Box
       key={loadedIssue.id || "issue-details"}
-      sx={{ width: "100%", display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}
+      sx={{
+        ...detailsBackgroundSx,
+        width: "100%",
+        display: "flex",
+        flexDirection: "column",
+        flex: 1,
+        minHeight: 0,
+      }}
     >
       {releaseDate && today < releaseDate ? (
         <SnackbarContent
           id="notVerifiedWarning"
           message="Diese Ausgabe ist noch nicht im Handel erhältlich und noch nicht vorab verifiziert worden. Die angezeigten Informationen weichen gegebenenfalls von den tatsächlichen Daten ab."
           sx={{
-            width: { xs: "calc(100% - 16px)", sm: "100%" },
-            mx: "auto",
-            borderRadius: { xs: 1, sm: 0 },
+            width: { sm: "100%" },
+              height: { sm: "auto" },
+            borderRadius: { sm: 0 },
           }}
         />
       ) : null}
@@ -388,7 +397,8 @@ function renderDetailsTable(
   issue: Issue,
   detailsComponent: IssueDetailsSlotComponent,
   query: RouteQuery | null | undefined,
-  us: boolean
+  us: boolean,
+  framed = true
 ): React.ReactNode {
   return (
     <Box sx={{ minWidth: 0 }}>
@@ -397,6 +407,7 @@ function renderDetailsTable(
         details={detailsComponent}
         query={query}
         us={us}
+        framed={framed}
       />
     </Box>
   );
@@ -425,7 +436,8 @@ function renderCoverGallery(
   coverGalleryIssues: PreviewIssue[],
   query: RouteQuery | null | undefined,
   selected: SelectedRoot,
-  us: boolean
+  us: boolean,
+  embedded = false
 ): React.ReactNode {
   return (
     <Box sx={{ minWidth: 0 }}>
@@ -435,8 +447,33 @@ function renderCoverGallery(
         activeFormat={selected.issue?.format ?? undefined}
         activeVariant={selected.issue?.variant ?? undefined}
         query={query}
+        embedded={embedded}
       />
     </Box>
+  );
+}
+
+function renderIssueSummaryCard(
+  coverGalleryIssues: PreviewIssue[],
+  issue: Issue,
+  detailsComponent: IssueDetailsSlotComponent,
+  query: RouteQuery | null | undefined,
+  selected: SelectedRoot,
+  us: boolean
+): React.ReactNode {
+  return (
+    <Paper
+      variant="outlined"
+      sx={{
+        overflow: "hidden",
+        borderRadius: 2,
+        boxShadow: 1,
+      }}
+    >
+      {renderCoverGallery(coverGalleryIssues, query, selected, us, true)}
+      <Divider />
+      {renderDetailsTable(issue, detailsComponent, query, us, false)}
+    </Paper>
   );
 }
 
@@ -445,9 +482,15 @@ function IssueDetailsMobileContent(props: Readonly<IssueDetailsContentProps>) {
     <Box sx={{ display: { xs: "flex", lg: "none" }, flexDirection: "column", gap: 2 }}>
       {renderVariantSection(props.issue, props.selected, props.session, props.us)}
       {renderAddInfo(props.issue)}
-      {renderCoverGallery(props.coverGalleryIssues, props.query, props.selected, props.us)}
+      {renderIssueSummaryCard(
+        props.coverGalleryIssues,
+        props.issue,
+        props.detailsComponent,
+        props.query,
+        props.selected,
+        props.us
+      )}
       {renderArcs(props.arcs, props.us)}
-      {renderDetailsTable(props.issue, props.detailsComponent, props.query, props.us)}
       {renderBottomSection(props.BottomComponent, props.issue, props.query, props.session, props.us)}
       {props.coverAttribution ? <Box>{props.coverAttribution}</Box> : null}
     </Box>
@@ -471,9 +514,15 @@ function IssueDetailsSecondaryColumn(
 ) {
   return (
     <>
-      {renderCoverGallery(props.coverGalleryIssues, props.query, props.selected, props.us)}
+      {renderIssueSummaryCard(
+        props.coverGalleryIssues,
+        props.issue,
+        props.detailsComponent,
+        props.query,
+        props.selected,
+        props.us
+      )}
       {renderArcs(props.arcs, props.us)}
-      {renderDetailsTable(props.issue, props.detailsComponent, props.query, props.us)}
       {props.coverAttribution ? <Box>{props.coverAttribution}</Box> : null}
     </>
   );

@@ -74,11 +74,9 @@ export function createSeriesLabel(seriesNode: SeriesNode): string {
 
 export function createIssueSeriesLabel(issueNode: IssueNode, us: boolean): string {
   const seriesTitle = issueNode.series?.title || "";
-  const variant = getIssueNodeVariant(issueNode);
-  const variantLabel = variant ? ` [${variant}]` : "";
   if (us) return seriesTitle;
-  if (issueNode.title && issueNode.title !== "") return `${issueNode.title}${variantLabel}`;
-  return `${seriesTitle}${variantLabel}`;
+  if (issueNode.title && issueNode.title !== "") return issueNode.title;
+  return seriesTitle;
 }
 
 export function createSidebarIssueLabel(issueNode: IssueNode, us: boolean): string {
