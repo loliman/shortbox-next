@@ -118,8 +118,15 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
           position: "relative",
           transition: "transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease",
           opacity: isNavigating ? 0.76 : 1,
+          "&:hover": {
+            transform: "translateY(-2px)",
+            boxShadow: theme.shadows[6],
+          },
           ...theme.applyStyles("dark", {
             backgroundImage: darkBackgroundImage,
+            "&:hover": {
+              boxShadow: theme.shadows[8],
+            },
           }),
         })}
       >
