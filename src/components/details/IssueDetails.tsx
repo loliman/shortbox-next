@@ -108,6 +108,7 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
   const comicIssueJsonLd = buildIssueComicStructuredData(issueForVariants, us ? "us" : "de");
   const coverGalleryIssues = buildCoverGalleryIssues(issueForVariants);
   const coverAttribution = buildCoverAttribution(issueForVariants, us);
+  const activeIssueForActions = resolveActiveIssueForActions(issueForVariants, props.selected);
   const desktopColumnScrollSx = {
     minWidth: 0,
     minHeight: 0,
@@ -179,8 +180,8 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
         subheader={props.subheader ? generateIssueSubHeader(loadedIssue) : ""}
         action={
           <DetailsHeaderActionBar
-            id={loadedIssue.id ?? undefined}
-            item={loadedIssue}
+            id={activeIssueForActions.id ?? loadedIssue.id ?? undefined}
+            item={activeIssueForActions}
             query={props.query}
             selected={props.selected}
             session={props.session}
@@ -547,6 +548,20 @@ function buildCoverGalleryIssues(issue: Issue): PreviewIssue[] {
   }
 
   return gallery.length > 0 ? gallery : [issue as unknown as PreviewIssue];
+}
+
+function resolveActiveIssueForActions(issue: Issue, selected: SelectedRoot): Issue {
+  const selectedKey = buildIssueVariantKey({
+    format: selected.issue?.format ?? null,
+    variant: selected.issue?.variant ?? null,
+  });
+  if (!selectedKey) return issue;
+
+  const matchingVariant = (issue.variants || []).find((candidate) =>
+    Boolean(candidate) && buildIssueVariantKey(candidate as { format?: string | null; variant?: string | null }) === selectedKey
+  ) as Issue | undefined;
+
+  return matchingVariant ?? issue;
 }
 
 function toIssueWithMockVariants(issue: Issue): Issue {
