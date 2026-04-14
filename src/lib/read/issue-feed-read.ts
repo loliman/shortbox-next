@@ -145,14 +145,39 @@ function createPreviewIssueInclude() {
       },
     },
     stories: {
+      orderBy: [{ number: "asc" }, { id: "asc" }],
       include: {
         parent: {
           select: {
             id: true,
             collectedMultipleTimes: true,
+            issue: {
+              select: {
+                comicGuideId: true,
+                covers: {
+                  orderBy: [{ number: "asc" }, { id: "asc" }],
+                  take: 1,
+                  select: {
+                    url: true,
+                  },
+                },
+              },
+            },
             children: {
               select: {
                 id: true,
+              },
+            },
+          },
+        },
+        issue: {
+          select: {
+            comicGuideId: true,
+            covers: {
+              orderBy: [{ number: "asc" }, { id: "asc" }],
+              take: 1,
+              select: {
+                url: true,
               },
             },
           },
@@ -170,6 +195,18 @@ function createPreviewIssueInclude() {
         reprint: {
           select: {
             id: true,
+            issue: {
+              select: {
+                comicGuideId: true,
+                covers: {
+                  orderBy: [{ number: "asc" }, { id: "asc" }],
+                  take: 1,
+                  select: {
+                    url: true,
+                  },
+                },
+              },
+            },
           },
         },
         reprintedBy: {
@@ -186,7 +223,9 @@ function createPreviewIssueInclude() {
   });
 }
 
-type PreviewIssueRow = Awaited<ReturnType<typeof prisma.issue.findMany>>[number];
+type PreviewIssueRow = Prisma.IssueGetPayload<{
+  include: ReturnType<typeof createPreviewIssueInclude>;
+}>;
 
 function buildIssueGroupKey(issue: { fkSeries?: bigint | null; number?: string | null }) {
   if (!issue.fkSeries) return null;
@@ -216,7 +255,7 @@ async function serializeFeedPreviewIssues(rows: PreviewIssueRow[]) {
           number,
         } satisfies Prisma.IssueWhereInput;
       })
-      .filter((condition): condition is Prisma.IssueWhereInput => condition !== null);
+      .filter((condition): condition is { fkSeries: bigint; number: string } => condition !== null);
 
     if (groupConditions.length > 0) {
       groupedVariantRows = await prisma.issue.findMany({

@@ -26,7 +26,15 @@ interface StoryLike {
 
 interface CoverLike {
   url?: string | null;
+  cover?: { url?: string | null } | null;
+  comicguideid?: string | number | null;
 }
+
+export type IssuePreviewCover = {
+  coverUrl: string;
+  blurCover: boolean;
+  source: "actual" | "original-story" | "fallback";
+};
 
 export type PreviewIssue = {
   id?: string | number | null;
@@ -37,6 +45,7 @@ export type PreviewIssue = {
   verified?: boolean | null;
   stories?: Array<StoryLike | null> | null;
   cover?: CoverLike | null;
+  originalStoryCover?: CoverLike | null;
   collected?: boolean | null;
   format?: string | null;
   variant?: string | null;
@@ -75,11 +84,20 @@ export function getIssueVariantLabel(issue: PreviewIssue): string {
   return variant;
 }
 
-export function getIssuePreviewCover(issue: PreviewIssue): { coverUrl: string; blurCover: boolean } {
+export function getIssuePreviewCover(issue: PreviewIssue): IssuePreviewCover {
   const coverUrl = getPreferredCoverUrl(issue);
-  if (coverUrl) return { coverUrl, blurCover: false };
+  if (coverUrl) return { coverUrl, blurCover: false, source: "actual" };
 
-  return { coverUrl: "", blurCover: false };
+  const originalStoryCoverUrl = issue.originalStoryCover ? getPreferredCoverUrl(issue.originalStoryCover) : "";
+  if (originalStoryCoverUrl) {
+    return {
+      coverUrl: originalStoryCoverUrl,
+      blurCover: false,
+      source: "original-story",
+    };
+  }
+
+  return { coverUrl: "", blurCover: false, source: "fallback" };
 }
 
 export function getIssuePreviewBorderRadius(

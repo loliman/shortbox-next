@@ -10,6 +10,7 @@ import Skeleton from "@mui/material/Skeleton";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import CircularProgress from "@mui/material/CircularProgress";
+import Chip from "@mui/material/Chip";
 import { useResolvedImageUrl } from "../generic/useResolvedImageUrl";
 import { useNearViewport } from "../generic/useNearViewport";
 import { buildRouteHref } from "../generic/routeHref";
@@ -40,7 +41,7 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
   const us = Boolean(props.us);
   const hasSession = Boolean(props.session);
   const variant = getIssueVariantLabel(props.issue);
-  const { coverUrl } = getIssuePreviewCover(props.issue);
+  const { coverUrl, source } = getIssuePreviewCover(props.issue);
   const candidateCoverUrl = coverUrl?.trim() ? coverUrl : NO_COVER_URL;
   const { isNearViewport, setElement } = useNearViewport();
   const { resolvedUrl: effectiveCoverUrl, isLoading: isCoverLoading } = useResolvedImageUrl(
@@ -49,6 +50,7 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
     { enabled: isNearViewport }
   );
   const usesFallbackCover = effectiveCoverUrl === NO_COVER_URL;
+  const showsOriginalStoryCover = source === "original-story" && !usesFallbackCover;
   const flags = getIssuePreviewFlags(props.issue, us, hasSession);
   const url = buildRouteHref(getIssueUrl(props.issue, us), props.query);
   const { isNavigating, handleClick } = usePreviewNavigation(url);
@@ -67,6 +69,11 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
       "linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)), linear-gradient(110deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.14) 50%, rgba(0, 0, 0, 0.04) 75%)";
   } else if (usesFallbackCover) {
     lightBackgroundImage = `linear-gradient(rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.22)), linear-gradient(to right, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.58) 40%, rgba(255, 255, 255, 0.08) 100%), url(${NO_COVER_URL})`;
+  } else if (showsOriginalStoryCover) {
+    lightBackgroundImage =
+      "linear-gradient(rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0.52)), linear-gradient(to right, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.72) 40%, rgba(255, 255, 255, 0.18) 100%), url(" +
+      effectiveCoverUrl +
+      ")";
   }
   let borderLeftColorKey = "divider";
   if (accentKey === "success") {
@@ -83,6 +90,11 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
       "linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), linear-gradient(110deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.04) 75%)";
   } else if (usesFallbackCover) {
     darkBackgroundImage = `linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), linear-gradient(to right, rgba(0, 0, 0, 0.84) 0%, rgba(0, 0, 0, 0.54) 40%, rgba(0, 0, 0, 0.08) 100%), url(${NO_COVER_URL})`;
+  } else if (showsOriginalStoryCover) {
+    darkBackgroundImage =
+      "linear-gradient(rgba(0, 0, 0, 0.46), rgba(0, 0, 0, 0.46)), linear-gradient(to right, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.68) 40%, rgba(0, 0, 0, 0.18) 100%), url(" +
+      effectiveCoverUrl +
+      ")";
   }
 
   return (
@@ -164,6 +176,31 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
           >
             <CircularProgress size={26} />
           </Box>
+        ) : null}
+        {showsOriginalStoryCover ? (
+          <Chip
+            label="Vorläufiges Cover"
+            size="small"
+            sx={(theme) => ({
+              position: "absolute",
+              top: 10,
+              right: 10,
+              zIndex: 1,
+              height: 22,
+              borderRadius: "6px",
+              fontWeight: 700,
+              backdropFilter: "blur(8px)",
+              backgroundColor: "rgba(255,255,255,0.88)",
+              color: "text.primary",
+              "& .MuiChip-label": {
+                px: 1,
+              },
+              ...theme.applyStyles("dark", {
+                backgroundColor: "rgba(17,17,17,0.82)",
+                color: "#fff",
+              }),
+            })}
+          />
         ) : null}
       </Card>
     </Box>

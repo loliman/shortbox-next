@@ -10,6 +10,7 @@ import Skeleton from "@mui/material/Skeleton";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import CircularProgress from "@mui/material/CircularProgress";
+import Chip from "@mui/material/Chip";
 import { useResolvedImageUrl } from "../generic/useResolvedImageUrl";
 import { useNearViewport } from "../generic/useNearViewport";
 import { buildRouteHref } from "../generic/routeHref";
@@ -38,7 +39,7 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
   const us = Boolean(props.us);
   const hasSession = Boolean(props.session);
   const variant = getIssueVariantLabel(props.issue);
-  const { coverUrl } = getIssuePreviewCover(props.issue);
+  const { coverUrl, source } = getIssuePreviewCover(props.issue);
   const candidateCoverUrl = coverUrl?.trim() ? coverUrl : NO_COVER_URL;
   const { isNearViewport, setElement } = useNearViewport();
   const { resolvedUrl: effectiveCoverUrl, isLoading: isCoverLoading } = useResolvedImageUrl(
@@ -47,6 +48,7 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
     { enabled: isNearViewport }
   );
   const usesFallbackCover = effectiveCoverUrl === NO_COVER_URL;
+  const showsOriginalStoryCover = source === "original-story" && !usesFallbackCover;
   const flags = getIssuePreviewFlags(props.issue, us, hasSession);
   const url = buildRouteHref(getIssueUrl(props.issue, us), props.query);
   const issueLabel = getIssueLabel(props.issue);
@@ -81,6 +83,22 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
             "linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0) 45%)",
         }
       : undefined;
+  const provisionalCoverOverlay = showsOriginalStoryCover
+    ? {
+        content: '""',
+        position: "absolute",
+        inset: 0,
+        background:
+          "linear-gradient(rgba(255,255,255,0.28), rgba(255,255,255,0.28)), linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.02) 52%)",
+        pointerEvents: "none",
+      }
+    : coverOverlay;
+  const provisionalDarkCoverOverlay = showsOriginalStoryCover
+    ? {
+        background:
+          "linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.01) 52%)",
+      }
+    : darkCoverOverlay;
 
   return (
     <Card
@@ -136,7 +154,7 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
                 "0%": { backgroundPosition: "220% 0" },
                 "100%": { backgroundPosition: "-20% 0" },
               },
-              "&::after": coverOverlay,
+              "&::after": provisionalCoverOverlay,
               "&::before": {
                 content: '""',
                 position: "absolute",
@@ -150,13 +168,38 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
               ...theme.applyStyles("dark", {
                 backgroundColor: "rgba(0, 0, 0, 0.3)",
                 backgroundImage: darkBackgroundImage,
-                "&::after": darkCoverOverlay,
+                "&::after": provisionalDarkCoverOverlay,
                 "&::before": {
                   mixBlendMode: "screen",
                 },
               }),
             })}
           >
+            {showsOriginalStoryCover ? (
+              <Chip
+                label="Vorläufiges Cover"
+                size="small"
+                sx={(theme) => ({
+                  position: "absolute",
+                  top: 10,
+                  right: 10,
+                  zIndex: 1,
+                  height: 22,
+                  borderRadius: "6px",
+                  fontWeight: 700,
+                  backdropFilter: "blur(8px)",
+                  backgroundColor: "rgba(255,255,255,0.88)",
+                  color: "text.primary",
+                  "& .MuiChip-label": {
+                    px: 1,
+                  },
+                  ...theme.applyStyles("dark", {
+                    backgroundColor: "rgba(17,17,17,0.82)",
+                    color: "#fff",
+                  }),
+                })}
+              />
+            ) : null}
             <Box
               sx={{
                 position: "absolute",

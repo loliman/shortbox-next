@@ -3,6 +3,11 @@ import type { Issue } from "../../types/domain";
 
 type SortDirection = "asc" | "desc";
 
+type CoverReference = {
+  cover?: { url?: string | null } | null;
+  comicguideid?: string | number | null;
+};
+
 const ALLOWED_LAST_EDITED_SORT_FIELDS = new Set([
   "updatedat",
   "createdat",
@@ -229,6 +234,46 @@ export function pickIssuePreviewStorySource<
   return storyBearingVariant ?? currentIssue ?? groupedIssues[0] ?? null;
 }
 
+function serializeCoverReference(issue: {
+  comicGuideId?: bigint | number | string | null;
+  covers?: Array<{ url?: string | null }> | null;
+} | null | undefined): CoverReference | null {
+  if (!issue) return null;
+
+  const comicGuideId = issue.comicGuideId == null ? null : String(issue.comicGuideId);
+  const coverUrl = issue.covers?.[0]?.url || null;
+  if (!coverUrl && !comicGuideId) return null;
+
+  return {
+    comicguideid: comicGuideId,
+    cover: coverUrl ? { url: coverUrl } : null,
+  };
+}
+
+export function pickFirstOriginalStoryCoverReference(stories: Array<{
+  parent?: {
+    issue?: {
+      comicGuideId?: bigint | number | string | null;
+      covers?: Array<{ url?: string | null }> | null;
+    } | null;
+  } | null;
+  reprint?: {
+    issue?: {
+      comicGuideId?: bigint | number | string | null;
+      covers?: Array<{ url?: string | null }> | null;
+    } | null;
+  } | null;
+} | null> | null | undefined): CoverReference | null {
+  for (const story of stories || []) {
+    const originalReference = serializeCoverReference(story?.parent?.issue ?? story?.reprint?.issue ?? null);
+    const coverUrl = normalizeText(originalReference?.cover?.url);
+    const comicGuideId = normalizeText(originalReference?.comicguideid);
+    if (coverUrl || comicGuideId) return originalReference;
+  }
+
+  return null;
+}
+
 export function serializePreviewIssue(issue: {
   id: bigint;
   comicGuideId: bigint | null;
@@ -247,9 +292,10 @@ export function serializePreviewIssue(issue: {
     onlyOnePrint: boolean;
     onlyTb: boolean;
     collectedMultipleTimes: boolean;
-    reprint: { id: bigint } | null;
+    reprint: { id: bigint; issue?: { comicGuideId: bigint | null; covers: Array<{ url: string | null }> } | null } | null;
     reprintedBy: Array<{ id: bigint }>;
     parent: {
+      issue?: { comicGuideId: bigint | null; covers: Array<{ url: string | null }> } | null;
       children: Array<{ id: bigint }>;
       collectedMultipleTimes: boolean;
     } | null;
@@ -277,9 +323,10 @@ export function serializePreviewIssue(issue: {
       onlyOnePrint: boolean;
       onlyTb: boolean;
       collectedMultipleTimes: boolean;
-      reprint: { id: bigint } | null;
+      reprint: { id: bigint; issue?: { comicGuideId: bigint | null; covers: Array<{ url: string | null }> } | null } | null;
       reprintedBy: Array<{ id: bigint }>;
       parent: {
+        issue?: { comicGuideId: bigint | null; covers: Array<{ url: string | null }> } | null;
         children: Array<{ id: bigint }>;
         collectedMultipleTimes: boolean;
       } | null;
@@ -292,6 +339,7 @@ export function serializePreviewIssue(issue: {
 }): Issue {
   const storySourceIssue = options?.storySourceIssue ?? issue;
   const stories = Array.isArray(storySourceIssue?.stories) ? storySourceIssue.stories : [];
+  const originalStoryCover = pickFirstOriginalStoryCoverReference(stories);
 
   return {
     id: String(issue.id),
@@ -308,6 +356,7 @@ export function serializePreviewIssue(issue: {
           url: issue.covers[0].url || null,
         }
       : null,
+    originalStoryCover,
     stories: stories.map((story) => ({
       onlyapp: story.onlyApp,
       firstapp: story.firstApp,
