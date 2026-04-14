@@ -551,17 +551,25 @@ function buildCoverGalleryIssues(issue: Issue): PreviewIssue[] {
 }
 
 function resolveActiveIssueForActions(issue: Issue, selected: SelectedRoot): Issue {
+  const hasExplicitVariantSelection = Boolean(selected.issue?.format) || Boolean(selected.issue?.variant);
+  if (!hasExplicitVariantSelection) return issue;
+
   const selectedKey = buildIssueVariantKey({
     format: selected.issue?.format ?? null,
     variant: selected.issue?.variant ?? null,
   });
-  if (!selectedKey) return issue;
 
   const matchingVariant = (issue.variants || []).find((candidate) =>
     Boolean(candidate) && buildIssueVariantKey(candidate as { format?: string | null; variant?: string | null }) === selectedKey
   ) as Issue | undefined;
 
-  return matchingVariant ?? issue;
+  if (!matchingVariant) return issue;
+
+  return {
+    ...issue,
+    ...matchingVariant,
+    series: matchingVariant.series ?? issue.series,
+  };
 }
 
 function toIssueWithMockVariants(issue: Issue): Issue {
