@@ -21,7 +21,7 @@ import type { VariantIssue } from "./issue-details/variants/types";
 import { IssueDetailsPreview } from "./issue-details/preview/IssueDetailsPreview";
 import { DetailsTable } from "./issue-details/DetailsTable";
 import type { PreviewIssue } from "../issue-preview/utils/issuePreviewUtils";
-import { collectIssueArcs, getTodayLocalDate } from "./issue-details/utils/issueDetailsUtils";
+import { buildIssueVariantKey, collectIssueArcs, getTodayLocalDate } from "./issue-details/utils/issueDetailsUtils";
 import { generateComicGuideUrl, generateMarvelDbUrl } from "./issue-details/utils/externalLinks";
 import { IssueCoverGalleryClient } from "./issue-details/IssueCoverGalleryClient";
 import type { SessionData } from "../../types/session";
