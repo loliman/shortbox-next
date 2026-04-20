@@ -34,9 +34,9 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@mui/icons-material": "7.3.9",
-    "@mui/material": "7.3.9",
-    "@mui/material-nextjs": "^7.3.9",
+    "@mui/icons-material": "9.0.0",
+    "@mui/material": "9.0.0",
+    "@mui/material-nextjs": "^9.0.0",
     "@prisma/adapter-pg": "^7.6.0",
     "@prisma/client": "^7.6.0",
     "cheerio": "^1.2.0",
