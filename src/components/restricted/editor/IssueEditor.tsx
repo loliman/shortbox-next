@@ -40,23 +40,7 @@ function normalizeIssueEditorValues(
   const source = value || defaults;
 
   return {
-    ...defaults,
-    ...source,
     title: readTextValue(source.title),
-    number: readTextValue(source.number),
-    variant: readTextValue(source.variant),
-    format: readTextValue(source.format) || defaults.format,
-    limitation: readTextValue(source.limitation),
-    releasedate: readTextValue(source.releasedate),
-    price: source.price == null ? "" : String(source.price),
-    currency: readTextValue(source.currency),
-    addinfo: readTextValue(source.addinfo),
-    isbn: readTextValue(source.isbn),
-    copyBatch: {
-      enabled: Boolean(source.copyBatch?.enabled),
-      count: source.copyBatch?.count ?? defaults.copyBatch.count,
-      prefix: readTextValue(source.copyBatch?.prefix),
-    },
     series: {
       ...defaults.series,
       ...source.series,
@@ -69,9 +53,26 @@ function normalizeIssueEditorValues(
         us: Boolean(source.series?.publisher?.us),
       },
     },
+    number: readTextValue(source.number),
+    variant: readTextValue(source.variant),
+    cover: source.cover ?? defaults.cover,
+    format: readTextValue(source.format) || defaults.format,
+    limitation: readTextValue(source.limitation),
+    pages: source.pages ?? defaults.pages,
+    releasedate: readTextValue(source.releasedate),
+    price: source.price == null ? "" : String(source.price),
+    currency: readTextValue(source.currency),
     individuals: Array.isArray(source.individuals) ? source.individuals : [],
+    addinfo: readTextValue(source.addinfo),
+    comicguideid: source.comicguideid,
+    isbn: readTextValue(source.isbn),
     arcs: Array.isArray(source.arcs) ? source.arcs : [],
     stories: Array.isArray(source.stories) ? source.stories : [],
+    copyBatch: {
+      enabled: Boolean(source.copyBatch?.enabled),
+      count: source.copyBatch?.count ?? defaults.copyBatch.count,
+      prefix: readTextValue(source.copyBatch?.prefix),
+    },
   };
 }
 

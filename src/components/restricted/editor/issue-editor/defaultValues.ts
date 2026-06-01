@@ -143,13 +143,20 @@ function buildMergedIssueEditorValues(values: Record<string, unknown>): IssueEdi
 
   return {
     ...defaults,
-    ...values,
+    title: readTextValue(values.title),
     series,
     cover: values.cover || "",
+    number: readTextValue(values.number),
+    variant: readTextValue(values.variant),
+    format: readTextValue(values.format) || defaults.format,
+    limitation: readTextValue(values.limitation),
     pages: Number(values.pages || 0),
+    releasedate: readTextValue(values.releasedate) || defaults.releasedate,
+    price: readTextValue(values.price) || defaults.price,
+    currency: readTextValue(values.currency) || defaults.currency,
+    addinfo: readTextValue(values.addinfo),
     comicguideid: Number(values.comicguideid || 0),
     isbn: readTextValue(values.isbn),
-    limitation: readTextValue(values.limitation),
     individuals: asArray(values.individuals as Array<Record<string, unknown>>).map((individual) => ({
       name: individual.name,
       type: individual.type,
