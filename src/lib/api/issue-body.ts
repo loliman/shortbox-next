@@ -20,8 +20,27 @@ const EditIssueBodySchema = Yup.object({
   item: IssueSchema.required("Ausgabe wird benötigt"),
 });
 
+const DeleteIssueLookupSchema = Yup.object({
+  id: Yup.mixed<string | number>().optional(),
+  number: Yup.string().required("Pflichtfeld").max(255, "Maximal 255 Zeichen"),
+  format: Yup.string().max(255, "Maximal 255 Zeichen"),
+  variant: Yup.string().max(255, "Maximal 255 Zeichen"),
+  series: Yup.object({
+    title: Yup.string().required("Pflichtfeld").max(255, "Maximal 255 Zeichen"),
+    volume: Yup.number()
+      .typeError("Bitte geben Sie eine Zahl ein")
+      .required("Pflichtfeld")
+      .min(1, "Das Volume muss größer 0 sein")
+      .integer("Bitte geben Sie eine Zahl ein"),
+    publisher: Yup.object({
+      name: Yup.string().required("Pflichtfeld").max(255, "Maximal 255 Zeichen"),
+      us: Yup.boolean().optional(),
+    }).required("Verlag wird benötigt"),
+  }).required("Serie wird benötigt"),
+});
+
 const DeleteIssueBodySchema = Yup.object({
-  item: IssueSchema.required("Ausgabe wird benötigt"),
+  item: DeleteIssueLookupSchema.required("Ausgabe wird benötigt"),
 });
 
 export async function validateCreateIssueBody(rawBody: unknown) {
