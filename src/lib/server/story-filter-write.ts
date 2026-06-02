@@ -355,6 +355,68 @@ async function updateStoryFilterFlagsForParents(parentStoryIds: Iterable<number>
   }
 }
 
+type IssueAggregateStoryShape = {
+  firstApp: boolean;
+  onlyApp: boolean;
+  onlyTb: boolean;
+  otherOnlyTb: boolean;
+  onlyOnePrint: boolean;
+  fkParent: bigint | null;
+};
+
+export type IssueFilterAggregates = {
+  hasFirstPrint: boolean;
+  hasOnlyPrint: boolean;
+  hasOnlyTb: boolean;
+  hasExclusiveStory: boolean;
+  isReprintOnly: boolean;
+  hasOtherOnlyTb: boolean;
+  hasPrintStory: boolean;
+  hasOnlyOnePrint: boolean;
+};
+
+export function deriveIssueAggregatesFromStories(
+  stories: ReadonlyArray<IssueAggregateStoryShape>
+): IssueFilterAggregates {
+  return {
+    hasFirstPrint: stories.some((story) => story.firstApp),
+    hasOnlyPrint: stories.some((story) => story.onlyApp),
+    hasOnlyTb: stories.some((story) => story.onlyTb),
+    hasExclusiveStory: stories.some((story) => story.fkParent == null),
+    isReprintOnly: stories.length > 0 && stories.every((story) => !story.firstApp),
+    hasOtherOnlyTb: stories.some((story) => story.otherOnlyTb),
+    hasPrintStory: stories.some((story) => story.firstApp || story.onlyApp),
+    hasOnlyOnePrint: stories.some((story) => story.onlyOnePrint),
+  };
+}
+
+async function persistIssueFilterAggregates(
+  numericIssueId: number,
+  publisherId: bigint | null
+): Promise<void> {
+  const stories = await prisma.story.findMany({
+    where: { fkIssue: BigInt(numericIssueId) },
+    select: {
+      firstApp: true,
+      onlyApp: true,
+      onlyTb: true,
+      otherOnlyTb: true,
+      onlyOnePrint: true,
+      fkParent: true,
+    },
+  });
+
+  const aggregates = deriveIssueAggregatesFromStories(stories);
+
+  await prisma.issue.update({
+    where: { id: BigInt(numericIssueId) },
+    data: {
+      ...aggregates,
+      fkPublisher: publisherId,
+    },
+  });
+}
+
 export async function updateStoryFilterFlagsForIssue(issueId: number): Promise<void> {
   const numericIssueId = toPositiveInt(issueId);
   if (numericIssueId == null) return;
@@ -367,6 +429,7 @@ export async function updateStoryFilterFlagsForIssue(issueId: number): Promise<v
         select: {
           publisher: {
             select: {
+              id: true,
               original: true,
             },
           },
@@ -376,6 +439,7 @@ export async function updateStoryFilterFlagsForIssue(issueId: number): Promise<v
   });
 
   const isUsIssue = Boolean(issue?.series?.publisher?.original);
+  const publisherId = issue?.series?.publisher?.id ?? null;
 
   const stories = await prisma.story.findMany({
     where: { fkIssue: BigInt(numericIssueId) },
@@ -391,4 +455,8 @@ export async function updateStoryFilterFlagsForIssue(issueId: number): Promise<v
         .filter((id): id is number => id != null);
 
   await updateStoryFilterFlagsForParents(parentIds);
+
+  if (issue != null) {
+    await persistIssueFilterAggregates(numericIssueId, publisherId);
+  }
 }

@@ -93,9 +93,21 @@ model Series {
   fkPublisher BigInt?  @map("fk_publisher") @db.BigInt
   publisher   Publisher? @relation(fields: [fkPublisher], references: [id], onDelete: NoAction, onUpdate: NoAction)
   issues      Issue[]
+  genres      SeriesGenre[]
 
   @@index([fkPublisher], map: "idx_series_fk_publisher")
   @@map("series")
+  @@schema("shortbox")
+}
+
+model SeriesGenre {
+  id       BigInt @id @default(autoincrement()) @db.BigInt
+  fkSeries BigInt @map("fk_series") @db.BigInt
+  genre    String @db.VarChar(255)
+  series   Series @relation(fields: [fkSeries], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([fkSeries], map: "idx_series_genre_fk_series")
+  @@map("series_genre")
   @@schema("shortbox")
 }
 
@@ -164,7 +176,19 @@ model Issue {
   collected     Boolean?
   isbn          String?           @db.VarChar(255)
   legacyNumber  String            @default("") @map("legacy_number") @db.VarChar(255)
+  numberNumeric       Decimal? @map("number_numeric") @db.Decimal
+  legacyNumberNumeric Decimal? @map("legacy_number_numeric") @db.Decimal
+  fkPublisher       BigInt?  @map("fk_publisher") @db.BigInt
+  hasFirstPrint     Boolean  @default(false) @map("has_first_print")
+  hasOnlyPrint      Boolean  @default(false) @map("has_only_print")
+  hasOnlyTb         Boolean  @default(false) @map("has_only_tb")
+  hasExclusiveStory Boolean  @default(false) @map("has_exclusive_story")
+  isReprintOnly     Boolean  @default(false) @map("is_reprint_only")
+  hasOtherOnlyTb    Boolean  @default(false) @map("has_other_only_tb")
+  hasPrintStory     Boolean  @default(false) @map("has_print_story")
+  hasOnlyOnePrint   Boolean  @default(false) @map("has_only_one_print")
   series        Series?           @relation(fields: [fkSeries], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  publisher     Publisher?        @relation(fields: [fkPublisher], references: [id], onDelete: NoAction, onUpdate: NoAction)
   stories       Story[]
   arcs          IssueArc[]
   individuals   IssueIndividual[]
@@ -172,6 +196,7 @@ model Issue {
 
   @@index([fkSeries], map: "idx_issue_fk_series")
   @@index([fkSeries, number, format, variant], map: "idx_issue_series_number_format_variant")
+  @@index([fkPublisher], map: "idx_issue_fk_publisher")
   @@map("issue")
   @@schema("shortbox")
 }
@@ -215,6 +240,7 @@ model Publisher {
   startYear BigInt   @default(0) @map("startyear") @db.BigInt
   endYear   BigInt?  @default(0) @map("endyear") @db.BigInt
   series    Series[]
+  issues    Issue[]
 
   @@map("publisher")
   @@schema("shortbox")

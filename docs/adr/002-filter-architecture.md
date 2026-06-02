@@ -38,3 +38,6 @@ Filter logic is split into layers:
 
 ### Negative
 - some existing files still mix responsibilities and will need gradual cleanup
+
+## See also
+- ADR 005: Filter Materialization — materializes the derived facts that drive the print-flag, genre, and group-aware uncollected filters, moving the corresponding logic from `filter-service.ts` (JS predicates) into `filter-read.ts` (Prisma WHERE).

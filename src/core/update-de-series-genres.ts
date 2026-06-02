@@ -39,6 +39,7 @@ export type UpdateDeSeriesGenresReport = {
   updatedSeries: number;
   unchangedSeries: number;
   clearedSeries: number;
+  syncedGenreRows: number;
   sampleChanges: UpdateDeSeriesGenresChange[];
 };
 
@@ -137,6 +138,7 @@ export async function runUpdateDeSeriesGenres(
     let updatedSeries = 0;
     let unchangedSeries = 0;
     let clearedSeries = 0;
+    let syncedGenreRows = 0;
     const sampleChanges: UpdateDeSeriesGenresChange[] = [];
 
     for (const deSeriesRow of deSeries) {
@@ -144,7 +146,8 @@ export async function runUpdateDeSeriesGenres(
       if (seriesId <= 0) continue;
 
       const currentGenre = normalizeGenreString(deSeriesRow.genre);
-      const nextGenre = serializeGenreTokens(genresByDeSeriesId.get(seriesId) || []);
+      const tokens = toUniqueSortedTokens(genresByDeSeriesId.get(seriesId) || []);
+      const nextGenre = tokens.join(", ");
 
       if (nextGenre.length > 0) mappedDeSeries += 1;
 
@@ -161,11 +164,24 @@ export async function runUpdateDeSeriesGenres(
       }
 
       if (!dryRun) {
-        await prisma.$executeRaw(Prisma.sql`
-          UPDATE shortbox.series
-          SET genre = ${nextGenre}
-          WHERE id = ${seriesId}
-        `);
+        await prisma.$transaction(async (tx) => {
+          await tx.$executeRaw(Prisma.sql`
+            UPDATE shortbox.series
+            SET genre = ${nextGenre}
+            WHERE id = ${seriesId}
+          `);
+          await tx.$executeRaw(Prisma.sql`
+            DELETE FROM shortbox.series_genre
+            WHERE fk_series = ${seriesId}
+          `);
+          for (const token of tokens) {
+            await tx.$executeRaw(Prisma.sql`
+              INSERT INTO shortbox.series_genre (fk_series, genre)
+              VALUES (${seriesId}, ${token})
+            `);
+          }
+        });
+        syncedGenreRows += tokens.length;
       }
     }
 
@@ -180,6 +196,7 @@ export async function runUpdateDeSeriesGenres(
       updatedSeries,
       unchangedSeries,
       clearedSeries,
+      syncedGenreRows,
       sampleChanges,
     };
   } catch {

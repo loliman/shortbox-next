@@ -2,7 +2,6 @@ import "server-only";
 
 import { cache } from "react";
 import { Prisma } from "@prisma/client";
-import { FilterService } from "./filter-service";
 import type { Filter, NumberFilter } from "../../types/query-data";
 
 type RuntimeFilter = Filter & {
@@ -28,7 +27,15 @@ type RuntimeFilter = Filter & {
   onlyNotCollected?: boolean;
   onlyNotCollectedNoOwnedVariants?: boolean;
   numbers?: Array<(NumberFilter & { variant?: string | null }) | null>;
+  individuals?: Array<{
+    name?: string | null;
+    type?: Array<string | null> | string | null;
+  } | null>;
 };
+
+const TRANSLATOR_INDIVIDUAL_TYPE = "TRANSLATOR";
+const NUMERIC_PATTERN = /^[0-9]+(\.[0-9]+)?$/;
+const COMPARE_OPERATORS = new Set(["=", ">", ">=", "<", "<="]);
 
 const supportedDirectFilterKeys = new Set([
   "us",
@@ -44,6 +51,25 @@ const supportedDirectFilterKeys = new Set([
   "arcs",
   "appearances",
   "realities",
+  "genres",
+  "firstPrint",
+  "notFirstPrint",
+  "onlyPrint",
+  "notOnlyPrint",
+  "onlyTb",
+  "notOnlyTb",
+  "exclusive",
+  "notExclusive",
+  "reprint",
+  "notReprint",
+  "otherOnlyTb",
+  "notOtherOnlyTb",
+  "noPrint",
+  "notNoPrint",
+  "onlyOnePrint",
+  "notOnlyOnePrint",
+  "numbers",
+  "individuals",
 ]);
 
 function dedupeTerms(values: string[]) {
@@ -358,28 +384,210 @@ function endOfDay(date: Date): Date {
 
 function hasUnsupportedFilterState(filter: RuntimeFilter) {
   if (filter.onlyNotCollectedNoOwnedVariants) return true;
-  if (Array.isArray(filter.numbers) && filter.numbers.length > 0) return true;
-  if (Array.isArray(filter.genres) && filter.genres.length > 0) return true;
-  if (Array.isArray(filter.individuals) && filter.individuals.length > 0) return true;
+  return false;
+}
 
-  return Boolean(
-    filter.firstPrint ||
-      filter.notFirstPrint ||
-      filter.onlyPrint ||
-      filter.notOnlyPrint ||
-      filter.onlyTb ||
-      filter.notOnlyTb ||
-      filter.exclusive ||
-      filter.notExclusive ||
-      filter.reprint ||
-      filter.notReprint ||
-      filter.otherOnlyTb ||
-      filter.notOtherOnlyTb ||
-      filter.noPrint ||
-      filter.notNoPrint ||
-      filter.onlyOnePrint ||
-      filter.notOnlyOnePrint
+function normalizeCompareOperator(value: unknown): "=" | ">" | ">=" | "<" | "<=" {
+  const compare = readTextValue(value);
+  if (COMPARE_OPERATORS.has(compare)) {
+    return compare as "=" | ">" | ">=" | "<" | "<=";
+  }
+  return "=";
+}
+
+function buildLexicalNumberRange(
+  raw: string,
+  compare: "=" | ">" | ">=" | "<" | "<="
+): Prisma.IssueWhereInput {
+  if (compare === "=") {
+    return { OR: [{ number: raw }, { legacyNumber: raw }] };
+  }
+
+  const condition = (op: Exclude<typeof compare, "=">) => {
+    switch (op) {
+      case ">":
+        return { gt: raw };
+      case ">=":
+        return { gte: raw };
+      case "<":
+        return { lt: raw };
+      case "<=":
+        return { lte: raw };
+    }
+  };
+
+  return {
+    OR: [
+      { number: condition(compare) },
+      { legacyNumber: condition(compare) },
+    ],
+  };
+}
+
+function buildNumericNumberRange(
+  numericValue: string,
+  compare: "=" | ">" | ">=" | "<" | "<="
+): Prisma.IssueWhereInput {
+  const decimal = new Prisma.Decimal(numericValue);
+  if (compare === "=") {
+    return { OR: [{ numberNumeric: decimal }, { legacyNumberNumeric: decimal }] };
+  }
+
+  const condition = (op: Exclude<typeof compare, "=">) => {
+    switch (op) {
+      case ">":
+        return { gt: decimal };
+      case ">=":
+        return { gte: decimal };
+      case "<":
+        return { lt: decimal };
+      case "<=":
+        return { lte: decimal };
+    }
+  };
+
+  return {
+    OR: [
+      { numberNumeric: condition(compare) },
+      { legacyNumberNumeric: condition(compare) },
+    ],
+  };
+}
+
+function buildNumbersClause(
+  entry: NonNullable<RuntimeFilter["numbers"]>[number]
+): Prisma.IssueWhereInput | null {
+  const raw = readTextValue(entry?.number);
+  if (!raw) return null;
+
+  const compare = normalizeCompareOperator(entry?.compare);
+  const variant =
+    entry && typeof entry === "object" && "variant" in entry
+      ? readTextValue((entry as { variant?: unknown }).variant)
+      : "";
+
+  const isNumericValue = NUMERIC_PATTERN.test(raw);
+  const numberPart =
+    compare === "="
+      ? buildLexicalNumberRange(raw, compare)
+      : isNumericValue
+        ? buildNumericNumberRange(raw, compare)
+        : buildLexicalNumberRange(raw, compare);
+
+  if (variant.length === 0) return numberPart;
+  return { AND: [numberPart, { variant }] };
+}
+
+function applyNumbersFilter(and: Prisma.IssueWhereInput[], filter: RuntimeFilter) {
+  if (!Array.isArray(filter.numbers) || filter.numbers.length === 0) return;
+  for (const entry of filter.numbers) {
+    const clause = buildNumbersClause(entry);
+    if (clause) and.push(clause);
+  }
+}
+
+function normalizeIndividualTypes(rawType: unknown): string[] {
+  const collected: unknown[] = Array.isArray(rawType) ? rawType : rawType != null ? [rawType] : [];
+  return dedupeTerms(
+    collected
+      .filter((entry): entry is string => typeof entry === "string")
+      .map((entry) => entry.trim().toUpperCase())
+      .filter((entry) => entry.length > 0)
   );
+}
+
+function buildIndividualBranches(name: string, types: string[]): Prisma.StoryWhereInput[] {
+  const branches: Prisma.StoryWhereInput[] = [];
+
+  if (types.length === 0) {
+    branches.push({ individuals: { some: { individual: { name } } } });
+    branches.push({ parent: { individuals: { some: { individual: { name } } } } });
+    return branches;
+  }
+
+  const includesTranslator = types.includes(TRANSLATOR_INDIVIDUAL_TYPE);
+  const nonTranslatorTypes = types.filter((type) => type !== TRANSLATOR_INDIVIDUAL_TYPE);
+
+  if (includesTranslator) {
+    branches.push({
+      individuals: {
+        some: {
+          individual: { name },
+          type: { equals: TRANSLATOR_INDIVIDUAL_TYPE, mode: "insensitive" },
+        },
+      },
+    });
+  }
+
+  if (nonTranslatorTypes.length > 0) {
+    const linkClause = {
+      individual: { name },
+      type: { in: nonTranslatorTypes, mode: "insensitive" as const },
+    };
+    branches.push({ parent: { individuals: { some: linkClause } } });
+    branches.push({ parent: null, individuals: { some: linkClause } });
+  }
+
+  return branches;
+}
+
+function applyIndividualsFilter(and: Prisma.IssueWhereInput[], filter: RuntimeFilter) {
+  if (!Array.isArray(filter.individuals) || filter.individuals.length === 0) return;
+
+  for (const entry of filter.individuals) {
+    const name = readTextValue(entry?.name);
+    if (!name) continue;
+
+    const types = normalizeIndividualTypes(entry?.type);
+    const branches = buildIndividualBranches(name, types);
+    if (branches.length === 0) continue;
+
+    and.push({ stories: { some: { OR: branches } } });
+  }
+}
+
+function readGenreTerms(filter: RuntimeFilter): string[] {
+  if (!Array.isArray(filter.genres)) return [];
+  return dedupeTerms(
+    filter.genres
+      .map((genre) => (typeof genre === "string" ? genre : ""))
+      .filter((genre) => genre.trim().length > 0)
+  );
+}
+
+function applyGenresFilter(and: Prisma.IssueWhereInput[], filter: RuntimeFilter) {
+  const terms = readGenreTerms(filter);
+  if (terms.length === 0) return;
+  and.push({
+    AND: terms.map((term) => ({
+      series: {
+        genres: {
+          some: {
+            genre: { contains: term, mode: "insensitive" },
+          },
+        },
+      },
+    })),
+  });
+}
+
+function applyStoryFlagFilters(and: Prisma.IssueWhereInput[], filter: RuntimeFilter) {
+  if (filter.firstPrint) and.push({ hasFirstPrint: true });
+  if (filter.notFirstPrint) and.push({ hasFirstPrint: false });
+  if (filter.onlyPrint) and.push({ hasOnlyPrint: true });
+  if (filter.notOnlyPrint) and.push({ hasOnlyPrint: false });
+  if (filter.onlyTb) and.push({ hasOnlyTb: true });
+  if (filter.notOnlyTb) and.push({ hasOnlyTb: false });
+  if (filter.exclusive) and.push({ hasExclusiveStory: true });
+  if (filter.notExclusive) and.push({ hasExclusiveStory: false });
+  if (filter.reprint) and.push({ isReprintOnly: true });
+  if (filter.notReprint) and.push({ isReprintOnly: false });
+  if (filter.otherOnlyTb) and.push({ hasOtherOnlyTb: true });
+  if (filter.notOtherOnlyTb) and.push({ hasOtherOnlyTb: false });
+  if (filter.noPrint) and.push({ hasPrintStory: false });
+  if (filter.notNoPrint) and.push({ hasPrintStory: true });
+  if (filter.onlyOnePrint) and.push({ hasOnlyOnePrint: true });
+  if (filter.notOnlyOnePrint) and.push({ hasOnlyOnePrint: false });
 }
 
 export function buildDirectIssueFilterWhere(
@@ -411,6 +619,10 @@ export function buildDirectIssueFilterWhere(
   applyCollectedFilters(and, runtimeFilter);
   applyPublisherFilter(and, runtimeFilter);
   applySeriesFilter(and, runtimeFilter);
+  applyGenresFilter(and, runtimeFilter);
+  applyStoryFlagFilters(and, runtimeFilter);
+  applyNumbersFilter(and, runtimeFilter);
+  applyIndividualsFilter(and, runtimeFilter);
 
   if (runtimeFilter.noComicguideId) {
     and.push({
@@ -457,11 +669,87 @@ function buildReleaseDateWhereClauses(
   return clauses;
 }
 
-export async function readFilteredIssueIds(
-  filter: Filter | null | undefined
-): Promise<number[] | null> {
-  if (!filter) return null;
-  return new FilterService().getFilteredIssueIds(filter);
+const FORMAT_RANK_FALLBACK = 5;
+
+const FORMAT_RANK_BY_NAME: Record<string, number> = {
+  heft: 1,
+  softcover: 2,
+  taschenbuch: 3,
+  hardcover: 4,
+};
+
+function formatRank(format: string | null | undefined): number {
+  const normalized = (format || "").trim().toLocaleLowerCase("de-DE");
+  return FORMAT_RANK_BY_NAME[normalized] ?? FORMAT_RANK_FALLBACK;
+}
+
+function groupKey(fkSeries: bigint | null, number: string): string {
+  return `${fkSeries ?? "x"}::${number}`;
+}
+
+type GroupAwareCandidate = {
+  id: bigint;
+  fkSeries: bigint | null;
+  number: string;
+  format: string;
+};
+
+export function selectGroupRepresentatives(
+  candidates: ReadonlyArray<GroupAwareCandidate>,
+  ownedGroupKeys: ReadonlySet<string>
+): GroupAwareCandidate[] {
+  const byKey = new Map<string, GroupAwareCandidate>();
+  for (const candidate of candidates) {
+    const key = groupKey(candidate.fkSeries, candidate.number);
+    if (ownedGroupKeys.has(key)) continue;
+    const existing = byKey.get(key);
+    if (!existing) {
+      byKey.set(key, candidate);
+      continue;
+    }
+    const candidateRank = formatRank(candidate.format);
+    const existingRank = formatRank(existing.format);
+    if (candidateRank < existingRank) {
+      byKey.set(key, candidate);
+    } else if (candidateRank === existingRank && Number(candidate.id) < Number(existing.id)) {
+      byKey.set(key, candidate);
+    }
+  }
+  return [...byKey.values()];
+}
+
+async function readGroupAwareUncollectedIssueIds(filter: Filter): Promise<number[]> {
+  const { prisma } = await import("../prisma/client");
+
+  const baseFilter = { ...filter } as RuntimeFilter;
+  delete baseFilter.onlyNotCollectedNoOwnedVariants;
+  delete baseFilter.onlyCollected;
+  delete baseFilter.onlyNotCollected;
+
+  const baseWhere = buildDirectIssueFilterWhere(baseFilter);
+  if (!baseWhere) return [];
+
+  const candidates = (await prisma.issue.findMany({
+    where: { AND: [baseWhere, { collected: false }] },
+    select: { id: true, fkSeries: true, number: true, format: true },
+  })) as GroupAwareCandidate[];
+
+  const ownedRows = await prisma.issue.findMany({
+    where: {
+      collected: true,
+      series: { publisher: { original: Boolean(filter.us) } },
+    },
+    select: { fkSeries: true, number: true },
+  });
+
+  const ownedGroupKeys = new Set<string>();
+  for (const row of ownedRows) {
+    ownedGroupKeys.add(groupKey(row.fkSeries, row.number));
+  }
+
+  return selectGroupRepresentatives(candidates, ownedGroupKeys).map((candidate) =>
+    Number(candidate.id)
+  );
 }
 
 type ResolvedFilterState = {
@@ -474,25 +762,34 @@ type ResolvedFilterState = {
 const resolveFilterStateCached = cache(
   async (serializedFilter: string): Promise<ResolvedFilterState> => {
     const filter = JSON.parse(serializedFilter) as Filter;
-    const directIssueWhere = buildDirectIssueFilterWhere(filter);
 
-    if (directIssueWhere) {
-      const { prisma } = await import("../prisma/client");
-      const initialFilterCount = await prisma.issue.count({ where: directIssueWhere });
+    if ((filter as RuntimeFilter).onlyNotCollectedNoOwnedVariants) {
+      const filteredIssueIds = await readGroupAwareUncollectedIssueIds(filter);
       return {
-        directIssueWhere,
-        filteredIssueIds: null,
-        filteredIssueIdsBigInt: null,
-        initialFilterCount,
+        directIssueWhere: null,
+        filteredIssueIds,
+        filteredIssueIdsBigInt: filteredIssueIds.map(BigInt),
+        initialFilterCount: filteredIssueIds.length,
       };
     }
 
-    const filteredIssueIds = await new FilterService().getFilteredIssueIds(filter);
+    const directIssueWhere = buildDirectIssueFilterWhere(filter);
+    if (!directIssueWhere) {
+      return {
+        directIssueWhere: null,
+        filteredIssueIds: [],
+        filteredIssueIdsBigInt: [],
+        initialFilterCount: 0,
+      };
+    }
+
+    const { prisma } = await import("../prisma/client");
+    const initialFilterCount = await prisma.issue.count({ where: directIssueWhere });
     return {
-      directIssueWhere: null,
-      filteredIssueIds,
-      filteredIssueIdsBigInt: filteredIssueIds ? filteredIssueIds.map(BigInt) : null,
-      initialFilterCount: filteredIssueIds ? filteredIssueIds.length : undefined,
+      directIssueWhere,
+      filteredIssueIds: null,
+      filteredIssueIdsBigInt: null,
+      initialFilterCount,
     };
   }
 );

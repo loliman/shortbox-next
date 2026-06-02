@@ -214,11 +214,7 @@ The filter system is the reference example for layered architecture.
 `src/lib/read/filter-read.ts`
 - Prisma WHERE construction
 - Query execution
-
-## Layer 4 – Business Matching
-`src/services/filter-service.ts`
-- Domain filter semantics
-- Matching logic
+- Domain filter semantics expressed as Prisma `WhereInput` and (for the group-aware uncollected mode) a dedicated in-app helper backed by materialised Issue-level facts. See ADR 005.
 
 **Never bypass layers.**
 

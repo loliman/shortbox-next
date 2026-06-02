@@ -18,7 +18,8 @@ const task: Task = async (rawPayload, helpers) => {
       dryRun: report.dryRun,
       summary:
         `deSeries=${report.totalDeSeries}, mapped=${report.mappedDeSeries}, ` +
-        `updated=${report.updatedSeries}, cleared=${report.clearedSeries}, dryRun=${report.dryRun}`,
+        `updated=${report.updatedSeries}, cleared=${report.clearedSeries}, ` +
+        `syncedGenreRows=${report.syncedGenreRows}, dryRun=${report.dryRun}`,
       details: {
         result: report,
       },
