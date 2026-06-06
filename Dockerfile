@@ -6,6 +6,7 @@ FROM base AS deps
 ENV NODE_ENV=development
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
+RUN npm install server-only
 RUN npm ci
 
 FROM deps AS builder
