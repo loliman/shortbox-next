@@ -198,9 +198,14 @@ export async function readCanonicalIssueSitemapEntries(): Promise<SitemapEntry[]
       select: {
         id: true,
         number: true,
-        format: true,
-        variant: true,
         updatedAt: true,
+        variants: {
+          select: {
+            format: true,
+            variantLabel: true,
+            updatedAt: true,
+          },
+        },
         series: {
           select: {
             title: true,
@@ -233,21 +238,25 @@ export async function readCanonicalIssueSitemapEntries(): Promise<SitemapEntry[]
       const seriesYear = Number.isFinite(seriesYearNumber) && seriesYearNumber > 0
         ? seriesYearNumber
         : undefined;
-      const format = toSafeString(row.format) || undefined;
-      const variant = toSafeString(row.variant) || undefined;
 
-      const path = buildDetailPageUrl({
-        locale,
-        publisherName,
-        seriesTitle,
-        seriesYear,
-        seriesVolume,
-        issueNumber: number,
-        format,
-        variant,
-      });
+      for (const v of row.variants) {
+        const format = toSafeString(v.format) || undefined;
+        const variant = toSafeString(v.variantLabel) || undefined;
 
-      mergeEntry(entries, path, row.updatedAt);
+        const path = buildDetailPageUrl({
+          locale,
+          publisherName,
+          seriesTitle,
+          seriesYear,
+          seriesVolume,
+          issueNumber: number,
+          format,
+          variant,
+        });
+
+        const entryLastMod = row.updatedAt > v.updatedAt ? row.updatedAt : v.updatedAt;
+        mergeEntry(entries, path, entryLastMod);
+      }
     }
   }
 

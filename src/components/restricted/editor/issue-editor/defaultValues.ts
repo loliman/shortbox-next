@@ -143,6 +143,7 @@ function buildMergedIssueEditorValues(values: Record<string, unknown>): IssueEdi
 
   return {
     ...defaults,
+    variantId: values.variantId ? String(values.variantId) : undefined,
     title: readTextValue(values.title),
     series,
     cover: values.cover || "",
@@ -151,7 +152,7 @@ function buildMergedIssueEditorValues(values: Record<string, unknown>): IssueEdi
     format: readTextValue(values.format) || defaults.format,
     limitation: readTextValue(values.limitation),
     pages: Number(values.pages || 0),
-    releasedate: readTextValue(values.releasedate) || defaults.releasedate,
+    releasedate: formatDateString(values.releasedate) || defaults.releasedate,
     price: readTextValue(values.price) || defaults.price,
     currency: readTextValue(values.currency) || defaults.currency,
     addinfo: readTextValue(values.addinfo),
@@ -176,6 +177,7 @@ function normalizeEditDefaults(
   values: Record<string, unknown>
 ): IssueEditorFormValues {
   const normalized: IssueEditorFormValues = { ...merged };
+  if (values.variantId == null) normalized.variantId = undefined;
   if (values.releasedate == null) normalized.releasedate = "";
   if (values.price == null) normalized.price = "";
   if (values.currency == null) normalized.currency = "";
@@ -188,6 +190,19 @@ function normalizeEditDefaults(
   if (values.format == null) normalized.format = "";
   if (values.variant == null) normalized.variant = "";
   return normalized;
+}
+
+function formatDateString(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  const str = typeof value === "string" ? value.trim() : "";
+  if (!str) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  if (str.length >= 10 && /^\d{4}-\d{2}-\d{2}/.test(str)) {
+    return str.slice(0, 10);
+  }
+  const date = new Date(str);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
 }
 
 function readTextValue(value: unknown): string {

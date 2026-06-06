@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma/client";
 import { updateStoryFilterFlagsForIssue } from "../lib/server/story-filter-write";
+import { env } from "../lib/env";
 
 const DEFAULT_BATCH_SIZE = 250;
 
@@ -19,7 +20,7 @@ export type UpdateStoryFiltersReport = {
 };
 
 const resolveBatchSize = (value?: number): number => {
-  const envBatchSize = Number.parseInt(process.env.STORY_FILTER_BATCH_SIZE || "", 10);
+  const envBatchSize = env.STORY_FILTER_BATCH_SIZE;
   const selected = typeof value === "number" ? value : envBatchSize;
   if (!Number.isFinite(selected) || selected <= 0) return DEFAULT_BATCH_SIZE;
   return Math.trunc(selected);
@@ -63,6 +64,7 @@ export async function runUpdateStoryFilters(
         processed += batch.length;
       } else {
         for (const issueId of batch) {
+          console.log(`Processing issue ID: ${issueId}`);
           await updateStoryFilterFlagsForIssue(issueId);
           processed += 1;
         }
@@ -78,7 +80,8 @@ export async function runUpdateStoryFilters(
       batchCount: batches.length,
       processed,
     };
-  } catch {
+  } catch (error) {
+    console.error("Error in runUpdateStoryFilters:", error);
     return null;
   }
 }

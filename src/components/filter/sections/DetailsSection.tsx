@@ -63,6 +63,8 @@ function DetailsSection({
     debounceMs: 250,
   });
 
+
+
   const genreQuery = useAutocompleteQuery<string>({
     source: "genres",
     variables: { pattern: genreInput },
@@ -357,45 +359,99 @@ function DetailsSection({
             <FilterSwitch
               checked={values.onlyCollected}
               label="Nur in Sammlung"
-              disabled={values.onlyNotCollected || values.onlyNotCollectedNoOwnedVariants}
+              disabled={values.onlyNotCollected || values.onlyNotCollectedNoOwnedVariants || values.onlyNotOwnedUsMaterial}
               onToggle={() => {
                 const next = !values.onlyCollected;
                 setFieldValue("onlyCollected", next);
                 if (next) {
                   setFieldValue("onlyNotCollected", false);
                   setFieldValue("onlyNotCollectedNoOwnedVariants", false);
+                  setFieldValue("onlyNotOwnedUsMaterial", false);
                 }
               }}
             />
             <FilterSwitch
               checked={values.onlyNotCollected}
               label="Nur nicht in Sammlung"
-              disabled={values.onlyCollected || values.onlyNotCollectedNoOwnedVariants}
+              disabled={values.onlyCollected || values.onlyNotCollectedNoOwnedVariants || values.onlyDoubleTrippleCollected || values.onlyDoubleTripplePublisherCollected}
               onToggle={() => {
                 const next = !values.onlyNotCollected;
                 setFieldValue("onlyNotCollected", next);
                 if (next) {
                   setFieldValue("onlyCollected", false);
                   setFieldValue("onlyNotCollectedNoOwnedVariants", false);
+                  setFieldValue("onlyDoubleTrippleCollected", false);
+                  setFieldValue("onlyDoubleTripplePublisherCollected", false);
                 }
               }}
             />
             <FilterSwitch
               checked={values.onlyNotCollectedNoOwnedVariants}
               label="Nur nicht in Sammlung (ohne Variants)"
-              disabled={values.onlyCollected || values.onlyNotCollected}
+              disabled={values.onlyCollected || values.onlyNotCollected || values.onlyDoubleTrippleCollected || values.onlyDoubleTripplePublisherCollected}
               onToggle={() => {
                 const next = !values.onlyNotCollectedNoOwnedVariants;
                 setFieldValue("onlyNotCollectedNoOwnedVariants", next);
                 if (next) {
                   setFieldValue("onlyCollected", false);
                   setFieldValue("onlyNotCollected", false);
+                  setFieldValue("onlyDoubleTrippleCollected", false);
+                  setFieldValue("onlyDoubleTripplePublisherCollected", false);
+                }
+              }}
+            />
+            {!us && (
+              <>
+                <FilterSwitch
+                  checked={values.onlyDoubleTrippleCollected}
+                  label="Doppelt & Dreifach gesammelt"
+                  disabled={values.onlyNotCollected || values.onlyNotCollectedNoOwnedVariants || values.onlyNotOwnedUsMaterial || values.onlyDoubleTripplePublisherCollected}
+                  onToggle={() => {
+                    const next = !values.onlyDoubleTrippleCollected;
+                    setFieldValue("onlyDoubleTrippleCollected", next);
+                    if (next) {
+                      setFieldValue("onlyNotCollected", false);
+                      setFieldValue("onlyNotCollectedNoOwnedVariants", false);
+                      setFieldValue("onlyNotOwnedUsMaterial", false);
+                      setFieldValue("onlyDoubleTripplePublisherCollected", false);
+                    }
+                  }}
+                />
+                <FilterSwitch
+                  checked={values.onlyDoubleTripplePublisherCollected}
+                  label="Doppelt & Dreifach verlagsintern"
+                  disabled={values.onlyNotCollected || values.onlyNotCollectedNoOwnedVariants || values.onlyNotOwnedUsMaterial || values.onlyDoubleTrippleCollected}
+                  onToggle={() => {
+                    const next = !values.onlyDoubleTripplePublisherCollected;
+                    setFieldValue("onlyDoubleTripplePublisherCollected", next);
+                    if (next) {
+                      setFieldValue("onlyNotCollected", false);
+                      setFieldValue("onlyNotCollectedNoOwnedVariants", false);
+                      setFieldValue("onlyNotOwnedUsMaterial", false);
+                      setFieldValue("onlyDoubleTrippleCollected", false);
+                    }
+                  }}
+                />
+              </>
+            )}
+            <FilterSwitch
+              checked={values.onlyNotOwnedUsMaterial}
+              label="Ungesammeltes US-Material"
+              disabled={values.onlyCollected || values.onlyDoubleTrippleCollected || values.onlyDoubleTripplePublisherCollected}
+              onToggle={() => {
+                const next = !values.onlyNotOwnedUsMaterial;
+                setFieldValue("onlyNotOwnedUsMaterial", next);
+                if (next) {
+                  setFieldValue("onlyCollected", false);
+                  setFieldValue("onlyDoubleTrippleCollected", false);
+                  setFieldValue("onlyDoubleTripplePublisherCollected", false);
                 }
               }}
             />
           </Box>
         </>
       ) : null}
+
     </Stack>
   );
 }

@@ -1,5 +1,6 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { RateLimiterMemory, type RateLimiterRes } from "rate-limiter-flexible";
+import { env } from "../env";
 import { readUserByName } from "../read/user-read";
 import { clearUserSession, updateUserLoginSession } from "./user-write";
 
@@ -13,10 +14,7 @@ type PasswordVerificationResult = {
   upgradePassword?: string;
 };
 
-const parsePositiveInt = (value: string | undefined, fallback: number): number => {
-  const parsed = Number.parseInt(value || "", 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-};
+
 
 export class LoginRateLimitError extends Error {
   public readonly retryAfterSeconds: number;
@@ -30,18 +28,9 @@ export class LoginRateLimitError extends Error {
 
 export class UserService {
   private static readonly HASH_PREFIX = "scrypt";
-  private static readonly LOGIN_RATE_LIMIT_MAX_ATTEMPTS = parsePositiveInt(
-    process.env.LOGIN_MAX_ATTEMPTS,
-    8
-  );
-  private static readonly LOGIN_RATE_LIMIT_WINDOW_SECONDS = parsePositiveInt(
-    process.env.LOGIN_WINDOW_SECONDS,
-    900
-  );
-  private static readonly LOGIN_RATE_LIMIT_LOCK_SECONDS = parsePositiveInt(
-    process.env.LOGIN_LOCK_SECONDS,
-    900
-  );
+  private static readonly LOGIN_RATE_LIMIT_MAX_ATTEMPTS = env.LOGIN_MAX_ATTEMPTS;
+  private static readonly LOGIN_RATE_LIMIT_WINDOW_SECONDS = env.LOGIN_WINDOW_SECONDS;
+  private static readonly LOGIN_RATE_LIMIT_LOCK_SECONDS = env.LOGIN_LOCK_SECONDS;
   private static readonly loginRateLimiter = new RateLimiterMemory({
     keyPrefix: "login",
     points: UserService.LOGIN_RATE_LIMIT_MAX_ATTEMPTS,

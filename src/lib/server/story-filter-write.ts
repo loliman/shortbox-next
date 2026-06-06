@@ -4,14 +4,21 @@ type StoryWithIssue = {
   id: bigint;
   fkParent: bigint | null;
   part: string;
-  onlyApp: boolean;
+  partNumber: number | null;
+  partTotal: number | null;
   firstApp: boolean;
+  firstCompleteApp: boolean;
+  firstPartialApp: boolean;
+  onlyApp: boolean;
   otherOnlyTb: boolean;
   onlyTb: boolean;
   onlyOnePrint: boolean;
   issue: {
-    format: string;
-    releaseDate: Date | null;
+    fkSeries: bigint | null;
+    variants: Array<{
+      format: string;
+      releaseDate: Date | null;
+    }>;
   } | null;
 };
 
@@ -35,45 +42,32 @@ const normalizeParentIds = (parentStoryIds: Iterable<number>): number[] =>
     .map((entry) => toPositiveInt(entry))
     .filter((entry): entry is number => entry != null);
 
-const toDateTimestamp = (value: unknown): number => {
-  if (typeof value === "string") {
-    const parsed = Date.parse(value);
-    if (!Number.isNaN(parsed)) return parsed;
-  }
-  if (value instanceof Date) {
-    const parsed = value.getTime();
-    if (!Number.isNaN(parsed)) return parsed;
-  }
-  return Number.POSITIVE_INFINITY;
-};
-
 const isPocketBookFormat = (format: unknown): boolean =>
   normalizeText(format).toLowerCase() === "taschenbuch";
 
-const PART_PATTERN = /^(\d+)\s*\/\s*(\d+)$/;
+export function parsePart(partStr: string | null | undefined): { partNumber: number | null; partTotal: number | null } {
+  if (!partStr) return { partNumber: null, partTotal: null };
+  const trimmed = partStr.trim();
+  if (!trimmed) return { partNumber: null, partTotal: null };
 
-const parseStoryPart = (value: unknown): { current: number; total: number } | null => {
-  const match = PART_PATTERN.exec(normalizeText(value));
-  if (!match) return null;
-
-  const current = Number(match[1]);
-  const total = Number(match[2]);
-  if (!Number.isFinite(current) || !Number.isFinite(total) || current <= 0 || total <= 0) {
-    return null;
+  const numNumMatch = /^(\d+)\s*\/\s*(\d+)$/.exec(trimmed);
+  if (numNumMatch) {
+    return {
+      partNumber: parseInt(numNumMatch[1], 10),
+      partTotal: parseInt(numNumMatch[2], 10),
+    };
   }
 
-  return { current, total };
-};
+  const numXMatch = /^(\d+)\s*\/\s*x$/i.exec(trimmed);
+  if (numXMatch) {
+    return {
+      partNumber: parseInt(numXMatch[1], 10),
+      partTotal: null,
+    };
+  }
 
-const isPartialPublicationStart = (part: unknown): boolean => {
-  const parsed = parseStoryPart(part);
-  return parsed?.current === 1 && parsed.total > 1;
-};
-
-const isCompletePublication = (part: unknown): boolean => {
-  const parsed = parseStoryPart(part);
-  return !parsed || parsed.total <= 1;
-};
+  return { partNumber: null, partTotal: null };
+}
 
 const normalizeText = (value: unknown): string => {
   if (typeof value === "string" || typeof value === "number") return String(value).trim();
@@ -205,55 +199,17 @@ function buildChildrenByParent(childrenRaw: StoryWithIssue[]) {
 }
 
 function analyzeChildGroup(childrenInGroup: StoryWithIssue[]) {
-  let firstPartialChildId: bigint | null = null;
-  let firstPartialTimestamp = Number.POSITIVE_INFINITY;
-  let firstFullChildId: bigint | null = null;
-  let firstFullTimestamp = Number.POSITIVE_INFINITY;
   let tbCount = 0;
   let notTbCount = 0;
 
-  const updateEarliest = (
-    currentId: bigint | null,
-    currentTimestamp: number,
-    child: StoryWithIssue,
-    releaseTimestamp: number
-  ) => {
-    const childId = toPositiveInt(child.id) || Number.MAX_SAFE_INTEGER;
-    const bestId = currentId == null ? Number.MAX_SAFE_INTEGER : Number(currentId);
-    if (releaseTimestamp < currentTimestamp) return { id: child.id, timestamp: releaseTimestamp };
-    if (releaseTimestamp === currentTimestamp && childId < bestId) {
-      return { id: child.id, timestamp: currentTimestamp };
-    }
-    return { id: currentId, timestamp: currentTimestamp };
-  };
-
   for (const child of childrenInGroup) {
     const childIssue = child.issue;
-    if (isPocketBookFormat(childIssue?.format)) tbCount += 1;
+    const isPocketBook = childIssue?.variants.some((v) => isPocketBookFormat(v.format)) ?? false;
+    if (isPocketBook) tbCount += 1;
     else notTbCount += 1;
-
-    const releaseTimestamp = toDateTimestamp(childIssue?.releaseDate);
-    if (isPartialPublicationStart(child.part)) {
-      const nextPartial = updateEarliest(
-        firstPartialChildId,
-        firstPartialTimestamp,
-        child,
-        releaseTimestamp
-      );
-      firstPartialChildId = nextPartial.id;
-      firstPartialTimestamp = nextPartial.timestamp;
-    }
-
-    if (isCompletePublication(child.part)) {
-      const nextFull = updateEarliest(firstFullChildId, firstFullTimestamp, child, releaseTimestamp);
-      firstFullChildId = nextFull.id;
-      firstFullTimestamp = nextFull.timestamp;
-    }
   }
 
   return {
-    firstPartialChildId,
-    firstFullChildId,
     singleRelease: childrenInGroup.length === 1,
     parentOnlyTb: tbCount > 0 && notTbCount === 0,
     hasOnlyOneNonTb: tbCount > 0 && notTbCount === 1,
@@ -278,16 +234,200 @@ async function applyParentGroupUpdates(
     }
   }
 
+  const groupsMap = new Map<number, StoryWithIssue[]>();
   for (const child of childrenInGroup) {
-    const isPocketBook = isPocketBookFormat(child.issue?.format);
-    const nextFirstApp =
-      (analysis.firstPartialChildId != null && child.id === analysis.firstPartialChildId) ||
-      (analysis.firstFullChildId != null && child.id === analysis.firstFullChildId);
+    const seriesId = child.issue ? Number(child.issue.fkSeries) : 0;
+    if (seriesId === 0) continue;
+    const list = groupsMap.get(seriesId) || [];
+    list.push(child);
+    groupsMap.set(seriesId, list);
+  }
+
+  type SeriesGroup = {
+    seriesId: number;
+    children: StoryWithIssue[];
+    earliestReleaseDate: number;
+    isComplete: boolean;
+    completionDate: number;
+  };
+
+  const sortedGroups: SeriesGroup[] = Array.from(groupsMap.entries()).map(([seriesId, children]) => {
+    let earliestReleaseDate = Number.POSITIVE_INFINITY;
+    for (const child of children) {
+      const dates = child.issue?.variants
+        .map(v => v.releaseDate ? v.releaseDate.getTime() : null)
+        .filter((t): t is number => t !== null) ?? [];
+      const childDate = dates.length > 0 ? Math.min(...dates) : Number.POSITIVE_INFINITY;
+      if (childDate < earliestReleaseDate) {
+        earliestReleaseDate = childDate;
+      }
+    }
+
+    const parsedChildren = children.map(c => ({
+      child: c,
+      parsed: parsePart(c.part),
+    }));
+
+    const hasCompleteChild = parsedChildren.some(p => p.parsed.partNumber === null);
+    let isComplete = false;
+    let completionDate = Number.POSITIVE_INFINITY;
+
+    if (hasCompleteChild) {
+      isComplete = true;
+      const completeReleaseDates = parsedChildren
+        .filter(p => p.parsed.partNumber === null)
+        .map(p => {
+          const dates = p.child.issue?.variants
+            .map(v => v.releaseDate ? v.releaseDate.getTime() : null)
+            .filter((t): t is number => t !== null) ?? [];
+          return dates.length > 0 ? Math.min(...dates) : Number.POSITIVE_INFINITY;
+        });
+      completionDate = completeReleaseDates.length > 0 ? Math.min(...completeReleaseDates) : Number.POSITIVE_INFINITY;
+    } else {
+      let partTotalValue: number | null = null;
+      const partNumbersPresent = new Set<number>();
+      for (const p of parsedChildren) {
+        if (p.parsed.partNumber !== null && p.parsed.partTotal !== null && p.parsed.partTotal > 1) {
+          partTotalValue = p.parsed.partTotal;
+          partNumbersPresent.add(p.parsed.partNumber);
+        }
+      }
+
+      if (partTotalValue !== null) {
+        let isPartsComplete = true;
+        for (let k = 1; k <= partTotalValue; k++) {
+          if (!partNumbersPresent.has(k)) {
+            isPartsComplete = false;
+            break;
+          }
+        }
+        if (isPartsComplete) {
+          isComplete = true;
+          const partReleaseDates = parsedChildren
+            .filter(p => p.parsed.partTotal === partTotalValue)
+            .map(p => {
+              const dates = p.child.issue?.variants
+                .map(v => v.releaseDate ? v.releaseDate.getTime() : null)
+                .filter((t): t is number => t !== null) ?? [];
+              return dates.length > 0 ? Math.min(...dates) : Number.POSITIVE_INFINITY;
+            });
+          completionDate = partReleaseDates.length > 0 ? Math.max(...partReleaseDates) : Number.POSITIVE_INFINITY;
+        }
+      }
+    }
+
+    return {
+      seriesId,
+      children,
+      earliestReleaseDate,
+      isComplete,
+      completionDate,
+    };
+  }).sort((a, b) => {
+    if (a.earliestReleaseDate !== b.earliestReleaseDate) {
+      return a.earliestReleaseDate - b.earliestReleaseDate;
+    }
+    return a.seriesId - b.seriesId;
+  });
+
+  let hasPriorCompleteGroup = false;
+  let hasPriorCompleteSingleIssue = false;
+  const priorPublishedPartNumbers = new Set<number>();
+
+  type ChildUpdate = {
+    child: StoryWithIssue;
+    nextFirstApp: boolean;
+    nextFirstPartialApp: boolean;
+    nextFirstCompleteApp: boolean;
+    partNumber: number | null;
+    partTotal: number | null;
+  };
+
+  const childUpdates: ChildUpdate[] = [];
+
+  for (const g of sortedGroups) {
+    if (hasPriorCompleteGroup) {
+      for (const child of g.children) {
+        const parsed = parsePart(child.part);
+        let nextFirstCompleteApp = false;
+        if (parsed.partNumber === null && !hasPriorCompleteSingleIssue) {
+          nextFirstCompleteApp = true;
+          hasPriorCompleteSingleIssue = true;
+        }
+        childUpdates.push({
+          child,
+          nextFirstApp: false,
+          nextFirstPartialApp: false,
+          nextFirstCompleteApp,
+          partNumber: parsed.partNumber,
+          partTotal: parsed.partTotal,
+        });
+      }
+    } else {
+      if (g.isComplete) {
+        for (const child of g.children) {
+          const parsed = parsePart(child.part);
+          let nextFirstApp = false;
+          let nextFirstPartialApp = false;
+          if (parsed.partNumber === null) {
+            nextFirstApp = true;
+            hasPriorCompleteSingleIssue = true;
+          } else if (parsed.partTotal !== null && parsed.partNumber <= parsed.partTotal) {
+            nextFirstApp = true;
+            nextFirstPartialApp = true;
+          }
+          childUpdates.push({
+            child,
+            nextFirstApp,
+            nextFirstPartialApp,
+            nextFirstCompleteApp: false,
+            partNumber: parsed.partNumber,
+            partTotal: parsed.partTotal,
+          });
+        }
+        hasPriorCompleteGroup = true;
+      } else {
+        for (const child of g.children) {
+          const parsed = parsePart(child.part);
+          let nextFirstApp = false;
+          let nextFirstPartialApp = false;
+          if (parsed.partNumber !== null) {
+            if (!priorPublishedPartNumbers.has(parsed.partNumber)) {
+              nextFirstApp = true;
+              nextFirstPartialApp = true;
+            }
+          }
+          childUpdates.push({
+            child,
+            nextFirstApp,
+            nextFirstPartialApp,
+            nextFirstCompleteApp: false,
+            partNumber: parsed.partNumber,
+            partTotal: parsed.partTotal,
+          });
+        }
+        for (const child of g.children) {
+          const parsed = parsePart(child.part);
+          if (parsed.partNumber !== null) {
+            priorPublishedPartNumbers.add(parsed.partNumber);
+          }
+        }
+      }
+    }
+  }
+
+  for (const update of childUpdates) {
+    const { child, nextFirstApp, nextFirstPartialApp, nextFirstCompleteApp, partNumber, partTotal } = update;
+    const isPocketBook = child.issue?.variants.some((v) => isPocketBookFormat(v.format)) ?? false;
     const nextOtherOnlyTb = analysis.hasOnlyOneNonTb && !isPocketBook;
 
     if (
       child.onlyApp !== analysis.singleRelease ||
       child.firstApp !== nextFirstApp ||
+      child.firstCompleteApp !== nextFirstCompleteApp ||
+      child.firstPartialApp !== nextFirstPartialApp ||
+      child.partNumber !== partNumber ||
+      child.partTotal !== partTotal ||
       child.otherOnlyTb !== nextOtherOnlyTb ||
       child.onlyTb !== false
     ) {
@@ -296,6 +436,10 @@ async function applyParentGroupUpdates(
         data: {
           onlyApp: analysis.singleRelease,
           firstApp: nextFirstApp,
+          firstCompleteApp: nextFirstCompleteApp,
+          firstPartialApp: nextFirstPartialApp,
+          partNumber,
+          partTotal,
           otherOnlyTb: nextOtherOnlyTb,
           onlyTb: false,
         },
@@ -333,13 +477,18 @@ async function updateStoryFilterFlagsForParents(parentStoryIds: Iterable<number>
     include: {
       issue: {
         select: {
-          format: true,
-          releaseDate: true,
+          fkSeries: true,
+          variants: {
+            select: {
+              format: true,
+              releaseDate: true,
+            },
+          },
         },
       },
     },
   });
-  const childrenByParent = buildChildrenByParent(childrenRaw as StoryWithIssue[]);
+  const childrenByParent = buildChildrenByParent(childrenRaw as unknown as StoryWithIssue[]);
 
   for (const groupParentIds of parentGroups) {
     const parentsInGroup = groupParentIds
@@ -350,7 +499,7 @@ async function updateStoryFilterFlagsForParents(parentStoryIds: Iterable<number>
 
     const childrenInGroup: StoryWithIssue[] = groupParentIds.flatMap(
       (parentId) => childrenByParent.get(parentId) || []
-    );
+    ) as StoryWithIssue[];
     await applyParentGroupUpdates(parentsInGroup, childrenInGroup);
   }
 }
@@ -390,33 +539,6 @@ export function deriveIssueAggregatesFromStories(
   };
 }
 
-async function persistIssueFilterAggregates(
-  numericIssueId: number,
-  publisherId: bigint | null
-): Promise<void> {
-  const stories = await prisma.story.findMany({
-    where: { fkIssue: BigInt(numericIssueId) },
-    select: {
-      firstApp: true,
-      onlyApp: true,
-      onlyTb: true,
-      otherOnlyTb: true,
-      onlyOnePrint: true,
-      fkParent: true,
-    },
-  });
-
-  const aggregates = deriveIssueAggregatesFromStories(stories);
-
-  await prisma.issue.update({
-    where: { id: BigInt(numericIssueId) },
-    data: {
-      ...aggregates,
-      fkPublisher: publisherId,
-    },
-  });
-}
-
 export async function updateStoryFilterFlagsForIssue(issueId: number): Promise<void> {
   const numericIssueId = toPositiveInt(issueId);
   if (numericIssueId == null) return;
@@ -425,6 +547,8 @@ export async function updateStoryFilterFlagsForIssue(issueId: number): Promise<v
     where: { id: BigInt(numericIssueId) },
     select: {
       id: true,
+      number: true,
+      fkSeries: true,
       series: {
         select: {
           publisher: {
@@ -438,11 +562,22 @@ export async function updateStoryFilterFlagsForIssue(issueId: number): Promise<v
     },
   });
 
-  const isUsIssue = Boolean(issue?.series?.publisher?.original);
-  const publisherId = issue?.series?.publisher?.id ?? null;
+  if (issue == null) return;
+
+  const isUsIssue = Boolean(issue.series?.publisher?.original);
+  const publisherId = issue.series?.publisher?.id ?? null;
+
+  const siblingIssues = await prisma.issue.findMany({
+    where: {
+      fkSeries: issue.fkSeries,
+      number: issue.number,
+    },
+    select: { id: true },
+  });
+  const siblingIssueIds = siblingIssues.map((sibling) => sibling.id);
 
   const stories = await prisma.story.findMany({
-    where: { fkIssue: BigInt(numericIssueId) },
+    where: { fkIssue: { in: siblingIssueIds } },
     select: { id: true, fkParent: true },
   });
 
@@ -456,7 +591,25 @@ export async function updateStoryFilterFlagsForIssue(issueId: number): Promise<v
 
   await updateStoryFilterFlagsForParents(parentIds);
 
-  if (issue != null) {
-    await persistIssueFilterAggregates(numericIssueId, publisherId);
-  }
+  const storiesForAggregates = await prisma.story.findMany({
+    where: { fkIssue: { in: siblingIssueIds } },
+    select: {
+      firstApp: true,
+      onlyApp: true,
+      onlyTb: true,
+      otherOnlyTb: true,
+      onlyOnePrint: true,
+      fkParent: true,
+    },
+  });
+
+  const aggregates = deriveIssueAggregatesFromStories(storiesForAggregates);
+
+  await prisma.issue.updateMany({
+    where: { id: { in: siblingIssueIds } },
+    data: {
+      ...aggregates,
+      fkPublisher: publisherId,
+    },
+  });
 }

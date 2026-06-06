@@ -183,6 +183,15 @@ export function createDefaultFilterValues(): FilterValues {
     onlyNotCollectedNoOwnedVariants: false,
     noComicguideId: false,
     noContent: false,
+    onlyDoubleTrippleCollected: false,
+    onlyDoubleTripplePublisherCollected: false,
+    onlyNotOwnedUsMaterial: false,
+    crossPublishers: [],
+    crossSeries: [],
+    crossNumber: "",
+    crossVolume: "",
+    crossStartYear: "",
+    crossEndYear: "",
   };
 }
 
@@ -356,6 +365,15 @@ export function parseFilterValues(queryFilter?: string): FilterValues {
       onlyCollected,
       onlyNotCollected,
       onlyNotCollectedNoOwnedVariants,
+      onlyDoubleTrippleCollected: Boolean(parsed.onlyDoubleTrippleCollected),
+      onlyDoubleTripplePublisherCollected: Boolean(parsed.onlyDoubleTripplePublisherCollected),
+      onlyNotOwnedUsMaterial: Boolean(parsed.onlyNotOwnedUsMaterial),
+      crossPublishers: Array.isArray(parsed.crossPublishers) ? parsed.crossPublishers : defaults.crossPublishers,
+      crossSeries: normalizeSeries(parsed.crossSeries),
+      crossNumber: readTextValue(parsed.crossNumber),
+      crossVolume: readTextValue(parsed.crossVolume),
+      crossStartYear: readTextValue(parsed.crossStartYear),
+      crossEndYear: readTextValue(parsed.crossEndYear),
       noComicguideId:
         Boolean((parsed as { noComicguideId?: unknown }).noComicguideId) ||
         Boolean((parsed as { noCover?: unknown }).noCover),

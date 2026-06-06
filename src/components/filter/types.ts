@@ -46,6 +46,15 @@ export interface FilterValues {
   onlyNotCollectedNoOwnedVariants: boolean;
   noComicguideId: boolean;
   noContent: boolean;
+  onlyDoubleTrippleCollected: boolean;
+  onlyDoubleTripplePublisherCollected: boolean;
+  onlyNotOwnedUsMaterial: boolean;
+  crossPublishers: FieldItem[];
+  crossSeries: FieldItem[];
+  crossNumber: string;
+  crossVolume: string;
+  crossStartYear: string;
+  crossEndYear: string;
 }
 
 export interface FilterSubmitValues {
@@ -82,6 +91,15 @@ export interface FilterSubmitValues {
   noComicguideId?: boolean;
   noContent?: boolean;
   us?: boolean;
+  onlyDoubleTrippleCollected?: boolean;
+  onlyDoubleTripplePublisherCollected?: boolean;
+  onlyNotOwnedUsMaterial?: boolean;
+  crossPublishers?: FieldItem[];
+  crossSeries?: FieldItem[];
+  crossNumber?: string;
+  crossVolume?: number;
+  crossStartYear?: number;
+  crossEndYear?: number | null;
 }
 
 export interface FilterPageProps {

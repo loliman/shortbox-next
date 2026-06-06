@@ -56,6 +56,7 @@ export const SeriesSchema = Yup.object().shape({
 
 export const IssueSchema = Yup.object().shape({
   id: Yup.mixed<string | number>().optional(),
+  variantId: Yup.mixed<string | number>().optional(),
   title: Yup.string().max(255, "Maximal 255 Zeichen"),
   verified: Yup.boolean(),
   collected: Yup.boolean(),

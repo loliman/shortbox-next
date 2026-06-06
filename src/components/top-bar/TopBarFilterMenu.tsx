@@ -26,8 +26,8 @@ export default function TopBarFilterMenu(props: Readonly<TopBarFilterMenuProps>)
   const { us, isFilterActive } = props;
   const selected = (props.selected || { us }) as SelectedRoot | { us: boolean };
   const tooltipTitle = React.useMemo(
-    () => buildFilterTooltipTitle(Boolean(isFilterActive), props.query?.filter),
-    [isFilterActive, props.query?.filter]
+    () => buildFilterTooltipTitle(Boolean(isFilterActive), props.query?.filter, us),
+    [isFilterActive, props.query?.filter, us]
   );
 
   return (
@@ -85,7 +85,7 @@ function resolveFilterBadgeContent(isFilterActive: boolean, initialFilterCount?:
   return Math.max(0, Math.floor(initialFilterCount));
 }
 
-function buildFilterTooltipTitle(isFilterActive: boolean, rawFilter?: string | null): React.ReactNode {
+function buildFilterTooltipTitle(isFilterActive: boolean, rawFilter?: string | null, us?: boolean): React.ReactNode {
   if (!isFilterActive) return "Filtern";
   if (!rawFilter) return "Filter aktiv";
 
@@ -106,6 +106,19 @@ function buildFilterTooltipTitle(isFilterActive: boolean, rawFilter?: string | n
   pushNamedList(entries, parsedFilter.publishers, "Verlag");
   pushNamedList(entries, parsedFilter.series, "Serie");
   pushNumberEntries(entries, parsedFilter.numbers);
+
+  const prefix = us ? "DE" : "US";
+  pushNamedList(entries, parsedFilter.crossPublishers, `${prefix}-Verlag`);
+  pushNamedList(entries, parsedFilter.crossSeries, `${prefix}-Serie`);
+  const crossNumber = readFilterText(parsedFilter.crossNumber);
+  if (crossNumber) entries.push(`${prefix}-Nummer: ${crossNumber}`);
+  const crossVolume = readFilterText(parsedFilter.crossVolume);
+  if (crossVolume) entries.push(`${prefix}-Volume: ${crossVolume}`);
+  const crossStartYear = readFilterText(parsedFilter.crossStartYear);
+  if (crossStartYear) entries.push(`${prefix}-Startjahr: ${crossStartYear}`);
+  const crossEndYear = readFilterText(parsedFilter.crossEndYear);
+  if (crossEndYear) entries.push(`${prefix}-Endjahr: ${crossEndYear}`);
+
   pushNamedList(entries, parsedFilter.arcs, "Teil von (Event, Story Arc, Story Line)");
   pushIndividualEntries(entries, parsedFilter.individuals);
   pushNamedList(entries, parsedFilter.appearances, "Auftritte (Personen, Gegenstände, Orte, ...)");
@@ -114,6 +127,9 @@ function buildFilterTooltipTitle(isFilterActive: boolean, rawFilter?: string | n
     ["onlyCollected", "Nur in Sammlung"],
     ["onlyNotCollected", "Nur nicht in Sammlung"],
     ["onlyNotCollectedNoOwnedVariants", "Nur nicht in Sammlung (ohne Variants)"],
+    ["onlyDoubleTrippleCollected", "Doppelt & Dreifach gesammelt"],
+    ["onlyDoubleTripplePublisherCollected", "Doppelt & Dreifach verlagsintern"],
+    ["onlyNotOwnedUsMaterial", "Ungesammeltes US-Material"],
     ["firstPrint", "Erstveröffentlichung"],
     ["onlyPrint", "Einzige Veröffentlichung"],
     ["onlyTb", "Nur in Taschenbuch"],

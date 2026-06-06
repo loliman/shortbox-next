@@ -23,8 +23,8 @@ const EditIssueBodySchema = Yup.object({
 const DeleteIssueLookupSchema = Yup.object({
   id: Yup.mixed<string | number>().optional(),
   number: Yup.string().required("Pflichtfeld").max(255, "Maximal 255 Zeichen"),
-  format: Yup.string().max(255, "Maximal 255 Zeichen"),
-  variant: Yup.string().max(255, "Maximal 255 Zeichen"),
+  format: Yup.string().nullable().max(255, "Maximal 255 Zeichen"),
+  variant: Yup.string().nullable().max(255, "Maximal 255 Zeichen"),
   series: Yup.object({
     title: Yup.string().required("Pflichtfeld").max(255, "Maximal 255 Zeichen"),
     volume: Yup.number()
@@ -34,7 +34,7 @@ const DeleteIssueLookupSchema = Yup.object({
       .integer("Bitte geben Sie eine Zahl ein"),
     publisher: Yup.object({
       name: Yup.string().required("Pflichtfeld").max(255, "Maximal 255 Zeichen"),
-      us: Yup.boolean().optional(),
+      us: Yup.boolean().nullable().optional(),
     }).required("Verlag wird benötigt"),
   }).required("Serie wird benötigt"),
 });

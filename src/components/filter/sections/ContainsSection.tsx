@@ -7,10 +7,13 @@ import Stack from "@mui/material/Stack";
 import Divider from "@mui/material/Divider";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import { FastField } from "formik";
+import { TextField } from "../../generic/FormikTextField";
 import AutocompleteBase from "../../generic/AutocompleteBase";
 import { useAutocompleteQuery } from "../../generic/useAutocompleteQuery";
 import { FilterValues } from "../types";
 import type { FieldItem } from "../../../util/filterFieldHelpers";
+import { getSeriesLabel } from "../../../lib/routes/issue-presentation";
 
 const MIN_QUERY_LENGTH = 2;
 const REALITY_MIN_QUERY_LENGTH = 0;
@@ -35,11 +38,32 @@ function ContainsSection({
   const [arcInput, setArcInput] = React.useState("");
   const [appearanceInput, setAppearanceInput] = React.useState("");
   const [realityInput, setRealityInput] = React.useState("");
+  const [crossPublisherInput, setCrossPublisherInput] = React.useState("");
+  const [crossSeriesInput, setCrossSeriesInput] = React.useState("");
 
   const arcQuery = useAutocompleteQuery<{ title?: string; type?: string }>({
     source: "arcs",
     variables: { pattern: arcInput },
     searchText: arcInput,
+    minQueryLength: MIN_QUERY_LENGTH,
+    debounceMs: 250,
+  });
+
+  const crossPublisherQuery = useAutocompleteQuery<FieldItem>({
+    source: "publishers",
+    variables: { pattern: crossPublisherInput, us: !us },
+    searchText: crossPublisherInput,
+    minQueryLength: MIN_QUERY_LENGTH,
+    debounceMs: 250,
+  });
+
+  const crossSeriesQuery = useAutocompleteQuery<FieldItem>({
+    source: "series",
+    variables: {
+      pattern: crossSeriesInput,
+      publisher: { name: "*", us: !us },
+    },
+    searchText: crossSeriesInput,
     minQueryLength: MIN_QUERY_LENGTH,
     debounceMs: 250,
   });
@@ -254,6 +278,111 @@ function ContainsSection({
           setRealityInput("");
         }}
       />
+
+      <Divider sx={{ my: 0.25 }} />
+
+      <Typography variant="h6">
+        {us ? "Deutsche Ausgaben (Cross-Scope)" : "US-Originale (Cross-Scope)"}
+      </Typography>
+
+      <AutocompleteBase
+        options={crossPublisherQuery.options}
+        value={sanitizeNameList(values.crossPublishers)}
+        inputValue={crossPublisherInput}
+        multiple
+        label={us ? "Deutscher Verlag" : "US-Verlag"}
+        placeholder={us ? "Deutschen Verlag suchen..." : "US-Verlag suchen..."}
+        loading={crossPublisherQuery.loading}
+        noOptionsText={getAutocompleteNoOptionsText(crossPublisherQuery.isBelowMinLength, crossPublisherQuery.error)}
+        onListboxScroll={crossPublisherQuery.onListboxScroll}
+        getOptionLabel={(option) => readOptionText((option as { name?: unknown })?.name)}
+        isOptionEqualToValue={(option, value) =>
+          normalizeText(option.name) === normalizeText((value as { name?: unknown })?.name)
+        }
+        onInputChange={(_, nextInput, reason) => {
+          if (reason !== "input" && reason !== "clear" && reason !== "reset") return;
+          setCrossPublisherInput(nextInput);
+        }}
+        onChange={(_, nextValue) => {
+          setFieldValue("crossPublishers", sanitizeNameList(asOptionArray(nextValue)));
+          setCrossPublisherInput("");
+        }}
+      />
+
+      <AutocompleteBase
+        options={crossSeriesQuery.options}
+        value={sanitizeTitleList(values.crossSeries)}
+        inputValue={crossSeriesInput}
+        multiple
+        label={us ? "Deutsche Serie" : "US-Serie"}
+        placeholder={us ? "Deutsche Serie suchen..." : "US-Serie suchen..."}
+        loading={crossSeriesQuery.loading}
+        noOptionsText={getAutocompleteNoOptionsText(crossSeriesQuery.isBelowMinLength, crossSeriesQuery.error)}
+        onListboxScroll={crossSeriesQuery.onListboxScroll}
+        getOptionLabel={(option) => formatSeriesLabel(option)}
+        isOptionEqualToValue={(option, value) =>
+          normalizeText(option.title) === normalizeText((value as { title?: unknown })?.title) &&
+          normalizeText(readOptionText(option.volume)) ===
+            normalizeText(readOptionText((value as { volume?: unknown })?.volume))
+        }
+        onInputChange={(_, nextInput, reason) => {
+          if (reason !== "input" && reason !== "clear" && reason !== "reset") return;
+          setCrossSeriesInput(nextInput);
+        }}
+        onChange={(_, nextValue) => {
+          setFieldValue("crossSeries", sanitizeTitleList(asOptionArray(nextValue)));
+          setCrossSeriesInput("");
+        }}
+      />
+
+      <Box
+        sx={{
+          display: "grid",
+          alignItems: "end",
+          gap: 1,
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "repeat(4, minmax(120px, 1fr))",
+          },
+        }}
+      >
+        <FastField
+          name="crossNumber"
+          label={us ? "Deutsche Nummer" : "US-Nummer"}
+          component={TextField}
+          sx={{
+            width: "100%",
+            "& .MuiOutlinedInput-root": { borderRadius: 1.5, bgcolor: "background.paper" },
+          }}
+        />
+        <FastField
+          name="crossVolume"
+          label="Volume"
+          component={TextField}
+          sx={{
+            width: "100%",
+            "& .MuiOutlinedInput-root": { borderRadius: 1.5, bgcolor: "background.paper" },
+          }}
+        />
+        <FastField
+          name="crossStartYear"
+          label="Startjahr"
+          component={TextField}
+          sx={{
+            width: "100%",
+            "& .MuiOutlinedInput-root": { borderRadius: 1.5, bgcolor: "background.paper" },
+          }}
+        />
+        <FastField
+          name="crossEndYear"
+          label="Endjahr"
+          component={TextField}
+          sx={{
+            width: "100%",
+            "& .MuiOutlinedInput-root": { borderRadius: 1.5, bgcolor: "background.paper" },
+          }}
+        />
+      </Box>
     </Stack>
   );
 }
@@ -337,6 +466,28 @@ function resolveContainsMode(
   if (includeValue) return "include";
   if (excludeValue) return "exclude";
   return "any";
+}
+
+function sanitizeNameList(values: FieldItem[]) {
+  return values.filter((entry) => !entry.pattern && normalizeText(entry.name).length > 0);
+}
+
+function sanitizeTitleList(values: FieldItem[]) {
+  return values.filter(
+    (entry) =>
+      !entry.pattern &&
+      normalizeText(entry.title).length > 0 &&
+      Number.isFinite(Number(entry.volume))
+  );
+}
+
+function formatSeriesLabel(entry: unknown) {
+  const option = entry as { title?: unknown; volume?: unknown; startyear?: unknown };
+  return getSeriesLabel({
+    title: readOptionText(option?.title),
+    volume: option?.volume as string | number | null | undefined,
+    startyear: option?.startyear as string | number | null | undefined,
+  });
 }
 
 export default ContainsSection;

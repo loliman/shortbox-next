@@ -37,7 +37,7 @@ function buildLayoutAnchor(
   page: PdfLayoutPage,
   metadataBlock: PdfLayoutBlock,
   stackedLayoutSplitY: number | null = null
-) {
+): PreviewImportLayoutAnchor | null {
   const issueCode = PRODUCT_CODE_PATTERN.exec(metadataBlock.text)?.[1] ?? "";
   if (!issueCode) return null;
 

@@ -103,60 +103,23 @@ function normalizeChangeRequestPayload(
   return nextPayload;
 }
 
-async function loadIssueForChangeRequest(issueId: number): Promise<Record<string, unknown> | null> {
-  const row = await prisma.issue.findFirst({
-    where: {
-      id: BigInt(issueId),
-    },
-    include: {
-      series: {
-        include: {
-          publisher: true,
-        },
-      },
-      stories: {
-        orderBy: [{ number: "asc" }, { id: "asc" }],
-        include: {
-          individuals: {
-            include: {
-              individual: true,
-            },
-          },
-          appearances: {
-            include: {
-              appearance: true,
-            },
-          },
-          parent: {
-            include: {
-              issue: {
-                include: {
-                  series: true,
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
-
-  if (!row) return null;
+function formatIssueRowForChangeRequest(row: any): Record<string, unknown> {
+  const preferredVariant = row.variants[0] ?? null;
 
   return {
     id: Number(row.id),
     title: normalizeRecordString(row.title),
     number: normalizeRecordString(row.number),
-    format: normalizeRecordString(row.format),
-    variant: normalizeRecordString(row.variant),
-    releasedate: normalizeIssueReleaseDate(row.releaseDate),
-    pages: Number(row.pages || 0),
-    price: Number(row.price || 0),
-    currency: normalizeRecordString(row.currency),
-    isbn: normalizeRecordString(row.isbn),
-    limitation: normalizeRecordString(row.limitation),
-    comicguideid: Number(row.comicGuideId || 0),
-    addinfo: normalizeRecordString(row.addInfo),
+    format: normalizeRecordString(preferredVariant?.format),
+    variant: normalizeRecordString(preferredVariant?.variantLabel),
+    releasedate: normalizeIssueReleaseDate(preferredVariant?.releaseDate),
+    pages: Number(preferredVariant?.pages || 0),
+    price: preferredVariant?.price ? Number(preferredVariant.price) : 0,
+    currency: normalizeRecordString(preferredVariant?.currency),
+    isbn: normalizeRecordString(preferredVariant?.isbn),
+    limitation: normalizeRecordString(preferredVariant?.limitation),
+    comicguideid: Number(preferredVariant?.comicGuideId || 0),
+    addinfo: normalizeRecordString(preferredVariant?.addInfo),
     series: {
       title: normalizeRecordString(row.series?.title),
       volume: Number(row.series?.volume || 0),
@@ -166,7 +129,7 @@ async function loadIssueForChangeRequest(issueId: number): Promise<Record<string
         us: Boolean(row.series?.publisher?.original),
       },
     },
-    stories: row.stories.map((story) => {
+    stories: row.stories.map((story: any) => {
       const parent = story.parent;
       const parentIssue = parent?.issue;
       const parentSeries = parentIssue?.series;
@@ -176,11 +139,11 @@ async function loadIssueForChangeRequest(issueId: number): Promise<Record<string
         part: normalizeRecordString(story.part),
         number: Number(story.number || 0),
         exclusive: !parent,
-        individuals: story.individuals.map((entry) => ({
+        individuals: story.individuals.map((entry: any) => ({
           name: normalizeRecordString(entry.individual?.name),
           type: normalizeRecordString(entry.type) ? [normalizeRecordString(entry.type)] : [],
         })),
-        appearances: story.appearances.map((entry) => ({
+        appearances: story.appearances.map((entry: any) => ({
           name: normalizeRecordString(entry.appearance?.name),
           type: normalizeRecordString(entry.appearance?.type),
           role: normalizeRecordString(entry.role),
@@ -212,6 +175,52 @@ async function loadIssueForChangeRequest(issueId: number): Promise<Record<string
   };
 }
 
+async function loadIssueForChangeRequest(issueId: bigint | number): Promise<Record<string, unknown> | null> {
+  const row = await prisma.issue.findFirst({
+    where: {
+      id: BigInt(issueId),
+    },
+    include: {
+      series: {
+        include: {
+          publisher: true,
+        },
+      },
+      variants: {
+        orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
+        take: 1,
+      },
+      stories: {
+        orderBy: [{ number: "asc" }, { id: "asc" }],
+        include: {
+          individuals: {
+            include: {
+              individual: true,
+            },
+          },
+          appearances: {
+            include: {
+              appearance: true,
+            },
+          },
+          parent: {
+            include: {
+              issue: {
+                include: {
+                  series: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!row) return null;
+  return formatIssueRowForChangeRequest(row);
+}
+
 export async function readChangeRequests(options?: { order?: string | null; direction?: string | null }) {
   const directionInput = typeof options?.direction === "string" ? options.direction.toLowerCase() : "asc";
   const direction = directionInput === "desc" ? "desc" : "asc";
@@ -221,16 +230,54 @@ export async function readChangeRequests(options?: { order?: string | null; dire
 
   if (rows.length === 0) return [];
 
-  const loadedIssuesByChangeRequestId = new Map<number, Record<string, unknown> | null>();
-  await Promise.all(
-    rows.map(async (entry) => {
-      const loadedIssue = await loadIssueForChangeRequest(entry.fkIssue);
-      loadedIssuesByChangeRequestId.set(entry.id, loadedIssue);
-    })
-  );
+  const issueIds = Array.from(new Set(rows.map((entry) => entry.fkIssue)));
+  const issues = await prisma.issue.findMany({
+    where: {
+      id: { in: issueIds },
+    },
+    include: {
+      series: {
+        include: {
+          publisher: true,
+        },
+      },
+      variants: {
+        orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
+      },
+      stories: {
+        orderBy: [{ number: "asc" }, { id: "asc" }],
+        include: {
+          individuals: {
+            include: {
+              individual: true,
+            },
+          },
+          appearances: {
+            include: {
+              appearance: true,
+            },
+          },
+          parent: {
+            include: {
+              issue: {
+                include: {
+                  series: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const formattedIssuesByIssueId = new Map<string, Record<string, unknown>>();
+  for (const row of issues) {
+    formattedIssuesByIssueId.set(String(row.id), formatIssueRowForChangeRequest(row));
+  }
 
   return rows.map((entry) => {
-    const loadedIssue = loadedIssuesByChangeRequestId.get(entry.id) || null;
+    const loadedIssue = formattedIssuesByIssueId.get(String(entry.fkIssue)) || null;
     return {
       id: String(entry.id),
       issueId: String(entry.fkIssue),

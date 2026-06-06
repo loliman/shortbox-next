@@ -1,6 +1,7 @@
 import "server-only";
 
 import { buildDetailPageUrl, type Locale } from "../url-builder";
+import { env } from "../env";
 import { generatePublisherSlug, generateSeriesSlug } from "../slug-builder";
 
 type BreadcrumbEntry = {
@@ -37,7 +38,7 @@ function buildIssueVariantSuffix(format: OptionalText, variant: OptionalText): s
   return `[${parts[0]}] – ${parts[1]}`;
 }
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://shortbox.de";
+const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
 
 export function buildWebsiteStructuredData() {
   return {

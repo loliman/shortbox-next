@@ -11,7 +11,6 @@
 --
 -- Idempotent: the script is safe to re-apply. The INSERT skips rows that are
 -- already present (matched case-insensitively).
-
 BEGIN;
 
 CREATE TABLE IF NOT EXISTS shortbox.series_genre (

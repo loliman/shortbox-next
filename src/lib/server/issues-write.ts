@@ -2,6 +2,7 @@ import type { PrismaClient, Prisma } from "@prisma/client";
 import "server-only";
 
 import { prisma } from "../prisma/client";
+import { handleIssueWriteEffects, recalculateCollectionFlagsForIssues } from "./issue-materialize-write";
 import { MarvelCrawlerService } from "./marvel-crawler";
 import {
   linkCoverIndividuals,
@@ -182,6 +183,7 @@ type ParentIssuePreflightCache = Map<string, Promise<ParentIssueResolution>>;
 
 type IssueInput = {
   id?: string | number | null;
+  variantId?: string | number | null;
   title?: string | null;
   number?: string | null;
   format?: string | null;
@@ -234,7 +236,9 @@ export async function createIssue(item: IssueInput): Promise<Result<IssueWriteIt
   try {
     const preflightCache = await prepareParentIssuePreflight(item);
     const res = await prisma.$transaction(async (tx) => {
-      return createIssueRecord(item, tx, undefined, preflightCache);
+      const result = await createIssueRecord(item, tx, undefined, preflightCache);
+      await handleIssueWriteEffects(BigInt(result.item.id), tx);
+      return result;
     }, ISSUE_TRANSACTION_OPTIONS);
     return success(res);
   } catch (error) {
@@ -269,6 +273,11 @@ export async function createIssueBatch(
         }
       }
 
+      const createdIssueIds = Array.from(new Set(createdItems.map(i => BigInt(i.id))));
+      for (const id of createdIssueIds) {
+        await handleIssueWriteEffects(id, tx);
+      }
+
       return {
         items: createdItems,
         ...(meta ? { meta } : {}),
@@ -287,7 +296,6 @@ export async function editIssue(item: IssueInput): Promise<Result<IssueWriteItem
       const resolvedExisting = await resolveExistingIssueForEdit(item, tx);
       if (resolvedExisting == null) throw new Error("Issue not found");
 
-      const inheritsStories = await issueInheritsStories(resolvedExisting.id, tx);
       const newPublisher = await findPublisher(item.series?.publisher, tx);
       if (newPublisher == null) throw new Error("Publisher not found");
 
@@ -297,34 +305,317 @@ export async function editIssue(item: IssueInput): Promise<Result<IssueWriteItem
         tx
       );
 
-      await assertIssueSeriesIdentityIsAvailable(
-        {
-          fkSeries: newSeries.id,
-          number: item.number,
-          format: item.format,
-          variant: item.variant,
-          excludeId: resolvedExisting.id,
-        },
-        tx
-      );
+      // Find the specific Variant we are editing
+      let existingVariant = null;
+      const variantId = normalizeBigInt(item.variantId);
+      if (variantId != null) {
+        existingVariant = await tx.variant.findUnique({
+          where: { id: variantId },
+        });
+      }
 
-      const updated = await tx.issue.update({
-        where: {
-          id: resolvedExisting.id,
-        },
-        data: buildEditedIssueData(item, resolvedExisting.title, inheritsStories, newSeries.id),
-        include: {
-          series: {
-            include: {
-              publisher: true,
-            },
+      if (!existingVariant) {
+        existingVariant = await tx.variant.findFirst({
+          where: {
+            fkIssue: resolvedExisting.id,
+            format: normalizeText(item.format),
+            variantLabel: normalizeOptionalText(item.variant),
           },
+        });
+      }
+
+      if (!existingVariant) {
+        const variants = await tx.variant.findMany({
+          where: { fkIssue: resolvedExisting.id },
+        });
+        if (variants.length === 1) {
+          existingVariant = variants[0];
+        }
+      }
+
+      if (!existingVariant) throw new Error("Variant not found");
+
+      // Check if another issue already exists with the target series/number combination
+      const targetIssue = await tx.issue.findFirst({
+        where: {
+          fkSeries: newSeries.id,
+          number: normalizeText(item.number),
         },
       });
 
-      if (shouldSyncIssueStories(item, inheritsStories, newPublisher.original)) {
+      let updatedIssue;
+      let updatedVariant;
+
+      if (targetIssue && targetIssue.id !== resolvedExisting.id) {
+        // CONFLICT PATH: Re-parent the variant to targetIssue
+
+        // 1. Verify that the updated format/label doesn't duplicate a variant already present on targetIssue
+        const duplicateVariantInTarget = await tx.variant.findFirst({
+          where: {
+            fkIssue: targetIssue.id,
+            format: normalizeText(item.format),
+            variantLabel: normalizeOptionalText(item.variant) || null,
+          },
+        });
+        if (duplicateVariantInTarget) {
+          throw new Error("Variant already exists in target issue");
+        }
+
+        // 2. Update and re-parent the Variant
+        updatedVariant = await tx.variant.update({
+          where: {
+            id: existingVariant.id,
+          },
+          data: {
+            fkIssue: targetIssue.id,
+            format: normalizeText(item.format),
+            variantLabel: normalizeOptionalText(item.variant),
+            releaseDate: coerceReleaseDateForDb(item.releasedate),
+            pages: normalizeBigInt(item.pages) ?? BigInt(0),
+            price: normalizeFloat(item.price),
+            currency: normalizeOptionalText(item.currency) ?? "",
+            isbn: normalizeOptionalText(item.isbn) ?? "",
+            limitation: normalizeBigInt(item.limitation),
+            addInfo: normalizeOptionalText(item.addinfo) ?? "",
+            updatedAt: new Date(),
+            ...(typeof item.verified === "boolean" ? { verified: item.verified } : {}),
+            ...(typeof item.collected === "boolean" ? { collected: item.collected } : {}),
+            ...(item.comicguideid === undefined
+              ? {}
+              : { comicGuideId: normalizeBigInt(item.comicguideid) }),
+          },
+        });
+
+        // 3. Update targetIssue properties (title, legacyNumber, etc.)
+        updatedIssue = await tx.issue.update({
+          where: {
+            id: targetIssue.id,
+          },
+          data: {
+            title: normalizeText(item.title),
+            legacyNumber: normalizeText(item.legacy_number),
+            updatedAt: new Date(),
+          },
+          include: {
+            series: {
+              include: {
+                publisher: true,
+              },
+            },
+          },
+        });
+
+        // 4. Clean up original issue if no variants are left
+        const originalVariantsCount = await tx.variant.count({
+          where: {
+            fkIssue: resolvedExisting.id,
+          },
+        });
+
+        if (originalVariantsCount === 0) {
+          const storiesForDeletion = await tx.story.findMany({
+            where: { fkIssue: resolvedExisting.id },
+            select: { id: true, fkParent: true },
+          });
+          const parentIdsForDeletion = storiesForDeletion
+            .map(s => s.fkParent)
+            .filter((id): id is bigint => id != null);
+          const ownStoryIdsForDeletion = storiesForDeletion.map(s => s.id);
+          const fkSeriesForDeletion = resolvedExisting.fkSeries;
+          const numberForDeletion = resolvedExisting.number;
+
+          const affectedIssuesForDeletion = await tx.issue.findMany({
+            where: {
+              series: { publisher: { original: false } },
+              id: { not: resolvedExisting.id },
+              OR: [
+                ...(fkSeriesForDeletion !== null ? [{ fkSeries: fkSeriesForDeletion, number: numberForDeletion }] : []),
+                ...(parentIdsForDeletion.length > 0 || ownStoryIdsForDeletion.length > 0
+                  ? [
+                      {
+                        stories: {
+                          some: {
+                            fkParent: { in: [...parentIdsForDeletion, ...ownStoryIdsForDeletion] },
+                          },
+                        },
+                      },
+                    ]
+                  : []),
+              ],
+            },
+            select: { id: true },
+          });
+          const affectedIssueIdsForDeletion = Array.from(new Set(affectedIssuesForDeletion.map(i => i.id)));
+
+          const storyRows = await tx.story.findMany({
+            where: {
+              fkIssue: resolvedExisting.id,
+            },
+            select: {
+              id: true,
+            },
+          });
+          const storyIds = storyRows.map((entry) => entry.id);
+
+          if (storyIds.length > 0) {
+            await tx.story.updateMany({
+              where: {
+                fkParent: {
+                  in: storyIds,
+                },
+              },
+              data: {
+                fkParent: null,
+              },
+            });
+
+            await tx.story.updateMany({
+              where: {
+                fkReprint: {
+                  in: storyIds,
+                },
+              },
+              data: {
+                fkReprint: null,
+              },
+            });
+
+            await tx.storyAppearance.deleteMany({
+              where: {
+                fkStory: {
+                  in: storyIds,
+                },
+              },
+            });
+
+            await tx.storyIndividual.deleteMany({
+              where: {
+                fkStory: {
+                  in: storyIds,
+                },
+              },
+            });
+
+            await tx.story.deleteMany({
+              where: {
+                id: {
+                  in: storyIds,
+                },
+              },
+            });
+          }
+
+          await tx.issueArc.deleteMany({
+            where: {
+              fkIssue: resolvedExisting.id,
+            },
+          });
+
+          await tx.issueIndividual.deleteMany({
+            where: {
+              fkIssue: resolvedExisting.id,
+            },
+          });
+
+          await tx.changeRequest.deleteMany({
+            where: {
+              fkIssue: Number(resolvedExisting.id),
+            },
+          });
+
+          await tx.issue.delete({
+            where: {
+              id: resolvedExisting.id,
+            },
+          });
+
+          if (affectedIssueIdsForDeletion.length > 0) {
+            await recalculateCollectionFlagsForIssues(affectedIssueIdsForDeletion, tx);
+          }
+        } else {
+          // If original issue is not deleted, recalculate its write effects
+          await handleIssueWriteEffects(resolvedExisting.id, tx);
+        }
+
+      } else {
+        // NON-CONFLICT PATH: Standard update
+
+        // Verify new identity won't duplicate another variant outside this parent issue
+        await assertIssueSeriesIdentityIsAvailable(
+          {
+            fkSeries: newSeries.id,
+            number: item.number,
+            format: item.format,
+            variant: item.variant,
+            excludeId: resolvedExisting.id,
+          },
+          tx
+        );
+
+        // Verify it doesn't duplicate another variant inside this parent issue
+        const duplicateVariantInSameIssue = await tx.variant.findFirst({
+          where: {
+            fkIssue: resolvedExisting.id,
+            format: normalizeText(item.format),
+            variantLabel: normalizeOptionalText(item.variant) || null,
+            NOT: {
+              id: existingVariant.id,
+            },
+          },
+        });
+        if (duplicateVariantInSameIssue) {
+          throw new Error("Variant already exists in this issue");
+        }
+
+        // Update Issue
+        updatedIssue = await tx.issue.update({
+          where: {
+            id: resolvedExisting.id,
+          },
+          data: {
+            title: normalizeText(item.title),
+            number: normalizeText(item.number),
+            legacyNumber: normalizeText(item.legacy_number),
+            fkSeries: newSeries.id,
+            updatedAt: new Date(),
+          },
+          include: {
+            series: {
+              include: {
+                publisher: true,
+              },
+            },
+          },
+        });
+
+        // Update Variant
+        updatedVariant = await tx.variant.update({
+          where: {
+            id: existingVariant.id,
+          },
+          data: {
+            format: normalizeText(item.format),
+            variantLabel: normalizeOptionalText(item.variant),
+            releaseDate: coerceReleaseDateForDb(item.releasedate),
+            pages: normalizeBigInt(item.pages) ?? BigInt(0),
+            price: normalizeFloat(item.price),
+            currency: normalizeOptionalText(item.currency) ?? "",
+            isbn: normalizeOptionalText(item.isbn) ?? "",
+            limitation: normalizeBigInt(item.limitation),
+            addInfo: normalizeOptionalText(item.addinfo) ?? "",
+            updatedAt: new Date(),
+            ...(typeof item.verified === "boolean" ? { verified: item.verified } : {}),
+            ...(typeof item.collected === "boolean" ? { collected: item.collected } : {}),
+            ...(item.comicguideid === undefined
+              ? {}
+              : { comicGuideId: normalizeBigInt(item.comicguideid) }),
+          },
+        });
+      }
+
+      if (shouldSyncIssueStories(item, newPublisher.original)) {
         await syncStoriesFromParentRefs(
-          Number(updated.id),
+          Number(updatedIssue.id),
           item,
           tx,
           undefined,
@@ -332,8 +623,10 @@ export async function editIssue(item: IssueInput): Promise<Result<IssueWriteItem
         );
       }
 
+      await handleIssueWriteEffects(updatedIssue.id, tx);
+
       return {
-        item: toIssuePayload(updated),
+        item: toIssuePayload(updatedIssue, updatedVariant),
         ...(createdSeries ? { meta: { createdSeries: toIssueSeriesMeta(newSeries) } } : {}),
       };
     }, ISSUE_TRANSACTION_OPTIONS);
@@ -400,203 +693,226 @@ async function assertIssueSeriesIdentityIsAvailable(
   }
 }
 
-function buildEditedIssueData(
-  item: IssueInput,
-  inheritedTitle: string,
-  inheritsStories: boolean,
-  fkSeries: bigint
-) {
-  return {
-    title: inheritsStories ? inheritedTitle : normalizeText(item.title),
-    number: normalizeText(item.number),
-    format: normalizeText(item.format),
-    variant: normalizeOptionalText(item.variant),
-    releaseDate: coerceReleaseDateForDb(item.releasedate),
-    legacyNumber: normalizeText(item.legacy_number),
-    pages: normalizeBigInt(item.pages) ?? BigInt(0),
-    price: normalizeFloat(item.price),
-    currency: normalizeOptionalText(item.currency) ?? "",
-    isbn: normalizeOptionalText(item.isbn) ?? "",
-    limitation: normalizeBigInt(item.limitation),
-    addInfo: normalizeOptionalText(item.addinfo) ?? "",
-    fkSeries,
-    updatedAt: new Date(),
-    ...(typeof item.verified === "boolean" ? { verified: item.verified } : {}),
-    ...(typeof item.collected === "boolean" ? { collected: item.collected } : {}),
-    ...(item.comicguideid === undefined
-      ? {}
-      : { comicGuideId: normalizeBigInt(item.comicguideid) }),
-  };
-}
-
-function shouldSyncIssueStories(item: IssueInput, inheritsStories: boolean, isUsPublisher: boolean) {
-  return !inheritsStories && !isUsPublisher && Object.hasOwn(item, "stories");
+function shouldSyncIssueStories(item: IssueInput, isUsPublisher: boolean) {
+  return !isUsPublisher && Object.hasOwn(item, "stories");
 }
 
 export async function deleteIssueByLookup(item: IssueInput, executor: PrismaExecutor = prisma): Promise<Result<boolean>> {
   try {
     const runDelete = async (tx: PrismaExecutor) => {
-    const publisher = await tx.publisher.findFirst({
-      where: {
-        name: normalizeText(item.series?.publisher?.name),
-        ...(typeof item.series?.publisher?.us === "boolean"
-          ? { original: item.series.publisher.us }
-          : {}),
-      },
-    });
-    if (!publisher) throw new Error("Publisher not found");
+      const publisher = await tx.publisher.findFirst({
+        where: {
+          name: normalizeText(item.series?.publisher?.name),
+          ...(typeof item.series?.publisher?.us === "boolean"
+            ? { original: item.series.publisher.us }
+            : {}),
+        },
+      });
+      if (!publisher) throw new Error("Publisher not found");
 
-    const series = await tx.series.findFirst({
-      where: {
-        title: normalizeText(item.series?.title),
-        volume: BigInt(Number(item.series?.volume ?? 0)),
-        fkPublisher: publisher.id,
-      },
-    });
-    if (!series) throw new Error("Series not found");
+      const series = await tx.series.findFirst({
+        where: {
+          title: normalizeText(item.series?.title),
+          volume: BigInt(Number(item.series?.volume ?? 0)),
+          fkPublisher: publisher.id,
+        },
+      });
+      if (!series) throw new Error("Series not found");
 
-    const issueMatch = await findIssueBySeriesIdentity(
-      {
-        fkSeries: series.id,
-        number: item.number,
-        format: item.format,
-        variant: item.variant,
-      },
-      tx
-    );
-    const issue =
-      issueMatch?.id == null
-        ? null
-        : await tx.issue.findUnique({
+      const parentIssue = await tx.issue.findFirst({
+        where: {
+          fkSeries: series.id,
+          number: normalizeText(item.number),
+        },
+      });
+      if (!parentIssue) throw new Error("Issue not found");
+
+      const variant = await tx.variant.findFirst({
+        where: {
+          fkIssue: parentIssue.id,
+          format: normalizeText(item.format),
+          variantLabel: normalizeOptionalText(item.variant) || null,
+        },
+      });
+      if (!variant) throw new Error("Variant not found");
+
+      const coverRows = await tx.cover.findMany({
+        where: {
+          fkVariant: variant.id,
+        },
+        select: {
+          id: true,
+        },
+      });
+      const coverIds = coverRows.map((entry) => entry.id);
+
+      if (coverIds.length > 0) {
+        await tx.cover.updateMany({
+          where: {
+            fkParent: {
+              in: coverIds,
+            },
+          },
+          data: {
+            fkParent: null,
+          },
+        });
+
+        await tx.coverIndividual.deleteMany({
+          where: {
+            fkCover: {
+              in: coverIds,
+            },
+          },
+        });
+
+        await tx.cover.deleteMany({
+          where: {
+            id: {
+              in: coverIds,
+            },
+          },
+        });
+      }
+
+      const storiesForDeletion = await tx.story.findMany({
+        where: { fkIssue: parentIssue.id },
+        select: { id: true, fkParent: true },
+      });
+      const parentIdsForDeletion = storiesForDeletion
+        .map(s => s.fkParent)
+        .filter((id): id is bigint => id != null);
+      const ownStoryIdsForDeletion = storiesForDeletion.map(s => s.id);
+      const fkSeriesForDeletion = parentIssue.fkSeries;
+      const numberForDeletion = parentIssue.number;
+
+      const affectedIssuesForDeletion = await tx.issue.findMany({
+        where: {
+          series: { publisher: { original: false } },
+          id: { not: parentIssue.id },
+          OR: [
+            ...(fkSeriesForDeletion !== null ? [{ fkSeries: fkSeriesForDeletion, number: numberForDeletion }] : []),
+            ...(parentIdsForDeletion.length > 0 || ownStoryIdsForDeletion.length > 0
+              ? [
+                  {
+                    stories: {
+                      some: {
+                        fkParent: { in: [...parentIdsForDeletion, ...ownStoryIdsForDeletion] },
+                      },
+                    },
+                  },
+                ]
+              : []),
+          ],
+        },
+        select: { id: true },
+      });
+      const affectedIssueIdsForDeletion = Array.from(new Set(affectedIssuesForDeletion.map(i => i.id)));
+
+      await tx.variant.delete({
+        where: {
+          id: variant.id,
+        },
+      });
+
+      const otherVariantsCount = await tx.variant.count({
+        where: {
+          fkIssue: parentIssue.id,
+        },
+      });
+
+      if (otherVariantsCount === 0) {
+        const storyRows = await tx.story.findMany({
+          where: {
+            fkIssue: parentIssue.id,
+          },
+          select: {
+            id: true,
+          },
+        });
+        const storyIds = storyRows.map((entry) => entry.id);
+
+        if (storyIds.length > 0) {
+          await tx.story.updateMany({
             where: {
-              id: issueMatch.id,
+              fkParent: {
+                in: storyIds,
+              },
+            },
+            data: {
+              fkParent: null,
             },
           });
-    if (!issue) throw new Error("Issue not found");
 
-    const storyRows = await tx.story.findMany({
-      where: {
-        fkIssue: issue.id,
-      },
-      select: {
-        id: true,
-      },
-    });
-    const storyIds = storyRows.map((entry) => entry.id);
+          await tx.story.updateMany({
+            where: {
+              fkReprint: {
+                in: storyIds,
+              },
+            },
+            data: {
+              fkReprint: null,
+            },
+          });
 
-    const coverRows = await tx.cover.findMany({
-      where: {
-        fkIssue: issue.id,
-      },
-      select: {
-        id: true,
-      },
-    });
-    const coverIds = coverRows.map((entry) => entry.id);
+          await tx.storyAppearance.deleteMany({
+            where: {
+              fkStory: {
+                in: storyIds,
+              },
+            },
+          });
 
-    if (storyIds.length > 0) {
-      await tx.story.updateMany({
-        where: {
-          fkParent: {
-            in: storyIds,
+          await tx.storyIndividual.deleteMany({
+            where: {
+              fkStory: {
+                in: storyIds,
+              },
+            },
+          });
+
+          await tx.story.deleteMany({
+            where: {
+              id: {
+                in: storyIds,
+              },
+            },
+          });
+        }
+
+        await tx.issueArc.deleteMany({
+          where: {
+            fkIssue: parentIssue.id,
           },
-        },
-        data: {
-          fkParent: null,
-        },
-      });
+        });
 
-      await tx.story.updateMany({
-        where: {
-          fkReprint: {
-            in: storyIds,
+        await tx.issueIndividual.deleteMany({
+          where: {
+            fkIssue: parentIssue.id,
           },
-        },
-        data: {
-          fkReprint: null,
-        },
-      });
+        });
 
-      await tx.storyAppearance.deleteMany({
-        where: {
-          fkStory: {
-            in: storyIds,
+        await tx.changeRequest.deleteMany({
+          where: {
+            fkIssue: Number(parentIssue.id),
           },
-        },
-      });
+        });
 
-      await tx.storyIndividual.deleteMany({
-        where: {
-          fkStory: {
-            in: storyIds,
+        await tx.issue.delete({
+          where: {
+            id: parentIssue.id,
           },
-        },
-      });
+        });
 
-      await tx.story.deleteMany({
-        where: {
-          id: {
-            in: storyIds,
-          },
-        },
-      });
-    }
+        if (affectedIssueIdsForDeletion.length > 0) {
+          await recalculateCollectionFlagsForIssues(affectedIssueIdsForDeletion, tx);
+        }
+      } else {
+        await handleIssueWriteEffects(parentIssue.id, tx);
+      }
+    };
 
-    if (coverIds.length > 0) {
-      await tx.cover.updateMany({
-        where: {
-          fkParent: {
-            in: coverIds,
-          },
-        },
-        data: {
-          fkParent: null,
-        },
-      });
-
-      await tx.coverIndividual.deleteMany({
-        where: {
-          fkCover: {
-            in: coverIds,
-          },
-        },
-      });
-
-      await tx.cover.deleteMany({
-        where: {
-          id: {
-            in: coverIds,
-          },
-        },
-      });
-    }
-
-    await tx.issueArc.deleteMany({
-      where: {
-        fkIssue: issue.id,
-      },
-    });
-
-    await tx.issueIndividual.deleteMany({
-      where: {
-        fkIssue: issue.id,
-      },
-    });
-
-    await tx.changeRequest.deleteMany({
-      where: {
-        fkIssue: Number(issue.id),
-      },
-    });
-
-    await tx.issue.delete({
-      where: {
-        id: issue.id,
-      },
-    });
-  };
-
-  if (executor === prisma) {
+    if (executor === prisma) {
       await prisma.$transaction(async (tx) => {
         await runDelete(tx);
       });
@@ -621,41 +937,64 @@ async function createIssueRecord(
 
   const { series, created: createdSeries } = await findOrCreateIssueSeries(item.series, publisher.id, tx);
 
-  const duplicateIssue = await findIssueBySeriesIdentity(
-    {
+  // 1. Find or create the parent Issue (the work)
+  let parentIssue = await tx.issue.findFirst({
+    where: {
       fkSeries: series.id,
-      number: item.number,
-      format: item.format,
-      variant: item.variant,
+      number: normalizeText(item.number),
     },
-    tx
-  );
-  if (duplicateIssue) {
+  });
+
+  const now = new Date();
+  if (!parentIssue) {
+    parentIssue = await tx.issue.create({
+      data: {
+        title: normalizeText(item.title),
+        number: normalizeText(item.number),
+        legacyNumber: normalizeText(item.legacy_number),
+        fkSeries: series.id,
+        createdAt: now,
+        updatedAt: now,
+      },
+    });
+  }
+
+  // 2. Verify we don't duplicate a Variant format/label for this parent Issue
+  const duplicateVariant = await tx.variant.findFirst({
+    where: {
+      fkIssue: parentIssue.id,
+      format: normalizeText(item.format),
+      variantLabel: normalizeOptionalText(item.variant) || null,
+    },
+  });
+  if (duplicateVariant) {
     throw new Error("Issue already exists");
   }
 
-  const now = new Date();
-  const created = await tx.issue.create({
+  // 3. Create the Variant
+  const createdVariant = await tx.variant.create({
     data: {
-      title: normalizeText(item.title),
-      number: normalizeText(item.number),
+      fkIssue: parentIssue.id,
       format: normalizeText(item.format),
-      variant: normalizeOptionalText(item.variant),
+      variantLabel: normalizeOptionalText(item.variant),
       releaseDate: coerceReleaseDateForDb(item.releasedate),
-      legacyNumber: normalizeText(item.legacy_number),
-      pages: normalizeBigInt(item.pages),
+      pages: normalizeBigInt(item.pages) ?? BigInt(0),
       price: normalizeFloat(item.price),
-      currency: normalizeOptionalText(item.currency),
+      currency: normalizeOptionalText(item.currency) ?? "",
       comicGuideId: normalizeBigInt(item.comicguideid),
-      fkSeries: series.id,
-      isbn: normalizeOptionalText(item.isbn),
+      isbn: normalizeOptionalText(item.isbn) ?? "",
       limitation: normalizeBigInt(item.limitation),
-      addInfo: normalizeOptionalText(item.addinfo),
+      addInfo: normalizeOptionalText(item.addinfo) ?? "",
       verified: Boolean(item.verified),
       collected: typeof item.collected === "boolean" ? item.collected : null,
       createdAt: now,
       updatedAt: now,
     },
+  });
+
+  // Load the full series & publisher for the returned payload
+  const fullParentIssue = await tx.issue.findUnique({
+    where: { id: parentIssue.id },
     include: {
       series: {
         include: {
@@ -664,11 +1003,12 @@ async function createIssueRecord(
       },
     },
   });
+  if (!fullParentIssue) throw new Error("Issue not found after creation");
 
-  await syncStoriesFromParentRefs(Number(created.id), item, tx, parentIssueCache, preflightCache);
+  await syncStoriesFromParentRefs(Number(fullParentIssue.id), item, tx, parentIssueCache, preflightCache);
 
   return {
-    item: toIssuePayload(created),
+    item: toIssuePayload(fullParentIssue, createdVariant),
     ...(createdSeries ? { meta: { createdSeries: toIssueSeriesMeta(series) } } : {}),
   };
 }
@@ -1014,7 +1354,6 @@ async function findOrCrawlParentIssueRefs(
   const issue = await executor.issue.findFirst({
     where: {
       number: parent.number,
-      variant: "",
       fkSeries: series.id,
     },
     select: { id: true },
@@ -1052,10 +1391,19 @@ async function findOrCrawlParentIssueRefs(
     data: {
       title: "",
       number: parent.number,
-      format: "Heft",
-      variant: "",
-      releaseDate: coerceReleaseDateForDb(crawledIssue.releasedate),
       legacyNumber: normalizeText(crawledIssue.legacyNumber),
+      fkSeries: series.id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  });
+
+  const createdVariant = await executor.variant.create({
+    data: {
+      fkIssue: createdIssue.id,
+      format: "Heft",
+      variantLabel: "",
+      releaseDate: coerceReleaseDateForDb(crawledIssue.releasedate),
       pages: BigInt(0),
       price: normalizeFloat(crawledIssue.price),
       currency: normalizeOptionalText(crawledIssue.currency) ?? "USD",
@@ -1063,7 +1411,6 @@ async function findOrCrawlParentIssueRefs(
       isbn: "",
       limitation: null,
       addInfo: "",
-      fkSeries: series.id,
       verified: false,
       collected: null,
       createdAt: new Date(),
@@ -1079,7 +1426,7 @@ async function findOrCrawlParentIssueRefs(
 
   const createdMainCover = await executor.cover.create({
     data: {
-      fkIssue: createdIssue.id,
+      fkVariant: createdVariant.id,
       fkParent: null,
       number: BigInt(Number(mainCover.number || 0)),
       url: normalizeOptionalText(mainCover.url) ?? "",
@@ -1111,44 +1458,63 @@ async function findOrCrawlParentIssueRefs(
 
   for (const crawledVariant of crawledIssue.variants || []) {
     const variantNumber = normalizeText(crawledVariant.number || createdIssue.number || parent.number);
-    const variantName = normalizeText(crawledVariant.variant);
+    const variantName = normalizeOptionalText(crawledVariant.variant);
     if (!variantName) continue;
 
     const variantFormat = normalizeText(crawledVariant.format || "Heft");
-    const existingVariantIssue = await executor.issue.findFirst({
+
+    // 1. Find or create the parent Issue for this number
+    let variantParentIssue = await executor.issue.findFirst({
       where: {
         fkSeries: series.id,
         number: variantNumber,
-        format: variantFormat,
-        variant: variantName,
       },
     });
 
-    const variantIssue = existingVariantIssue
-      ? await executor.issue.update({
+    if (!variantParentIssue) {
+      variantParentIssue = await executor.issue.create({
+        data: {
+          title: "",
+          number: variantNumber,
+          legacyNumber: normalizeText(crawledVariant.legacyNumber || crawledIssue.legacyNumber),
+          fkSeries: series.id,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+    }
+
+    // 2. Find or create the Variant under that parent Issue
+    const existingVariant = await executor.variant.findFirst({
+      where: {
+        fkIssue: variantParentIssue.id,
+        format: variantFormat,
+        variantLabel: variantName,
+      },
+    });
+
+    const dbVariant = existingVariant
+      ? await executor.variant.update({
           where: {
-            id: existingVariantIssue.id,
+            id: existingVariant.id,
           },
           data: {
             releaseDate: coerceReleaseDateForDb(
               crawledVariant.releasedate || crawledIssue.releasedate || ""
             ),
-            legacyNumber: normalizeText(crawledVariant.legacyNumber || crawledIssue.legacyNumber),
             price: normalizeFloat(crawledVariant.price),
             currency: normalizeOptionalText(crawledVariant.currency || crawledIssue.currency) ?? "USD",
             updatedAt: new Date(),
           },
         })
-      : await executor.issue.create({
+      : await executor.variant.create({
           data: {
-            title: "",
-            number: variantNumber,
+            fkIssue: variantParentIssue.id,
             format: variantFormat,
-            variant: variantName,
+            variantLabel: variantName,
             releaseDate: coerceReleaseDateForDb(
               crawledVariant.releasedate || crawledIssue.releasedate || ""
             ),
-            legacyNumber: normalizeText(crawledVariant.legacyNumber || crawledIssue.legacyNumber),
             pages: BigInt(0),
             price: normalizeFloat(crawledVariant.price),
             currency: normalizeOptionalText(crawledVariant.currency || crawledIssue.currency) ?? "USD",
@@ -1156,7 +1522,6 @@ async function findOrCrawlParentIssueRefs(
             isbn: "",
             limitation: null,
             addInfo: "",
-            fkSeries: series.id,
             verified: false,
             collected: null,
             createdAt: new Date(),
@@ -1167,17 +1532,32 @@ async function findOrCrawlParentIssueRefs(
     const variantCover = crawledVariant.cover;
     if (!variantCover) continue;
 
-    const createdVariantCover = await executor.cover.create({
-      data: {
-        fkIssue: variantIssue.id,
-        fkParent: null,
-        number: BigInt(Number(variantCover.number || 0)),
-        url: normalizeOptionalText(variantCover.url) ?? "",
-        addInfo: "",
-        createdAt: new Date(),
-        updatedAt: new Date(),
+    const existingCover = await executor.cover.findFirst({
+      where: {
+        fkVariant: dbVariant.id,
       },
     });
+
+    const createdVariantCover = existingCover
+      ? await executor.cover.update({
+          where: { id: existingCover.id },
+          data: {
+            url: normalizeOptionalText(variantCover.url) ?? "",
+            number: BigInt(Number(variantCover.number || 0)),
+            updatedAt: new Date(),
+          },
+        })
+      : await executor.cover.create({
+          data: {
+            fkVariant: dbVariant.id,
+            fkParent: null,
+            number: BigInt(Number(variantCover.number || 0)),
+            url: normalizeOptionalText(variantCover.url) ?? "",
+            addInfo: "",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        });
 
     await linkCoverIndividuals(createdVariantCover.id, variantCover.individuals || [], executor);
   }
@@ -1192,7 +1572,6 @@ async function findLocalParentIssueRefs(
   const localIssues = await executor.issue.findMany({
     where: {
       number: parent.number,
-      variant: "",
       series: {
         title: parent.title,
         volume: BigInt(parent.volume),
@@ -1369,49 +1748,55 @@ function toIssueSeriesMeta(series: {
   };
 }
 
-function toIssuePayload(issue: {
-  id: bigint;
-  title: string;
-  number: string;
-  format: string;
-  variant: string | null;
-  releaseDate: Date | null;
-  pages: bigint | null;
-  price: number | null;
-  currency: string | null;
-  comicGuideId: bigint | null;
-  isbn: string | null;
-  limitation: bigint | null;
-  addInfo: string | null;
-  verified: boolean;
-  collected: boolean | null;
-  series: {
+function toIssuePayload(
+  issue: {
     id: bigint;
-    title: string | null;
-    volume: bigint;
-    publisher: {
+    title: string;
+    number: string;
+    series: {
       id: bigint;
-      name: string;
-      original: boolean;
+      title: string | null;
+      volume: bigint;
+      publisher: {
+        id: bigint;
+        name: string;
+        original: boolean;
+      } | null;
     } | null;
-  } | null;
-}) {
+  },
+  variant?: {
+    id: bigint;
+    format: string;
+    variantLabel: string | null;
+    releaseDate: Date | null;
+    pages: bigint | null;
+    price: number | null;
+    currency: string | null;
+    comicGuideId: bigint | null;
+    isbn: string | null;
+    limitation: bigint | null;
+    addInfo: string | null;
+    verified: boolean;
+    collected: boolean | null;
+  } | null
+) {
   return {
     id: String(issue.id),
+    variantId: variant ? String(variant.id) : undefined,
     title: issue.title || "",
     number: issue.number || "",
-    format: issue.format || "",
-    variant: issue.variant || "",
-    releasedate: issue.releaseDate ? issue.releaseDate.toISOString().slice(0, 10) : "",
-    pages: issue.pages === null ? 0 : Number(issue.pages),
-    price: issue.price ?? 0,
-    currency: issue.currency || "",
-    comicguideid: issue.comicGuideId === null ? 0 : Number(issue.comicGuideId),
-    isbn: issue.isbn || "",
-    limitation: issue.limitation === null ? "" : String(issue.limitation),
-    addinfo: issue.addInfo || "",
-    verified: issue.verified,
-    collected: issue.collected ?? false,
+    format: variant?.format || "",
+    variant: variant?.variantLabel || "",
+    releasedate: variant?.releaseDate ? variant.releaseDate.toISOString().slice(0, 10) : "",
+    pages: variant?.pages === null || variant?.pages === undefined ? 0 : Number(variant.pages),
+    price: variant?.price ? Number(variant.price) : 0,
+    currency: variant?.currency || "",
+    comicguideid: variant?.comicGuideId === null || variant?.comicGuideId === undefined ? 0 : Number(variant.comicGuideId),
+    isbn: variant?.isbn || "",
+    limitation: variant?.limitation === null || variant?.limitation === undefined ? "" : String(variant.limitation),
+    addinfo: variant?.addInfo || "",
+    verified: variant?.verified ?? false,
+    collected: variant?.collected ?? false,
     series: issue.series
       ? {
           id: String(issue.series.id),
@@ -1443,54 +1828,22 @@ async function findIssueBySeriesIdentity(
   const normalizedFormat = normalizeText(input.format);
   const normalizedVariant = normalizeOptionalText(input.variant);
 
-  return executor.issue.findFirst({
+  const matchedVariant = await executor.variant.findFirst({
     where: {
-      fkSeries: input.fkSeries,
-      number: normalizedNumber,
+      issue: {
+        fkSeries: input.fkSeries,
+        number: normalizedNumber,
+        ...(input.excludeId ? { NOT: { id: input.excludeId } } : {}),
+      },
       format: normalizedFormat,
-      ...(input.excludeId ? { NOT: { id: input.excludeId } } : {}),
-      ...(normalizedVariant
-        ? { variant: normalizedVariant }
-        : {
-            OR: [{ variant: null }, { variant: "" }],
-          }),
-    },
-    select: { id: true },
-  });
-}
-
-async function issueInheritsStories(issueId: bigint, executor: PrismaExecutor) {
-  const ownStory = await executor.story.findFirst({
-    where: {
-      fkIssue: issueId,
-    },
-    select: { id: true },
-  });
-  if (ownStory) return false;
-
-  const issue = await executor.issue.findUnique({
-    where: {
-      id: issueId,
+      variantLabel: normalizedVariant || null,
     },
     select: {
-      id: true,
-      fkSeries: true,
-      number: true,
+      fkIssue: true,
     },
   });
-  if (!issue?.fkSeries) return false;
 
-  const siblingWithStories = await executor.issue.findFirst({
-    where: {
-      fkSeries: issue.fkSeries,
-      number: issue.number,
-      NOT: { id: issue.id },
-      stories: {
-        some: {},
-      },
-    },
-    select: { id: true },
-  });
-
-  return Boolean(siblingWithStories);
+  return matchedVariant ? { id: matchedVariant.fkIssue } : null;
 }
+
+

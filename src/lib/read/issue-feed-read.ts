@@ -12,7 +12,6 @@ import {
   normalizeSortDirection,
   normalizeSortField,
   normalizeText,
-  pickIssuePreviewStorySource,
   pickPreferredIssueVariant,
   serializeNavbarIssue,
   serializePreviewIssue,
@@ -153,14 +152,9 @@ function createPreviewIssueInclude() {
             collectedMultipleTimes: true,
             issue: {
               select: {
-                comicGuideId: true,
-                covers: {
-                  orderBy: [{ number: "asc" }, { id: "asc" }],
-                  take: 1,
-                  select: {
-                    url: true,
-                  },
-                },
+                id: true,
+                preferredCoverUrl: true,
+                preferredVariantId: true,
               },
             },
             children: {
@@ -172,14 +166,9 @@ function createPreviewIssueInclude() {
         },
         issue: {
           select: {
-            comicGuideId: true,
-            covers: {
-              orderBy: [{ number: "asc" }, { id: "asc" }],
-              take: 1,
-              select: {
-                url: true,
-              },
-            },
+            id: true,
+            preferredCoverUrl: true,
+            preferredVariantId: true,
           },
         },
         children: {
@@ -187,7 +176,13 @@ function createPreviewIssueInclude() {
             id: true,
             issue: {
               select: {
-                collected: true,
+                variants: {
+                  orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
+                  take: 1,
+                  select: {
+                    collected: true,
+                  },
+                },
               },
             },
           },
@@ -197,14 +192,9 @@ function createPreviewIssueInclude() {
             id: true,
             issue: {
               select: {
-                comicGuideId: true,
-                covers: {
-                  orderBy: [{ number: "asc" }, { id: "asc" }],
-                  take: 1,
-                  select: {
-                    url: true,
-                  },
-                },
+                id: true,
+                preferredCoverUrl: true,
+                preferredVariantId: true,
               },
             },
           },
@@ -216,9 +206,9 @@ function createPreviewIssueInclude() {
         },
       },
     },
-    covers: {
-      orderBy: [{ number: "asc" }, { id: "asc" }],
-      take: 1,
+    // Variants for preview display
+    variants: {
+      orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
     },
   });
 }
@@ -226,63 +216,6 @@ function createPreviewIssueInclude() {
 type PreviewIssueRow = Prisma.IssueGetPayload<{
   include: ReturnType<typeof createPreviewIssueInclude>;
 }>;
-
-function buildIssueGroupKey(issue: { fkSeries?: bigint | null; number?: string | null }) {
-  if (!issue.fkSeries) return null;
-  const number = normalizeText(issue.number);
-  if (!number) return null;
-  return `${String(issue.fkSeries)}::${number}`;
-}
-
-async function serializeFeedPreviewIssues(rows: PreviewIssueRow[]) {
-  const groupKeys = Array.from(
-    new Set(rows.map((row) => buildIssueGroupKey(row)).filter((key): key is string => Boolean(key)))
-  );
-
-  let groupedVariantRows: PreviewIssueRow[] = [];
-  if (groupKeys.length > 0) {
-    const groupConditions = groupKeys
-      .map((groupKey) => {
-        const separatorIndex = groupKey.indexOf("::");
-        if (separatorIndex <= 0) return null;
-
-        const fkSeries = groupKey.slice(0, separatorIndex);
-        const number = groupKey.slice(separatorIndex + 2);
-        if (!fkSeries || !number) return null;
-
-        return {
-          fkSeries: BigInt(fkSeries),
-          number,
-        } satisfies Prisma.IssueWhereInput;
-      })
-      .filter((condition): condition is { fkSeries: bigint; number: string } => condition !== null);
-
-    if (groupConditions.length > 0) {
-      groupedVariantRows = await prisma.issue.findMany({
-        where: {
-          OR: groupConditions,
-        },
-        include: createPreviewIssueInclude(),
-      });
-    }
-  }
-
-  const groupedVariantsByKey = new Map<string, PreviewIssueRow[]>();
-  for (const groupedRow of groupedVariantRows) {
-    const groupKey = buildIssueGroupKey(groupedRow);
-    if (!groupKey) continue;
-    const existing = groupedVariantsByKey.get(groupKey) ?? [];
-    existing.push(groupedRow);
-    groupedVariantsByKey.set(groupKey, existing);
-  }
-
-  return rows.map((row) => {
-    const groupKey = buildIssueGroupKey(row);
-    const groupedVariants = groupKey ? groupedVariantsByKey.get(groupKey) ?? [row] : [row];
-    const storySourceIssue = pickIssuePreviewStorySource(groupedVariants, row);
-    return serializePreviewIssue(row, { storySourceIssue });
-  });
-}
 
 export async function readLastEditedIssues(
   filter: Filter | undefined,
@@ -326,7 +259,7 @@ export async function readLastEditedIssues(
     });
 
     const pageRows = rows.slice(0, limit);
-    const nodes = await serializeFeedPreviewIssues(pageRows);
+    const nodes = pageRows.map((row) => serializePreviewIssue(row));
     const connection = buildConnectionFromNodes(nodes);
     connection.pageInfo.hasNextPage = rows.length > limit;
     connection.pageInfo.endCursor = createFeedAnchorCursor(
@@ -346,7 +279,7 @@ export async function readLastEditedIssues(
   const sortedRows = sortLastEditedRows(rows, normalizeSortField(order), normalizeSortDirection(direction));
   const pageRows = sortedRows.slice(0, limit + 1);
   const hasNextPage = pageRows.length > limit;
-  const nodes = await serializeFeedPreviewIssues(pageRows.slice(0, limit));
+  const nodes = pageRows.slice(0, limit).map((row) => serializePreviewIssue(row));
   const connection = buildConnectionFromNodes(nodes);
   connection.pageInfo.hasNextPage = hasNextPage;
   return connection;
@@ -399,40 +332,36 @@ export async function readIssueNavigationNodes(
           publisher: true,
         },
       },
-      covers: {
-        orderBy: [{ number: "asc" }, { id: "asc" }],
-        take: 1,
+      variants: {
+        orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
+        include: {
+          covers: {
+            orderBy: [{ number: "asc" }, { id: "asc" }],
+            take: 1,
+          },
+        },
       },
     },
     ...(take ? { take: take * 5 } : {}),
   });
 
-  const sortedRows = [...rows].sort((left, right) => {
-    const numberSort = compareIssueNumber(left.number, right.number);
-    if (numberSort !== 0) return numberSort;
-    return compareIssueVariants(left, right);
-  });
+  // Issues are now unique per (fkSeries, number) – no grouping needed
+  const sortedRows = [...rows].sort((left, right) =>
+    compareIssueNumber(left.number, right.number)
+  );
 
-  const grouped = new Map<string, typeof sortedRows>();
-  for (const issue of sortedRows) {
-    const key = `${issue.fkSeries}::${issue.number}`;
-    const current = grouped.get(key) || [];
-    current.push(issue);
-    grouped.set(key, current);
-  }
-
-  const nodes: Issue[] = Array.from(grouped.values()).map((group) => {
-    const primary = pickPreferredIssueVariant(group);
-    const serialized = serializeNavbarIssue(primary);
-    serialized.variants = group
+  const nodes: Issue[] = sortedRows.map((issue) => {
+    const preferredVariant = pickPreferredIssueVariant(issue.variants);
+    const serialized = serializeNavbarIssue(issue);
+    serialized.variants = issue.variants
       .slice()
       .sort(compareIssueVariants)
-      .map((variant) => ({
-        id: String(variant.id),
-        number: primary.number,
-        collected: variant.collected ?? null,
-        format: toOptionalText(variant.format),
-        variant: toOptionalText(variant.variant),
+      .map((v) => ({
+        id: String(v.id),
+        number: issue.number,
+        collected: v.collected ?? null,
+        format: toOptionalText(v.format),
+        variant: toOptionalText(v.variantLabel),
         series: serialized.series,
       }));
     return serialized;

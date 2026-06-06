@@ -1,7 +1,7 @@
 {
   "source": {
     "issueId": 51302,
-    "connectionDatabase": "shortbox_migration",
+    "connectionDatabase": "shortbox",
     "connectionSchema": "shortbox"
   },
   "publishers": [

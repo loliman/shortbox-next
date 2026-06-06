@@ -5,10 +5,11 @@ import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 import AppProviders from "@/src/components/AppProviders";
 import { getInitialResponsiveGuess, RESPONSIVE_GUESS_COOKIE_NAME } from "@/src/app/responsiveGuess";
 import { buildWebsiteStructuredData } from "@/src/lib/routes/structured-data";
+import { env } from "@/src/lib/env";
 
 export const dynamic = "force-dynamic";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://shortbox.de";
+const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
 
 export const metadata: Metadata = {
   title: {

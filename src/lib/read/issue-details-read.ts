@@ -2,11 +2,13 @@
 import "server-only";
 
 import { Prisma } from "@prisma/client";
+import { env } from "../env";
 import { prisma } from "../prisma/client";
 import {
   compareIssueVariants,
   normalizeText,
   pickCanonicalIssueTitle,
+  pickPreferredIssueVariant,
   serializeIssueDate,
   serializeIssueId,
   serializeNullableIssueId,
@@ -14,10 +16,15 @@ import {
 } from "./issue-read-shared";
 import {
   matchesIssueSelectionBySlug,
+  matchVariantBySlug,
   hasExplicitIssueVariantSelection,
   type IssueSelectionCandidate,
   type IssueSelectionInput,
 } from "./issue-selection";
+
+// ---------------------------------------------------------------------------
+// Story include (unchanged – stories still live on Issue)
+// ---------------------------------------------------------------------------
 
 const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
   issue: {
@@ -27,13 +34,18 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
           publisher: true,
         },
       },
-      covers: {
-        orderBy: [{ number: "asc" }, { id: "asc" }],
-        take: 1,
+      variants: {
+        orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
         include: {
-          individuals: {
+          covers: {
+            orderBy: [{ number: "asc" }, { id: "asc" }],
+            take: 1,
             include: {
-              individual: true,
+              individuals: {
+                include: {
+                  individual: true,
+                },
+              },
             },
           },
         },
@@ -49,13 +61,18 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
               publisher: true,
             },
           },
-          covers: {
-            orderBy: [{ number: "asc" }, { id: "asc" }],
-            take: 1,
+          variants: {
+            orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
             include: {
-              individuals: {
+              covers: {
+                orderBy: [{ number: "asc" }, { id: "asc" }],
+                take: 1,
                 include: {
-                  individual: true,
+                  individuals: {
+                    include: {
+                      individual: true,
+                    },
+                  },
                 },
               },
             },
@@ -71,13 +88,18 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
                   publisher: true,
                 },
               },
-              covers: {
-                orderBy: [{ number: "asc" }, { id: "asc" }],
-                take: 1,
+              variants: {
+                orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
                 include: {
-                  individuals: {
+                  covers: {
+                    orderBy: [{ number: "asc" }, { id: "asc" }],
+                    take: 1,
                     include: {
-                      individual: true,
+                      individuals: {
+                        include: {
+                          individual: true,
+                        },
+                      },
                     },
                   },
                 },
@@ -97,13 +119,18 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
               publisher: true,
             },
           },
-          covers: {
-            orderBy: [{ number: "asc" }, { id: "asc" }],
-            take: 1,
+          variants: {
+            orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
             include: {
-              individuals: {
+              covers: {
+                orderBy: [{ number: "asc" }, { id: "asc" }],
+                take: 1,
                 include: {
-                  individual: true,
+                  individuals: {
+                    include: {
+                      individual: true,
+                    },
+                  },
                 },
               },
             },
@@ -119,14 +146,12 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
                   publisher: true,
                 },
               },
-              covers: {
-                orderBy: [{ number: "asc" }, { id: "asc" }],
-                take: 1,
+              variants: {
+                orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
                 include: {
-                  individuals: {
-                    include: {
-                      individual: true,
-                    },
+                  covers: {
+                    orderBy: [{ number: "asc" }, { id: "asc" }],
+                    take: 1,
                   },
                 },
               },
@@ -145,14 +170,12 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
               publisher: true,
             },
           },
-          covers: {
-            orderBy: [{ number: "asc" }, { id: "asc" }],
-            take: 1,
+          variants: {
+            orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
             include: {
-              individuals: {
-                include: {
-                  individual: true,
-                },
+              covers: {
+                orderBy: [{ number: "asc" }, { id: "asc" }],
+                take: 1,
               },
             },
           },
@@ -167,14 +190,12 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
                   publisher: true,
                 },
               },
-              covers: {
-                orderBy: [{ number: "asc" }, { id: "asc" }],
-                take: 1,
+              variants: {
+                orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
                 include: {
-                  individuals: {
-                    include: {
-                      individual: true,
-                    },
+                  covers: {
+                    orderBy: [{ number: "asc" }, { id: "asc" }],
+                    take: 1,
                   },
                 },
               },
@@ -198,13 +219,18 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
               arc: true,
             },
           },
-          covers: {
-            orderBy: [{ number: "asc" }, { id: "asc" }],
-            take: 1,
+          variants: {
+            orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
             include: {
-              individuals: {
+              covers: {
+                orderBy: [{ number: "asc" }, { id: "asc" }],
+                take: 1,
                 include: {
-                  individual: true,
+                  individuals: {
+                    include: {
+                      individual: true,
+                    },
+                  },
                 },
               },
             },
@@ -235,11 +261,19 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
   },
 });
 
+// ---------------------------------------------------------------------------
+// Candidate select: Issue with variants for format/variantLabel matching
+// ---------------------------------------------------------------------------
+
 const issueSelectionCandidateSelect = Prisma.validator<Prisma.IssueSelect>()({
   id: true,
   number: true,
-  format: true,
-  variant: true,
+  variants: {
+    select: {
+      format: true,
+      variantLabel: true,
+    },
+  },
   series: {
     select: {
       title: true,
@@ -254,6 +288,10 @@ const issueSelectionCandidateSelect = Prisma.validator<Prisma.IssueSelect>()({
     },
   },
 });
+
+// ---------------------------------------------------------------------------
+// Full issue include for details page
+// ---------------------------------------------------------------------------
 
 function createIssueDetailsInclude() {
   return Prisma.validator<Prisma.IssueInclude>()({
@@ -276,12 +314,17 @@ function createIssueDetailsInclude() {
         individual: true,
       },
     },
-    covers: {
-      orderBy: [{ number: "asc" }, { id: "asc" }],
+    variants: {
+      orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
       include: {
-        individuals: {
+        covers: {
+          orderBy: [{ number: "asc" }, { id: "asc" }],
           include: {
-            individual: true,
+            individuals: {
+              include: {
+                individual: true,
+              },
+            },
           },
         },
       },
@@ -315,6 +358,26 @@ function createIssueStoryOwnerInclude() {
         individual: true,
       },
     },
+    variants: {
+      orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
+      include: {
+        covers: {
+          orderBy: [{ number: "asc" }, { id: "asc" }],
+          include: {
+            individuals: {
+              include: {
+                individual: true,
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+function createIssueStorySelectedVariantInclude() {
+  return Prisma.validator<Prisma.VariantInclude>()({
     covers: {
       orderBy: [{ number: "asc" }, { id: "asc" }],
       include: {
@@ -328,47 +391,9 @@ function createIssueStoryOwnerInclude() {
   });
 }
 
-function createIssueStorySelectedIssueInclude() {
-  return Prisma.validator<Prisma.IssueInclude>()({
-    series: {
-      include: {
-        publisher: true,
-      },
-    },
-    individuals: {
-      include: {
-        individual: true,
-      },
-    },
-    covers: {
-      orderBy: [{ number: "asc" }, { id: "asc" }],
-      include: {
-        individuals: {
-          include: {
-            individual: true,
-          },
-        },
-      },
-    },
-  });
-}
-
-function pickCurrentIssueCandidate(
-  matchingCandidates: Array<IssueSelectionCandidate & { id: bigint }>,
-  hasExplicitVariantSelection: boolean
-) {
-  const sortableCandidates = matchingCandidates as Array<{
-    format?: string | null;
-    variant?: string | null;
-    id: bigint;
-  }>;
-
-  return (
-    (hasExplicitVariantSelection
-      ? matchingCandidates
-      : [...sortableCandidates].sort(compareIssueVariants))[0] || null
-  );
-}
+// ---------------------------------------------------------------------------
+// Candidate resolution helpers
+// ---------------------------------------------------------------------------
 
 function getMatchingIssueCandidates(
   candidates: Array<IssueSelectionCandidate & { id: bigint }>,
@@ -378,6 +403,25 @@ function getMatchingIssueCandidates(
     matchesIssueSelectionBySlug(candidate as IssueSelectionCandidate, selection)
   );
 }
+
+function pickCurrentIssueCandidate(
+  matchingCandidates: Array<IssueSelectionCandidate & { id: bigint }>,
+  hasExplicitVariantSelection: boolean,
+  selection: IssueSelectionInput
+) {
+  if (hasExplicitVariantSelection) {
+    // Find the candidate that has a matching variant
+    return matchingCandidates.find(
+      (c) => matchVariantBySlug(c, selection) !== null
+    ) ?? matchingCandidates[0] ?? null;
+  }
+  // No explicit variant in URL – pick first candidate (they all have the same number)
+  return matchingCandidates[0] ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Main read function
+// ---------------------------------------------------------------------------
 
 export async function readIssueDetails(selection: IssueSelectionInput) {
   const hasExplicitVariantSelection = hasExplicitIssueVariantSelection(selection);
@@ -392,7 +436,7 @@ export async function readIssueDetails(selection: IssueSelectionInput) {
       series: {
         title: selection.series,
         volume: BigInt(selection.volume),
-        ...(normalizedStartYear ? { startYear: normalizedStartYear } : {}),
+        ...(normalizedStartYear ? { startYear: { in: [normalizedStartYear, 0n] } } : {}),
         publisher: {
           name: selection.publisher,
           original: selection.us,
@@ -411,7 +455,7 @@ export async function readIssueDetails(selection: IssueSelectionInput) {
             number: selection.number,
             series: {
               volume: BigInt(selection.volume),
-              ...(normalizedStartYear ? { startYear: normalizedStartYear } : {}),
+              ...(normalizedStartYear ? { startYear: { in: [normalizedStartYear, 0n] } } : {}),
               publisher: {
                 original: selection.us,
               },
@@ -423,7 +467,7 @@ export async function readIssueDetails(selection: IssueSelectionInput) {
 
   const resolvedCandidates = exactCandidates.length > 0 ? exactCandidates : fallbackCandidates;
   const matchingCandidates = getMatchingIssueCandidates(resolvedCandidates, selection);
-  const currentCandidate = pickCurrentIssueCandidate(matchingCandidates, hasExplicitVariantSelection);
+  const currentCandidate = pickCurrentIssueCandidate(matchingCandidates, hasExplicitVariantSelection, selection);
 
   const current = currentCandidate
     ? await prisma.issue.findUnique({
@@ -435,16 +479,15 @@ export async function readIssueDetails(selection: IssueSelectionInput) {
     : null;
 
   if (!current) {
-    if (process.env.NODE_ENV === "development") {
-        console.warn("readIssueDetails miss", {
+    if (env.NODE_ENV === "development") {
+      console.warn("readIssueDetails miss", {
         selection,
         hasExplicitVariantSelection,
         candidateCount: resolvedCandidates.length,
         matchingCandidateCount: matchingCandidates.length,
         candidates: resolvedCandidates.slice(0, 10).map((candidate) => ({
           number: candidate.number,
-          format: candidate.format,
-          variant: candidate.variant,
+          variants: candidate.variants?.map((v) => ({ format: v.format, variantLabel: v.variantLabel })),
           series: candidate.series?.title,
           volume: Number(candidate.series?.volume || 0),
           publisher: candidate.series?.publisher?.name,
@@ -455,116 +498,90 @@ export async function readIssueDetails(selection: IssueSelectionInput) {
     return null;
   }
 
-  const variants = await prisma.issue.findMany({
-    where: {
-      number: current.number,
-      fkSeries: current.fkSeries ?? undefined,
-    },
-    include: {
-      series: {
-        include: {
-          publisher: true,
-        },
-      },
-      covers: {
-        orderBy: [{ number: "asc" }, { id: "asc" }],
-        take: 1,
-        include: {
-          individuals: {
-            include: {
-              individual: true,
-            },
-          },
-        },
-      },
-      _count: {
-        select: {
-          stories: true,
-        },
-      },
-    },
-    orderBy: [{ format: "asc" }, { variant: "asc" }, { id: "asc" }],
-  });
+  // Identify the selected variant from the URL
+  const selectedVariant = hasExplicitVariantSelection
+    ? current.variants.find(
+        (v) =>
+          matchVariantBySlug(
+            { variants: current.variants, number: current.number, series: current.series },
+            selection
+          ) !== null &&
+          matchVariantBySlug({ variants: [v], number: current.number, series: current.series }, selection) !== null
+      ) ?? pickPreferredIssueVariant(current.variants)
+    : pickPreferredIssueVariant(current.variants);
 
-  return toIssueDetailsShape(current, variants);
+  return toIssueDetailsShape(current, selectedVariant ?? null);
 }
 
-function toIssueDetailsShape(issue: any, variants: any[]) {
-  const ownStories = Array.isArray(issue.stories) ? issue.stories : [];
-  const sortedVariants = [...variants].sort(compareIssueVariants);
-  const ownStoryCount = Number(issue?._count?.stories || 0);
-  const storySourceIssue =
-    ownStoryCount > 0
-      ? issue
-      : sortedVariants.find((variant) => Number(variant?._count?.stories || 0) > 0) ?? null;
+// ---------------------------------------------------------------------------
+// Shape serializers
+// ---------------------------------------------------------------------------
+
+function toIssueDetailsShape(issue: any, selectedVariant: any) {
+  const sortedVariants = [...issue.variants].sort(compareIssueVariants);
+  const preferredVariant = sortedVariants[0] ?? null;
+  const activeVariant = selectedVariant ?? preferredVariant;
+
   const resolvedTitle =
-    pickCanonicalIssueTitle([issue, ...variants], issue.title) ||
-    storySourceIssue?.title ||
+    pickCanonicalIssueTitle([issue], issue.title) ||
     issue.title ||
     null;
-  const storyOwner = storySourceIssue
-    ? {
-        number: storySourceIssue.number,
-        legacy_number: storySourceIssue.legacyNumber || null,
-        format: storySourceIssue.format || null,
-        variant: storySourceIssue.variant || null,
-      }
-    : null;
-  const isOwnStoryOwner = storyOwner
-    ? normalizeText(issue.number) === normalizeText(storyOwner.number) &&
-      normalizeText(issue.legacyNumber) === normalizeText(storyOwner.legacy_number) &&
-      normalizeText(issue.format) === normalizeText(storyOwner.format) &&
-      normalizeText(issue.variant) === normalizeText(storyOwner.variant)
-    : false;
-  const inheritsStories = Boolean(storyOwner) && !isOwnStoryOwner;
 
-  const mappedVariants = variants.map((variant) => ({
+  const mappedVariants = sortedVariants.map((variant: any) => ({
     id: serializeIssueId(variant.id),
-    title: variant.title || null,
-    number: variant.number,
-    legacy_number: variant.legacyNumber || null,
     format: variant.format || null,
-    variant: variant.variant || null,
+    variant: variant.variantLabel || null,
     releasedate: serializeIssueDate(variant.releaseDate),
     verified: variant.verified,
     collected: variant.collected ?? null,
     comicguideid: serializeNullableIssueId(variant.comicGuideId),
     cover: variant.covers[0] ? toIssueCoverShape(variant.covers[0]) : null,
-    series: toIssueSeriesShape(variant.series),
+    series: toIssueSeriesShape(issue.series),
+    // Keep number/legacy_number for backward compat in variant list
+    number: issue.number,
+    legacy_number: issue.legacyNumber || null,
+    title: issue.title || null,
   }));
 
   return {
     id: serializeIssueId(issue.id),
+    variantId: activeVariant ? serializeIssueId(activeVariant.id) : null,
     title: resolvedTitle,
     number: issue.number,
     legacy_number: issue.legacyNumber || null,
-    format: issue.format || null,
-    variant: issue.variant || null,
-    releasedate: serializeIssueDate(issue.releaseDate),
-    pages: serializeNullableIssueNumber(issue.pages),
-    price: issue.price ?? null,
-    currency: issue.currency || null,
-    isbn: issue.isbn || null,
-    limitation: issue.limitation === null || issue.limitation === undefined ? null : String(issue.limitation),
-    addinfo: issue.addInfo || null,
-    verified: issue.verified,
-    collected: issue.collected ?? null,
-    comicguideid: serializeNullableIssueId(issue.comicGuideId),
+    // Active variant fields (the one selected via URL or preferred)
+    format: activeVariant?.format || null,
+    variant: activeVariant?.variantLabel || null,
+    releasedate: serializeIssueDate(activeVariant?.releaseDate),
+    pages: serializeNullableIssueNumber(activeVariant?.pages),
+    price: activeVariant?.price ? Number(activeVariant.price) : null,
+    currency: activeVariant?.currency || null,
+    isbn: activeVariant?.isbn || null,
+    limitation:
+      activeVariant?.limitation === null || activeVariant?.limitation === undefined
+        ? null
+        : String(activeVariant.limitation),
+    addinfo: activeVariant?.addInfo || null,
+    verified: activeVariant?.verified ?? false,
+    collected: activeVariant?.collected ?? null,
+    comicguideid: serializeNullableIssueId(activeVariant?.comicGuideId),
+    // Issue-level fields
     createdat: serializeIssueDate(issue.createdAt),
     updatedat: serializeIssueDate(issue.updatedAt),
     series: toIssueSeriesShape(issue.series),
-    stories: ownStories.map((story: any) => toIssueDetailsStoryShape(story)),
-    cover: issue.covers[0] ? toIssueCoverShape(issue.covers[0]) : null,
-    individuals: issue.individuals.map(toIssueIndividualEntryShape),
-    arcs: issue.arcs.map((entry: any) => ({
+    stories: (issue.stories ?? []).map((story: any) => toIssueDetailsStoryShape(story)),
+    cover: activeVariant?.covers[0] ? toIssueCoverShape(activeVariant.covers[0]) : null,
+    individuals: (issue.individuals ?? []).map(toIssueIndividualEntryShape),
+    arcs: (issue.arcs ?? []).map((entry: any) => ({
       id: serializeIssueId(entry.arc.id),
       title: entry.arc.title || null,
       type: entry.arc.type || null,
     })),
     variants: mappedVariants,
-    storyOwner,
-    storyOwnerId: storySourceIssue ? serializeIssueId(storySourceIssue.id) : null,
-    inheritsStories,
+    // Simplified: no more storyOwner / inheritsStories – stories always on Issue
+    storyOwner: null,
+    storyOwnerId: serializeIssueId(issue.id),
+    inheritsStories: false,
     tags: [],
   };
 }
@@ -619,17 +636,21 @@ function toIssueSeriesShape(series: any) {
 function toIssueReferenceShape(issue: any) {
   if (!issue) return null;
 
+  const preferredVariant = issue.variants
+    ? [...issue.variants].sort(compareIssueVariants)[0]
+    : null;
+
   return {
     id: serializeIssueId(issue.id),
     title: issue.title || null,
     number: issue.number,
     legacy_number: issue.legacyNumber || null,
-    format: issue.format || null,
-    variant: issue.variant || null,
-    releasedate: serializeIssueDate(issue.releaseDate),
-    collected: issue.collected ?? null,
-    comicguideid: serializeNullableIssueNumber(issue.comicGuideId),
-    cover: issue.covers?.[0] ? toIssueCoverShape(issue.covers[0]) : null,
+    format: preferredVariant?.format || null,
+    variant: preferredVariant?.variantLabel || null,
+    releasedate: serializeIssueDate(preferredVariant?.releaseDate),
+    collected: preferredVariant?.collected ?? null,
+    comicguideid: serializeNullableIssueNumber(preferredVariant?.comicGuideId),
+    cover: preferredVariant?.covers?.[0] ? toIssueCoverShape(preferredVariant.covers[0]) : null,
     series: toIssueSeriesShape(issue.series),
     individuals: Array.isArray(issue.individuals)
       ? issue.individuals.map(toIssueIndividualEntryShape)
@@ -669,8 +690,14 @@ function toReleaseDateTimestamp(value: unknown): number {
 }
 
 function compareStoryIssueReferencesByReleaseDate(left: any, right: any) {
-  const releaseDateCompare =
-    toReleaseDateTimestamp(left?.issue?.releaseDate) - toReleaseDateTimestamp(right?.issue?.releaseDate);
+  // releaseDate now comes from the preferred variant
+  const leftDate = toReleaseDateTimestamp(
+    left?.issue?.variants?.[0]?.releaseDate ?? left?.issue?.releaseDate
+  );
+  const rightDate = toReleaseDateTimestamp(
+    right?.issue?.variants?.[0]?.releaseDate ?? right?.issue?.releaseDate
+  );
+  const releaseDateCompare = leftDate - rightDate;
   if (releaseDateCompare !== 0) return releaseDateCompare;
 
   const issueNumberCompare = normalizeText(left?.issue?.number).localeCompare(
@@ -697,6 +724,8 @@ function toIssueStoryShape(story: any, includeParent: boolean, issueOverride?: a
     exclusive: !story.parent,
     onlyapp: story.onlyApp,
     firstapp: story.firstApp,
+    firstCompleteApp: story.firstCompleteApp,
+    firstPartialApp: story.firstPartialApp,
     onlytb: story.onlyTb,
     otheronlytb: story.otherOnlyTb,
     onlyoneprint: story.onlyOnePrint,
@@ -725,43 +754,42 @@ function toIssueStoryShape(story: any, includeParent: boolean, issueOverride?: a
   };
 }
 
+/**
+ * Loads stories for the selected issue (always the issue itself after migration).
+ * `storyOwnerId` is kept for backward compat but now always equals `selectedIssueId`.
+ */
 export async function readIssueDetailStories(input: {
   selectedIssueId: string | number;
   storyOwnerId?: string | number | null;
 }) {
-  const selectedIssueId = BigInt(String(input.selectedIssueId));
-  const storyOwnerId =
-    input.storyOwnerId === null || input.storyOwnerId === undefined
-      ? null
-      : BigInt(String(input.storyOwnerId));
+  const issueId = BigInt(String(input.storyOwnerId ?? input.selectedIssueId));
 
-  if (!storyOwnerId) return [];
-
-  const storyOwnerIssuePromise = prisma.issue.findUnique({
+  const issue = await prisma.issue.findUnique({
     where: {
-      id: storyOwnerId,
+      id: issueId,
     },
     include: createIssueStoryOwnerInclude(),
   });
-  const selectedIssuePromise =
-    selectedIssueId === storyOwnerId
-      ? Promise.resolve(null)
-      : prisma.issue.findUnique({
-          where: {
-            id: selectedIssueId,
-          },
-          include: createIssueStorySelectedIssueInclude(),
-        });
 
-  const [selectedIssue, storyOwnerIssue] = await Promise.all([
-    selectedIssuePromise,
-    storyOwnerIssuePromise,
-  ]);
+  if (!issue || !Array.isArray(issue.stories)) return [];
 
-  if (!storyOwnerIssue || !Array.isArray(storyOwnerIssue.stories)) return [];
+  // Select which variant to show as the "context" for the stories
+  const selectedVariantId = input.selectedIssueId !== input.storyOwnerId
+    ? null
+    : null; // Both point to the same issue now
 
-  const issueOverride = selectedIssue ?? storyOwnerIssue;
-  return storyOwnerIssue.stories.map((story: any) => toIssueStoryShape(story, true, issueOverride));
+  const selectedVariant = selectedVariantId
+    ? await prisma.variant.findUnique({
+        where: { id: BigInt(String(selectedVariantId)) },
+        include: createIssueStorySelectedVariantInclude(),
+      })
+    : null;
+
+  const issueOverride = selectedVariant
+    ? { ...issue, variants: [selectedVariant] }
+    : issue;
+
+  return issue.stories.map((story: any) => toIssueStoryShape(story, true, issueOverride));
 }
 
 function toIssueParentStoryShape(story: any) {
@@ -801,29 +829,7 @@ function toIssueStoryReferenceShape(story: any) {
     id: serializeIssueId(story.id),
     number: serializeNullableIssueNumber(story.number),
     title: story.title || null,
-    addinfo: story.addInfo || null,
-    part: story.part || null,
     issue: toIssueReferenceShape(story.issue),
-    parent: story.parent
-      ? {
-          issue: toIssueReferenceShape(story.parent.issue),
-          number: serializeNullableIssueNumber(story.parent.number),
-        }
-      : null,
-    individuals: Array.isArray(story.individuals)
-      ? story.individuals.map((entry: any) => ({
-          id: serializeIssueId(entry.individual.id),
-          name: entry.individual.name || null,
-          type: entry.type || "",
-        }))
-      : [],
-    appearances: Array.isArray(story.appearances)
-      ? story.appearances.map((entry: any) => ({
-          id: serializeIssueId(entry.appearance.id),
-          name: entry.appearance.name || null,
-          type: entry.appearance.type || "",
-          role: entry.role || "",
-        }))
-      : [],
+    parent: story.parent ? toIssueReferenceShape(story.parent.issue) : null,
   };
 }

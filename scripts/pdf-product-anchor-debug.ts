@@ -10,7 +10,7 @@ function stubServerOnlyModule() {
     filename: serverOnlyPath,
     loaded: true,
     exports: {},
-  };
+  } as any;
 }
 
 async function main() {

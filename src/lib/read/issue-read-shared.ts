@@ -179,11 +179,24 @@ export function compareIssueNumber(leftRaw: unknown, rightRaw: unknown): number 
   return naturalCompare(left, right);
 }
 
+/**
+ * Comparable shape for Variant rows.
+ * Accepts both `variantLabel` (Prisma model) and `variant` (UI/legacy shapes).
+ */
 type IssueVariantComparable = {
   format?: string | null;
+  /** Prisma model field name */
+  variantLabel?: string | null;
+  /** Legacy UI shape field name – used as fallback if variantLabel is absent */
   variant?: string | null;
   id?: bigint | number | string | null;
 };
+
+function resolveVariantLabel(v: IssueVariantComparable): string {
+  // Prefer variantLabel (Prisma field), fall back to variant (UI shape)
+  if (v.variantLabel !== undefined) return normalizeText(v.variantLabel);
+  return normalizeText(v.variant);
+}
 
 export function compareIssueVariants(
   left: IssueVariantComparable,
@@ -191,8 +204,8 @@ export function compareIssueVariants(
 ) {
   const leftFormat = normalizeText(left.format);
   const rightFormat = normalizeText(right.format);
-  const leftVariant = normalizeText(left.variant);
-  const rightVariant = normalizeText(right.variant);
+  const leftVariant = resolveVariantLabel(left);
+  const rightVariant = resolveVariantLabel(right);
 
   const formatPriorityCompare = getIssueFormatPriority(leftFormat) - getIssueFormatPriority(rightFormat);
   if (formatPriorityCompare !== 0) return formatPriorityCompare;
@@ -210,15 +223,20 @@ export function compareIssueVariants(
 }
 
 export function pickPreferredIssueVariant<
-  T extends { format?: string | null; variant?: string | null; id?: bigint | number | string | null },
->(groupedIssues: T[]) {
-  return [...groupedIssues].sort(compareIssueVariants)[0];
+  T extends { format?: string | null; variantLabel?: string | null; variant?: string | null; id?: bigint | number | string | null },
+>(groupedVariants: T[]) {
+  return [...groupedVariants].sort(compareIssueVariants)[0];
 }
 
+/**
+ * @deprecated Stories are always on Issue now. Use issue.stories directly.
+ * Kept for call sites not yet migrated.
+ */
 export function pickIssuePreviewStorySource<
   T extends {
     stories?: Array<unknown> | null;
     format?: string | null;
+    variantLabel?: string | null;
     variant?: string | null;
     id?: bigint | number | string | null;
   },
@@ -226,7 +244,6 @@ export function pickIssuePreviewStorySource<
   if (currentIssue && Array.isArray(currentIssue.stories) && currentIssue.stories.length > 0) {
     return currentIssue;
   }
-
   const storyBearingVariant = [...groupedIssues]
     .sort(compareIssueVariants)
     .find((issue) => Array.isArray(issue.stories) && issue.stories.length > 0);
@@ -234,14 +251,14 @@ export function pickIssuePreviewStorySource<
   return storyBearingVariant ?? currentIssue ?? groupedIssues[0] ?? null;
 }
 
-function serializeCoverReference(issue: {
+function serializeCoverReference(variant: {
   comicGuideId?: bigint | number | string | null;
   covers?: Array<{ url?: string | null }> | null;
 } | null | undefined): CoverReference | null {
-  if (!issue) return null;
+  if (!variant) return null;
 
-  const comicGuideId = issue.comicGuideId == null ? null : String(issue.comicGuideId);
-  const coverUrl = issue.covers?.[0]?.url || null;
+  const comicGuideId = variant.comicGuideId == null ? null : String(variant.comicGuideId);
+  const coverUrl = variant.covers?.[0]?.url || null;
   if (!coverUrl && !comicGuideId) return null;
 
   return {
@@ -253,19 +270,44 @@ function serializeCoverReference(issue: {
 export function pickFirstOriginalStoryCoverReference(stories: Array<{
   parent?: {
     issue?: {
-      comicGuideId?: bigint | number | string | null;
-      covers?: Array<{ url?: string | null }> | null;
+      preferredCoverUrl?: string | null;
+      preferredVariantId?: bigint | null;
+      variants?: Array<{
+        format?: string | null;
+        variantLabel?: string | null;
+        comicGuideId?: bigint | number | string | null;
+        covers?: Array<{ url?: string | null }> | null;
+      }> | null;
     } | null;
   } | null;
   reprint?: {
     issue?: {
-      comicGuideId?: bigint | number | string | null;
-      covers?: Array<{ url?: string | null }> | null;
+      preferredCoverUrl?: string | null;
+      preferredVariantId?: bigint | null;
+      variants?: Array<{
+        format?: string | null;
+        variantLabel?: string | null;
+        comicGuideId?: bigint | number | string | null;
+        covers?: Array<{ url?: string | null }> | null;
+      }> | null;
     } | null;
   } | null;
 } | null> | null | undefined): CoverReference | null {
   for (const story of stories || []) {
-    const originalReference = serializeCoverReference(story?.parent?.issue ?? story?.reprint?.issue ?? null);
+    const parentIssue = story?.parent?.issue ?? story?.reprint?.issue ?? null;
+    if (!parentIssue) continue;
+
+    if (parentIssue.preferredCoverUrl !== undefined && parentIssue.preferredCoverUrl !== null) {
+      return {
+        comicguideid: null,
+        cover: { url: parentIssue.preferredCoverUrl }
+      };
+    }
+
+    const preferredVariant = parentIssue.variants
+      ? [...parentIssue.variants].sort(compareIssueVariants)[0]
+      : null;
+    const originalReference = serializeCoverReference(preferredVariant);
     const coverUrl = normalizeText(originalReference?.cover?.url);
     const comicGuideId = normalizeText(originalReference?.comicguideid);
     if (coverUrl || comicGuideId) return originalReference;
@@ -274,34 +316,60 @@ export function pickFirstOriginalStoryCoverReference(stories: Array<{
   return null;
 }
 
+/**
+ * Serializes an Issue + its preferred Variant into the legacy Issue UI shape.
+ * The preferred variant is the first after sorting by compareIssueVariants.
+ */
 export function serializePreviewIssue(issue: {
   id: bigint;
-  comicGuideId: bigint | null;
   number: string;
   legacyNumber: string | null;
   title: string | null;
-  verified: boolean;
-  collected: boolean | null;
-  format: string | null;
-  variant: string | null;
-  covers: Array<{ url: string | null }>;
+  preferredVariantId?: bigint | null;
+  preferredCoverUrl?: string | null;
+  preferredFormat?: string | null;
+  preferredVariantLabel?: string | null;
+  variants: Array<{
+    id: bigint;
+    format: string;
+    variantLabel: string | null;
+    comicGuideId: bigint | null;
+    verified: boolean;
+    collected: boolean | null;
+    covers?: Array<{ url: string | null }>;
+  }>;
   stories: Array<{
     onlyApp: boolean;
     firstApp: boolean;
+    firstCompleteApp: boolean;
+    firstPartialApp: boolean;
     otherOnlyTb: boolean;
     onlyOnePrint: boolean;
     onlyTb: boolean;
     collectedMultipleTimes: boolean;
-    reprint: { id: bigint; issue?: { comicGuideId: bigint | null; covers: Array<{ url: string | null }> } | null } | null;
+    reprint: {
+      id: bigint;
+      issue?: {
+        id: bigint;
+        preferredCoverUrl?: string | null;
+        preferredVariantId?: bigint | null;
+        variants?: Array<{ comicGuideId: bigint | null; covers: Array<{ url: string | null }> }> | null;
+      } | null;
+    } | null;
     reprintedBy: Array<{ id: bigint }>;
     parent: {
-      issue?: { comicGuideId: bigint | null; covers: Array<{ url: string | null }> } | null;
+      issue?: {
+        id: bigint;
+        preferredCoverUrl?: string | null;
+        preferredVariantId?: bigint | null;
+        variants?: Array<{ comicGuideId: bigint | null; covers: Array<{ url: string | null }> }> | null;
+      } | null;
       children: Array<{ id: bigint }>;
       collectedMultipleTimes: boolean;
     } | null;
     children: Array<{
       id: bigint;
-      issue: { collected: boolean | null } | null;
+      issue: { variants?: Array<{ collected: boolean | null }> | null } | null;
     }>;
   }>;
   series: {
@@ -314,52 +382,36 @@ export function serializePreviewIssue(issue: {
       original: boolean;
     } | null;
   } | null;
-}, options?: {
-  storySourceIssue?: {
-    stories: Array<{
-      onlyApp: boolean;
-      firstApp: boolean;
-      otherOnlyTb: boolean;
-      onlyOnePrint: boolean;
-      onlyTb: boolean;
-      collectedMultipleTimes: boolean;
-      reprint: { id: bigint; issue?: { comicGuideId: bigint | null; covers: Array<{ url: string | null }> } | null } | null;
-      reprintedBy: Array<{ id: bigint }>;
-      parent: {
-        issue?: { comicGuideId: bigint | null; covers: Array<{ url: string | null }> } | null;
-        children: Array<{ id: bigint }>;
-        collectedMultipleTimes: boolean;
-      } | null;
-      children: Array<{
-        id: bigint;
-        issue: { collected: boolean | null } | null;
-      }>;
-    }>;
-  } | null;
 }): Issue {
-  const storySourceIssue = options?.storySourceIssue ?? issue;
-  const stories = Array.isArray(storySourceIssue?.stories) ? storySourceIssue.stories : [];
+  const preferredVariant = pickPreferredIssueVariant(issue.variants) ?? null;
+  const stories = Array.isArray(issue.stories) ? issue.stories : [];
   const originalStoryCover = pickFirstOriginalStoryCoverReference(stories);
+
+  const format = issue.preferredFormat !== undefined && issue.preferredFormat !== null ? issue.preferredFormat : (preferredVariant?.format || null);
+  const variant = issue.preferredVariantLabel !== undefined && issue.preferredVariantLabel !== null ? issue.preferredVariantLabel : (preferredVariant?.variantLabel || null);
+  const coverUrl = issue.preferredCoverUrl !== undefined && issue.preferredCoverUrl !== null ? issue.preferredCoverUrl : (preferredVariant?.covers?.[0]?.url || null);
 
   return {
     id: String(issue.id),
-    comicguideid: issue.comicGuideId === null ? null : String(issue.comicGuideId),
+    comicguideid: preferredVariant?.comicGuideId == null ? null : String(preferredVariant.comicGuideId),
     number: issue.number,
     legacy_number: issue.legacyNumber || null,
     title: issue.title || null,
-    verified: issue.verified,
-    collected: issue.collected ?? null,
-    format: issue.format || null,
-    variant: issue.variant || null,
-    cover: issue.covers[0]
+    verified: preferredVariant?.verified ?? false,
+    collected: preferredVariant?.collected ?? null,
+    format,
+    variant,
+    cover: coverUrl
       ? {
-          url: issue.covers[0].url || null,
+          url: coverUrl,
         }
       : null,
     originalStoryCover,
     stories: stories.map((story) => ({
       onlyapp: story.onlyApp,
       firstapp: story.firstApp,
+      firstCompleteApp: story.firstCompleteApp,
+      firstPartialApp: story.firstPartialApp,
       otheronlytb: story.otherOnlyTb,
       exclusive: !story.parent,
       onlyoneprint: story.onlyOnePrint,
@@ -377,7 +429,7 @@ export function serializePreviewIssue(issue: {
         issue: entry.issue
           ? {
               number: "",
-              collected: entry.issue.collected ?? null,
+              collected: entry.issue.variants?.[0]?.collected ?? null,
               series: {
                 publisher: {},
               },
@@ -420,9 +472,13 @@ export function serializeNavbarIssue(issue: {
   number: string;
   legacyNumber: string | null;
   title: string | null;
-  format: string | null;
-  variant: string | null;
-  collected: boolean | null;
+  variants: Array<{
+    id: bigint;
+    format: string;
+    variantLabel: string | null;
+    collected: boolean | null;
+    covers: Array<{ url: string | null }>;
+  }>;
   series: {
     title: string | null;
     volume: bigint;
@@ -431,19 +487,20 @@ export function serializeNavbarIssue(issue: {
       original: boolean;
     } | null;
   } | null;
-  covers: Array<{ url: string | null }>;
 }): Issue {
+  const preferredVariant = pickPreferredIssueVariant(issue.variants) ?? null;
+
   return {
     id: String(issue.id),
     number: issue.number,
     legacy_number: issue.legacyNumber || null,
     title: issue.title || null,
-    format: issue.format || null,
-    variant: issue.variant || null,
-    collected: issue.collected ?? null,
-    cover: issue.covers[0]
+    format: preferredVariant?.format || null,
+    variant: preferredVariant?.variantLabel || null,
+    collected: preferredVariant?.collected ?? null,
+    cover: preferredVariant?.covers[0]
       ? {
-          url: issue.covers[0].url || null,
+          url: preferredVariant.covers[0].url || null,
         }
       : null,
     series: issue.series
@@ -477,29 +534,37 @@ export function sortLastEditedRows<
     fkSeries: bigint | null;
     number: string;
     title: string | null;
-    format: string | null;
-    variant: string | null;
-    releaseDate: Date | null;
     createdAt: Date;
     updatedAt: Date;
     series: { title: string | null; volume: bigint; publisher: { name: string } | null } | null;
+    variants: Array<{
+      format: string;
+      variantLabel: string | null;
+      releaseDate: Date | null;
+    }>;
   },
 >(rows: T[], field: string, direction: SortDirection) {
   const factor = direction === "asc" ? 1 : -1;
 
   return [...rows].sort((left, right) => {
+    const leftVariant = pickPreferredIssueVariant(left.variants);
+    const rightVariant = pickPreferredIssueVariant(right.variants);
+
     const compareValue = (() => {
       switch (field) {
         case "createdat":
           return (left.createdAt.getTime() - right.createdAt.getTime()) * factor;
-        case "releasedate":
-          return ((left.releaseDate?.getTime() ?? 0) - (right.releaseDate?.getTime() ?? 0)) * factor;
+        case "releasedate": {
+          const leftDate = leftVariant?.releaseDate?.getTime() ?? 0;
+          const rightDate = rightVariant?.releaseDate?.getTime() ?? 0;
+          return (leftDate - rightDate) * factor;
+        }
         case "number":
           return compareIssueNumber(left.number, right.number) * factor;
         case "format":
-          return naturalCompare(normalizeText(left.format), normalizeText(right.format)) * factor;
+          return naturalCompare(normalizeText(leftVariant?.format), normalizeText(rightVariant?.format)) * factor;
         case "variant":
-          return naturalCompare(normalizeText(left.variant), normalizeText(right.variant)) * factor;
+          return naturalCompare(normalizeText(leftVariant?.variantLabel), normalizeText(rightVariant?.variantLabel)) * factor;
         case "title":
           return naturalCompare(normalizeText(left.title), normalizeText(right.title)) * factor;
         case "id":

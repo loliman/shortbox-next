@@ -16,6 +16,7 @@
     "start": "next start",
     "start:container": "node scripts/container-runner.mjs",
     "worker": "node --env-file=.env --import tsx src/worker/index.ts",
+    "mcp": "node --env-file=.env --import tsx packages/shortbox-mcp/src/index.ts",
     "test": "jest",
     "test:unit": "jest --runInBand",
     "test:unit:coverage": "jest --runInBand --coverage",
@@ -34,6 +35,7 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@mui/icons-material": "7.3.9",
     "@mui/material": "7.3.9",
     "@mui/material-nextjs": "^7.3.9",
@@ -78,6 +80,7 @@
     "jest-environment-jsdom": "^30.3.0",
     "pa11y": "^9.1.1",
     "ts-jest": "^29.4.9",
+    "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
     "unlighthouse": "^0.17.7"

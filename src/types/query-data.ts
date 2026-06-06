@@ -22,6 +22,16 @@ export interface Filter {
   arcs?: Array<{ title?: string | null } | null>;
   appearances?: Array<{ name?: string | null } | null>;
   noComicguideId?: boolean;
+  noContent?: boolean;
+  onlyDoubleTrippleCollected?: boolean;
+  onlyDoubleTripplePublisherCollected?: boolean;
+  onlyNotOwnedUsMaterial?: boolean;
+  crossPublishers?: Array<{ name?: string | null } | null>;
+  crossSeries?: Array<{ title?: string | null; volume?: number | null; startyear?: number | null; endyear?: number | null } | null>;
+  crossNumber?: string;
+  crossVolume?: number;
+  crossStartYear?: number;
+  crossEndYear?: number | null;
   [key: string]: unknown;
 }
 

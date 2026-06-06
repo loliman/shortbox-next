@@ -1575,8 +1575,7 @@ function applyDerivedIssueIdentity(
 }
 
 function deriveStandaloneVariant(lines: string[], localCodeIndex: number, code: string) {
-  const metadataWindow = collectCodeMetadataWindow(lines, localCodeIndex);
-  return isVariantIssueCode(code, metadataWindow);
+  return isVariantIssueCode(code);
 }
 
 function attachDerivedVariantParents(drafts: PreviewImportDraft[]) {

@@ -11,13 +11,14 @@ import { compareIssueNumber, compareIssueVariants } from "./issue-read-shared";
 import { readNavOpenStateFromQuery } from "../routes/nav-open-state";
 import { matchesSeriesSelectionBySlug } from "./series-selection";
 import { slugify } from "../slug-builder";
+import { compareSeriesTitle } from "../../util/sort";
 import {
   getNavigationSeriesKey,
   matchesNavigationSeriesKey,
   parseNavigationSeriesKey,
 } from "./navigation-key";
 import {
-  pickNavigationIssuePreviewSource,
+  pickNavigationIssuePreviewVariant,
   serializeNavigationComicGuideId,
 } from "./navigation-issue-preview";
 import {
@@ -167,19 +168,27 @@ export async function readNavigationSeries(scope: NavigationScope & { publisher:
     },
   });
 
-  return series.map((entry) => ({
-    id: String(entry.id),
-    title: entry.title || "",
-    volume: Number(entry.volume),
-    startyear: Number(entry.startYear),
-    endyear: entry.endYear === null ? null : Number(entry.endYear),
-    publisher: entry.publisher
-      ? {
-          name: entry.publisher.name,
-          us: entry.publisher.original,
-        }
-      : null,
-  }));
+  return series
+    .map((entry) => ({
+      id: String(entry.id),
+      title: entry.title || "",
+      volume: Number(entry.volume),
+      startyear: Number(entry.startYear),
+      endyear: entry.endYear === null ? null : Number(entry.endYear),
+      publisher: entry.publisher
+        ? {
+            name: entry.publisher.name,
+            us: entry.publisher.original,
+          }
+        : null,
+    }))
+    .sort((a, b) => {
+      const titleCmp = compareSeriesTitle(a.title, b.title);
+      if (titleCmp !== 0) return titleCmp;
+      // Stable secondary sort by volume then id (matches DB orderBy)
+      if (a.volume !== b.volume) return a.volume - b.volume;
+      return Number(a.id) - Number(b.id);
+    });
 }
 
 const readNavigationSeriesCached = unstable_cache(
@@ -217,79 +226,76 @@ export async function readNavigationIssues(scope: NavigationIssuesScope) {
       series: {
         title: scope.series,
         volume: scope.volume,
-        ...(Number(scope.startyear || 0) > 0 ? { startYear: BigInt(Number(scope.startyear)) } : {}),
+        ...(Number(scope.startyear || 0) > 0 ? { startYear: { in: [BigInt(Number(scope.startyear)), 0n] } } : {}),
         publisher: {
           name: scope.publisher,
           original: scope.us,
         },
       },
     },
-    orderBy: [{ number: "asc" }, { format: "asc" }, { variant: "asc" }, { id: "asc" }],
+    orderBy: [{ number: "asc" }, { id: "asc" }],
     include: {
       series: {
         include: {
           publisher: true,
         },
       },
-      covers: {
-        orderBy: [{ number: "asc" }, { id: "asc" }],
-        take: 1,
+      variants: {
+        orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
+        include: {
+          covers: {
+            orderBy: [{ number: "asc" }, { id: "asc" }],
+            take: 1,
+          },
+        },
       },
     },
   });
 
-  const grouped = new Map<string, typeof issues>();
-  for (const issue of issues) {
-    const key = issue.number;
-    const current = grouped.get(key) || [];
-    current.push(issue);
-    grouped.set(key, current);
-  }
+  // Issues are now unique per (series, number) – sort by number only
+  return [...issues]
+    .sort((left, right) => compareIssueNumber(left.number, right.number))
+    .map((issue) => {
+      const preferredVariant = [...issue.variants].sort(compareIssueVariants)[0] ?? null;
+      const previewVariant = pickNavigationIssuePreviewVariant(issue.variants) ?? preferredVariant;
+      const variants = issue.variants.map((variant) => ({
+        id: String(variant.id),
+        collected: variant.collected ?? null,
+        format: variant.format || null,
+        variant: variant.variantLabel || null,
+      }));
 
-  return Array.from(grouped.entries())
-    .sort(([leftNumber], [rightNumber]) => compareIssueNumber(leftNumber, rightNumber))
-    .map(([, rawGroup]) => {
-    const group = [...rawGroup].sort(compareIssueVariants);
-    const primary = group[0];
-    const previewSource = pickNavigationIssuePreviewSource(group) ?? primary;
-    const variants = group.map((variant) => ({
-      id: String(variant.id),
-      collected: variant.collected ?? null,
-      format: variant.format || null,
-      variant: variant.variant || null,
-    }));
-
-    return {
-      id: String(primary.id),
-      comicguideid: serializeNavigationComicGuideId(previewSource?.comicGuideId),
-      number: primary.number,
-      legacy_number: primary.legacyNumber || null,
-      title: primary.title || null,
-      format: primary.format || null,
-      variant: primary.variant || null,
-      collected: primary.collected ?? null,
-      cover: previewSource?.covers?.[0]
-        ? {
-            url: previewSource.covers[0].url || null,
-          }
-        : null,
-      variants,
-      series: primary.series
-        ? {
-            title: primary.series.title || "",
-            volume: Number(primary.series.volume),
-            startyear: Number(primary.series.startYear),
-            endyear: primary.series.endYear === null ? null : Number(primary.series.endYear),
-            publisher: primary.series.publisher
-              ? {
-                  name: primary.series.publisher.name,
-                  us: primary.series.publisher.original,
-                }
-              : null,
-          }
-        : null,
-    };
-  });
+      return {
+        id: String(issue.id),
+        comicguideid: serializeNavigationComicGuideId(previewVariant?.comicGuideId),
+        number: issue.number,
+        legacy_number: issue.legacyNumber || null,
+        title: issue.title || null,
+        format: preferredVariant?.format || null,
+        variant: preferredVariant?.variantLabel || null,
+        collected: issue.variants.some((v) => v.collected === true) || null,
+        cover: previewVariant?.covers?.[0]
+          ? {
+              url: previewVariant.covers[0].url || null,
+            }
+          : null,
+        variants,
+        series: issue.series
+          ? {
+              title: issue.series.title || "",
+              volume: Number(issue.series.volume),
+              startyear: Number(issue.series.startYear),
+              endyear: issue.series.endYear === null ? null : Number(issue.series.endYear),
+              publisher: issue.series.publisher
+                ? {
+                    name: issue.series.publisher.name,
+                    us: issue.series.publisher.original,
+                  }
+                : null,
+            }
+          : null,
+      };
+    });
 }
 
 const readNavigationIssuesCached = unstable_cache(

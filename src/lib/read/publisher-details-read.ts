@@ -86,7 +86,13 @@ export async function readPublisherDetailsQuery(input: { us: boolean; publisher:
                 id: true,
                 issue: {
                   select: {
-                    collected: true,
+                    variants: {
+                      orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
+                      take: 1,
+                      select: {
+                        collected: true,
+                      },
+                    },
                   },
                 },
               },
@@ -103,9 +109,8 @@ export async function readPublisherDetailsQuery(input: { us: boolean; publisher:
             },
           },
         },
-        covers: {
-          orderBy: [{ number: "asc" }, { id: "asc" }],
-          take: 1,
+        variants: {
+          orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
         },
       },
     }),

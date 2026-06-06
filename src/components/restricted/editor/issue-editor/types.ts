@@ -3,6 +3,7 @@ import type { MouseEvent, ReactNode } from "react";
 import type { SessionData } from "../../../../types/session";
 
 export interface IssueEditorFormValues {
+  variantId?: string | number | null;
   title: string;
   series: {
     title: string;

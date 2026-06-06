@@ -144,7 +144,7 @@ function extractStyledTextRuns(
     }
 
     if (fn === pdfjs.OPS.setFont) {
-      currentFontName = typeof args?.[0] === "string" ? args[0] : currentFontName;
+      currentFontName = Array.isArray(args) && typeof args[0] === "string" ? args[0] : currentFontName;
       continue;
     }
 
@@ -171,16 +171,17 @@ function extractStyledTextRuns(
 }
 
 function readRenderedTextFromOperator(fn: number, args: unknown) {
+  const arr = Array.isArray(args) ? args : [];
   if (fn === pdfjs.OPS.showText || fn === pdfjs.OPS.showSpacedText) {
-    return readRenderedTextArg(Array.isArray(args) ? args[0] : args);
+    return readRenderedTextArg(arr[0]);
   }
 
   if (fn === pdfjs.OPS.nextLineShowText) {
-    return typeof args?.[0] === "string" ? args[0] : readRenderedTextArg(args?.[0]);
+    return typeof arr[0] === "string" ? arr[0] : readRenderedTextArg(arr[0]);
   }
 
   if (fn === pdfjs.OPS.nextLineSetSpacingShowText) {
-    return typeof args?.[2] === "string" ? args[2] : readRenderedTextArg(args?.[2]);
+    return typeof arr[2] === "string" ? arr[2] : readRenderedTextArg(arr[2]);
   }
 
   return "";

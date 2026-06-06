@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma/client";
+import { env } from "../lib/env";
 
 const MAX_REPORTED_ITEMS = 100;
 
@@ -113,7 +114,7 @@ const toStageResult = (
 
 const resolveDryRun = (options?: CleanupRunOptions): boolean => {
   if (typeof options?.dryRun === "boolean") return options.dryRun;
-  return String(process.env.CLEANUP_DRY_RUN || "false").toLowerCase() === "true";
+  return env.CLEANUP_DRY_RUN;
 };
 
 const markDeleted = (ids: number[], activeIds: Set<number>) => {

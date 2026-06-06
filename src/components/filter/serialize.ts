@@ -90,12 +90,22 @@ function readNumberPayload(values: FilterValues) {
 function applyCollectionFlags(payload: FilterSubmitValues, values: FilterValues) {
   if (values.onlyCollected) {
     payload.onlyCollected = true;
-    return;
+  }
+
+  if (values.onlyDoubleTrippleCollected) {
+    payload.onlyDoubleTrippleCollected = true;
+  }
+
+  if (values.onlyDoubleTripplePublisherCollected) {
+    payload.onlyDoubleTripplePublisherCollected = true;
+  }
+
+  if (values.onlyNotOwnedUsMaterial) {
+    payload.onlyNotOwnedUsMaterial = true;
   }
 
   if (values.onlyNotCollectedNoOwnedVariants) {
     payload.onlyNotCollectedNoOwnedVariants = true;
-    return;
   }
 
   if (values.onlyNotCollected) {
@@ -194,6 +204,36 @@ export function serializeFilterValues(
   applyCollectionFlags(payload, values);
   if (values.noComicguideId) payload.noComicguideId = true;
   if (values.noContent) payload.noContent = true;
+
+  assignMappedValues(payload, "crossPublishers", values.crossPublishers, (publisher) => {
+    const normalizedPublisher = stripItem(publisher);
+    normalizedPublisher.us = undefined;
+    return normalizedPublisher;
+  });
+
+  if (values.crossSeries.length > 0) {
+    payload.crossSeries = values.crossSeries.map((entry) => {
+      const normalized = stripItem(entry);
+      const volume = Number(normalized.volume);
+      if (Number.isFinite(volume)) normalized.volume = volume;
+      return normalized;
+    });
+  }
+
+  const crossNumber = values.crossNumber.trim();
+  if (crossNumber) payload.crossNumber = crossNumber;
+
+  const crossVolume = Number(values.crossVolume.trim());
+  if (Number.isFinite(crossVolume) && crossVolume > 0) payload.crossVolume = crossVolume;
+
+  const crossStartYear = Number(values.crossStartYear.trim());
+  if (Number.isFinite(crossStartYear) && crossStartYear > 0) payload.crossStartYear = crossStartYear;
+
+  const crossEndYear = values.crossEndYear.trim();
+  if (crossEndYear) {
+    const parsedEndYear = Number(crossEndYear);
+    payload.crossEndYear = Number.isFinite(parsedEndYear) ? parsedEndYear : null;
+  }
 
   if (!hasPayload(payload)) {
     return null;

@@ -244,6 +244,7 @@ export function buildIssueMutationVariables(
     addinfo: toOptionalString(values.addinfo),
     stories: normalizeStories(values.stories),
     series: seriesPayload,
+    variantId: values.variantId ? String(values.variantId) : undefined,
   } as Record<string, unknown>;
 
   if (usIssue) {

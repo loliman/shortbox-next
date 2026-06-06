@@ -13,7 +13,7 @@ export async function readSeriesDetailsQuery(input: SeriesSelectionInput) {
     where: {
       title: input.series,
       volume: BigInt(input.volume),
-      ...(normalizedStartYear ? { startYear: normalizedStartYear } : {}),
+      ...(normalizedStartYear ? { startYear: { in: [normalizedStartYear, 0n] } } : {}),
       publisher: {
         name: input.publisher,
         original: input.us,
@@ -30,7 +30,7 @@ export async function readSeriesDetailsQuery(input: SeriesSelectionInput) {
     : await prisma.series.findMany({
         where: {
           volume: BigInt(input.volume),
-          ...(normalizedStartYear ? { startYear: normalizedStartYear } : {}),
+          ...(normalizedStartYear ? { startYear: { in: [normalizedStartYear, 0n] } } : {}),
           publisher: {
             original: input.us,
           },
@@ -81,7 +81,13 @@ export async function readSeriesDetailsQuery(input: SeriesSelectionInput) {
                 id: true,
                 issue: {
                   select: {
-                    collected: true,
+                    variants: {
+                      orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
+                      take: 1,
+                      select: {
+                        collected: true,
+                      },
+                    },
                   },
                 },
               },
@@ -98,9 +104,8 @@ export async function readSeriesDetailsQuery(input: SeriesSelectionInput) {
             },
           },
         },
-        covers: {
-          orderBy: [{ number: "asc" }, { id: "asc" }],
-          take: 1,
+        variants: {
+          orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
         },
       },
     }),

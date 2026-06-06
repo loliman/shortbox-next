@@ -1,4 +1,4 @@
-import { deriveIssueAggregatesFromStories } from "./story-filter-write";
+import { deriveIssueAggregatesFromStories, parsePart } from "./story-filter-write";
 
 type StoryShape = Parameters<typeof deriveIssueAggregatesFromStories>[0][number];
 
@@ -97,5 +97,32 @@ describe("deriveIssueAggregatesFromStories", () => {
       hasPrintStory: true,
       hasOnlyOnePrint: true,
     });
+  });
+});
+
+describe("parsePart", () => {
+  it("should_return_null_for_empty_or_whitespace_values", () => {
+    expect(parsePart(null)).toEqual({ partNumber: null, partTotal: null });
+    expect(parsePart("")).toEqual({ partNumber: null, partTotal: null });
+    expect(parsePart("   ")).toEqual({ partNumber: null, partTotal: null });
+  });
+
+  it("should_parse_valid_number_total_parts", () => {
+    expect(parsePart("1/2")).toEqual({ partNumber: 1, partTotal: 2 });
+    expect(parsePart("3/4")).toEqual({ partNumber: 3, partTotal: 4 });
+    expect(parsePart(" 2 / 5 ")).toEqual({ partNumber: 2, partTotal: 5 });
+  });
+
+  it("should_parse_valid_x_total_parts", () => {
+    expect(parsePart("1/x")).toEqual({ partNumber: 1, partTotal: null });
+    expect(parsePart("2/X")).toEqual({ partNumber: 2, partTotal: null });
+    expect(parsePart(" 3 / x ")).toEqual({ partNumber: 3, partTotal: null });
+  });
+
+  it("should_return_null_for_invalid_formats", () => {
+    expect(parsePart("a/b")).toEqual({ partNumber: null, partTotal: null });
+    expect(parsePart("1/")).toEqual({ partNumber: null, partTotal: null });
+    expect(parsePart("/2")).toEqual({ partNumber: null, partTotal: null });
+    expect(parsePart("1/2/3")).toEqual({ partNumber: null, partTotal: null });
   });
 });

@@ -1,13 +1,14 @@
 import { makeWorkerUtils, type WorkerUtils } from "graphile-worker";
+import { env } from "./env";
 
 function resolveConnectionString() {
-  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
+  if (env.DATABASE_URL) return env.DATABASE_URL;
 
-  const host = process.env.DB_HOST || "localhost";
-  const port = process.env.DB_PORT || "5432";
-  const database = process.env.DB_NAME || "shortbox_migration";
-  const user = encodeURIComponent(process.env.DB_USER || "shortbox");
-  const password = encodeURIComponent(process.env.DB_PASSWORD || "shortbox");
+  const host = env.DB_HOST;
+  const port = env.DB_PORT;
+  const database = env.DB_NAME;
+  const user = encodeURIComponent(env.DB_USER);
+  const password = encodeURIComponent(env.DB_PASSWORD);
 
   return `postgres://${user}:${password}@${host}:${port}/${database}`;
 }

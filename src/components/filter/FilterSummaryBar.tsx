@@ -36,8 +36,8 @@ export default function FilterSummaryBar(props: Readonly<FilterSummaryBarProps>)
   const { isPending, push } = usePendingNavigation();
   const us = Boolean(props.us);
   const filterLabels = React.useMemo(
-    () => buildFilterLabels(props.query?.filter),
-    [props.query?.filter]
+    () => buildFilterLabels(props.query?.filter, us),
+    [props.query?.filter, us]
   );
 
   if (filterLabels.length === 0) return null;
@@ -127,7 +127,7 @@ export default function FilterSummaryBar(props: Readonly<FilterSummaryBarProps>)
   );
 }
 
-function buildFilterLabels(rawFilter?: string | null): string[] {
+function buildFilterLabels(rawFilter?: string | null, us?: boolean): string[] {
   if (!rawFilter) return [];
   let parsed: Record<string, unknown> | null = null;
   try {
@@ -149,6 +149,19 @@ function buildFilterLabels(rawFilter?: string | null): string[] {
   pushNamedList(entries, parsed.publishers, "Verlag");
   pushNamedList(entries, parsed.series, "Serie");
   pushNumberEntries(entries, parsed.numbers);
+
+  const prefix = us ? "DE" : "US";
+  pushNamedList(entries, parsed.crossPublishers, `${prefix}-Verlag`);
+  pushNamedList(entries, parsed.crossSeries, `${prefix}-Serie`);
+  const crossNumber = readFilterText(parsed.crossNumber);
+  if (crossNumber) entries.push(`${prefix}-Nummer: ${crossNumber}`);
+  const crossVolume = readFilterText(parsed.crossVolume);
+  if (crossVolume) entries.push(`${prefix}-Volume: ${crossVolume}`);
+  const crossStartYear = readFilterText(parsed.crossStartYear);
+  if (crossStartYear) entries.push(`${prefix}-Startjahr: ${crossStartYear}`);
+  const crossEndYear = readFilterText(parsed.crossEndYear);
+  if (crossEndYear) entries.push(`${prefix}-Endjahr: ${crossEndYear}`);
+
   pushNamedList(entries, parsed.arcs, "Teil von");
   pushIndividualEntries(entries, parsed.individuals);
   pushNamedList(entries, parsed.appearances, "Auftritte");
@@ -157,6 +170,9 @@ function buildFilterLabels(rawFilter?: string | null): string[] {
     ["onlyCollected", "Nur in Sammlung"],
     ["onlyNotCollected", "Nur nicht in Sammlung"],
     ["onlyNotCollectedNoOwnedVariants", "Nur nicht in Sammlung (ohne Variants)"],
+    ["onlyDoubleTrippleCollected", "Doppelt & Dreifach gesammelt"],
+    ["onlyDoubleTripplePublisherCollected", "Doppelt & Dreifach verlagsintern"],
+    ["onlyNotOwnedUsMaterial", "Ungesammeltes US-Material"],
     ["firstPrint", "Erstveröffentlichung"],
     ["onlyPrint", "Einzige Veröffentlichung"],
     ["onlyTb", "Nur in Taschenbuch"],

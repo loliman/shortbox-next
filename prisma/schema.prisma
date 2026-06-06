@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
   engineType = "binary"
 }
 
@@ -68,7 +68,7 @@ model StoryIndividual {
 
 model ChangeRequest {
   id            Int               @id @default(autoincrement())
-  fkIssue       Int               @map("fk_issue")
+  fkIssue       BigInt            @map("fk_issue") @db.BigInt
   createdAt     DateTime          @default(now()) @map("createdat") @db.Timestamptz(6)
   type          ChangeRequestType
   changeRequest Json              @map("changerequest") @db.JsonB
@@ -129,6 +129,10 @@ model Story {
   collectedMultipleTimes Boolean           @default(false) @map("collectedmultipletimes")
   firstApp               Boolean           @default(false) @map("firstapp")
   part                   String            @db.VarChar(255)
+  partNumber             Int?              @map("part_number")
+  partTotal              Int?              @map("part_total")
+  firstCompleteApp       Boolean           @default(false) @map("first_complete_app")
+  firstPartialApp        Boolean           @default(false) @map("first_partial_app")
   issue                  Issue?            @relation(fields: [fkIssue], references: [id], onDelete: NoAction, onUpdate: NoAction)
   parent                 Story?            @relation("StoryParent", fields: [fkParent], references: [id], onDelete: NoAction, onUpdate: NoAction)
   children               Story[]           @relation("StoryParent")
@@ -145,7 +149,7 @@ model Story {
 }
 
 model AdminTaskResult {
-  id             Int      @id
+  id             Int      @id @default(autoincrement())
   jobId          String   @unique(map: "admin_task_result_job_id_key") @map("job_id") @db.VarChar(64)
   taskIdentifier String   @map("task_identifier") @db.VarChar(128)
   resultJson     String   @map("result_json")
@@ -156,48 +160,89 @@ model AdminTaskResult {
   @@schema("shortbox")
 }
 
+// ---------------------------------------------------------------------------
+// Issue: das Werk (abstrakte Publikationseinheit)
+// Besitzt: number, title, series, stories, arcs, individuals
+// Besitzt NICHT: format, variantLabel, price, releaseDate, limitation, isbn,
+//                pages, addInfo, collected, verified, comicGuideId
+// ---------------------------------------------------------------------------
 model Issue {
-  id            BigInt            @id @default(autoincrement()) @db.BigInt
-  title         String            @default("") @db.VarChar(255)
-  number        String            @default("") @db.VarChar(255)
-  format        String            @default("") @db.VarChar(255)
-  limitation    BigInt?           @default(0) @db.BigInt
-  variant       String?           @db.VarChar(255)
-  releaseDate   DateTime?         @map("releasedate") @db.Timestamptz(6)
-  pages         BigInt?           @default(0) @db.BigInt
-  price         Float?            @db.DoublePrecision
-  currency      String?           @db.VarChar(255)
-  addInfo       String?           @map("addinfo") @db.VarChar(1000)
-  verified      Boolean           @default(false)
-  createdAt     DateTime          @map("createdat") @db.Timestamptz(6)
-  updatedAt     DateTime          @map("updatedat") @db.Timestamptz(6)
-  fkSeries      BigInt?           @map("fk_series") @db.BigInt
-  comicGuideId  BigInt?           @map("comicguideid") @db.BigInt
-  collected     Boolean?
-  isbn          String?           @db.VarChar(255)
-  legacyNumber  String            @default("") @map("legacy_number") @db.VarChar(255)
-  numberNumeric       Decimal? @map("number_numeric") @db.Decimal
-  legacyNumberNumeric Decimal? @map("legacy_number_numeric") @db.Decimal
-  fkPublisher       BigInt?  @map("fk_publisher") @db.BigInt
-  hasFirstPrint     Boolean  @default(false) @map("has_first_print")
-  hasOnlyPrint      Boolean  @default(false) @map("has_only_print")
-  hasOnlyTb         Boolean  @default(false) @map("has_only_tb")
-  hasExclusiveStory Boolean  @default(false) @map("has_exclusive_story")
-  isReprintOnly     Boolean  @default(false) @map("is_reprint_only")
-  hasOtherOnlyTb    Boolean  @default(false) @map("has_other_only_tb")
-  hasPrintStory     Boolean  @default(false) @map("has_print_story")
-  hasOnlyOnePrint   Boolean  @default(false) @map("has_only_one_print")
-  series        Series?           @relation(fields: [fkSeries], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  publisher     Publisher?        @relation(fields: [fkPublisher], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  stories       Story[]
-  arcs          IssueArc[]
-  individuals   IssueIndividual[]
-  covers        Cover[]
+  id                  BigInt    @id @default(autoincrement()) @db.BigInt
+  title               String    @default("") @db.VarChar(255)
+  number              String    @default("") @db.VarChar(255)
+  legacyNumber        String    @default("") @map("legacy_number") @db.VarChar(255)
+  numberNumeric       Decimal?  @map("number_numeric") @db.Decimal
+  legacyNumberNumeric Decimal?  @map("legacy_number_numeric") @db.Decimal
+  createdAt           DateTime  @map("createdat") @db.Timestamptz(6)
+  updatedAt           DateTime  @map("updatedat") @db.Timestamptz(6)
+  fkSeries            BigInt?   @map("fk_series") @db.BigInt
+  fkPublisher         BigInt?   @map("fk_publisher") @db.BigInt
+
+  // Materialisierte Story-Flags (werden aus Story-Daten berechnet)
+  hasFirstPrint     Boolean @default(false) @map("has_first_print")
+  hasOnlyPrint      Boolean @default(false) @map("has_only_print")
+  hasOnlyTb         Boolean @default(false) @map("has_only_tb")
+  hasExclusiveStory Boolean @default(false) @map("has_exclusive_story")
+  isReprintOnly     Boolean @default(false) @map("is_reprint_only")
+  hasOtherOnlyTb    Boolean @default(false) @map("has_other_only_tb")
+  hasPrintStory     Boolean @default(false) @map("has_print_story")
+  hasOnlyOnePrint   Boolean @default(false) @map("has_only_one_print")
+
+  // Materialisierte Sammlungs-Flags (werden bei Sammlungsänderungen berechnet)
+  doubleCollected          Boolean @default(false) @map("double_collected")
+  doublePublisherCollected Boolean @default(false) @map("double_publisher_collected")
+  notOwnedUsMaterial       Boolean @default(false) @map("not_owned_us_material")
+  noOwnedVariants          Boolean @default(true)  @map("no_owned_variants")
+
+  // Materialisierte Cover/Variant-Previewfelder (werden bei Variant/Cover-Änderungen berechnet)
+  preferredVariantId    BigInt? @map("preferred_variant_id") @db.BigInt
+  preferredCoverUrl     String? @map("preferred_cover_url") @db.VarChar(255)
+  preferredFormat       String? @map("preferred_format") @db.VarChar(255)
+  preferredVariantLabel String? @map("preferred_variant_label") @db.VarChar(255)
+
+  series      Series?           @relation(fields: [fkSeries], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  publisher   Publisher?        @relation(fields: [fkPublisher], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  stories     Story[]
+  arcs        IssueArc[]
+  individuals IssueIndividual[]
+  variants    Variant[]
 
   @@index([fkSeries], map: "idx_issue_fk_series")
-  @@index([fkSeries, number, format, variant], map: "idx_issue_series_number_format_variant")
+  @@unique([fkSeries, number], map: "uq_issue_series_number")
   @@index([fkPublisher], map: "idx_issue_fk_publisher")
   @@map("issue")
+  @@schema("shortbox")
+}
+
+// ---------------------------------------------------------------------------
+// Variant: die konkrete physische Ausgabe
+// Besitzt: format, variantLabel, price, releaseDate, limitation, isbn,
+//          pages, addInfo, collected, verified, comicGuideId, covers
+// ---------------------------------------------------------------------------
+model Variant {
+  id           BigInt    @id @default(autoincrement()) @db.BigInt
+  fkIssue      BigInt    @map("fk_issue") @db.BigInt
+  format       String    @default("") @db.VarChar(255)
+  variantLabel String?   @map("variant_label") @db.VarChar(255)
+  releaseDate  DateTime? @map("releasedate") @db.Timestamptz(6)
+  pages        BigInt?   @default(0) @db.BigInt
+  price        Decimal?  @db.Decimal(10, 2)
+  currency     String?   @db.VarChar(255)
+  addInfo      String?   @map("addinfo") @db.VarChar(1000)
+  verified     Boolean   @default(false)
+  collected    Boolean?
+  isbn         String?   @db.VarChar(255)
+  limitation   BigInt?   @default(0) @db.BigInt
+  comicGuideId BigInt?   @map("comicguideid") @db.BigInt
+  createdAt    DateTime  @map("createdat") @db.Timestamptz(6)
+  updatedAt    DateTime  @map("updatedat") @db.Timestamptz(6)
+
+  issue  Issue   @relation(fields: [fkIssue], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  covers Cover[]
+
+  @@unique([fkIssue, format, variantLabel], map: "uq_variant_issue_format_label")
+  @@index([fkIssue], map: "idx_variant_fk_issue")
+  @@map("variant")
   @@schema("shortbox")
 }
 
@@ -275,7 +320,7 @@ model SearchIndex {
   label           String
   url             String
   searchText      String              @map("search_text")
-  searchTsv       Unsupported("tsvector") @default(dbgenerated("''::tsvector")) @map("search_tsv")
+  searchTsv       Unsupported("tsvector") @default(dbgenerated("''::tsvector'")) @map("search_tsv")
 
   @@unique([nodeType, sourceId], map: "search_index_node_type_source_id_key")
   @@index([us, issueNumber], map: "idx_search_index_issue_number")
@@ -318,13 +363,13 @@ model Cover {
   createdAt   DateTime          @map("createdat") @db.Timestamptz(6)
   updatedAt   DateTime          @map("updatedat") @db.Timestamptz(6)
   fkParent    BigInt?           @map("fk_parent") @db.BigInt
-  fkIssue     BigInt?           @map("fk_issue") @db.BigInt
+  fkVariant   BigInt?           @map("fk_variant") @db.BigInt
   parent      Cover?            @relation("CoverParent", fields: [fkParent], references: [id], onDelete: NoAction, onUpdate: NoAction)
   children    Cover[]           @relation("CoverParent")
-  issue       Issue?            @relation(fields: [fkIssue], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  variant     Variant?          @relation(fields: [fkVariant], references: [id], onDelete: NoAction, onUpdate: NoAction)
   individuals CoverIndividual[]
 
-  @@index([fkIssue, number], map: "idx_cover_fk_issue_number")
+  @@index([fkVariant, number], map: "idx_cover_fk_variant_number")
   @@index([fkParent], map: "idx_cover_fk_parent")
   @@map("cover")
   @@schema("shortbox")

@@ -105,12 +105,85 @@ describe("buildDirectIssueFilterWhere – story flag filters", () => {
   });
 });
 
+describe("buildDirectIssueFilterWhere – US story flag filters", () => {
+  const makeUsFilter = (extra: Record<string, unknown>): Filter => {
+    return { us: true, ...extra } as Filter;
+  };
+
+  const cases: Array<{ flag: string; expected: Record<string, unknown> }> = [
+    { flag: "firstPrint", expected: { stories: { some: { firstApp: true } } } },
+    { flag: "notFirstPrint", expected: { stories: { none: { firstApp: true } } } },
+    { flag: "onlyPrint", expected: { stories: { some: { onlyApp: true } } } },
+    { flag: "notOnlyPrint", expected: { stories: { none: { onlyApp: true } } } },
+    { flag: "onlyTb", expected: { stories: { some: { onlyTb: true } } } },
+    { flag: "notOnlyTb", expected: { stories: { none: { onlyTb: true } } } },
+    { flag: "exclusive", expected: { stories: { some: { fkParent: null } } } },
+    { flag: "notExclusive", expected: { stories: { none: { fkParent: null } } } },
+    {
+      flag: "reprint",
+      expected: {
+        stories: {
+          some: {},
+          none: { firstApp: true },
+        },
+      },
+    },
+    {
+      flag: "notReprint",
+      expected: {
+        OR: [
+          { stories: { none: {} } },
+          { stories: { some: { firstApp: true } } },
+        ],
+      },
+    },
+    { flag: "otherOnlyTb", expected: { stories: { some: { otherOnlyTb: true } } } },
+    { flag: "notOtherOnlyTb", expected: { stories: { none: { otherOnlyTb: true } } } },
+    { flag: "noPrint", expected: { stories: { none: { children: { some: {} } } } } },
+    { flag: "notNoPrint", expected: { stories: { some: { children: { some: {} } } } } },
+    { flag: "onlyOnePrint", expected: { stories: { some: { onlyOnePrint: true } } } },
+    { flag: "notOnlyOnePrint", expected: { stories: { none: { onlyOnePrint: true } } } },
+  ];
+
+  for (const { flag, expected } of cases) {
+    it(`should_emit_correct_story_query_for_${flag}`, () => {
+      const where = buildDirectIssueFilterWhere(makeUsFilter({ [flag]: true })) as { AND: Array<Record<string, unknown>> };
+      expect(where.AND[0]).toEqual({ series: { publisher: { original: true } } });
+      expect(where.AND[1]).toEqual(expected);
+    });
+  }
+});
+
 describe("buildDirectIssueFilterWhere – fallback gating", () => {
-  it("should_return_null_only_for_onlyNotCollectedNoOwnedVariants", () => {
-    const where = buildDirectIssueFilterWhere(
-      makeFilter({ onlyNotCollectedNoOwnedVariants: true })
-    );
-    expect(where).toBeNull();
+  it("should_return_null_for_custom_ID_list_filters", () => {
+    const customFlags = [
+      "crossPublishers",
+      "crossSeries",
+      "crossNumber",
+      "crossVolume",
+      "crossStartYear",
+      "crossEndYear",
+    ];
+    for (const flag of customFlags) {
+      const value = flag === "crossPublishers" || flag === "crossSeries" ? [{ name: "Marvel" }] : true;
+      const where = buildDirectIssueFilterWhere(
+        makeFilter({ [flag]: value })
+      );
+      expect(where).toBeNull();
+    }
+  });
+
+  it("should_handle_materialized_collection_flags_in_direct_path", () => {
+    const flags = [
+      "onlyNotCollectedNoOwnedVariants",
+      "onlyDoubleTrippleCollected",
+      "onlyDoubleTripplePublisherCollected",
+      "onlyNotOwnedUsMaterial",
+    ];
+    for (const flag of flags) {
+      const where = buildDirectIssueFilterWhere(makeFilter({ [flag]: true }));
+      expect(where).not.toBeNull();
+    }
   });
 
   it("should_handle_numbers_filter_in_direct_path", () => {
@@ -317,7 +390,16 @@ describe("buildDirectIssueFilterWhere – numbers", () => {
     const andClauses = topLevelAnd(where).filter((c) => "AND" in c);
     expect(andClauses).toHaveLength(1);
     const inner = andClauses[0].AND as Array<Record<string, unknown>>;
-    expect(inner).toEqual([{ OR: [{ number: "1" }, { legacyNumber: "1" }] }, { variant: "A" }]);
+    expect(inner).toEqual([
+      { OR: [{ number: "1" }, { legacyNumber: "1" }] },
+      {
+        variants: {
+          some: {
+            variantLabel: "A",
+          },
+        },
+      },
+    ]);
   });
 
   it("should_combine_multiple_number_entries_at_top_AND_level", () => {

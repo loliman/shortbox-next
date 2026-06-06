@@ -72,7 +72,7 @@ Avoid assuming:
 ### Issue
 
 What it represents:
-- A concrete publication within a Series.
+- An abstract publication work (or edition metadata concept) within a Series, unique by series and number.
 
 Scope:
 - Inherits its scope from its Series and Publisher.
@@ -82,46 +82,40 @@ Relationships:
 - An Issue can have many Stories.
 - An Issue can have many Arcs through `IssueArc`.
 - An Issue can have many issue-level Individuals through `IssueIndividual`.
-- An Issue can have one or more Covers.
+- An Issue has one or more Variants (representing physical editions).
 - Change requests in the current repository flow are attached to Issues.
 
 Important invariants:
 - Issue number is a string, not an integer.
-- An Issue is identified within a Series by number, format, and optionally variant.
+- An Issue is unique per Series by its number.
 - An Issue may have zero stories.
-- Detail and navigation logic may group multiple issue records with the same number as one issue plus variants.
+- Stories and editorial fields (title, number) belong to the Issue. Physical properties (format, price, releaseDate, limitation, covers) are delegated to the Variant entity.
 
 Avoid assuming:
 - Do not parse issue numbers as numeric IDs or sortable integers only.
-- Do not assume one issue number maps to one database row.
-- Do not assume every issue has its own independent displayed title and story list in the UI.
+- Do not assume that physical properties (like releaseDate or covers) are stored directly on the Issue row.
 
-### Variant Handling
+### Variant
 
 What it represents:
-- A variant is not a separate entity type. It is an Issue record with the same number as another issue but with a
-  different `format` and/or `variant` value.
+- A concrete physical edition (or printing) of an Issue, with specific attributes such as format, label, price, and covers.
 
 Scope:
-- Same scope rules as Issue.
+- Inherits its scope from its parent Issue.
 
 Relationships:
-- Variants are grouped with other Issue rows that share the same number within a Series.
-- One grouped issue is treated as the main issue for presentation purposes.
+- A Variant belongs to exactly one parent Issue.
+- A Variant can have one or more Covers.
 
 Important invariants:
-- Variant handling is partly a presentation concern layered on top of Issue records.
-- Main issue priority is documented as:
-  `Softcover > Hardcover > Heft > other > variant (alphanumerical)`.
-- Title and story inheritance for variants exists in the UI/read layer only.
-- Variant inheritance is not persisted as shared database state.
-- A variant can exist without another issue row for the same number; in that case it becomes the effective main issue.
+- Every Issue must have at least one Variant.
+- Variants are distinguished within an Issue by the combination of `format` and `variantLabel`.
+- For presentation and fallback purposes, when displaying fields or selecting the cover at the Issue level, the "preferred" variant is chosen according to the priority:
+  `Softcover > Hardcover > Heft > other > variantLabel (alphanumerical)`.
 
 Avoid assuming:
-- Do not model variants as a separate domain table or entity concept in new logic.
-- Do not persist inherited title or stories back as if they were canonical shared values.
-- Do not assume the row being rendered owns the displayed stories.
-- Do not assume all variant rows are secondary; sometimes the only row is effectively the main issue.
+- Do not treat Variant as a presentation-only concern without a database table.
+- Do not assume that stories or series relationships are linked directly to Variants (they link to the parent Issue instead).
 
 ### Story
 
@@ -225,24 +219,24 @@ Avoid assuming:
 ### Cover
 
 What it represents:
-- A cover image or cover record attached to one Issue.
+- A cover image or cover record attached to one Variant.
 
 Scope:
-- Belongs to the same scope as its Issue.
+- Belongs to the same scope as its parent Variant and Issue.
 
 Relationships:
-- A Cover belongs to exactly one Issue.
+- A Cover belongs to exactly one Variant.
 - Cover artists are linked through `CoverIndividual`.
 - The schema also contains an optional parent/child relation between Covers.
 
 Important invariants:
-- Covers are issue-specific and are not shared across issues.
+- Covers are variant-specific and are not shared across variants directly.
 - Cover contributors are modeled separately from story or issue contributors.
-- Repository documentation clearly grounds issue ownership, but cover parent/child semantics are less explicitly
+- Repository documentation clearly grounds variant ownership, but cover parent/child semantics are less explicitly
   documented than story parent/child semantics.
 
 Avoid assuming:
-- Do not treat Covers as global shared assets reused across unrelated Issues.
+- Do not treat Covers as global shared assets reused across unrelated Variants.
 - Do not merge cover-artist logic into story-creator logic.
 - Do not invent semantics for cover parent/child relations without checking the affected code path.
 

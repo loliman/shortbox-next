@@ -13,7 +13,7 @@ import { generateLabel } from "../../lib/routes/hierarchy";
 import { isMockMode } from "../../app/mockMode";
 import TitleLine from "../generic/TitleLine";
 import { IssueReferenceInline } from "../generic/IssueNumberInline";
-import type { Issue, SelectedRoot } from "../../types/domain";
+import type { Issue, SelectedRoot, Variant } from "../../types/domain";
 import { sanitizeHtml } from "../../util/sanitizeHtml";
 import { StoryArcChips } from "./issue-details/StoryArcChips";
 import { IssueVariants } from "./issue-details/variants/IssueVariants";
@@ -576,16 +576,39 @@ function toIssueWithMockVariants(issue: Issue): Issue {
   if (!isMockMode) return issue;
 
   const cover = issue.cover?.url ? issue.cover : { url: "/nocover_simple.png" };
-  const primaryVariant: Issue = {
-    ...issue,
+  const primaryVariant: Variant = {
+    id: issue.id,
+    format: issue.format,
+    variant: issue.variant,
+    releasedate: issue.releasedate,
+    verified: issue.verified,
+    collected: issue.collected,
+    comicguideid: issue.comicguideid,
+    isbn: issue.isbn,
+    pages: issue.pages,
+    price: issue.price,
+    currency: issue.currency,
+    limitation: issue.limitation,
+    addinfo: issue.addinfo,
     cover,
-    variants: null,
+    __typename: "Variant",
   };
-  const secondaryVariant: Issue = {
-    ...issue,
+  const secondaryVariant: Variant = {
+    id: `${issue.id}-2`,
+    format: issue.format,
     variant: issue.variant && issue.variant !== "" ? `${issue.variant}-2` : "B",
+    releasedate: issue.releasedate,
+    verified: issue.verified,
+    collected: issue.collected,
+    comicguideid: issue.comicguideid,
+    isbn: issue.isbn,
+    pages: issue.pages,
+    price: issue.price,
+    currency: issue.currency,
+    limitation: issue.limitation,
+    addinfo: issue.addinfo,
     cover,
-    variants: null,
+    __typename: "Variant",
   };
 
   return {

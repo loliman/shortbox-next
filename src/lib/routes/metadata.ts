@@ -2,11 +2,12 @@ import "server-only";
 
 import type { Metadata } from "next";
 import { normalizePageQuery } from "./page-state";
+import { env } from "../env";
 
 const DEFAULT_DESCRIPTION =
   "Shortbox listet deutsche und US-Marvel-Veröffentlichungen serverseitig und detailreich auf.";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://shortbox.de";
+const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
 const TRACKING_QUERY_KEYS = new Set([
   "utm_source",
   "utm_medium",

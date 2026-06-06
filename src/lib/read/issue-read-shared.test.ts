@@ -5,13 +5,13 @@ describe("pickIssuePreviewStorySource", () => {
     const mainIssue = {
       id: 1,
       format: "Heft",
-      variant: null,
+      variantLabel: null,
       stories: [{ id: 101 }],
     };
     const formatVariant = {
       id: 2,
       format: "Hardcover",
-      variant: null,
+      variantLabel: null,
       stories: [],
     };
 
@@ -24,13 +24,13 @@ describe("pickIssuePreviewStorySource", () => {
     const mainIssue = {
       id: 1,
       format: "Heft",
-      variant: null,
+      variantLabel: null,
       stories: [{ id: 101 }],
     };
     const formatVariant = {
       id: 2,
       format: "Hardcover",
-      variant: null,
+      variantLabel: null,
       stories: [{ id: 202 }],
     };
 
@@ -46,8 +46,7 @@ describe("pickFirstOriginalStoryCoverReference", () => {
       {
         parent: {
           issue: {
-            comicGuideId: null,
-            covers: [{ url: "https://example.com/original-parent.jpg" }],
+            variants: [{ comicGuideId: null, covers: [{ url: "https://example.com/original-parent.jpg" }] }],
           },
         },
       },
@@ -64,8 +63,7 @@ describe("pickFirstOriginalStoryCoverReference", () => {
       {
         reprint: {
           issue: {
-            comicGuideId: "1234",
-            covers: [],
+            variants: [{ comicGuideId: "1234", covers: [] }],
           },
         },
       },
@@ -82,16 +80,14 @@ describe("pickFirstOriginalStoryCoverReference", () => {
       {
         parent: {
           issue: {
-            comicGuideId: null,
-            covers: [],
+            variants: [{ comicGuideId: null, covers: [] }],
           },
         },
       },
       {
         reprint: {
           issue: {
-            comicGuideId: null,
-            covers: [{ url: "https://example.com/original-reprint.jpg" }],
+            variants: [{ comicGuideId: null, covers: [{ url: "https://example.com/original-reprint.jpg" }] }],
           },
         },
       },

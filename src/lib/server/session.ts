@@ -2,6 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 import { cookies } from "next/headers";
+import { env } from "../env";
 import { prisma } from "../prisma/client";
 import type { SessionData } from "../../types/session";
 
@@ -11,7 +12,7 @@ function createSessionCookieOptions() {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
+    secure: env.NODE_ENV === "production",
     path: "/",
     maxAge: 60 * 60 * 24 * 30,
   };

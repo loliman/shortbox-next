@@ -127,6 +127,9 @@ export async function deleteSeriesByLookup(item: SeriesInput, executor: PrismaEx
       include: {
         publisher: true,
         issues: {
+          include: {
+            variants: true,
+          },
           orderBy: [{ id: "asc" }],
         },
       },
@@ -135,24 +138,26 @@ export async function deleteSeriesByLookup(item: SeriesInput, executor: PrismaEx
     if (!series) return failure("Series not found", 404);
 
     for (const issue of series.issues) {
-      const deleted = await deleteIssueByLookup(
-        {
-          number: issue.number,
-          format: issue.format,
-          variant: issue.variant || "",
-          series: {
-            title: series.title || "",
-            volume: Number(series.volume),
-            publisher: {
-              name: publisher.name,
-              us: publisher.original,
+      for (const variant of issue.variants) {
+        const deleted = await deleteIssueByLookup(
+          {
+            number: issue.number,
+            format: variant.format,
+            variant: variant.variantLabel || "",
+            series: {
+              title: series.title || "",
+              volume: Number(series.volume),
+              publisher: {
+                name: publisher.name,
+                us: publisher.original,
+              },
             },
           },
-        },
-        executor
-      );
-      if (typeof deleted === "object" && deleted !== null && "success" in deleted && !deleted.success) {
-        throw new Error(deleted.error);
+          executor
+        );
+        if (typeof deleted === "object" && deleted !== null && "success" in deleted && !deleted.success) {
+          throw new Error(deleted.error);
+        }
       }
     }
 

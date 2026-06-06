@@ -59,6 +59,7 @@ export async function runRebuildSearchIndex(
     }),
     prisma.issue.findMany({
       include: {
+        variants: true,
         series: {
           include: {
             publisher: true,
@@ -169,8 +170,6 @@ export async function runRebuildSearchIndex(
     const seriesEndyear = Number(seriesItem?.endYear || 0);
     const issueNumber = (issueItem.number || "").trim();
     const issueLegacyNumber = (issueItem.legacyNumber || "").trim();
-    const issueFormat = (issueItem.format || "").trim();
-    const issueVariant = (issueItem.variant || "").trim();
     const issueTitle = (issueItem.title || "").trim();
     const seriesLabel = createNodeSeriesLabel(
       seriesTitle,
@@ -179,45 +178,50 @@ export async function runRebuildSearchIndex(
       seriesStartyear,
       seriesEndyear
     );
-    const label = createNodeIssueLabel(
-      seriesLabel,
-      issueNumber,
-      issueLegacyNumber,
-      issueFormat,
-      issueVariant,
-      issueTitle
-    );
 
-    rows.push({
-      node_type: "issue",
-      source_id: Number(issueItem.id),
-      us,
-      publisher_name: publisherName,
-      series_title: seriesTitle,
-      series_volume: seriesVolume,
-      series_startyear: seriesStartyear,
-      series_endyear: seriesEndyear,
-      series_key: buildSeriesKey(publisherName, seriesTitle, seriesVolume, seriesStartyear),
-      issue_number: issueNumber,
-      issue_format: issueFormat,
-      issue_variant: issueVariant,
-      issue_title: issueTitle,
-      label,
-      url: createNodeUrl({
-        type: "issue",
-        original: us,
-        publisherName,
-        seriesTitle,
-        seriesVolume,
-        number: issueNumber,
-        format: issueFormat,
-        variant: issueVariant,
-      }),
-      search_text: normalizeSearchText(
-        `${publisherName} ${seriesTitle} vol ${seriesVolume} ${seriesStartyear} ${seriesEndyear} ${issueNumber} ${issueLegacyNumber} ${issueFormat} ${issueVariant} ${issueTitle}`
-      ),
-    });
-    issueRows += 1;
+    for (const variantItem of issueItem.variants) {
+      const issueFormat = (variantItem.format || "").trim();
+      const issueVariant = (variantItem.variantLabel || "").trim();
+      const label = createNodeIssueLabel(
+        seriesLabel,
+        issueNumber,
+        issueLegacyNumber,
+        issueFormat,
+        issueVariant,
+        issueTitle
+      );
+
+      rows.push({
+        node_type: "issue",
+        source_id: Number(issueItem.id),
+        us,
+        publisher_name: publisherName,
+        series_title: seriesTitle,
+        series_volume: seriesVolume,
+        series_startyear: seriesStartyear,
+        series_endyear: seriesEndyear,
+        series_key: buildSeriesKey(publisherName, seriesTitle, seriesVolume, seriesStartyear),
+        issue_number: issueNumber,
+        issue_format: issueFormat,
+        issue_variant: issueVariant,
+        issue_title: issueTitle,
+        label,
+        url: createNodeUrl({
+          type: "issue",
+          original: us,
+          publisherName,
+          seriesTitle,
+          seriesVolume,
+          number: issueNumber,
+          format: issueFormat,
+          variant: issueVariant,
+        }),
+        search_text: normalizeSearchText(
+          `${publisherName} ${seriesTitle} vol ${seriesVolume} ${seriesStartyear} ${seriesEndyear} ${issueNumber} ${issueLegacyNumber} ${issueFormat} ${issueVariant} ${issueTitle}`
+        ),
+      });
+      issueRows += 1;
+    }
   }
 
   if (!dryRun) {

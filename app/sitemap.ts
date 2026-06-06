@@ -11,8 +11,9 @@ import {
   type SitemapEntry,
 } from "@/src/lib/read/sitemap-read";
 import { isDatabaseUnavailable } from "@/src/lib/prisma/is-database-unavailable";
+import { env } from "@/src/lib/env";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://shortbox.de";
+const SITE_URL = env.NEXT_PUBLIC_SITE_URL;
 
 function toAbsoluteUrl(path: string): string {
   if (path.startsWith("http://") || path.startsWith("https://")) return path;

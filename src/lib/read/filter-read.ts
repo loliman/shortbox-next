@@ -70,6 +70,16 @@ const supportedDirectFilterKeys = new Set([
   "notOnlyOnePrint",
   "numbers",
   "individuals",
+  "onlyDoubleTrippleCollected",
+  "onlyDoubleTripplePublisherCollected",
+  "onlyNotOwnedUsMaterial",
+  "onlyNotCollectedNoOwnedVariants",
+  "crossPublishers",
+  "crossSeries",
+  "crossNumber",
+  "crossVolume",
+  "crossStartYear",
+  "crossEndYear",
 ]);
 
 function dedupeTerms(values: string[]) {
@@ -305,21 +315,66 @@ function buildRealityTermIssueWhere(term: string, us: boolean): Prisma.IssueWher
 
 function applyFormatsFilter(and: Prisma.IssueWhereInput[], filter: RuntimeFilter) {
   const formats = readDirectFormats(filter);
-  if (formats.length > 0) and.push({ format: { in: formats } });
+  if (formats.length > 0) {
+    and.push({
+      variants: {
+        some: {
+          format: { in: formats },
+        },
+      },
+    });
+  }
 }
 
 function applyVariantFilter(and: Prisma.IssueWhereInput[], filter: RuntimeFilter) {
   if (!filter.withVariants || filter.onlyCollected) return;
   and.push({
-    NOT: {
-      OR: [{ variant: null }, { variant: "" }],
+    variants: {
+      some: {
+        NOT: [
+          { variantLabel: null },
+          { variantLabel: "" },
+        ],
+      },
     },
   });
 }
 
 function applyCollectedFilters(and: Prisma.IssueWhereInput[], filter: RuntimeFilter) {
-  if (filter.onlyCollected) and.push({ collected: true });
-  if (filter.onlyNotCollected) and.push({ collected: false });
+  if (filter.onlyCollected || filter.onlyDoubleTrippleCollected || filter.onlyDoubleTripplePublisherCollected) {
+    and.push({
+      variants: {
+        some: { collected: true },
+      },
+    });
+  }
+  if (filter.onlyNotCollected) {
+    and.push({
+      variants: {
+        none: { collected: true },
+      },
+    });
+  }
+  if (filter.onlyNotCollectedNoOwnedVariants) {
+    and.push({
+      noOwnedVariants: true,
+    });
+  }
+  if (filter.onlyDoubleTrippleCollected) {
+    and.push({
+      doubleCollected: true,
+    });
+  }
+  if (filter.onlyDoubleTripplePublisherCollected) {
+    and.push({
+      doublePublisherCollected: true,
+    });
+  }
+  if (filter.onlyNotOwnedUsMaterial) {
+    and.push({
+      notOwnedUsMaterial: true,
+    });
+  }
 }
 
 function applyPublisherFilter(and: Prisma.IssueWhereInput[], filter: RuntimeFilter) {
@@ -383,7 +438,16 @@ function endOfDay(date: Date): Date {
 }
 
 function hasUnsupportedFilterState(filter: RuntimeFilter) {
-  if (filter.onlyNotCollectedNoOwnedVariants) return true;
+  if (
+    filter.crossPublishers?.length ||
+    filter.crossSeries?.length ||
+    filter.crossNumber ||
+    filter.crossVolume ||
+    filter.crossStartYear ||
+    filter.crossEndYear
+  ) {
+    return true;
+  }
   return false;
 }
 
@@ -475,7 +539,18 @@ function buildNumbersClause(
         : buildLexicalNumberRange(raw, compare);
 
   if (variant.length === 0) return numberPart;
-  return { AND: [numberPart, { variant }] };
+  return {
+    AND: [
+      numberPart,
+      {
+        variants: {
+          some: {
+            variantLabel: variant,
+          },
+        },
+      },
+    ],
+  };
 }
 
 function applyNumbersFilter(and: Prisma.IssueWhereInput[], filter: RuntimeFilter) {
@@ -572,22 +647,57 @@ function applyGenresFilter(and: Prisma.IssueWhereInput[], filter: RuntimeFilter)
 }
 
 function applyStoryFlagFilters(and: Prisma.IssueWhereInput[], filter: RuntimeFilter) {
-  if (filter.firstPrint) and.push({ hasFirstPrint: true });
-  if (filter.notFirstPrint) and.push({ hasFirstPrint: false });
-  if (filter.onlyPrint) and.push({ hasOnlyPrint: true });
-  if (filter.notOnlyPrint) and.push({ hasOnlyPrint: false });
-  if (filter.onlyTb) and.push({ hasOnlyTb: true });
-  if (filter.notOnlyTb) and.push({ hasOnlyTb: false });
-  if (filter.exclusive) and.push({ hasExclusiveStory: true });
-  if (filter.notExclusive) and.push({ hasExclusiveStory: false });
-  if (filter.reprint) and.push({ isReprintOnly: true });
-  if (filter.notReprint) and.push({ isReprintOnly: false });
-  if (filter.otherOnlyTb) and.push({ hasOtherOnlyTb: true });
-  if (filter.notOtherOnlyTb) and.push({ hasOtherOnlyTb: false });
-  if (filter.noPrint) and.push({ hasPrintStory: false });
-  if (filter.notNoPrint) and.push({ hasPrintStory: true });
-  if (filter.onlyOnePrint) and.push({ hasOnlyOnePrint: true });
-  if (filter.notOnlyOnePrint) and.push({ hasOnlyOnePrint: false });
+  const us = Boolean(filter.us);
+
+  if (us) {
+    if (filter.firstPrint) and.push({ stories: { some: { firstApp: true } } });
+    if (filter.notFirstPrint) and.push({ stories: { none: { firstApp: true } } });
+    if (filter.onlyPrint) and.push({ stories: { some: { onlyApp: true } } });
+    if (filter.notOnlyPrint) and.push({ stories: { none: { onlyApp: true } } });
+    if (filter.onlyTb) and.push({ stories: { some: { onlyTb: true } } });
+    if (filter.notOnlyTb) and.push({ stories: { none: { onlyTb: true } } });
+    if (filter.exclusive) and.push({ stories: { some: { fkParent: null } } });
+    if (filter.notExclusive) and.push({ stories: { none: { fkParent: null } } });
+    if (filter.reprint) {
+      and.push({
+        stories: {
+          some: {},
+          none: { firstApp: true },
+        },
+      });
+    }
+    if (filter.notReprint) {
+      and.push({
+        OR: [
+          { stories: { none: {} } },
+          { stories: { some: { firstApp: true } } },
+        ],
+      });
+    }
+    if (filter.otherOnlyTb) and.push({ stories: { some: { otherOnlyTb: true } } });
+    if (filter.notOtherOnlyTb) and.push({ stories: { none: { otherOnlyTb: true } } });
+    if (filter.noPrint) and.push({ stories: { none: { children: { some: {} } } } });
+    if (filter.notNoPrint) and.push({ stories: { some: { children: { some: {} } } } });
+    if (filter.onlyOnePrint) and.push({ stories: { some: { onlyOnePrint: true } } });
+    if (filter.notOnlyOnePrint) and.push({ stories: { none: { onlyOnePrint: true } } });
+  } else {
+    if (filter.firstPrint) and.push({ hasFirstPrint: true });
+    if (filter.notFirstPrint) and.push({ hasFirstPrint: false });
+    if (filter.onlyPrint) and.push({ hasOnlyPrint: true });
+    if (filter.notOnlyPrint) and.push({ hasOnlyPrint: false });
+    if (filter.onlyTb) and.push({ hasOnlyTb: true });
+    if (filter.notOnlyTb) and.push({ hasOnlyTb: false });
+    if (filter.exclusive) and.push({ hasExclusiveStory: true });
+    if (filter.notExclusive) and.push({ hasExclusiveStory: false });
+    if (filter.reprint) and.push({ isReprintOnly: true });
+    if (filter.notReprint) and.push({ isReprintOnly: false });
+    if (filter.otherOnlyTb) and.push({ hasOtherOnlyTb: true });
+    if (filter.notOtherOnlyTb) and.push({ hasOtherOnlyTb: false });
+    if (filter.noPrint) and.push({ hasPrintStory: false });
+    if (filter.notNoPrint) and.push({ hasPrintStory: true });
+    if (filter.onlyOnePrint) and.push({ hasOnlyOnePrint: true });
+    if (filter.notOnlyOnePrint) and.push({ hasOnlyOnePrint: false });
+  }
 }
 
 export function buildDirectIssueFilterWhere(
@@ -626,7 +736,11 @@ export function buildDirectIssueFilterWhere(
 
   if (runtimeFilter.noComicguideId) {
     and.push({
-      OR: [{ comicGuideId: null }, { comicGuideId: BigInt(0) }],
+      variants: {
+        some: {
+          OR: [{ comicGuideId: null }, { comicGuideId: BigInt(0) }],
+        },
+      },
     });
   }
 
@@ -653,17 +767,25 @@ function buildReleaseDateWhereClauses(
     if (!parsedDate) continue;
 
     const compare = readTextValue(entry?.compare) || "=";
+    let variantDateClause: Prisma.VariantWhereInput;
+
     if (compare === "=") {
-      clauses.push({ releaseDate: { gte: startOfDay(parsedDate), lte: endOfDay(parsedDate) } });
+      variantDateClause = { releaseDate: { gte: startOfDay(parsedDate), lte: endOfDay(parsedDate) } };
     } else if (compare === ">=") {
-      clauses.push({ releaseDate: { gte: startOfDay(parsedDate) } });
+      variantDateClause = { releaseDate: { gte: startOfDay(parsedDate) } };
     } else if (compare === ">") {
-      clauses.push({ releaseDate: { gt: endOfDay(parsedDate) } });
+      variantDateClause = { releaseDate: { gt: endOfDay(parsedDate) } };
     } else if (compare === "<=") {
-      clauses.push({ releaseDate: { lte: endOfDay(parsedDate) } });
-    } else if (compare === "<") {
-      clauses.push({ releaseDate: { lt: startOfDay(parsedDate) } });
+      variantDateClause = { releaseDate: { lte: endOfDay(parsedDate) } };
+    } else { // compare === "<"
+      variantDateClause = { releaseDate: { lt: startOfDay(parsedDate) } };
     }
+
+    clauses.push({
+      variants: {
+        some: variantDateClause,
+      },
+    });
   }
 
   return clauses;
@@ -718,38 +840,99 @@ export function selectGroupRepresentatives(
   return [...byKey.values()];
 }
 
-async function readGroupAwareUncollectedIssueIds(filter: Filter): Promise<number[]> {
+async function resolveCustomFilterToIssueIds(filter: RuntimeFilter): Promise<number[]> {
   const { prisma } = await import("../prisma/client");
 
-  const baseFilter = { ...filter } as RuntimeFilter;
-  delete baseFilter.onlyNotCollectedNoOwnedVariants;
-  delete baseFilter.onlyCollected;
-  delete baseFilter.onlyNotCollected;
+  // 1. Resolve cross-scope issue IDs if cross filters are defined
+  let crossStoryFilterWhere: Prisma.StoryWhereInput | undefined;
 
-  const baseWhere = buildDirectIssueFilterWhere(baseFilter);
-  if (!baseWhere) return [];
+  const hasCrossFilter = Boolean(
+    filter.crossPublishers?.length ||
+    filter.crossSeries?.length ||
+    filter.crossNumber ||
+    filter.crossVolume ||
+    filter.crossStartYear ||
+    filter.crossEndYear
+  );
 
-  const candidates = (await prisma.issue.findMany({
-    where: { AND: [baseWhere, { collected: false }] },
-    select: { id: true, fkSeries: true, number: true, format: true },
-  })) as GroupAwareCandidate[];
+  if (hasCrossFilter) {
+    const isUsMode = Boolean(filter.us);
+    
+    // We construct a query for the OTHER scope issues
+    const publisherNames = (filter.crossPublishers && filter.crossPublishers.length > 0)
+      ? filter.crossPublishers.map(p => p?.name).filter((n): n is string => Boolean(n))
+      : [];
 
-  const ownedRows = await prisma.issue.findMany({
-    where: {
-      collected: true,
-      series: { publisher: { original: Boolean(filter.us) } },
-    },
-    select: { fkSeries: true, number: true },
-  });
+    const seriesOR = (filter.crossSeries && filter.crossSeries.length > 0)
+      ? filter.crossSeries.map(s => {
+          const cond: Prisma.SeriesWhereInput = {
+            title: s?.title || undefined,
+            volume: (s?.volume !== undefined && s?.volume !== null) ? BigInt(s.volume) : undefined,
+            startYear: s?.startyear ? BigInt(s.startyear) : undefined,
+            endYear: (s?.endyear !== undefined && s?.endyear !== null) ? BigInt(s.endyear) : undefined,
+          };
+          return cond;
+        })
+      : undefined;
 
-  const ownedGroupKeys = new Set<string>();
-  for (const row of ownedRows) {
-    ownedGroupKeys.add(groupKey(row.fkSeries, row.number));
+    const seriesWhere: Prisma.SeriesWhereInput = {
+      publisher: publisherNames.length > 0 ? {
+        original: !isUsMode,
+        name: { in: publisherNames }
+      } : {
+        original: !isUsMode
+      },
+      OR: seriesOR,
+      volume: filter.crossVolume ? BigInt(filter.crossVolume) : undefined,
+      startYear: filter.crossStartYear ? BigInt(filter.crossStartYear) : undefined,
+      endYear: (filter.crossEndYear !== undefined && filter.crossEndYear !== null) ? BigInt(filter.crossEndYear) : undefined,
+    };
+
+    const otherScopeWhere: Prisma.IssueWhereInput = {
+      series: seriesWhere,
+      OR: filter.crossNumber ? [
+        { number: filter.crossNumber },
+        { legacyNumber: filter.crossNumber }
+      ] : undefined
+    };
+
+    const otherStories = await prisma.story.findMany({
+      where: {
+        issue: otherScopeWhere
+      },
+      select: { id: true, fkParent: true }
+    });
+
+    if (isUsMode) {
+      const parentStoryIds = otherStories.map(s => s.fkParent).filter((id): id is bigint => id != null);
+      crossStoryFilterWhere = {
+        id: { in: parentStoryIds }
+      };
+    } else {
+      const usStoryIds = otherStories.map(s => s.id);
+      crossStoryFilterWhere = {
+        fkParent: { in: usStoryIds }
+      };
+    }
   }
 
-  return selectGroupRepresentatives(candidates, ownedGroupKeys).map((candidate) =>
-    Number(candidate.id)
-  );
+  // 2. Fetch candidates matching the direct filters
+  const directWhere = buildDirectIssueFilterWhere(filter);
+  if (!directWhere) return [];
+
+  const candidates = await prisma.issue.findMany({
+    where: {
+      AND: [
+        directWhere,
+        crossStoryFilterWhere ? { stories: { some: crossStoryFilterWhere } } : {}
+      ]
+    },
+    select: {
+      id: true
+    }
+  });
+
+  return candidates.map(c => Number(c.id));
 }
 
 type ResolvedFilterState = {
@@ -763,8 +946,17 @@ const resolveFilterStateCached = cache(
   async (serializedFilter: string): Promise<ResolvedFilterState> => {
     const filter = JSON.parse(serializedFilter) as Filter;
 
-    if ((filter as RuntimeFilter).onlyNotCollectedNoOwnedVariants) {
-      const filteredIssueIds = await readGroupAwareUncollectedIssueIds(filter);
+    const hasIdListFilter = Boolean(
+      (filter as RuntimeFilter).crossPublishers?.length ||
+      (filter as RuntimeFilter).crossSeries?.length ||
+      (filter as RuntimeFilter).crossNumber ||
+      (filter as RuntimeFilter).crossVolume ||
+      (filter as RuntimeFilter).crossStartYear ||
+      (filter as RuntimeFilter).crossEndYear
+    );
+
+    if (hasIdListFilter) {
+      const filteredIssueIds = await resolveCustomFilterToIssueIds(filter as RuntimeFilter);
       return {
         directIssueWhere: null,
         filteredIssueIds,

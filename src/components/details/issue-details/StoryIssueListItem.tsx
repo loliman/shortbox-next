@@ -15,6 +15,7 @@ import { getIssueLabel, getIssueUrl, getSeriesLabel } from "../../../lib/routes/
 import { IssueReferenceInline } from "../../generic/IssueNumberInline";
 import { buildRouteHref } from "../../generic/routeHref";
 import { usePendingNavigation } from "../../generic/usePendingNavigation";
+import { useSearchParams } from "next/navigation";
 
 type ParentLink = {
   issue: StoryIssue;
@@ -39,6 +40,9 @@ type StoryIssueListItemProps = {
 
 export function StoryIssueListItem(props: Readonly<StoryIssueListItemProps>) {
   const { push } = usePendingNavigation();
+  const searchParams = useSearchParams();
+  const filter = searchParams.get("filter") || null;
+  const currentQuery = filter ? { filter } : null;
   const publisherTitle = props.issue?.series?.publisher?.name || "";
   const routeUs = Boolean(props.routeUs);
   const coverUs = props.coverUs ?? routeUs;
@@ -50,9 +54,8 @@ export function StoryIssueListItem(props: Readonly<StoryIssueListItemProps>) {
       sx={{ px: 0, py: 1.25, alignItems: "flex-start", justifyContent: "space-between", gap: 1 }}
       onClick={() =>
         push(
-          buildRouteHref(getIssueUrl(props.issue, routeUs), null, {
+          buildRouteHref(getIssueUrl(props.issue, routeUs), currentQuery, {
             expand: props.number,
-            filter: null,
           })
         )
       }
@@ -102,10 +105,9 @@ export function StoryIssueListItem(props: Readonly<StoryIssueListItemProps>) {
                   color="text.secondary"
                   href={buildRouteHref(
                     getIssueUrl(props.parentLink?.issue, Boolean(props.parentLink?.routeUs)),
-                    null,
+                    currentQuery,
                     {
                       expand: props.parentLink?.number,
-                      filter: null,
                     }
                   )}
                   sx={{
@@ -166,9 +168,8 @@ export function StoryIssueListItem(props: Readonly<StoryIssueListItemProps>) {
             onClick={(e) => {
               e.stopPropagation();
               push(
-                buildRouteHref(getIssueUrl(props.issue, routeUs), null, {
+                buildRouteHref(getIssueUrl(props.issue, routeUs), currentQuery, {
                   expand: props.number,
-                  filter: null,
                 })
               );
             }}
