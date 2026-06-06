@@ -1,4 +1,3 @@
-import "server-only";
 import * as Yup from "yup";
 
 const envSchema = Yup.object({
