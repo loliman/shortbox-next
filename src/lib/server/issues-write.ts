@@ -1237,6 +1237,14 @@ async function syncStoriesFromParentRefs(
   const existingStoryIds = existingStories.map((story) => story.id);
 
   if (existingStoryIds.length > 0) {
+    await executor.story.updateMany({
+      where: { fkParent: { in: existingStoryIds } },
+      data: { fkParent: null },
+    });
+    await executor.story.updateMany({
+      where: { fkReprint: { in: existingStoryIds } },
+      data: { fkReprint: null },
+    });
     await executor.storyAppearance.deleteMany({
       where: { fkStory: { in: existingStoryIds } },
     });

@@ -235,6 +235,14 @@ export function serializeFilterValues(
     payload.crossEndYear = Number.isFinite(parsedEndYear) ? parsedEndYear : null;
   }
 
+  if (values.contentFilterMode === "and") {
+    payload.contentFilterMode = "and";
+  }
+
+  if (values.crossExclusive) {
+    payload.crossExclusive = true;
+  }
+
   if (!hasPayload(payload)) {
     return null;
   }

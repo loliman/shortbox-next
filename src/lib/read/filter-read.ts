@@ -31,6 +31,8 @@ type RuntimeFilter = Filter & {
     name?: string | null;
     type?: Array<string | null> | string | null;
   } | null>;
+  contentFilterMode?: "and" | "or";
+  crossExclusive?: boolean;
 };
 
 const TRANSLATOR_INDIVIDUAL_TYPE = "TRANSLATOR";
@@ -80,6 +82,8 @@ const supportedDirectFilterKeys = new Set([
   "crossVolume",
   "crossStartYear",
   "crossEndYear",
+  "contentFilterMode",
+  "crossExclusive",
 ]);
 
 function dedupeTerms(values: string[]) {
@@ -430,11 +434,11 @@ function parseFilterDate(raw: string | null | undefined): Date | null {
 }
 
 function startOfDay(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0));
 }
 
 function endOfDay(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999));
 }
 
 function hasUnsupportedFilterState(filter: RuntimeFilter) {
@@ -648,24 +652,30 @@ function applyGenresFilter(and: Prisma.IssueWhereInput[], filter: RuntimeFilter)
 
 function applyStoryFlagFilters(and: Prisma.IssueWhereInput[], filter: RuntimeFilter) {
   const us = Boolean(filter.us);
+  const contentFilterMode = filter.contentFilterMode || "or";
+  const positiveConditions: Prisma.IssueWhereInput[] = [];
 
   if (us) {
-    if (filter.firstPrint) and.push({ stories: { some: { firstApp: true } } });
-    if (filter.notFirstPrint) and.push({ stories: { none: { firstApp: true } } });
-    if (filter.onlyPrint) and.push({ stories: { some: { onlyApp: true } } });
-    if (filter.notOnlyPrint) and.push({ stories: { none: { onlyApp: true } } });
-    if (filter.onlyTb) and.push({ stories: { some: { onlyTb: true } } });
-    if (filter.notOnlyTb) and.push({ stories: { none: { onlyTb: true } } });
-    if (filter.exclusive) and.push({ stories: { some: { fkParent: null } } });
-    if (filter.notExclusive) and.push({ stories: { none: { fkParent: null } } });
+    if (filter.firstPrint) positiveConditions.push({ stories: { some: { firstApp: true } } });
+    if (filter.onlyPrint) positiveConditions.push({ stories: { some: { onlyApp: true } } });
+    if (filter.onlyTb) positiveConditions.push({ stories: { some: { onlyTb: true } } });
+    if (filter.exclusive) positiveConditions.push({ stories: { some: { fkParent: null } } });
     if (filter.reprint) {
-      and.push({
+      positiveConditions.push({
         stories: {
           some: {},
           none: { firstApp: true },
         },
       });
     }
+    if (filter.otherOnlyTb) positiveConditions.push({ stories: { some: { otherOnlyTb: true } } });
+    if (filter.noPrint) positiveConditions.push({ stories: { none: { children: { some: {} } } } });
+    if (filter.onlyOnePrint) positiveConditions.push({ stories: { some: { onlyOnePrint: true } } });
+
+    if (filter.notFirstPrint) and.push({ stories: { none: { firstApp: true } } });
+    if (filter.notOnlyPrint) and.push({ stories: { none: { onlyApp: true } } });
+    if (filter.notOnlyTb) and.push({ stories: { none: { onlyTb: true } } });
+    if (filter.notExclusive) and.push({ stories: { none: { fkParent: null } } });
     if (filter.notReprint) {
       and.push({
         OR: [
@@ -674,29 +684,35 @@ function applyStoryFlagFilters(and: Prisma.IssueWhereInput[], filter: RuntimeFil
         ],
       });
     }
-    if (filter.otherOnlyTb) and.push({ stories: { some: { otherOnlyTb: true } } });
     if (filter.notOtherOnlyTb) and.push({ stories: { none: { otherOnlyTb: true } } });
-    if (filter.noPrint) and.push({ stories: { none: { children: { some: {} } } } });
     if (filter.notNoPrint) and.push({ stories: { some: { children: { some: {} } } } });
-    if (filter.onlyOnePrint) and.push({ stories: { some: { onlyOnePrint: true } } });
     if (filter.notOnlyOnePrint) and.push({ stories: { none: { onlyOnePrint: true } } });
   } else {
-    if (filter.firstPrint) and.push({ hasFirstPrint: true });
+    if (filter.firstPrint) positiveConditions.push({ hasFirstPrint: true });
+    if (filter.onlyPrint) positiveConditions.push({ hasOnlyPrint: true });
+    if (filter.onlyTb) positiveConditions.push({ hasOnlyTb: true });
+    if (filter.exclusive) positiveConditions.push({ hasExclusiveStory: true });
+    if (filter.reprint) positiveConditions.push({ isReprintOnly: true });
+    if (filter.otherOnlyTb) positiveConditions.push({ hasOtherOnlyTb: true });
+    if (filter.noPrint) positiveConditions.push({ hasPrintStory: false });
+    if (filter.onlyOnePrint) positiveConditions.push({ hasOnlyOnePrint: true });
+
     if (filter.notFirstPrint) and.push({ hasFirstPrint: false });
-    if (filter.onlyPrint) and.push({ hasOnlyPrint: true });
     if (filter.notOnlyPrint) and.push({ hasOnlyPrint: false });
-    if (filter.onlyTb) and.push({ hasOnlyTb: true });
     if (filter.notOnlyTb) and.push({ hasOnlyTb: false });
-    if (filter.exclusive) and.push({ hasExclusiveStory: true });
     if (filter.notExclusive) and.push({ hasExclusiveStory: false });
-    if (filter.reprint) and.push({ isReprintOnly: true });
     if (filter.notReprint) and.push({ isReprintOnly: false });
-    if (filter.otherOnlyTb) and.push({ hasOtherOnlyTb: true });
     if (filter.notOtherOnlyTb) and.push({ hasOtherOnlyTb: false });
-    if (filter.noPrint) and.push({ hasPrintStory: false });
     if (filter.notNoPrint) and.push({ hasPrintStory: true });
-    if (filter.onlyOnePrint) and.push({ hasOnlyOnePrint: true });
     if (filter.notOnlyOnePrint) and.push({ hasOnlyOnePrint: false });
+  }
+
+  if (positiveConditions.length > 0) {
+    if (contentFilterMode === "or" && positiveConditions.length > 1) {
+      and.push({ OR: positiveConditions });
+    } else {
+      and.push(...positiveConditions);
+    }
   }
 }
 
@@ -844,8 +860,6 @@ async function resolveCustomFilterToIssueIds(filter: RuntimeFilter): Promise<num
   const { prisma } = await import("../prisma/client");
 
   // 1. Resolve cross-scope issue IDs if cross filters are defined
-  let crossStoryFilterWhere: Prisma.StoryWhereInput | undefined;
-
   const hasCrossFilter = Boolean(
     filter.crossPublishers?.length ||
     filter.crossSeries?.length ||
@@ -855,10 +869,10 @@ async function resolveCustomFilterToIssueIds(filter: RuntimeFilter): Promise<num
     filter.crossEndYear
   );
 
+  const isUsMode = Boolean(filter.us);
+  let otherStories: Array<{ id: bigint; fkParent: bigint | null }> = [];
+
   if (hasCrossFilter) {
-    const isUsMode = Boolean(filter.us);
-    
-    // We construct a query for the OTHER scope issues
     const publisherNames = (filter.crossPublishers && filter.crossPublishers.length > 0)
       ? filter.crossPublishers.map(p => p?.name).filter((n): n is string => Boolean(n))
       : [];
@@ -875,6 +889,13 @@ async function resolveCustomFilterToIssueIds(filter: RuntimeFilter): Promise<num
         })
       : undefined;
 
+    const startYearCond: Prisma.BigIntFilter | undefined = (filter.crossStartYear || filter.crossEndYear)
+      ? {
+          gte: filter.crossStartYear ? BigInt(filter.crossStartYear) : undefined,
+          lte: filter.crossEndYear ? BigInt(filter.crossEndYear) : undefined,
+        }
+      : undefined;
+
     const seriesWhere: Prisma.SeriesWhereInput = {
       publisher: publisherNames.length > 0 ? {
         original: !isUsMode,
@@ -884,8 +905,7 @@ async function resolveCustomFilterToIssueIds(filter: RuntimeFilter): Promise<num
       },
       OR: seriesOR,
       volume: filter.crossVolume ? BigInt(filter.crossVolume) : undefined,
-      startYear: filter.crossStartYear ? BigInt(filter.crossStartYear) : undefined,
-      endYear: (filter.crossEndYear !== undefined && filter.crossEndYear !== null) ? BigInt(filter.crossEndYear) : undefined,
+      startYear: startYearCond,
     };
 
     const otherScopeWhere: Prisma.IssueWhereInput = {
@@ -896,36 +916,77 @@ async function resolveCustomFilterToIssueIds(filter: RuntimeFilter): Promise<num
       ] : undefined
     };
 
-    const otherStories = await prisma.story.findMany({
+    otherStories = await prisma.story.findMany({
       where: {
         issue: otherScopeWhere
       },
       select: { id: true, fkParent: true }
     });
+  }
 
+  // 2. Fetch candidates matching the direct filters.
+  // Clone filter and delete cross-scope keys to prevent circular check.
+  const directFilter = { ...filter };
+  delete directFilter.crossPublishers;
+  delete directFilter.crossSeries;
+  delete directFilter.crossNumber;
+  delete directFilter.crossVolume;
+  delete directFilter.crossStartYear;
+  delete directFilter.crossEndYear;
+  delete directFilter.crossExclusive;
+
+  const directWhere = buildDirectIssueFilterWhere(directFilter);
+  if (!directWhere) return [];
+
+  const issueAndConditions: Prisma.IssueWhereInput[] = [directWhere];
+
+  if (hasCrossFilter) {
     if (isUsMode) {
       const parentStoryIds = otherStories.map(s => s.fkParent).filter((id): id is bigint => id != null);
-      crossStoryFilterWhere = {
-        id: { in: parentStoryIds }
-      };
+      issueAndConditions.push({
+        stories: {
+          some: {
+            id: { in: parentStoryIds }
+          }
+        }
+      });
+      if (filter.crossExclusive) {
+        issueAndConditions.push({
+          stories: {
+            none: {
+              children: { some: {} },
+              id: { notIn: parentStoryIds }
+            }
+          }
+        });
+      }
     } else {
       const usStoryIds = otherStories.map(s => s.id);
-      crossStoryFilterWhere = {
-        fkParent: { in: usStoryIds }
-      };
+      issueAndConditions.push({
+        stories: {
+          some: {
+            fkParent: { in: usStoryIds }
+          }
+        }
+      });
+      if (filter.crossExclusive) {
+        issueAndConditions.push({
+          stories: {
+            none: {
+              fkParent: {
+                notIn: usStoryIds,
+                not: null
+              }
+            }
+          }
+        });
+      }
     }
   }
 
-  // 2. Fetch candidates matching the direct filters
-  const directWhere = buildDirectIssueFilterWhere(filter);
-  if (!directWhere) return [];
-
   const candidates = await prisma.issue.findMany({
     where: {
-      AND: [
-        directWhere,
-        crossStoryFilterWhere ? { stories: { some: crossStoryFilterWhere } } : {}
-      ]
+      AND: issueAndConditions
     },
     select: {
       id: true

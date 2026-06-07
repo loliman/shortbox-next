@@ -110,7 +110,19 @@ async function main() {
     `;
     const run10 = constraints.length === 0;
 
-    if (!run0405 && !run08 && !run09 && !run10) {
+    // 5. Check for task result sequence migration (11)
+    const taskResultIdentityAndDefault = await prisma.$queryRaw<{ is_identity: string; column_default: string | null }[]>`
+      SELECT is_identity, column_default 
+      FROM information_schema.columns 
+      WHERE table_schema = 'shortbox' 
+        AND table_name = 'admin_task_result' 
+        AND column_name = 'id';
+    `;
+    const run11 = taskResultIdentityAndDefault.length > 0 && 
+                  taskResultIdentityAndDefault[0].is_identity === "NO" && 
+                  !taskResultIdentityAndDefault[0].column_default;
+
+    if (!run0405 && !run08 && !run09 && !run10 && !run11) {
       console.log("All migrations seem to have been already executed.");
       await runVerification();
       return;
@@ -135,6 +147,11 @@ async function main() {
     if (run10) {
       console.log("Running migration-10-enforce-constraints.sql...");
       await runSqlFile("migration-10-enforce-constraints.sql");
+    }
+
+    if (run11) {
+      console.log("Running migration-11-fix-task-result-seq.sql...");
+      await runSqlFile("migration-11-fix-task-result-seq.sql");
     }
 
     await runVerification();

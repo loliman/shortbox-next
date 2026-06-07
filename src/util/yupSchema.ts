@@ -22,7 +22,7 @@ export const PublisherSchema = Yup.object().shape({
     .min(0, "Das Jahr muss mindestens 0 sein")
     .max(2999, "Dsa Jahr darf nicht größer als 2999 sein")
     .integer("Bitte geben Sie eine Zahl ein"),
-  addinfo: Yup.string().max(2500, "Maximal 2500 Zeichen"),
+  addinfo: Yup.string().max(2500, "Maximal 2500 Zeichen").nullable(),
 });
 
 export const SeriesSchema = Yup.object().shape({
@@ -50,14 +50,14 @@ export const SeriesSchema = Yup.object().shape({
     .min(0, "Das Jahr muss mindestens 0 sein")
     .max(2999, "Dsa Jahr darf nicht größer als 2999 sein")
     .integer("Bitte geben Sie eine Zahl ein"),
-  genre: Yup.string().max(255, "Maximal 255 Zeichen"),
-  addinfo: Yup.string().max(2500, "Maximal 2500 Zeichen"),
+  genre: Yup.string().max(255, "Maximal 255 Zeichen").nullable(),
+  addinfo: Yup.string().max(2500, "Maximal 2500 Zeichen").nullable(),
 });
 
 export const IssueSchema = Yup.object().shape({
   id: Yup.mixed<string | number>().optional(),
   variantId: Yup.mixed<string | number>().optional(),
-  title: Yup.string().max(255, "Maximal 255 Zeichen"),
+  title: Yup.string().max(255, "Maximal 255 Zeichen").nullable(),
   verified: Yup.boolean(),
   collected: Yup.boolean(),
   series: Yup.object().shape({
@@ -72,15 +72,16 @@ export const IssueSchema = Yup.object().shape({
     }),
   }),
   number: Yup.string().required("Pflichtfeld").max(255, "Maximal 255 Zeichen"),
-  format: Yup.string().max(255, "Maximal 255 Zeichen"),
+  format: Yup.string().max(255, "Maximal 255 Zeichen").nullable(),
   isbn: Yup.string().test(
     "len",
     "Die ISBN muss entweder 10 oder 13 Zeichen lang sein",
     (val) => !val || val.length === 10 || val.length === 13
   ),
-  variant: Yup.string().max(255, "Maximal 255 Zeichen"),
+  variant: Yup.string().max(255, "Maximal 255 Zeichen").nullable(),
   limitation: Yup.string()
     .max(255, "Maximal 255 Zeichen")
+    .nullable()
     .test("limitation-number", "Bitte geben Sie eine Zahl ein", (value) => {
       if (!value || value.trim() === "") return true;
       return /^\d+$/.test(value.trim());
@@ -93,7 +94,7 @@ export const IssueSchema = Yup.object().shape({
     "Bitte geben Sie eine Zahl ein. Also Komma bitte den Punkt verwenden"
   ),
   currency: Yup.string().max(3, "Maximal 3 Zeichen"),
-  addinfo: Yup.string().max(2500, "Maximal 2500 Zeichen"),
+  addinfo: Yup.string().max(2500, "Maximal 2500 Zeichen").nullable(),
   editors: Yup.array().of(
     Yup.object().shape({
       name: Yup.string().max(255, "Maximal 255 Zeichen"),

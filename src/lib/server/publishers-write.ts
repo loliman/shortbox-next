@@ -8,7 +8,7 @@ type PublisherInput = {
   id?: string | number;
   name?: string;
   us?: boolean;
-  addinfo?: string;
+  addinfo?: string | null;
   startyear?: number;
   endyear?: number | null;
 };

@@ -14,6 +14,7 @@ import { useAutocompleteQuery } from "../../generic/useAutocompleteQuery";
 import { FilterValues } from "../types";
 import type { FieldItem } from "../../../util/filterFieldHelpers";
 import { getSeriesLabel } from "../../../lib/routes/issue-presentation";
+import FilterSwitch from "../FilterSwitch";
 
 const MIN_QUERY_LENGTH = 2;
 const REALITY_MIN_QUERY_LENGTH = 0;
@@ -173,7 +174,31 @@ function ContainsSection({
 
   return (
     <Stack spacing={1.5}>
-      <Typography variant="h6">Inhalt</Typography>
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Typography variant="h6">Inhalt</Typography>
+        <ToggleButtonGroup
+          size="small"
+          exclusive
+          value={values.contentFilterMode || "or"}
+          onChange={(_, nextMode: "and" | "or" | null) => {
+            if (nextMode) {
+              setFieldValue("contentFilterMode", nextMode);
+            }
+          }}
+          sx={{
+            "& .MuiToggleButton-root": {
+              px: 1.5,
+              py: 0.3,
+              textTransform: "none",
+              fontSize: "0.78rem",
+              fontWeight: 600,
+            }
+          }}
+        >
+          <ToggleButton value="or">Verknüpfung: ODER</ToggleButton>
+          <ToggleButton value="and">Verknüpfung: UND</ToggleButton>
+        </ToggleButtonGroup>
+      </Stack>
 
       {us === false ? (
         <Box sx={switchGridSx}>
@@ -383,6 +408,11 @@ function ContainsSection({
           }}
         />
       </Box>
+      <FilterSwitch
+        checked={Boolean(values.crossExclusive)}
+        label={us ? "Nur exakt dieses deutsche Material" : "Nur exakt dieses US-Material"}
+        onToggle={() => setFieldValue("crossExclusive", !values.crossExclusive)}
+      />
     </Stack>
   );
 }

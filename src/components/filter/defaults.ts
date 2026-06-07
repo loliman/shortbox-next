@@ -193,6 +193,8 @@ export function createDefaultFilterValues(): FilterValues {
     crossVolume: "",
     crossStartYear: "",
     crossEndYear: "",
+    contentFilterMode: "or",
+    crossExclusive: false,
   };
 }
 
@@ -326,6 +328,8 @@ export function parseFilterValues(queryFilter?: string): FilterValues {
       crossVolume: readTextValue(parsed.crossVolume),
       crossStartYear: readTextValue(parsed.crossStartYear),
       crossEndYear: readTextValue(parsed.crossEndYear),
+      contentFilterMode: parsed.contentFilterMode === "and" ? "and" : "or",
+      crossExclusive: Boolean(parsed.crossExclusive),
       noComicguideId:
         Boolean((parsed as { noComicguideId?: unknown }).noComicguideId) ||
         Boolean((parsed as { noCover?: unknown }).noCover),

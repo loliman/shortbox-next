@@ -248,7 +248,8 @@ export async function runRebuildSearchIndex(
             ${row.issue_title},
             ${row.label},
             ${row.url},
-            ${row.search_text}
+            ${row.search_text},
+            to_tsvector('simple', ${row.search_text})
           )`)
       );
 
@@ -269,7 +270,8 @@ export async function runRebuildSearchIndex(
             issue_title,
             label,
             url,
-            search_text
+            search_text,
+            search_tsv
           )
           VALUES ${values}
         `);

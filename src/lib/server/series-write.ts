@@ -17,8 +17,8 @@ type SeriesInput = {
   startyear?: number;
   endyear?: number | null;
   volume?: number;
-  genre?: string;
-  addinfo?: string;
+  genre?: string | null;
+  addinfo?: string | null;
   publisher?: PublisherRef;
 };
 

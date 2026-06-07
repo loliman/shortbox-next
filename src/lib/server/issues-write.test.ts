@@ -89,6 +89,19 @@ describe("editIssue identity conflicts", () => {
 
   afterEach(async () => {
     // Clean up created records in reverse order
+    await prisma.story.updateMany({
+      where: { fkIssue: { in: [issueId1, issueId2] } },
+      data: { fkParent: null, fkReprint: null },
+    });
+    await prisma.storyAppearance.deleteMany({
+      where: { story: { fkIssue: { in: [issueId1, issueId2] } } },
+    });
+    await prisma.storyIndividual.deleteMany({
+      where: { story: { fkIssue: { in: [issueId1, issueId2] } } },
+    });
+    await prisma.story.deleteMany({
+      where: { fkIssue: { in: [issueId1, issueId2] } },
+    });
     await prisma.variant.deleteMany({
       where: {
         fkIssue: {
@@ -194,6 +207,113 @@ describe("editIssue identity conflicts", () => {
     });
     expect(issue1Exists).not.toBeNull();
   });
+
+  it("should edit an issue and update its stories successfully", async () => {
+    // 1. Create a story on issueId1
+    await prisma.story.create({
+      data: {
+        fkIssue: issueId1,
+        number: 1n,
+        part: "",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+    // 2. Call editIssue to update the issue and its stories
+    const result = await editIssue({
+      id: Number(issueId1),
+      variantId: Number(variantId1),
+      title: "Issue One Updated",
+      number: "1",
+      format: "Heft",
+      variant: "A",
+      series: {
+        title: seriesTitle,
+        volume: 1,
+        publisher: {
+          name: publisherName,
+          us: false,
+        },
+      },
+      stories: [
+        {
+          number: 1,
+          title: "First Story Updated",
+        },
+        {
+          number: 2,
+          title: "Second Story",
+        },
+      ],
+    });
+
+    expect(result.success).toBe(true);
+
+    // Clean up created stories
+    await prisma.story.deleteMany({
+      where: { fkIssue: issueId1 },
+    });
+  });
+
+  it("should fail to edit an issue if its stories are referenced as a reprint (unless handled)", async () => {
+    // 1. Create Story A on issueId1
+    const storyA = await prisma.story.create({
+      data: {
+        fkIssue: issueId1,
+        number: 1n,
+        part: "",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+    // 2. Create Story B on issueId2, which is a reprint of Story A
+    const storyB = await prisma.story.create({
+      data: {
+        fkIssue: issueId2,
+        number: 1n,
+        part: "",
+        fkReprint: storyA.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+    // 3. Edit issueId1 (which will delete and recreate Story A)
+    const result = await editIssue({
+      id: Number(issueId1),
+      variantId: Number(variantId1),
+      title: "Issue One Updated",
+      number: "1",
+      format: "Heft",
+      variant: "A",
+      series: {
+        title: seriesTitle,
+        volume: 1,
+        publisher: {
+          name: publisherName,
+          us: false,
+        },
+      },
+      stories: [
+        {
+          number: 1,
+          title: "First Story Updated",
+        },
+      ],
+    });
+
+    // Clean up
+    await prisma.story.deleteMany({
+      where: { id: { in: [storyA.id, storyB.id] } },
+    });
+
+    // Expect edit to succeed (it should handle clearing the reprint link instead of failing!)
+    expect(result.success).toBe(true);
+  });
+
+
 
   afterAll(async () => {
     await prisma.$disconnect();

@@ -55,6 +55,8 @@ export interface FilterValues {
   crossVolume: string;
   crossStartYear: string;
   crossEndYear: string;
+  contentFilterMode: "and" | "or";
+  crossExclusive: boolean;
 }
 
 export interface FilterSubmitValues {
@@ -100,6 +102,8 @@ export interface FilterSubmitValues {
   crossVolume?: number;
   crossStartYear?: number;
   crossEndYear?: number | null;
+  contentFilterMode?: "and" | "or";
+  crossExclusive?: boolean;
 }
 
 export interface FilterPageProps {

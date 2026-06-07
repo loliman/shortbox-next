@@ -66,7 +66,7 @@ describe("buildDirectIssueFilterWhere – story flag filters", () => {
 
   it("should_combine_multiple_set_switches_in_AND", () => {
     const where = buildDirectIssueFilterWhere(
-      makeFilter({ onlyTb: true, notExclusive: true, otherOnlyTb: true })
+      makeFilter({ onlyTb: true, notExclusive: true, otherOnlyTb: true, contentFilterMode: "and" })
     ) as WhereWithAggregates;
 
     expect(aggregateClauses(where)).toEqual(
@@ -76,6 +76,20 @@ describe("buildDirectIssueFilterWhere – story flag filters", () => {
         { hasOtherOnlyTb: true },
       ])
     );
+  });
+
+  it("should_combine_multiple_set_switches_in_OR_by_default", () => {
+    const where = buildDirectIssueFilterWhere(
+      makeFilter({ onlyTb: true, notExclusive: true, otherOnlyTb: true })
+    ) as WhereWithAggregates;
+
+    const orClause = where.AND?.find((c) => "OR" in c) as { OR: Array<Record<string, unknown>> } | undefined;
+    expect(orClause).toBeDefined();
+    expect(orClause!.OR).toEqual(
+      expect.arrayContaining([{ hasOnlyTb: true }, { hasOtherOnlyTb: true }])
+    );
+
+    expect(where.AND).toContainEqual({ hasExclusiveStory: false });
   });
 
   it("should_map_each_print_flag_switch_to_its_aggregate_column", () => {
