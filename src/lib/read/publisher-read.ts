@@ -2,16 +2,24 @@ import "server-only";
 
 import { cache } from "react";
 import { readPublisherDetailsQuery } from "./publisher-details-read";
+import type { RouteQuery } from "../../types/route-ui";
 
-const readPublisherDetailsCached = cache(async (us: boolean, publisher: string) =>
-  readPublisherDetailsQuery({
-    us,
-    publisher,
-  })
+const readPublisherDetailsCached = cache(
+  async (us: boolean, publisher: string, filterStr: string | null) =>
+    readPublisherDetailsQuery({
+      us,
+      publisher,
+      query: filterStr ? { filter: filterStr } : null,
+    })
 );
 
-export async function readPublisherDetails(options: { us: boolean; publisher: string }) {
-  return readPublisherDetailsCached(options.us, options.publisher);
+export async function readPublisherDetails(options: {
+  us: boolean;
+  publisher: string;
+  query?: RouteQuery | null;
+}) {
+  const filterStr = typeof options.query?.filter === "string" ? options.query.filter : null;
+  return readPublisherDetailsCached(options.us, options.publisher, filterStr);
 }
 
 export async function readPublisherEditData(
@@ -24,3 +32,4 @@ export async function readPublisherEditData(
 
   return (result?.details as Record<string, unknown> | null) ?? null;
 }
+

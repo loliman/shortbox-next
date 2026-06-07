@@ -3,8 +3,14 @@ import "server-only";
 import { prisma } from "../prisma/client";
 import { serializePreviewIssue } from "./issue-read-shared";
 import { matchesPublisherSelectionBySlug } from "./publisher-selection";
+import { readNavigationFilterState } from "./navigation-read";
+import type { RouteQuery } from "../../types/route-ui";
 
-export async function readPublisherDetailsQuery(input: { us: boolean; publisher: string }) {
+export async function readPublisherDetailsQuery(input: {
+  us: boolean;
+  publisher: string;
+  query?: RouteQuery | null;
+}) {
   const publisher = await prisma.publisher.findFirst({
     where: {
       name: {
@@ -43,9 +49,24 @@ export async function readPublisherDetailsQuery(input: { us: boolean; publisher:
 
   if (!resolvedPublisher) return null;
 
+  const filterState = await readNavigationFilterState(
+    typeof input.query?.filter === "string" ? input.query.filter : null,
+    input.us
+  );
+
+  const filteredIssueWhere = filterState.filteredIssueIds
+    ? {
+        id: {
+          in: filterState.filteredIssueIds,
+        },
+      }
+    : undefined;
+
   const [issueCount, recentIssues] = await Promise.all([
     prisma.issue.count({
       where: {
+        ...filterState.directIssueWhere,
+        ...filteredIssueWhere,
         series: {
           publisher: {
             id: resolvedPublisher.id,
@@ -55,6 +76,8 @@ export async function readPublisherDetailsQuery(input: { us: boolean; publisher:
     }),
     prisma.issue.findMany({
       where: {
+        ...filterState.directIssueWhere,
+        ...filteredIssueWhere,
         series: {
           publisher: {
             id: resolvedPublisher.id,

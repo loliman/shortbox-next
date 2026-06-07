@@ -89,7 +89,7 @@ export async function renderPublisherPage(props: AppPageProps, us: boolean) {
   const publisherName = selected.publisher?.name || "";
   const [initialData, navigationData] = await Promise.all([
     publisherName
-      ? readPublisherDetails({ us, publisher: publisherName })
+      ? readPublisherDetails({ us, publisher: publisherName, query })
       : Promise.resolve(null),
     readInitialNavigationData({
       us,
@@ -208,6 +208,7 @@ export async function renderSeriesPage(props: AppPageProps, us: boolean) {
           series: selectedSeries.title,
           volume: Number(selectedSeries.volume || 0),
           startyear: Number(selectedSeries.startyear || 0) || undefined,
+          query,
         })
       : Promise.resolve(null),
     readInitialNavigationData({
