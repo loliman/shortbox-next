@@ -618,7 +618,7 @@ function buildDetailedActionChips({
     }
   }
 
-  if (item.parent?.collectedmultipletimes && hasSession) {
+  if ((item.collectedmultipletimes || item.parent?.collectedmultipletimes) && hasSession) {
     chips.push(<Chip key="collectedmultiple" color="warning" label="Mehrfach gesammelt" />);
   }
 

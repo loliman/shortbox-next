@@ -161,7 +161,7 @@ function readDeCollectionState(stories: StoryLike[], collected: boolean) {
   let sellable = 0;
 
   for (const story of stories) {
-    if (story.parent?.collectedmultipletimes !== true) continue;
+    if (story.collectedmultipletimes !== true && story.parent?.collectedmultipletimes !== true) continue;
     sellable += 1;
     collectedMultipleTimes = true;
   }
