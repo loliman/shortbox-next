@@ -124,6 +124,7 @@ async function main() {
 
     if (!run0405 && !run08 && !run09 && !run10 && !run11) {
       console.log("All migrations seem to have been already executed.");
+      await syncAllSequences();
       await runVerification();
       return;
     }
@@ -154,6 +155,7 @@ async function main() {
       await runSqlFile("migration-11-fix-task-result-seq.sql");
     }
 
+    await syncAllSequences();
     await runVerification();
   } catch (error) {
     console.error("Migration failed:", error);
@@ -161,6 +163,41 @@ async function main() {
   } finally {
     await prisma.$disconnect();
   }
+}
+
+async function syncAllSequences() {
+  console.log("\n=================================");
+  console.log("SYNCHRONIZING DATABASE SEQUENCES");
+  console.log("=================================");
+  await prisma.$executeRawUnsafe(`
+    DO $$
+    DECLARE
+        r RECORD;
+    BEGIN
+        FOR r IN
+            SELECT 
+                tc.table_schema,
+                tc.table_name,
+                tc.column_name,
+                COALESCE(
+                    pg_get_serial_sequence(tc.table_schema || '.' || tc.table_name, tc.column_name),
+                    CASE 
+                        WHEN substring(tc.column_default from 'nextval\\(''([^'']+)''::regclass\\)') LIKE '%.%' 
+                        THEN substring(tc.column_default from 'nextval\\(''([^'']+)''::regclass\\)')
+                        ELSE tc.table_schema || '.' || substring(tc.column_default from 'nextval\\(''([^'']+)''::regclass\\)')
+                    END
+                ) AS seq_name
+            FROM information_schema.columns tc
+            WHERE tc.table_schema = 'shortbox'
+              AND (tc.column_default LIKE 'nextval%' OR tc.is_identity = 'YES')
+        LOOP
+            IF r.seq_name IS NOT NULL THEN
+                EXECUTE 'SELECT setval(''' || r.seq_name || ''', COALESCE((SELECT MAX(' || quote_ident(r.column_name) || ') FROM ' || r.table_schema || '.' || r.table_name || '), 0) + 1, false)';
+            END IF;
+        END LOOP;
+    END $$;
+  `);
+  console.log("All database sequences successfully synchronized.");
 }
 
 main();

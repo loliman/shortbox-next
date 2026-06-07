@@ -47,6 +47,7 @@ export type PreviewIssue = {
   cover?: CoverLike | null;
   originalStoryCover?: CoverLike | null;
   collected?: boolean | null;
+  notOwnedUsMaterial?: boolean | null;
   format?: string | null;
   variant?: string | null;
   series?: {
@@ -61,6 +62,7 @@ export type PreviewIssue = {
 export type IssuePreviewFlags = {
   collected: boolean;
   collectedMultipleTimes: boolean;
+  notOwnedUsMaterial: boolean;
   sellable: number;
   hasOnlyApp: boolean;
   hasFirstApp: boolean;
@@ -185,6 +187,7 @@ export function getIssuePreviewFlags(
   return {
     collected: collectionState.collected,
     collectedMultipleTimes: collectionState.collectedMultipleTimes,
+    notOwnedUsMaterial: !us && hasSession && Boolean(issue.notOwnedUsMaterial),
     sellable: collectionState.sellable,
     ...flags,
   };

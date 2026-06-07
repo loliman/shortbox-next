@@ -329,6 +329,7 @@ export function serializePreviewIssue(issue: {
   preferredCoverUrl?: string | null;
   preferredFormat?: string | null;
   preferredVariantLabel?: string | null;
+  notOwnedUsMaterial?: boolean;
   variants: Array<{
     id: bigint;
     format: string;
@@ -399,6 +400,7 @@ export function serializePreviewIssue(issue: {
     title: issue.title || null,
     verified: preferredVariant?.verified ?? false,
     collected: preferredVariant?.collected ?? null,
+    notOwnedUsMaterial: issue.notOwnedUsMaterial ?? false,
     format,
     variant,
     cover: coverUrl

@@ -19,6 +19,7 @@ type ContainsIssueLike = {
   legacy_number?: string | null;
   format?: string | null;
   variant?: string | null;
+  collected?: boolean | null;
   stories?: Array<unknown> | null;
   series?: {
     title?: string;
@@ -39,8 +40,9 @@ type ContainsParentLike = {
   title?: string | null;
   collectedmultipletimes?: boolean;
   collected?: boolean;
-  children?: Array<{ part?: string | null; issue?: { releasedate?: string | null } | null } | null> | null;
+  children?: Array<{ part?: string | null; issue?: ContainsIssueLike | null } | null> | null;
   reprintOf?: { issue?: ContainsIssueLike; number?: string | number } | null;
+  reprints?: Array<{ issue?: ContainsIssueLike | null } | null> | null;
   issue?: ContainsIssueLike;
   number?: string | number;
 };
@@ -376,6 +378,7 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
     isCover: props.isCover,
     exclusive,
     hasSession: Boolean(props.session),
+    us: props.us,
   });
   const detailButton = buildDetailButton({
     allowInteractiveActions,
@@ -564,11 +567,13 @@ function buildDetailedActionChips({
   isCover,
   exclusive,
   hasSession,
+  us,
 }: {
   item: ContainsItemLike;
   isCover?: boolean;
   exclusive: boolean;
   hasSession: boolean;
+  us?: boolean;
 }): React.ReactElement[] {
   const chips: React.ReactElement[] = [];
 
@@ -598,6 +603,19 @@ function buildDetailedActionChips({
 
   if (exclusive) {
     chips.push(<Chip key="exclusive" label="Exklusiv" color="secondary" />);
+  }
+
+  if (!isCover && !exclusive && !us && hasSession && item.parent) {
+    const parentIssueCollected = Boolean(item.parent.issue?.collected);
+    const parentReprintsCollected = Boolean(
+      item.parent.reprints?.some((reprint) => reprint?.issue?.collected)
+    );
+    const parentChildrenCollected = Boolean(
+      item.parent.children?.some((child) => child?.issue?.collected)
+    );
+    if (!parentIssueCollected && !parentReprintsCollected && !parentChildrenCollected) {
+      chips.push(<Chip key="notownedus" color="warning" label="Ungesammeltes US-Material" />);
+    }
   }
 
   if (item.parent?.collectedmultipletimes && hasSession) {

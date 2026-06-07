@@ -122,6 +122,7 @@ export interface Issue {
   updatedat?: string | null;
   series: Series;
   __typename?: "Issue";
+  notOwnedUsMaterial?: boolean | null;
 
   // ---------------------------------------------------------------------------
   // Abwärtskompatibilitäts-Felder: werden aus dem bevorzugten Variant abgeleitet

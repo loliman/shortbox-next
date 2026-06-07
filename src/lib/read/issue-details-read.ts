@@ -802,6 +802,7 @@ function toIssueParentStoryShape(story: any) {
     addinfo: story.addInfo || null,
     part: story.part || null,
     collectedmultipletimes: story.collectedMultipleTimes,
+    collected: story.collected,
     issue: toIssueReferenceShape(story.issue),
     reprintOf: story.reprint ? toIssueStoryReferenceShape(story.reprint) : null,
     reprints: sortStoryIssueReferencesByReleaseDate(story.reprintedBy).map(toIssueStoryReferenceShape),

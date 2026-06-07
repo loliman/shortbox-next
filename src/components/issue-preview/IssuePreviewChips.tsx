@@ -32,6 +32,18 @@ export function IssuePreviewChips(props: Readonly<IssuePreviewChipsProps>) {
     );
   }
 
+  if (!us && flags.notOwnedUsMaterial) {
+    chips.push(
+      <Chip
+        key="not-owned-us-material"
+        size="small"
+        label="Ungesammeltes US-Material"
+        color="warning"
+        sx={chipSx}
+      />
+    );
+  }
+
   if (!us && flags.hasOnlyApp) {
     chips.push(
       <Chip
