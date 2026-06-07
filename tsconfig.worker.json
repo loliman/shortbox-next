@@ -24,7 +24,6 @@
   "files": ["src/worker/index.ts"],
   "exclude": [
     "node_modules",
-    ".next",
-    "src/services/MarvelCrawlerService.ts"
+    ".next"
   ]
 }

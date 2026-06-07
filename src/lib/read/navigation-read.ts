@@ -533,7 +533,7 @@ async function preloadIssueNodesBySeriesKey(input: {
   return initialIssueNodesBySeriesKey;
 }
 
-export async function readNavigationFilterState(rawFilter: string | null | undefined) {
+export async function readNavigationFilterState(rawFilter: string | null | undefined, us: boolean) {
   const normalizedFilter = typeof rawFilter === "string" ? rawFilter.trim() : "";
   if (!normalizedFilter) {
     return {
@@ -545,6 +545,7 @@ export async function readNavigationFilterState(rawFilter: string | null | undef
 
   try {
     const parsedFilter = JSON.parse(normalizedFilter) as Filter;
+    parsedFilter.us = us;
     const resolved = await resolveFilterState(parsedFilter);
 
     return {
@@ -571,7 +572,8 @@ export async function readInitialNavigationData(
   const preloadSeriesNodes = preloadOptions.seriesNodes;
   const preloadIssueNodes = preloadOptions.issueNodes;
   const navigationFilterState = await readNavigationFilterState(
-    typeof input.query?.filter === "string" ? input.query.filter : null
+    typeof input.query?.filter === "string" ? input.query.filter : null,
+    input.us
   );
   const selectedPublisherName =
     input.selected.publisher?.name ||

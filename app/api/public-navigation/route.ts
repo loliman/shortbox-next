@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       routeFilterKind: searchParams.get("routeFilterKind"),
       routeFilterSlug: searchParams.get("routeFilterSlug"),
     });
-    const filterState = await readNavigationFilterState(filter);
+    const filterState = await readNavigationFilterState(filter, us);
 
     if (scope === "series") {
       const publisher = (searchParams.get("publisher") || "").trim();

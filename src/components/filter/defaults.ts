@@ -1,6 +1,7 @@
 import type { FieldItem } from "../../util/filterFieldHelpers";
 import { FILTER_MULTI_VALUE_SEPARATOR } from "./constants";
 import { FilterDateOption, FilterFormatOption, FilterNumberOption, FilterValues } from "./types";
+import { resolveFilterConflicts } from "../../services/filter/filter-conflicts";
 
 function isFormatNameObject(value: unknown): value is FilterFormatOption {
   return Boolean(value && typeof value === "object" && "name" in value);
@@ -299,38 +300,7 @@ export function parseFilterValues(queryFilter?: string): FilterValues {
     const normalizedReleasedateInputs = normalizeReleaseDateInputs(parsed.releasedates);
     const normalizedNumberInputs = normalizeNumberInputs(parsed.numbers);
 
-    const onlyCollected = Boolean(parsed.onlyCollected);
-    const onlyNotCollectedNoOwnedVariants =
-      !onlyCollected &&
-      Boolean(
-        (parsed as { onlyNotCollectedNoOwnedVariants?: unknown }).onlyNotCollectedNoOwnedVariants
-      );
-    const onlyNotCollected =
-      !onlyCollected && !onlyNotCollectedNoOwnedVariants && Boolean(parsed.onlyNotCollected);
-
-    const parseNegatablePair = (
-      positiveValue: unknown,
-      negativeValue: unknown
-    ): [boolean, boolean] => {
-      const positive = Boolean(positiveValue);
-      const negative = !positive && Boolean(negativeValue);
-      return [positive, negative];
-    };
-
-    const [firstPrint, notFirstPrint] = parseNegatablePair(parsed.firstPrint, parsed.notFirstPrint);
-    const [onlyPrint, notOnlyPrint] = parseNegatablePair(parsed.onlyPrint, parsed.notOnlyPrint);
-    const [onlyTb, notOnlyTb] = parseNegatablePair(parsed.onlyTb, parsed.notOnlyTb);
-    const [exclusive, notExclusive] = parseNegatablePair(parsed.exclusive, parsed.notExclusive);
-    const [reprint, notReprint] = parseNegatablePair(parsed.reprint, parsed.notReprint);
-    const [otherOnlyTb, notOtherOnlyTb] = parseNegatablePair(
-      parsed.otherOnlyTb,
-      parsed.notOtherOnlyTb
-    );
-    const [onlyOnePrint, notOnlyOnePrint] = parseNegatablePair(
-      parsed.onlyOnePrint,
-      parsed.notOnlyOnePrint
-    );
-    const [noPrint, notNoPrint] = parseNegatablePair(parsed.noPrint, parsed.notNoPrint);
+    const resolvedConflicts = resolveFilterConflicts(parsed);
 
     return {
       ...defaults,
@@ -346,25 +316,7 @@ export function parseFilterValues(queryFilter?: string): FilterValues {
       appearances: normalizeAppearanceFilters(parsed.appearances),
       realities: normalizeRealityFilters(parsed.realities),
       withVariants: Boolean(parsed.withVariants),
-      firstPrint,
-      notFirstPrint,
-      onlyPrint,
-      notOnlyPrint,
-      onlyTb,
-      notOnlyTb,
-      exclusive,
-      notExclusive,
-      reprint,
-      notReprint,
-      otherOnlyTb,
-      notOtherOnlyTb,
-      onlyOnePrint,
-      notOnlyOnePrint,
-      noPrint,
-      notNoPrint,
-      onlyCollected,
-      onlyNotCollected,
-      onlyNotCollectedNoOwnedVariants,
+      ...resolvedConflicts,
       onlyDoubleTrippleCollected: Boolean(parsed.onlyDoubleTrippleCollected),
       onlyDoubleTripplePublisherCollected: Boolean(parsed.onlyDoubleTripplePublisherCollected),
       onlyNotOwnedUsMaterial: Boolean(parsed.onlyNotOwnedUsMaterial),

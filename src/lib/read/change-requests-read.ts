@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "../prisma/client";
+import { Prisma } from "@prisma/client";
 import { normalizeIssueReleaseDate, normalizeRecordString } from "./issue-read-shared";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -103,7 +104,41 @@ function normalizeChangeRequestPayload(
   return nextPayload;
 }
 
-function formatIssueRowForChangeRequest(row: any): Record<string, unknown> {
+type ChangeRequestIssueRow = Prisma.IssueGetPayload<{
+  include: {
+    series: {
+      include: {
+        publisher: true;
+      };
+    };
+    variants: true;
+    stories: {
+      include: {
+        individuals: {
+          include: {
+            individual: true;
+          };
+        };
+        appearances: {
+          include: {
+            appearance: true;
+          };
+        };
+        parent: {
+          include: {
+            issue: {
+              include: {
+                series: true;
+              };
+            };
+          };
+        };
+      };
+    };
+  };
+}>;
+
+function formatIssueRowForChangeRequest(row: ChangeRequestIssueRow): Record<string, unknown> {
   const preferredVariant = row.variants[0] ?? null;
 
   return {
@@ -129,7 +164,7 @@ function formatIssueRowForChangeRequest(row: any): Record<string, unknown> {
         us: Boolean(row.series?.publisher?.original),
       },
     },
-    stories: row.stories.map((story: any) => {
+    stories: row.stories.map((story) => {
       const parent = story.parent;
       const parentIssue = parent?.issue;
       const parentSeries = parentIssue?.series;
@@ -139,11 +174,11 @@ function formatIssueRowForChangeRequest(row: any): Record<string, unknown> {
         part: normalizeRecordString(story.part),
         number: Number(story.number || 0),
         exclusive: !parent,
-        individuals: story.individuals.map((entry: any) => ({
+        individuals: story.individuals.map((entry) => ({
           name: normalizeRecordString(entry.individual?.name),
           type: normalizeRecordString(entry.type) ? [normalizeRecordString(entry.type)] : [],
         })),
-        appearances: story.appearances.map((entry: any) => ({
+        appearances: story.appearances.map((entry) => ({
           name: normalizeRecordString(entry.appearance?.name),
           type: normalizeRecordString(entry.appearance?.type),
           role: normalizeRecordString(entry.role),
@@ -173,52 +208,6 @@ function formatIssueRowForChangeRequest(row: any): Record<string, unknown> {
       return mapped;
     }),
   };
-}
-
-async function loadIssueForChangeRequest(issueId: bigint | number): Promise<Record<string, unknown> | null> {
-  const row = await prisma.issue.findFirst({
-    where: {
-      id: BigInt(issueId),
-    },
-    include: {
-      series: {
-        include: {
-          publisher: true,
-        },
-      },
-      variants: {
-        orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
-        take: 1,
-      },
-      stories: {
-        orderBy: [{ number: "asc" }, { id: "asc" }],
-        include: {
-          individuals: {
-            include: {
-              individual: true,
-            },
-          },
-          appearances: {
-            include: {
-              appearance: true,
-            },
-          },
-          parent: {
-            include: {
-              issue: {
-                include: {
-                  series: true,
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
-
-  if (!row) return null;
-  return formatIssueRowForChangeRequest(row);
 }
 
 export async function readChangeRequests(options?: { order?: string | null; direction?: string | null }) {

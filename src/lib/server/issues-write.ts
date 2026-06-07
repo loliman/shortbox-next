@@ -394,6 +394,7 @@ export async function editIssue(item: IssueInput): Promise<Result<IssueWriteItem
           data: {
             title: normalizeText(item.title),
             legacyNumber: normalizeText(item.legacy_number),
+            fkPublisher: newPublisher.id,
             updatedAt: new Date(),
           },
           include: {
@@ -577,6 +578,7 @@ export async function editIssue(item: IssueInput): Promise<Result<IssueWriteItem
             number: normalizeText(item.number),
             legacyNumber: normalizeText(item.legacy_number),
             fkSeries: newSeries.id,
+            fkPublisher: newPublisher.id,
             updatedAt: new Date(),
           },
           include: {
@@ -953,6 +955,7 @@ async function createIssueRecord(
         number: normalizeText(item.number),
         legacyNumber: normalizeText(item.legacy_number),
         fkSeries: series.id,
+        fkPublisher: publisher.id,
         createdAt: now,
         updatedAt: now,
       },
@@ -1770,7 +1773,7 @@ function toIssuePayload(
     variantLabel: string | null;
     releaseDate: Date | null;
     pages: bigint | null;
-    price: number | null;
+    price: Prisma.Decimal | number | null;
     currency: string | null;
     comicGuideId: bigint | null;
     isbn: string | null;

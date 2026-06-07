@@ -16,7 +16,6 @@
     "start": "next start",
     "start:container": "node scripts/container-runner.mjs",
     "worker": "node --env-file=.env --import tsx src/worker/index.ts",
-    "mcp": "node --env-file=.env --import tsx packages/shortbox-mcp/src/index.ts",
     "test": "jest",
     "test:unit": "jest --runInBand",
     "test:unit:coverage": "jest --runInBand --coverage",

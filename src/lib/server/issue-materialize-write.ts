@@ -128,7 +128,11 @@ export async function recalculateCollectionFlagsForIssues(
           fkIssue: true,
           issue: {
             select: {
-              publisher: { select: { name: true } },
+              series: {
+                select: {
+                  publisher: { select: { name: true } },
+                },
+              },
             },
           },
         },
@@ -153,7 +157,7 @@ export async function recalculateCollectionFlagsForIssues(
         const isOwnedInSamePublisherDe = collectedDeStories.some(de =>
           de.fkParent === parentId &&
           de.fkIssue !== issue.id &&
-          getNormalizedPublisherGroup(de.issue?.publisher?.name) === publisherGroup
+          getNormalizedPublisherGroup(de.issue?.series?.publisher?.name) === publisherGroup
         );
 
         if (!isOwnedInSamePublisherDe) {

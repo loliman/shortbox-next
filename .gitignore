@@ -11,3 +11,6 @@ test-results
 .DS_Store
 .idea
 /.swc/
+.env
+.env.local
+.env.*.local

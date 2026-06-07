@@ -68,9 +68,10 @@ export type McpIssueDetails = McpIssueRow & {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatPrice(price: number | null, currency: string | null | undefined): string | null {
+function formatPrice(price: number | Prisma.Decimal | null, currency: string | null | undefined): string | null {
   if (price == null) return null;
-  return `${price.toFixed(2)} ${currency ?? "EUR"}`;
+  const num = typeof price === "number" ? price : Number(price);
+  return `${num.toFixed(2)} ${currency ?? "EUR"}`;
 }
 
 function formatDate(date: Date | null | undefined): string | null {
@@ -707,7 +708,7 @@ export async function mcpFindDuplicateVariants(params: FindDuplicateVariantsPara
         variant: v.variantLabel || null,
         title: issue.title || null,
         releaseDate: v.releaseDate?.toISOString().slice(0, 10) ?? null,
-        price: v.price != null ? `${v.price.toFixed(2)} ${v.currency ?? "EUR"}` : null,
+        price: formatPrice(v.price, v.currency),
       })),
     }));
 
@@ -856,7 +857,7 @@ export async function mcpFindSellableReprints(params: FindSellableReprintsParams
         format: v.format,
         variant: v.variantLabel || null,
         releaseDate: v.releaseDate?.toISOString().slice(0, 10) ?? null,
-        price: v.price != null ? `${v.price.toFixed(2)} ${v.currency ?? "EUR"}` : null,
+        price: formatPrice(v.price, v.currency),
       });
     }
   }

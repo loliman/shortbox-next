@@ -3,8 +3,8 @@ import { prisma } from "../lib/prisma/client";
 import {
   createNodeIssueLabel,
   createNodeSeriesLabel,
-  createNodeUrl,
 } from "../util/dbFunctions";
+import { generateSeoUrl } from "../lib/routes/hierarchy";
 
 type SearchIndexInsertRow = {
   node_type: "publisher" | "series" | "issue";
@@ -92,16 +92,7 @@ export async function runRebuildSearchIndex(
       issue_variant: null,
       issue_title: null,
       label: publisher.name,
-      url: createNodeUrl({
-        type: "publisher",
-        original: us,
-        publisherName: publisher.name,
-        seriesTitle: "",
-        seriesVolume: 0,
-        number: "",
-        format: "",
-        variant: "",
-      }),
+      url: generateSeoUrl({ publisher: { name: publisher.name }, us }, us),
       search_text: normalizeSearchText(publisher.name),
     });
     publisherRows += 1;
@@ -143,16 +134,18 @@ export async function runRebuildSearchIndex(
       issue_variant: null,
       issue_title: null,
       label,
-      url: createNodeUrl({
-        type: "series",
-        original: us,
-        publisherName,
-        seriesTitle,
-        seriesVolume,
-        number: "",
-        format: "",
-        variant: "",
-      }),
+      url: generateSeoUrl(
+        {
+          series: {
+            title: seriesTitle,
+            volume: seriesVolume,
+            startyear: seriesStartyear || undefined,
+            publisher: { name: publisherName },
+          },
+          us,
+        },
+        us
+      ),
       search_text: normalizeSearchText(
         `${publisherName} ${seriesTitle} vol ${seriesVolume} ${seriesStartyear} ${seriesEndyear || ""}`
       ),
@@ -178,50 +171,59 @@ export async function runRebuildSearchIndex(
       seriesStartyear,
       seriesEndyear
     );
+    const issueFormat = (issueItem.preferredFormat || "").trim();
+    const issueVariant = (issueItem.preferredVariantLabel || "").trim();
+    const label = createNodeIssueLabel(
+      seriesLabel,
+      issueNumber,
+      issueLegacyNumber,
+      issueFormat,
+      issueVariant,
+      issueTitle
+    );
 
-    for (const variantItem of issueItem.variants) {
-      const issueFormat = (variantItem.format || "").trim();
-      const issueVariant = (variantItem.variantLabel || "").trim();
-      const label = createNodeIssueLabel(
-        seriesLabel,
-        issueNumber,
-        issueLegacyNumber,
-        issueFormat,
-        issueVariant,
-        issueTitle
-      );
+    const variantTerms = issueItem.variants
+      .map((v) => `${(v.format || "").trim()} ${(v.variantLabel || "").trim()}`.trim())
+      .filter(Boolean);
+    const uniqueVariantTerms = Array.from(new Set(variantTerms)).join(" ");
 
-      rows.push({
-        node_type: "issue",
-        source_id: Number(issueItem.id),
-        us,
-        publisher_name: publisherName,
-        series_title: seriesTitle,
-        series_volume: seriesVolume,
-        series_startyear: seriesStartyear,
-        series_endyear: seriesEndyear,
-        series_key: buildSeriesKey(publisherName, seriesTitle, seriesVolume, seriesStartyear),
-        issue_number: issueNumber,
-        issue_format: issueFormat,
-        issue_variant: issueVariant,
-        issue_title: issueTitle,
-        label,
-        url: createNodeUrl({
-          type: "issue",
-          original: us,
-          publisherName,
-          seriesTitle,
-          seriesVolume,
-          number: issueNumber,
-          format: issueFormat,
-          variant: issueVariant,
-        }),
-        search_text: normalizeSearchText(
-          `${publisherName} ${seriesTitle} vol ${seriesVolume} ${seriesStartyear} ${seriesEndyear} ${issueNumber} ${issueLegacyNumber} ${issueFormat} ${issueVariant} ${issueTitle}`
-        ),
-      });
-      issueRows += 1;
-    }
+    rows.push({
+      node_type: "issue",
+      source_id: Number(issueItem.id),
+      us,
+      publisher_name: publisherName,
+      series_title: seriesTitle,
+      series_volume: seriesVolume,
+      series_startyear: seriesStartyear,
+      series_endyear: seriesEndyear,
+      series_key: buildSeriesKey(publisherName, seriesTitle, seriesVolume, seriesStartyear),
+      issue_number: issueNumber,
+      issue_format: issueFormat,
+      issue_variant: issueVariant,
+      issue_title: issueTitle,
+      label,
+      url: generateSeoUrl(
+        {
+          issue: {
+            number: issueNumber,
+            format: issueFormat || undefined,
+            variant: issueVariant || undefined,
+            series: {
+              title: seriesTitle,
+              volume: seriesVolume,
+              startyear: seriesStartyear || undefined,
+              publisher: { name: publisherName },
+            },
+          },
+          us,
+        },
+        us
+      ),
+      search_text: normalizeSearchText(
+        `${publisherName} ${seriesTitle} vol ${seriesVolume} ${seriesStartyear} ${seriesEndyear} ${issueNumber} ${issueLegacyNumber} ${issueTitle} ${uniqueVariantTerms}`
+      ),
+    });
+    issueRows += 1;
   }
 
   if (!dryRun) {

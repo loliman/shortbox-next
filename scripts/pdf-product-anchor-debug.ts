@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 
