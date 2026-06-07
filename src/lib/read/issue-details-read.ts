@@ -237,6 +237,50 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
           },
         },
       },
+      children: {
+        include: {
+          issue: {
+            include: {
+              series: {
+                include: {
+                  publisher: true,
+                },
+              },
+              variants: {
+                orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
+                include: {
+                  covers: {
+                    orderBy: [{ number: "asc" }, { id: "asc" }],
+                    take: 1,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      reprintedBy: {
+        include: {
+          issue: {
+            include: {
+              series: {
+                include: {
+                  publisher: true,
+                },
+              },
+              variants: {
+                orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
+                include: {
+                  covers: {
+                    orderBy: [{ number: "asc" }, { id: "asc" }],
+                    take: 1,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       individuals: {
         include: {
           individual: true,

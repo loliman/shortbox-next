@@ -38,7 +38,7 @@ export function IssuePreviewChips(props: Readonly<IssuePreviewChipsProps>) {
         key="not-owned-us-material"
         size="small"
         label="Ungesammeltes US-Material"
-        color="warning"
+        color="error"
         sx={chipSx}
       />
     );

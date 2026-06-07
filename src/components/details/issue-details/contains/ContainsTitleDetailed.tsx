@@ -614,7 +614,7 @@ function buildDetailedActionChips({
       item.parent.children?.some((child) => child?.issue?.collected)
     );
     if (!parentIssueCollected && !parentReprintsCollected && !parentChildrenCollected) {
-      chips.push(<Chip key="notownedus" color="warning" label="Ungesammeltes US-Material" />);
+      chips.push(<Chip key="notownedus" color="error" label="Ungesammeltes US-Material" />);
     }
   }
 
