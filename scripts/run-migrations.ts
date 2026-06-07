@@ -137,10 +137,28 @@ async function main() {
     // 7. Check for story collection flags backfill migration (13)
     const hasDiscrepancy = await prisma.$queryRaw<{ exists: boolean }[]>`
       SELECT EXISTS (
-        SELECT 1 
-        FROM shortbox.story s
-        JOIN shortbox.variant v ON v.fk_issue = s.fk_issue
-        WHERE v.collected = true AND s.collected = false
+        SELECT 1
+        FROM (
+          SELECT 
+            s.id,
+            s.collected AS current_collected,
+            s.collectedmultipletimes AS current_multiple,
+            COALESCE(scc.collected_count, 0) AS actual_count
+          FROM shortbox.story s
+          LEFT JOIN (
+            SELECT 
+              COALESCE(s_inner.fk_parent, s_inner.id) AS parent_id,
+              COUNT(v.id) AS collected_count
+            FROM shortbox.story s_inner
+            JOIN shortbox.variant v ON v.fk_issue = s_inner.fk_issue
+            WHERE v.collected = true
+            GROUP BY COALESCE(s_inner.fk_parent, s_inner.id)
+          ) scc ON scc.parent_id = COALESCE(s.fk_parent, s.id)
+        ) checked
+        WHERE (checked.current_collected = true AND checked.actual_count = 0)
+           OR (checked.current_collected = false AND checked.actual_count > 0)
+           OR (checked.current_multiple = true AND checked.actual_count < 2)
+           OR (checked.current_multiple = false AND checked.actual_count >= 2)
       ) AS exists;
     `;
     const run13 = hasDiscrepancy[0]?.exists ?? false;

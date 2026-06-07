@@ -210,12 +210,8 @@ function buildSimpleActionChips({
 
   if (item.collectedmultipletimes && hasSession) {
     chips.push(
-      <Chip key="collectedmultiple" color="success" label="Mehrfach auf deutsch gesammelt" />
+      <Chip key="collectedmultiple" color="warning" label="Mehrfach gesammelt" />
     );
-  }
-
-  if (!item.collectedmultipletimes && item.collected && hasSession) {
-    chips.push(<Chip key="collected" color="success" label="Auf deutsch gesammelt" />);
   }
 
   return chips;
