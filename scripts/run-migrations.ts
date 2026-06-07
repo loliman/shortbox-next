@@ -122,7 +122,30 @@ async function main() {
                   taskResultIdentityAndDefault[0].is_identity === "NO" && 
                   !taskResultIdentityAndDefault[0].column_default;
 
-    if (!run0405 && !run08 && !run09 && !run10 && !run11) {
+    // 6. Check for variant id sequence migration (12)
+    const variantIdentityAndDefault = await prisma.$queryRaw<{ is_identity: string; column_default: string | null }[]>`
+      SELECT is_identity, column_default 
+      FROM information_schema.columns 
+      WHERE table_schema = 'shortbox' 
+        AND table_name = 'variant' 
+        AND column_name = 'id';
+    `;
+    const run12 = variantIdentityAndDefault.length > 0 && 
+                  variantIdentityAndDefault[0].is_identity === "NO" && 
+                  !variantIdentityAndDefault[0].column_default;
+
+    // 7. Check for story collection flags backfill migration (13)
+    const hasDiscrepancy = await prisma.$queryRaw<{ exists: boolean }[]>`
+      SELECT EXISTS (
+        SELECT 1 
+        FROM shortbox.story s
+        JOIN shortbox.variant v ON v.fk_issue = s.fk_issue
+        WHERE v.collected = true AND s.collected = false
+      ) AS exists;
+    `;
+    const run13 = hasDiscrepancy[0]?.exists ?? false;
+
+    if (!run0405 && !run08 && !run09 && !run10 && !run11 && !run12 && !run13) {
       console.log("All migrations seem to have been already executed.");
       await syncAllSequences();
       await runVerification();
@@ -153,6 +176,16 @@ async function main() {
     if (run11) {
       console.log("Running migration-11-fix-task-result-seq.sql...");
       await runSqlFile("migration-11-fix-task-result-seq.sql");
+    }
+
+    if (run12) {
+      console.log("Running migration-12-fix-variant-id-seq.sql...");
+      await runSqlFile("migration-12-fix-variant-id-seq.sql");
+    }
+
+    if (run13) {
+      console.log("Running migration-13-backfill-story-collection-flags.sql...");
+      await runSqlFile("migration-13-backfill-story-collection-flags.sql");
     }
 
     await syncAllSequences();

@@ -216,6 +216,39 @@ export async function recalculateCollectionFlagsForIssues(
   }
 }
 
+export async function recalculateStoryCollectionFlagsForFamilies(
+  familyIds: bigint[],
+  tx: PrismaExecutor
+): Promise<void> {
+  if (familyIds.length === 0) return;
+
+  await tx.$executeRaw(Prisma.sql`
+    WITH story_collected_counts AS (
+      SELECT 
+        COALESCE(s.fk_parent, s.id) AS parent_id,
+        COUNT(v.id) AS collected_count
+      FROM shortbox.story s
+      JOIN shortbox.variant v ON v.fk_issue = s.fk_issue
+      WHERE v.collected = true
+        AND COALESCE(s.fk_parent, s.id) IN (${Prisma.join(familyIds)})
+      GROUP BY COALESCE(s.fk_parent, s.id)
+    )
+    UPDATE shortbox.story s
+    SET 
+      collected = COALESCE(s_data.collected_count, 0) > 0,
+      collectedmultipletimes = COALESCE(s_data.collected_count, 0) >= 2
+    FROM (
+      SELECT 
+        s_inner.id,
+        scc_inner.collected_count
+      FROM shortbox.story s_inner
+      LEFT JOIN story_collected_counts scc_inner ON scc_inner.parent_id = COALESCE(s_inner.fk_parent, s_inner.id)
+      WHERE COALESCE(s_inner.fk_parent, s_inner.id) IN (${Prisma.join(familyIds)})
+    ) s_data
+    WHERE s.id = s_data.id;
+  `);
+}
+
 export async function handleIssueWriteEffects(
   issueId: bigint,
   tx: PrismaExecutor
@@ -226,6 +259,9 @@ export async function handleIssueWriteEffects(
     where: { fkIssue: issueId },
     select: { id: true, fkParent: true },
   });
+
+  const familyIds = Array.from(new Set(stories.map(s => s.fkParent ?? s.id)));
+  await recalculateStoryCollectionFlagsForFamilies(familyIds, tx);
 
   const parentIds = stories
     .map(s => s.fkParent)

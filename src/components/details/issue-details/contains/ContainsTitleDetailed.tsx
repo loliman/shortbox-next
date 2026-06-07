@@ -619,14 +619,8 @@ function buildDetailedActionChips({
   }
 
   if (item.parent?.collectedmultipletimes && hasSession) {
-    chips.push(<Chip key="collectedmultiple" color="success" label="Mehrfach gesammelt" />);
+    chips.push(<Chip key="collectedmultiple" color="warning" label="Mehrfach gesammelt" />);
   }
-
-  if (item.parent?.collected !== true || item.parent?.collectedmultipletimes || !hasSession) {
-    return chips;
-  }
-
-  chips.push(<Chip key="collected" color="success" label="Gesammelt" />);
 
   return chips;
 }
