@@ -14,3 +14,8 @@ test-results
 .env
 .env.local
 .env.*.local
+
+# eBay Tool Config
+/scripts/ebay-tool/.ebay-tokens.json
+/scripts/ebay-tool/.ebay-listings.json
+/scripts/ebay-tool/.env

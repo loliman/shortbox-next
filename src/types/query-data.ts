@@ -26,6 +26,7 @@ export interface Filter {
   onlyDoubleTrippleCollected?: boolean;
   onlyDoubleTripplePublisherCollected?: boolean;
   onlyNotOwnedUsMaterial?: boolean;
+  onlyUnownedFirstPrints?: boolean;
   crossPublishers?: Array<{ name?: string | null } | null>;
   crossSeries?: Array<{ title?: string | null; volume?: number | null; startyear?: number | null; endyear?: number | null } | null>;
   crossNumber?: string;

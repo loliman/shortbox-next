@@ -345,7 +345,16 @@ function renderAddInfo(issue: Issue): React.ReactNode {
   if (!issue.addinfo) return null;
 
   return (
-    <Paper variant="outlined" sx={{ p: 2 }}>
+    <Paper
+      variant="outlined"
+      sx={{
+        p: 2,
+        backgroundColor: "rgba(255, 255, 255, 0.45)",
+        '[data-theme="dark"] &': {
+          backgroundColor: "rgba(30, 30, 30, 0.45)",
+        },
+      }}
+    >
       <Typography dangerouslySetInnerHTML={{ __html: sanitizeHtml(issue.addinfo) }} />
     </Paper>
   );
@@ -469,6 +478,10 @@ function renderIssueSummaryCard(
         overflow: "hidden",
         borderRadius: 2,
         boxShadow: 1,
+        backgroundColor: "rgba(255, 255, 255, 0.45)",
+        '[data-theme="dark"] &': {
+          backgroundColor: "rgba(30, 30, 30, 0.45)",
+        },
       }}
     >
       {renderCoverGallery(coverGalleryIssues, query, selected, us, true)}
@@ -561,15 +574,17 @@ function resolveActiveIssueForActions(issue: Issue, selected: SelectedRoot): Iss
 
   const matchingVariant = (issue.variants || []).find((candidate) =>
     Boolean(candidate) && buildIssueVariantKey(candidate as { format?: string | null; variant?: string | null }) === selectedKey
-  ) as Issue | undefined;
+  );
 
   if (!matchingVariant) return issue;
 
   return {
     ...issue,
     ...matchingVariant,
+    id: issue.id,
+    variantId: matchingVariant.id,
     series: matchingVariant.series ?? issue.series,
-  };
+  } as unknown as Issue;
 }
 
 function toIssueWithMockVariants(issue: Issue): Issue {

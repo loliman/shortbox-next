@@ -10,6 +10,7 @@ import { serializeFilterValues } from "./serialize";
 import ContainsSection from "./sections/ContainsSection";
 import ContributorsSection from "./sections/ContributorsSection";
 import DetailsSection from "./sections/DetailsSection";
+import CollectionSection from "./sections/CollectionSection";
 import type { FilterPageProps, FilterValues } from "./types";
 import { buildRouteHref } from "../generic/routeHref";
 import FormSection from "../form-shell/FormSection";
@@ -57,7 +58,6 @@ export default function FilterFormClient(props: Readonly<FilterFormClientProps>)
                     values={values}
                     us={us}
                     setFieldValue={setFieldValue}
-                    hasSession={Boolean(props.hasSession)}
                   />
                 ) : null}
 
@@ -67,6 +67,10 @@ export default function FilterFormClient(props: Readonly<FilterFormClientProps>)
 
                 {props.activeTab === 2 ? (
                   <ContributorsSection values={values} us={us} setFieldValue={setFieldValue} />
+                ) : null}
+
+                {props.activeTab === 3 ? (
+                  <CollectionSection values={values} us={us} setFieldValue={setFieldValue} />
                 ) : null}
               </Stack>
             </FormSection>

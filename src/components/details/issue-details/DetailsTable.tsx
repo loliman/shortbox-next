@@ -36,7 +36,17 @@ export function DetailsTable(props: Readonly<DetailsTableProps>) {
   if (!framed) return table;
 
   return (
-    <Paper variant="outlined" sx={{ width: "100%", boxShadow: 1 }}>
+    <Paper
+      variant="outlined"
+      sx={{
+        width: "100%",
+        boxShadow: 1,
+        backgroundColor: "rgba(255, 255, 255, 0.45)",
+        '[data-theme="dark"] &': {
+          backgroundColor: "rgba(30, 30, 30, 0.45)",
+        },
+      }}
+    >
       {table}
     </Paper>
   );

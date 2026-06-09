@@ -14,11 +14,13 @@ const FILTER_TABS = [
   { label: "Erscheinung", value: 0 },
   { label: "Inhalt", value: 1 },
   { label: "Mitwirkende", value: 2 },
+  { label: "Sammlung", value: 3, requireSession: true },
 ] as const;
 
-function normalizeFilterTab(rawTab: string | undefined): number {
+function normalizeFilterTab(rawTab: string | undefined, hasSession: boolean): number {
   const numericTab = Number(rawTab ?? "0");
-  return Number.isInteger(numericTab) && numericTab >= 0 && numericTab <= 2 ? numericTab : 0;
+  const maxTab = hasSession ? 3 : 2;
+  return Number.isInteger(numericTab) && numericTab >= 0 && numericTab <= maxTab ? numericTab : 0;
 }
 
 export default function FilterPage(props: Readonly<FilterPageProps>) {
@@ -26,14 +28,16 @@ export default function FilterPage(props: Readonly<FilterPageProps>) {
   const initialValues = parseFilterValues(query?.filter);
   const from = typeof query?.from === "string" ? query.from.trim() : "";
   const targetPath = from || generateSeoUrl(props.selected, props.us);
-  const activeTab = normalizeFilterTab(typeof query?.tab === "string" ? query.tab : undefined);
+  const hasSession = Boolean(props.hasSession);
+  const activeTab = normalizeFilterTab(typeof query?.tab === "string" ? query.tab : undefined, hasSession);
+  const visibleTabs = FILTER_TABS.filter((tab) => !("requireSession" in tab) || hasSession);
 
   return (
     <FormPageShell
       title="Filter"
       headerCenter={
         <Tabs value={activeTab} variant="fullWidth">
-          {FILTER_TABS.map((tab) => (
+          {visibleTabs.map((tab) => (
             <Tab
               key={tab.value}
               component={Link}

@@ -33,6 +33,13 @@ type RuntimeFilter = Filter & {
   } | null>;
   contentFilterMode?: "and" | "or";
   crossExclusive?: boolean;
+  onlyIssuesWithMultipleCollectedVariants?: boolean;
+  onlyNeededIssues?: boolean;
+  onlyIncompleteSeries?: boolean;
+  onlyUnownedFirstPrints?: boolean;
+  onlyNewUsMaterial?: boolean;
+  onlySellingList?: boolean;
+  onlyFirstOfMonthRelease?: boolean;
 };
 
 const TRANSLATOR_INDIVIDUAL_TYPE = "TRANSLATOR";
@@ -76,6 +83,13 @@ const supportedDirectFilterKeys = new Set([
   "onlyDoubleTripplePublisherCollected",
   "onlyNotOwnedUsMaterial",
   "onlyNotCollectedNoOwnedVariants",
+  "onlyIssuesWithMultipleCollectedVariants",
+  "onlyNeededIssues",
+  "onlyIncompleteSeries",
+  "onlyUnownedFirstPrints",
+  "onlyNewUsMaterial",
+  "onlySellingList",
+  "onlyFirstOfMonthRelease",
   "crossPublishers",
   "crossSeries",
   "crossNumber",
@@ -768,6 +782,56 @@ export function buildDirectIssueFilterWhere(
     });
   }
 
+  if (runtimeFilter.onlyNeededIssues) {
+    and.push({
+      noOwnedVariants: true,
+      stories: { some: { collected: false } },
+      OR: [
+        { stories: { some: { firstApp: true, collected: false } } },
+        { hasOtherOnlyTb: true },
+        { hasExclusiveStory: true },
+        {
+          variants: {
+            some: { format: { equals: "Hardcover", mode: "insensitive" } },
+            none: { format: { equals: "Softcover", mode: "insensitive" } },
+          },
+        },
+      ],
+    });
+  }
+
+  if (runtimeFilter.onlyUnownedFirstPrints) {
+    and.push({
+      noOwnedVariants: true,
+      hasFirstPrint: true,
+    });
+  }
+
+  if (runtimeFilter.onlyNewUsMaterial) {
+    and.push({
+      noOwnedVariants: false,
+      stories: {
+        some: {},
+        none: {
+          OR: [
+            { fkParent: null },
+            {
+              parent: {
+                issue: {
+                  series: {
+                    startYear: { lt: BigInt(2025) },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      },
+    });
+  }
+
+
+
   applyDirectTermFilters(and, runtimeFilter);
 
   return and.length === 1 ? and[0] : { AND: and };
@@ -934,11 +998,56 @@ async function resolveCustomFilterToIssueIds(filter: RuntimeFilter): Promise<num
   delete directFilter.crossStartYear;
   delete directFilter.crossEndYear;
   delete directFilter.crossExclusive;
+  delete directFilter.onlyIssuesWithMultipleCollectedVariants;
+  delete directFilter.onlyIncompleteSeries;
+  delete directFilter.onlyFirstOfMonthRelease;
+  delete directFilter.onlySellingList;
 
   const directWhere = buildDirectIssueFilterWhere(directFilter);
   if (!directWhere) return [];
 
   const issueAndConditions: Prisma.IssueWhereInput[] = [directWhere];
+
+  if (filter.onlyIssuesWithMultipleCollectedVariants) {
+    const grouped = await prisma.variant.groupBy({
+      by: ["fkIssue"],
+      where: { collected: true },
+      _count: { fkIssue: true },
+      having: {
+        fkIssue: {
+          _count: {
+            gt: 1,
+          },
+        },
+      },
+    });
+    const issueIds = grouped.map((g) => g.fkIssue).filter((id): id is bigint => id != null);
+    issueAndConditions.push({ id: { in: issueIds } });
+  }
+
+  if (filter.onlyIncompleteSeries) {
+    const incompleteSeriesRows = await prisma.$queryRaw<Array<{ fk_series: bigint }>>`
+      SELECT fk_series
+      FROM shortbox.issue
+      WHERE fk_series IS NOT NULL
+      GROUP BY fk_series
+      HAVING SUM(CASE WHEN no_owned_variants = false THEN 1 ELSE 0 END) < COUNT(*)
+         AND SUM(CASE WHEN no_owned_variants = false THEN 1 ELSE 0 END) >= 1
+    `;
+    const seriesIds = incompleteSeriesRows.map((r) => r.fk_series);
+    issueAndConditions.push({ fkSeries: { in: seriesIds } });
+  }
+
+  if (filter.onlyFirstOfMonthRelease) {
+    const firstOfMonthRows = await prisma.$queryRaw<Array<{ fk_issue: bigint }>>`
+      SELECT DISTINCT fk_issue
+      FROM shortbox.variant
+      WHERE fk_issue IS NOT NULL
+        AND EXTRACT(DAY FROM releasedate) = 1
+    `;
+    const firstOfMonthIssueIds = firstOfMonthRows.map((r) => r.fk_issue);
+    issueAndConditions.push({ id: { in: firstOfMonthIssueIds } });
+  }
 
   if (hasCrossFilter) {
     if (isUsMode) {
@@ -984,6 +1093,137 @@ async function resolveCustomFilterToIssueIds(filter: RuntimeFilter): Promise<num
     }
   }
 
+  if (filter.onlySellingList) {
+    const SELLING_BLACKLIST_ISSUE_IDS: bigint[] = [];
+    const baseSellingIssues = await prisma.issue.findMany({
+      where: {
+        AND: [
+          ...issueAndConditions,
+          {
+            noOwnedVariants: false,
+            publisher: {
+              name: {
+                contains: "Panini",
+                mode: "insensitive",
+              },
+            },
+            OR: [
+              {
+                stories: {
+                  some: {},
+                  none: {
+                    OR: [
+                      { fkParent: null },
+                      {
+                        parent: {
+                          issue: {
+                            series: {
+                              startYear: { lt: BigInt(2025) },
+                            },
+                          },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+              { doublePublisherCollected: true },
+            ],
+            NOT: [
+              {
+                isReprintOnly: true,
+                variants: {
+                  some: {
+                    format: { equals: "Hardcover", mode: "insensitive" },
+                    collected: true,
+                  },
+                },
+              },
+              {
+                series: {
+                  title: {
+                    contains: "Gratis",
+                    mode: "insensitive",
+                  },
+                },
+              },
+              {
+                series: {
+                  title: {
+                    contains: "Marvel Tag",
+                    mode: "insensitive",
+                  },
+                },
+              },
+              {
+                hasFirstPrint: true,
+              },
+              {
+                series: {
+                  title: {
+                    contains: "Spider-Man Komplett",
+                    mode: "insensitive",
+                  },
+                },
+              },
+            ],
+            id: { notIn: SELLING_BLACKLIST_ISSUE_IDS }
+          }
+        ]
+      },
+      select: { id: true, fkSeries: true }
+    });
+
+    const seriesCandidateMap = new Map<bigint, bigint[]>();
+    for (const issue of baseSellingIssues) {
+      if (issue.fkSeries === null) continue;
+      const list = seriesCandidateMap.get(issue.fkSeries) || [];
+      list.push(issue.id);
+      seriesCandidateMap.set(issue.fkSeries, list);
+    }
+
+    const seriesIds = Array.from(seriesCandidateMap.keys());
+    const seriesStats = seriesIds.length > 0 ? await prisma.$queryRaw<Array<{ fk_series: bigint; total_count: bigint; owned_count: bigint }>>`
+      SELECT fk_series, COUNT(*) as total_count, SUM(CASE WHEN no_owned_variants = false THEN 1 ELSE 0 END) as owned_count
+      FROM shortbox.issue
+      WHERE fk_series IN (${Prisma.join(seriesIds)})
+      GROUP BY fk_series
+    ` : [];
+
+    const statsMap = new Map<bigint, { total: number; owned: number }>();
+    for (const row of seriesStats) {
+      statsMap.set(row.fk_series, {
+        total: Number(row.total_count),
+        owned: Number(row.owned_count)
+      });
+    }
+
+    const finalSellingIssueIds: bigint[] = [];
+    for (const issue of baseSellingIssues) {
+      if (issue.fkSeries === null) {
+        finalSellingIssueIds.push(issue.id);
+        continue;
+      }
+      const stats = statsMap.get(issue.fkSeries);
+      if (!stats) {
+        finalSellingIssueIds.push(issue.id);
+        continue;
+      }
+      const sellingCountForSeries = seriesCandidateMap.get(issue.fkSeries)?.length || 0;
+
+      const userOwnsAll = (stats.owned === stats.total);
+      const allAreOnSellingList = (sellingCountForSeries === stats.total);
+
+      if (userOwnsAll && !allAreOnSellingList) {
+        continue;
+      }
+
+      finalSellingIssueIds.push(issue.id);
+    }
+
+    issueAndConditions.push({ id: { in: finalSellingIssueIds } });
+  }
+
   const candidates = await prisma.issue.findMany({
     where: {
       AND: issueAndConditions
@@ -1013,7 +1253,11 @@ const resolveFilterStateCached = cache(
       (filter as RuntimeFilter).crossNumber ||
       (filter as RuntimeFilter).crossVolume ||
       (filter as RuntimeFilter).crossStartYear ||
-      (filter as RuntimeFilter).crossEndYear
+      (filter as RuntimeFilter).crossEndYear ||
+      (filter as RuntimeFilter).onlyIssuesWithMultipleCollectedVariants ||
+      (filter as RuntimeFilter).onlyIncompleteSeries ||
+      (filter as RuntimeFilter).onlyFirstOfMonthRelease ||
+      (filter as RuntimeFilter).onlySellingList
     );
 
     if (hasIdListFilter) {

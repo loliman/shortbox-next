@@ -49,9 +49,20 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
     maxWidth: "100%",
     top: drawerHeaderTopOffset,
     height: drawerHeaderAdjustedHeight,
-    backgroundColor: "background.paper",
+    backgroundColor: (theme: import("@mui/material/styles").Theme) =>
+      theme.palette.mode === "dark"
+        ? "rgba(30, 30, 30, 0.15)"
+        : "rgba(255, 255, 255, 0.15)",
+    backdropFilter: "blur(20px)",
+    backgroundImage: "none",
+    borderRight: "1px solid",
+    borderRightColor: (theme: import("@mui/material/styles").Theme) =>
+      theme.palette.mode === "dark"
+        ? "rgba(255, 255, 255, 0.08)"
+        : "rgba(0, 0, 0, 0.06)",
     overflow: "hidden",
   };
+
 
   const handleNavScroll = React.useCallback(
     (event: React.UIEvent<HTMLDivElement>) => {

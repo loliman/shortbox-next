@@ -62,6 +62,12 @@ export default function FormPageShell({
         elevation={0}
         sx={{
           ...editorSectionSx,
+          backgroundColor: (theme) =>
+            theme.palette.mode === "dark"
+              ? "rgba(30, 30, 30, 0.15)"
+              : "rgba(255, 255, 255, 0.15)",
+          backdropFilter: "blur(20px)",
+          backgroundImage: "none",
           pointerEvents: busy ? "none" : "auto",
         }}
       >
@@ -92,6 +98,12 @@ export default function FormPageShell({
           elevation={0}
           sx={{
             ...editorSectionSx,
+            backgroundColor: (theme) =>
+              theme.palette.mode === "dark"
+                ? "rgba(30, 30, 30, 0.15)"
+                : "rgba(255, 255, 255, 0.15)",
+            backdropFilter: "blur(20px)",
+            backgroundImage: "none",
             pointerEvents: busy ? "none" : "auto",
           }}
         >

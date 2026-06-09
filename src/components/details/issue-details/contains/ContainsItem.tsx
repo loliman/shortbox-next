@@ -66,8 +66,8 @@ export function ContainsItem(props: Readonly<ContainsItemProps>) {
           ? "rgba(124, 130, 139, 0.36)"
           : (theme.vars?.palette.divider ?? theme.palette.divider),
         background: isHighlighted
-          ? "linear-gradient(90deg, rgba(185, 191, 201, 0.15) 0%, rgba(255,255,255,1) 36%)"
-          : "#ffffff",
+          ? "linear-gradient(90deg, rgba(185, 191, 201, 0.15) 0%, rgba(255, 255, 255, 0.45) 36%)"
+          : "rgba(255, 255, 255, 0.45)",
         overflow: "hidden",
         boxShadow: isHighlighted
           ? "0 10px 24px -16px rgba(150, 156, 166, 0.42), 0 0 0 1px rgba(168, 174, 184, 0.26) inset"
@@ -94,8 +94,8 @@ export function ContainsItem(props: Readonly<ContainsItemProps>) {
             ? "rgba(198, 204, 214, 0.52)"
             : (theme.vars?.palette.divider ?? theme.palette.divider),
           background: isHighlighted
-            ? "linear-gradient(90deg, rgba(188, 196, 210, 0.16) 0%, rgba(22,27,34,1) 36%)"
-            : "#161b22",
+            ? "linear-gradient(90deg, rgba(188, 196, 210, 0.16) 0%, rgba(30, 30, 30, 0.45) 36%)"
+            : "rgba(30, 30, 30, 0.45)",
           boxShadow: isHighlighted
             ? "0 10px 28px -18px rgba(180, 188, 202, 0.7), 0 0 0 1px rgba(188, 196, 210, 0.42) inset"
             : theme.shadows[1],
@@ -110,11 +110,11 @@ export function ContainsItem(props: Readonly<ContainsItemProps>) {
           gap: 1,
           px: 2,
           py: 1.25,
-          backgroundColor: "#ffffff",
+          backgroundColor: "transparent",
           position: "relative",
           zIndex: 1,
           ...theme.applyStyles("dark", {
-            backgroundColor: "#161b22",
+            backgroundColor: "transparent",
           }),
           "@media (max-width:599.95px)": {
             px: 1.5,
@@ -191,9 +191,9 @@ export function ContainsItem(props: Readonly<ContainsItemProps>) {
           sx={(theme) => ({
             px: 2,
             pb: 2,
-            backgroundColor: "#ffffff",
+            backgroundColor: "transparent",
             ...theme.applyStyles("dark", {
-              backgroundColor: "#161b22",
+              backgroundColor: "transparent",
             }),
             "@media (max-width:599.95px)": {
               px: 1.5,

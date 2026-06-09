@@ -57,6 +57,7 @@ interface DropdownStory {
 
 export interface DropdownItem {
   id?: string | number;
+  variantId?: string | number;
   series?: { publisher?: { us?: boolean; name?: string }; title?: string; volume?: number };
   publisher?: { us?: boolean; name?: string };
   title?: string;
@@ -101,6 +102,7 @@ interface DropdownState {
 
 type IssueMutationInput = {
   id?: string | number;
+  variantId?: string | number;
   title?: string;
   number?: string;
   format?: string;
@@ -247,6 +249,7 @@ function buildIssueMutationInput(item: DropdownItem): IssueMutationInput {
     typeof value === "string" || typeof value === "number" ? String(value) : "";
   const input: IssueMutationInput = {
     id: readDropdownId(stripped.id),
+    variantId: readDropdownId(stripped.variantId),
     title: readDropdownText(stripped.title),
     number: readDropdownText(stripped.number),
     format: readDropdownText(stripped.format),
@@ -274,6 +277,7 @@ function buildIssueLookupInput(item: DropdownItem): IssueMutationInput {
     typeof value === "string" || typeof value === "number" ? String(value) : "";
   const input: IssueMutationInput = {
     id: readDropdownId(stripped.id),
+    variantId: readDropdownId(stripped.variantId),
     number: readDropdownText(stripped.number),
     format: readDropdownText(stripped.format),
     series: readDropdownSeries(stripped.series),

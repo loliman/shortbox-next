@@ -204,6 +204,13 @@ export function serializeFilterValues(
   applyCollectionFlags(payload, values);
   if (values.noComicguideId) payload.noComicguideId = true;
   if (values.noContent) payload.noContent = true;
+  if (values.onlyIssuesWithMultipleCollectedVariants) payload.onlyIssuesWithMultipleCollectedVariants = true;
+  if (values.onlyNeededIssues) payload.onlyNeededIssues = true;
+  if (values.onlyIncompleteSeries) payload.onlyIncompleteSeries = true;
+  if (values.onlyUnownedFirstPrints) payload.onlyUnownedFirstPrints = true;
+  if (values.onlyNewUsMaterial) payload.onlyNewUsMaterial = true;
+  if (values.onlySellingList) payload.onlySellingList = true;
+  if (values.onlyFirstOfMonthRelease) payload.onlyFirstOfMonthRelease = true;
 
   assignMappedValues(payload, "crossPublishers", values.crossPublishers, (publisher) => {
     const normalizedPublisher = stripItem(publisher);

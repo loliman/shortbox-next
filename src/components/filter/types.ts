@@ -49,6 +49,13 @@ export interface FilterValues {
   onlyDoubleTrippleCollected: boolean;
   onlyDoubleTripplePublisherCollected: boolean;
   onlyNotOwnedUsMaterial: boolean;
+  onlyIssuesWithMultipleCollectedVariants: boolean;
+  onlyNeededIssues: boolean;
+  onlyIncompleteSeries: boolean;
+  onlyUnownedFirstPrints: boolean;
+  onlyNewUsMaterial: boolean;
+  onlySellingList: boolean;
+  onlyFirstOfMonthRelease: boolean;
   crossPublishers: FieldItem[];
   crossSeries: FieldItem[];
   crossNumber: string;
@@ -96,6 +103,13 @@ export interface FilterSubmitValues {
   onlyDoubleTrippleCollected?: boolean;
   onlyDoubleTripplePublisherCollected?: boolean;
   onlyNotOwnedUsMaterial?: boolean;
+  onlyIssuesWithMultipleCollectedVariants?: boolean;
+  onlyNeededIssues?: boolean;
+  onlyIncompleteSeries?: boolean;
+  onlyUnownedFirstPrints?: boolean;
+  onlyNewUsMaterial?: boolean;
+  onlySellingList?: boolean;
+  onlyFirstOfMonthRelease?: boolean;
   crossPublishers?: FieldItem[];
   crossSeries?: FieldItem[];
   crossNumber?: string;

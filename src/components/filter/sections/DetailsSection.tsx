@@ -11,7 +11,6 @@ import { FastField } from "formik";
 import AutocompleteBase from "../../generic/AutocompleteBase";
 import { useAutocompleteQuery } from "../../generic/useAutocompleteQuery";
 import { TextField } from "../../generic/FormikTextField";
-import FilterSwitch from "../FilterSwitch";
 import { FORMAT_OPTIONS } from "../constants";
 import { FilterValues } from "../types";
 import type { FieldItem } from "../../../util/filterFieldHelpers";
@@ -24,25 +23,17 @@ interface DetailsSectionProps {
   values: FilterValues;
   us: boolean;
   setFieldValue: (field: string, value: unknown) => void;
-  hasSession: boolean;
 }
 
 function DetailsSection({
   values,
   us,
   setFieldValue,
-  hasSession,
 }: Readonly<DetailsSectionProps>) {
   const [activeDatePreset, setActiveDatePreset] = React.useState("");
   const [publisherInput, setPublisherInput] = React.useState("");
   const [seriesInput, setSeriesInput] = React.useState("");
   const [genreInput, setGenreInput] = React.useState("");
-
-  const switchGridSx = {
-    display: "grid",
-    gap: 1,
-    gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "1fr 1fr 1fr", xl: "1fr 1fr 1fr 1fr" },
-  } as const;
 
   const publisherQuery = useAutocompleteQuery<FieldItem>({
     source: "publishers",
@@ -336,121 +327,6 @@ function DetailsSection({
           }}
         />
       </Box>
-
-      {hasSession ? (
-        <>
-          <Divider sx={{ my: 0.25 }} />
-          <Box sx={switchGridSx}>
-            <FilterSwitch
-              checked={values.withVariants}
-              label="Mit Varianten"
-              onToggle={() => setFieldValue("withVariants", !values.withVariants)}
-            />
-            <FilterSwitch
-              checked={values.noComicguideId}
-              label="Ohne Comicguide ID"
-              onToggle={() => setFieldValue("noComicguideId", !values.noComicguideId)}
-            />
-            <FilterSwitch
-              checked={values.noContent}
-              label="Ohne Inhalt"
-              onToggle={() => setFieldValue("noContent", !values.noContent)}
-            />
-            <FilterSwitch
-              checked={values.onlyCollected}
-              label="Nur in Sammlung"
-              disabled={values.onlyNotCollected || values.onlyNotCollectedNoOwnedVariants || values.onlyNotOwnedUsMaterial}
-              onToggle={() => {
-                const next = !values.onlyCollected;
-                setFieldValue("onlyCollected", next);
-                if (next) {
-                  setFieldValue("onlyNotCollected", false);
-                  setFieldValue("onlyNotCollectedNoOwnedVariants", false);
-                  setFieldValue("onlyNotOwnedUsMaterial", false);
-                }
-              }}
-            />
-            <FilterSwitch
-              checked={values.onlyNotCollected}
-              label="Nur nicht in Sammlung"
-              disabled={values.onlyCollected || values.onlyNotCollectedNoOwnedVariants || values.onlyDoubleTrippleCollected || values.onlyDoubleTripplePublisherCollected}
-              onToggle={() => {
-                const next = !values.onlyNotCollected;
-                setFieldValue("onlyNotCollected", next);
-                if (next) {
-                  setFieldValue("onlyCollected", false);
-                  setFieldValue("onlyNotCollectedNoOwnedVariants", false);
-                  setFieldValue("onlyDoubleTrippleCollected", false);
-                  setFieldValue("onlyDoubleTripplePublisherCollected", false);
-                }
-              }}
-            />
-            <FilterSwitch
-              checked={values.onlyNotCollectedNoOwnedVariants}
-              label="Nur nicht in Sammlung (ohne Variants)"
-              disabled={values.onlyCollected || values.onlyNotCollected || values.onlyDoubleTrippleCollected || values.onlyDoubleTripplePublisherCollected}
-              onToggle={() => {
-                const next = !values.onlyNotCollectedNoOwnedVariants;
-                setFieldValue("onlyNotCollectedNoOwnedVariants", next);
-                if (next) {
-                  setFieldValue("onlyCollected", false);
-                  setFieldValue("onlyNotCollected", false);
-                  setFieldValue("onlyDoubleTrippleCollected", false);
-                  setFieldValue("onlyDoubleTripplePublisherCollected", false);
-                }
-              }}
-            />
-            {!us && (
-              <>
-                <FilterSwitch
-                  checked={values.onlyDoubleTrippleCollected}
-                  label="Doppelt & Dreifach gesammelt"
-                  disabled={values.onlyNotCollected || values.onlyNotCollectedNoOwnedVariants || values.onlyNotOwnedUsMaterial || values.onlyDoubleTripplePublisherCollected}
-                  onToggle={() => {
-                    const next = !values.onlyDoubleTrippleCollected;
-                    setFieldValue("onlyDoubleTrippleCollected", next);
-                    if (next) {
-                      setFieldValue("onlyNotCollected", false);
-                      setFieldValue("onlyNotCollectedNoOwnedVariants", false);
-                      setFieldValue("onlyNotOwnedUsMaterial", false);
-                      setFieldValue("onlyDoubleTripplePublisherCollected", false);
-                    }
-                  }}
-                />
-                <FilterSwitch
-                  checked={values.onlyDoubleTripplePublisherCollected}
-                  label="Doppelt & Dreifach verlagsintern"
-                  disabled={values.onlyNotCollected || values.onlyNotCollectedNoOwnedVariants || values.onlyNotOwnedUsMaterial || values.onlyDoubleTrippleCollected}
-                  onToggle={() => {
-                    const next = !values.onlyDoubleTripplePublisherCollected;
-                    setFieldValue("onlyDoubleTripplePublisherCollected", next);
-                    if (next) {
-                      setFieldValue("onlyNotCollected", false);
-                      setFieldValue("onlyNotCollectedNoOwnedVariants", false);
-                      setFieldValue("onlyNotOwnedUsMaterial", false);
-                      setFieldValue("onlyDoubleTrippleCollected", false);
-                    }
-                  }}
-                />
-              </>
-            )}
-            <FilterSwitch
-              checked={values.onlyNotOwnedUsMaterial}
-              label="Ungesammeltes US-Material"
-              disabled={values.onlyCollected || values.onlyDoubleTrippleCollected || values.onlyDoubleTripplePublisherCollected}
-              onToggle={() => {
-                const next = !values.onlyNotOwnedUsMaterial;
-                setFieldValue("onlyNotOwnedUsMaterial", next);
-                if (next) {
-                  setFieldValue("onlyCollected", false);
-                  setFieldValue("onlyDoubleTrippleCollected", false);
-                  setFieldValue("onlyDoubleTripplePublisherCollected", false);
-                }
-              }}
-            />
-          </Box>
-        </>
-      ) : null}
 
     </Stack>
   );

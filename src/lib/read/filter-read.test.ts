@@ -551,3 +551,69 @@ describe("buildDirectIssueFilterWhere – individuals", () => {
     expect(storyClauses).toHaveLength(1);
   });
 });
+
+describe("buildDirectIssueFilterWhere – new custom filter flags", () => {
+  it("should emit correct conditions for onlyNeededIssues", () => {
+    const where = buildDirectIssueFilterWhere({
+      onlyNeededIssues: true,
+      us: false,
+    }) as any;
+
+    expect(where.AND).toContainEqual({
+      noOwnedVariants: true,
+      stories: { some: { collected: false } },
+      OR: [
+        { stories: { some: { firstApp: true, collected: false } } },
+        { hasOtherOnlyTb: true },
+        { hasExclusiveStory: true },
+        {
+          variants: {
+            some: { format: { equals: "Hardcover", mode: "insensitive" } },
+            none: { format: { equals: "Softcover", mode: "insensitive" } },
+          },
+        },
+      ],
+    });
+  });
+
+  it("should emit correct conditions for onlyUnownedFirstPrints", () => {
+    const where = buildDirectIssueFilterWhere({
+      onlyUnownedFirstPrints: true,
+      us: false,
+    }) as any;
+
+    expect(where.AND).toContainEqual({
+      noOwnedVariants: true,
+      hasFirstPrint: true,
+    });
+  });
+
+  it("should emit correct conditions for onlyNewUsMaterial", () => {
+    const where = buildDirectIssueFilterWhere({
+      onlyNewUsMaterial: true,
+      us: false,
+    }) as any;
+
+    expect(where.AND).toContainEqual({
+      noOwnedVariants: false,
+      stories: {
+        some: {},
+        none: {
+          OR: [
+            { fkParent: null },
+            {
+              parent: {
+                issue: {
+                  series: {
+                    startYear: { lt: BigInt(2025) },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      },
+    });
+  });
+});
+

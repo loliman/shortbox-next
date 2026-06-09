@@ -156,7 +156,12 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
         overflow: shellOverflow,
         display: "flex",
         flexDirection: "column",
-        backgroundColor: "background.default",
+        background: "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)",
+        '[data-theme="dark"] &': {
+          background: "linear-gradient(135deg, #090b0f 0%, #1a1f29 100%)",
+        },
+        position: "relative",
+        isolation: "isolate",
       }}
     >
       <LayoutChromeClient
@@ -194,7 +199,7 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
           flexGrow: 1,
           minHeight: 0,
           overflow: shellOverflow,
-          backgroundColor: "background.default",
+          backgroundColor: "transparent",
         }}
       >
         <Box
@@ -204,7 +209,7 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
             minWidth: 0,
             minHeight: 0,
             overflow: shellOverflow,
-            backgroundColor: "background.default",
+            backgroundColor: "transparent",
             ...shellPadding,
           }}
         >
@@ -217,7 +222,17 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
               minWidth: 0,
               minHeight: 0,
               overflow: shellOverflow,
-              backgroundColor: "background.paper",
+              backgroundColor: "rgba(255, 255, 255, 0.15)",
+              backdropFilter: "blur(20px)",
+              backgroundImage: "none",
+              border: "1px solid",
+              borderColor: "rgba(0, 0, 0, 0.06)",
+              boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.07)",
+              '[data-theme="dark"] &': {
+                backgroundColor: "rgba(30, 30, 30, 0.15)",
+                borderColor: "rgba(255, 255, 255, 0.08)",
+                boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.37)",
+              },
             }}
           >
             <Box
@@ -232,7 +247,7 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
                 flexDirection: "column",
                 "&::before": {
                   content: '""',
-                  position: "absolute",
+                  position: "fixed",
                   right: { xs: 12, sm: 20, lg: 28 },
                   bottom: { xs: 12, sm: 20, lg: 24 },
                   width: { xs: 160, sm: 220, lg: 280 },
@@ -241,9 +256,9 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
                   backgroundRepeat: "no-repeat",
                   backgroundPosition: "right bottom",
                   backgroundSize: "contain",
-                  opacity: { xs: 0.14, sm: 0.16, lg: 0.2 },
-                  pointerEvents: "none",
+                  opacity: 0.12,
                   zIndex: 0,
+                  pointerEvents: "none",
                 },
               }}
             >
@@ -271,7 +286,7 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
                 pb: { xs: 0, sm: 1.25 },
                 borderTop: 1,
                 borderColor: "divider",
-                backgroundColor: "background.paper",
+                backgroundColor: "transparent",
                 position: "sticky",
                 bottom: 0,
                 zIndex: 1,
