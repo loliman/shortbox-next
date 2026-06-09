@@ -49,14 +49,9 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
     maxWidth: "100%",
     top: drawerHeaderTopOffset,
     height: drawerHeaderAdjustedHeight,
-    backgroundColor: (theme: import("@mui/material/styles").Theme) =>
-      theme.palette.mode === "dark" ? "#1e1e1e" : "#ffffff",
-    backgroundImage: "none",
+    backgroundColor: "background.paper",
     borderRight: "1px solid",
-    borderRightColor: (theme: import("@mui/material/styles").Theme) =>
-      theme.palette.mode === "dark"
-        ? "rgba(255, 255, 255, 0.08)"
-        : "rgba(0, 0, 0, 0.06)",
+    borderRightColor: "divider",
     overflow: "hidden",
   };
 
