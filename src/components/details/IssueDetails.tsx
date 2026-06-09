@@ -349,9 +349,9 @@ function renderAddInfo(issue: Issue): React.ReactNode {
       variant="outlined"
       sx={{
         p: 2,
-        backgroundColor: "rgba(255, 255, 255, 0.45)",
+        backgroundColor: "rgba(255, 255, 255, 0.75)",
         '[data-theme="dark"] &': {
-          backgroundColor: "rgba(30, 30, 30, 0.45)",
+          backgroundColor: "rgba(30, 30, 30, 0.75)",
         },
       }}
     >
@@ -478,9 +478,9 @@ function renderIssueSummaryCard(
         overflow: "hidden",
         borderRadius: 2,
         boxShadow: 1,
-        backgroundColor: "rgba(255, 255, 255, 0.45)",
+        backgroundColor: "rgba(255, 255, 255, 0.75)",
         '[data-theme="dark"] &': {
-          backgroundColor: "rgba(30, 30, 30, 0.45)",
+          backgroundColor: "rgba(30, 30, 30, 0.75)",
         },
       }}
     >

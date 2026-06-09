@@ -64,8 +64,8 @@ export default function FormPageShell({
           ...editorSectionSx,
           backgroundColor: (theme) =>
             theme.palette.mode === "dark"
-              ? "rgba(30, 30, 30, 0.15)"
-              : "rgba(255, 255, 255, 0.15)",
+              ? "rgba(30, 30, 30, 0.65)"
+              : "rgba(255, 255, 255, 0.65)",
           backdropFilter: "blur(20px)",
           backgroundImage: "none",
           pointerEvents: busy ? "none" : "auto",
@@ -100,8 +100,8 @@ export default function FormPageShell({
             ...editorSectionSx,
             backgroundColor: (theme) =>
               theme.palette.mode === "dark"
-                ? "rgba(30, 30, 30, 0.15)"
-                : "rgba(255, 255, 255, 0.15)",
+                ? "rgba(30, 30, 30, 0.65)"
+                : "rgba(255, 255, 255, 0.65)",
             backdropFilter: "blur(20px)",
             backgroundImage: "none",
             pointerEvents: busy ? "none" : "auto",

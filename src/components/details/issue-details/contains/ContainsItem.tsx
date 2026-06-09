@@ -66,8 +66,8 @@ export function ContainsItem(props: Readonly<ContainsItemProps>) {
           ? "rgba(124, 130, 139, 0.36)"
           : (theme.vars?.palette.divider ?? theme.palette.divider),
         background: isHighlighted
-          ? "linear-gradient(90deg, rgba(185, 191, 201, 0.15) 0%, rgba(255, 255, 255, 0.45) 36%)"
-          : "rgba(255, 255, 255, 0.45)",
+          ? "linear-gradient(90deg, rgba(185, 191, 201, 0.15) 0%, rgba(255, 255, 255, 0.75) 36%)"
+          : "rgba(255, 255, 255, 0.75)",
         overflow: "hidden",
         boxShadow: isHighlighted
           ? "0 10px 24px -16px rgba(150, 156, 166, 0.42), 0 0 0 1px rgba(168, 174, 184, 0.26) inset"
@@ -94,8 +94,8 @@ export function ContainsItem(props: Readonly<ContainsItemProps>) {
             ? "rgba(198, 204, 214, 0.52)"
             : (theme.vars?.palette.divider ?? theme.palette.divider),
           background: isHighlighted
-            ? "linear-gradient(90deg, rgba(188, 196, 210, 0.16) 0%, rgba(30, 30, 30, 0.45) 36%)"
-            : "rgba(30, 30, 30, 0.45)",
+            ? "linear-gradient(90deg, rgba(188, 196, 210, 0.16) 0%, rgba(30, 30, 30, 0.75) 36%)"
+            : "rgba(30, 30, 30, 0.75)",
           boxShadow: isHighlighted
             ? "0 10px 28px -18px rgba(180, 188, 202, 0.7), 0 0 0 1px rgba(188, 196, 210, 0.42) inset"
             : theme.shadows[1],
