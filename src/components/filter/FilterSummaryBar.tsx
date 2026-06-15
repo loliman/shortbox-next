@@ -148,6 +148,7 @@ export function buildFilterLabels(rawFilter?: string | null, us?: boolean): stri
   if (parsed.withVariants === true) entries.push("Mit Varianten");
   pushNamedList(entries, parsed.publishers, "Verlag");
   pushNamedList(entries, parsed.series, "Serie");
+  pushNamedList(entries, parsed.genres, "Genre");
   pushNumberEntries(entries, parsed.numbers);
 
   const prefix = us ? "DE" : "US";
@@ -168,6 +169,7 @@ export function buildFilterLabels(rawFilter?: string | null, us?: boolean): stri
   pushNamedList(entries, parsed.arcs, "Teil von");
   pushIndividualEntries(entries, parsed.individuals);
   pushNamedList(entries, parsed.appearances, "Auftritte");
+  pushNamedList(entries, parsed.realities, "Realität");
 
   const booleanLabels: Array<[string, string]> = [
     ["onlyCollected", "Nur in Sammlung"],

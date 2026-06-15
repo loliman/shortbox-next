@@ -37,6 +37,7 @@
   ],
   "exclude": [
     "node_modules",
-    "src/services/MarvelCrawlerService.ts"
+    "src/services/MarvelCrawlerService.ts",
+    "scratch"
   ]
 }
