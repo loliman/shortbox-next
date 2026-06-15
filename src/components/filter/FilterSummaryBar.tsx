@@ -127,7 +127,7 @@ export default function FilterSummaryBar(props: Readonly<FilterSummaryBarProps>)
   );
 }
 
-function buildFilterLabels(rawFilter?: string | null, us?: boolean): string[] {
+export function buildFilterLabels(rawFilter?: string | null, us?: boolean): string[] {
   if (!rawFilter) return [];
   let parsed: Record<string, unknown> | null = null;
   try {
@@ -161,6 +161,9 @@ function buildFilterLabels(rawFilter?: string | null, us?: boolean): string[] {
   if (crossStartYear) entries.push(`${prefix}-Startjahr: ${crossStartYear}`);
   const crossEndYear = readFilterText(parsed.crossEndYear);
   if (crossEndYear) entries.push(`${prefix}-Endjahr: ${crossEndYear}`);
+  if (parsed.crossExclusive === true) {
+    entries.push(us ? "Nur exakt dieses deutsche Material" : "Nur exakt dieses US-Material");
+  }
 
   pushNamedList(entries, parsed.arcs, "Teil von");
   pushIndividualEntries(entries, parsed.individuals);
@@ -174,15 +177,30 @@ function buildFilterLabels(rawFilter?: string | null, us?: boolean): string[] {
     ["onlyDoubleTripplePublisherCollected", "Doppelt & Dreifach verlagsintern"],
     ["onlyNotOwnedUsMaterial", "Ungesammeltes US-Material"],
     ["firstPrint", "Erstveröffentlichung"],
+    ["notFirstPrint", "Keine Erstveröffentlichung"],
     ["onlyPrint", "Einzige Veröffentlichung"],
+    ["notOnlyPrint", "Keine einzige Veröffentlichung"],
     ["onlyTb", "Nur in Taschenbuch"],
+    ["notOnlyTb", "Nicht nur in Taschenbuch"],
     ["exclusive", "Exklusiver Inhalt"],
+    ["notExclusive", "Kein exklusiver Inhalt"],
     ["reprint", "Reiner Nachdruck"],
+    ["notReprint", "Kein reiner Nachdruck"],
     ["otherOnlyTb", "Sonst nur in Taschenbuch"],
+    ["notOtherOnlyTb", "Nicht sonst nur in Taschenbuch"],
     ["onlyOnePrint", "Nur einfach auf deutsch erschienen"],
+    ["notOnlyOnePrint", "Nicht nur einfach auf deutsch erschienen"],
     ["noPrint", "Nicht auf deutsch erschienen"],
+    ["notNoPrint", "Auf deutsch erschienen"],
     ["noComicguideId", "Ohne Comicguide ID"],
     ["noContent", "Ohne Inhalt"],
+    ["onlyIssuesWithMultipleCollectedVariants", "Mehr als eine Variante gesammelt"],
+    ["onlyNeededIssues", "Welche Ausgaben brauche ich noch?"],
+    ["onlyIncompleteSeries", "Unvollständige Serien"],
+    ["onlyUnownedFirstPrints", "Erstausgaben, die ich nicht besitze"],
+    ["onlyNewUsMaterial", "US-Material ab Startjahr 2025"],
+    ["onlySellingList", "Verkaufsliste"],
+    ["onlyFirstOfMonthRelease", "Erschienen am 01. des Monats"],
   ];
   for (const [key, label] of booleanLabels) {
     if (parsed[key] === true) entries.push(label);
