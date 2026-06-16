@@ -216,37 +216,131 @@ export async function recalculateCollectionFlagsForIssues(
   }
 }
 
+async function resolveRecursiveRelatedParentIds(
+  initialParentIds: bigint[],
+  tx: PrismaExecutor
+): Promise<bigint[]> {
+  const discovered = new Set<bigint>(initialParentIds);
+  let frontier = [...initialParentIds];
+
+  while (frontier.length > 0) {
+    const [rowsById, rowsByReprint] = await Promise.all([
+      tx.story.findMany({
+        where: { id: { in: frontier } },
+        select: { id: true, fkReprint: true },
+      }),
+      tx.story.findMany({
+        where: { fkReprint: { in: frontier } },
+        select: { id: true, fkReprint: true },
+      }),
+    ]);
+
+    const nextFrontier = new Set<bigint>();
+
+    const addDiscoveredId = (value: bigint | null) => {
+      if (value == null || discovered.has(value)) return;
+      discovered.add(value);
+      nextFrontier.add(value);
+    };
+
+    for (const story of rowsById) {
+      addDiscoveredId(story.fkReprint);
+    }
+
+    for (const story of rowsByReprint) {
+      addDiscoveredId(story.id);
+      addDiscoveredId(story.fkReprint);
+    }
+
+    frontier = Array.from(nextFrontier);
+  }
+
+  return Array.from(discovered);
+}
+
 export async function recalculateStoryCollectionFlagsForFamilies(
   familyIds: bigint[],
   tx: PrismaExecutor
 ): Promise<void> {
   if (familyIds.length === 0) return;
 
-  await tx.$executeRaw(Prisma.sql`
-    WITH story_collected_counts AS (
-      SELECT 
-        COALESCE(s.fk_parent, s.id) AS parent_id,
-        COUNT(v.id) AS collected_count
+  const allFamilyIds = await resolveRecursiveRelatedParentIds(familyIds, tx);
+  if (allFamilyIds.length === 0) return;
+
+  const storiesInFamilies = await tx.story.findMany({
+    where: { id: { in: allFamilyIds } },
+    select: { id: true, fkReprint: true },
+  });
+
+  const adjacency = new Map<bigint, Set<bigint>>();
+  const parentIds = new Set<bigint>(allFamilyIds);
+
+  for (const story of storiesInFamilies) {
+    const id = story.id;
+    if (!adjacency.has(id)) adjacency.set(id, new Set());
+
+    if (story.fkReprint != null) {
+      const reprintId = story.fkReprint;
+      if (!adjacency.has(reprintId)) adjacency.set(reprintId, new Set());
+      adjacency.get(id)!.add(reprintId);
+      adjacency.get(reprintId)!.add(id);
+      parentIds.add(reprintId);
+    }
+  }
+
+  const visited = new Set<bigint>();
+  const components: bigint[][] = [];
+
+  for (const id of parentIds) {
+    if (visited.has(id)) continue;
+
+    const component: bigint[] = [];
+    const queue = [id];
+    visited.add(id);
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      component.push(current);
+
+      const neighbors = adjacency.get(current);
+      if (neighbors) {
+        for (const neighbor of neighbors) {
+          if (!visited.has(neighbor)) {
+            visited.add(neighbor);
+            queue.push(neighbor);
+          }
+        }
+      }
+    }
+    components.push(component);
+  }
+
+  for (const componentIds of components) {
+    if (componentIds.length === 0) continue;
+
+    const rawCount = await tx.$queryRaw<Array<{ collected_count: bigint }>>`
+      SELECT COUNT(v.id) AS collected_count
       FROM shortbox.story s
       JOIN shortbox.variant v ON v.fk_issue = s.fk_issue
       WHERE v.collected = true
-        AND COALESCE(s.fk_parent, s.id) IN (${Prisma.join(familyIds)})
-      GROUP BY COALESCE(s.fk_parent, s.id)
-    )
-    UPDATE shortbox.story s
-    SET 
-      collected = COALESCE(s_data.collected_count, 0) > 0,
-      collectedmultipletimes = COALESCE(s_data.collected_count, 0) >= 2
-    FROM (
-      SELECT 
-        s_inner.id,
-        scc_inner.collected_count
-      FROM shortbox.story s_inner
-      LEFT JOIN story_collected_counts scc_inner ON scc_inner.parent_id = COALESCE(s_inner.fk_parent, s_inner.id)
-      WHERE COALESCE(s_inner.fk_parent, s_inner.id) IN (${Prisma.join(familyIds)})
-    ) s_data
-    WHERE s.id = s_data.id;
-  `);
+        AND COALESCE(s.fk_parent, s.id) IN (${Prisma.join(componentIds)})
+    `;
+
+    const count = Number(rawCount[0]?.collected_count ?? 0n);
+
+    await tx.$executeRaw`
+      UPDATE shortbox.story s
+      SET 
+        collected = ${count > 0},
+        collectedmultipletimes = ${count >= 2}
+      FROM (
+        SELECT s_inner.id
+        FROM shortbox.story s_inner
+        WHERE COALESCE(s_inner.fk_parent, s_inner.id) IN (${Prisma.join(componentIds)})
+      ) s_data
+      WHERE s.id = s_data.id;
+    `;
+  }
 }
 
 export async function handleIssueWriteEffects(

@@ -226,6 +226,186 @@ describe("Story collection recalculation", () => {
     expect(storyDe?.collectedMultipleTimes).toBe(false);
   });
 
+  it("should propagate story collection status through reprint chains recursively", async () => {
+    const usIssue2 = await prisma.issue.create({
+      data: {
+        title: "US Issue 2",
+        number: "2",
+        fkSeries: usSeriesId,
+        fkPublisher: usPublisherId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+    const deIssue2 = await prisma.issue.create({
+      data: {
+        title: "DE Issue 2",
+        number: "2",
+        fkSeries: deSeriesId,
+        fkPublisher: dePublisherId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+    const usVariant2 = await prisma.variant.create({
+      data: {
+        fkIssue: usIssue2.id,
+        format: "Comic",
+        variantLabel: "Standard",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        collected: false,
+      },
+    });
+
+    const deVariant2 = await prisma.variant.create({
+      data: {
+        fkIssue: deIssue2.id,
+        format: "Softcover",
+        variantLabel: "Standard",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        collected: false,
+      },
+    });
+
+    const usStory2 = await prisma.story.create({
+      data: {
+        fkIssue: usIssue2.id,
+        number: 1n,
+        part: "",
+        title: "US Story 2 (Reprint of US Story)",
+        fkReprint: usStoryId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+    const deStory2 = await prisma.story.create({
+      data: {
+        fkIssue: deIssue2.id,
+        number: 1n,
+        part: "",
+        title: "DE Reprint Story 2",
+        fkParent: usStory2.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+    try {
+      let sA = await prisma.story.findUnique({ where: { id: usStoryId } });
+      let sB = await prisma.story.findUnique({ where: { id: usStory2.id } });
+      let sC = await prisma.story.findUnique({ where: { id: deStoryId } });
+      let sD = await prisma.story.findUnique({ where: { id: deStory2.id } });
+
+      expect(sA?.collected).toBe(false);
+      expect(sB?.collected).toBe(false);
+      expect(sC?.collected).toBe(false);
+      expect(sD?.collected).toBe(false);
+
+      // 1. Collect deVariant (containing deStory C)
+      await prisma.variant.update({
+        where: { id: deVariantId },
+        data: { collected: true },
+      });
+      await handleIssueWriteEffects(deIssueId, prisma);
+
+      sA = await prisma.story.findUnique({ where: { id: usStoryId } });
+      sB = await prisma.story.findUnique({ where: { id: usStory2.id } });
+      sC = await prisma.story.findUnique({ where: { id: deStoryId } });
+      sD = await prisma.story.findUnique({ where: { id: deStory2.id } });
+
+      expect(sA?.collected).toBe(true);
+      expect(sB?.collected).toBe(true);
+      expect(sC?.collected).toBe(true);
+      expect(sD?.collected).toBe(true);
+
+      expect(sA?.collectedMultipleTimes).toBe(false);
+      expect(sB?.collectedMultipleTimes).toBe(false);
+      expect(sC?.collectedMultipleTimes).toBe(false);
+      expect(sD?.collectedMultipleTimes).toBe(false);
+
+      // 2. Collect deVariant2 (containing deStory2 D)
+      await prisma.variant.update({
+        where: { id: deVariant2.id },
+        data: { collected: true },
+      });
+      await handleIssueWriteEffects(deIssue2.id, prisma);
+
+      sA = await prisma.story.findUnique({ where: { id: usStoryId } });
+      sB = await prisma.story.findUnique({ where: { id: usStory2.id } });
+      sC = await prisma.story.findUnique({ where: { id: deStoryId } });
+      sD = await prisma.story.findUnique({ where: { id: deStory2.id } });
+
+      expect(sA?.collected).toBe(true);
+      expect(sB?.collected).toBe(true);
+      expect(sC?.collected).toBe(true);
+      expect(sD?.collected).toBe(true);
+
+      expect(sA?.collectedMultipleTimes).toBe(true);
+      expect(sB?.collectedMultipleTimes).toBe(true);
+      expect(sC?.collectedMultipleTimes).toBe(true);
+      expect(sD?.collectedMultipleTimes).toBe(true);
+
+      // 3. Uncollect deVariant C
+      await prisma.variant.update({
+        where: { id: deVariantId },
+        data: { collected: false },
+      });
+      await handleIssueWriteEffects(deIssueId, prisma);
+
+      sA = await prisma.story.findUnique({ where: { id: usStoryId } });
+      sB = await prisma.story.findUnique({ where: { id: usStory2.id } });
+      sC = await prisma.story.findUnique({ where: { id: deStoryId } });
+      sD = await prisma.story.findUnique({ where: { id: deStory2.id } });
+
+      expect(sA?.collected).toBe(true);
+      expect(sB?.collected).toBe(true);
+      expect(sC?.collected).toBe(true);
+      expect(sD?.collected).toBe(true);
+
+      expect(sA?.collectedMultipleTimes).toBe(false);
+      expect(sB?.collectedMultipleTimes).toBe(false);
+      expect(sC?.collectedMultipleTimes).toBe(false);
+      expect(sD?.collectedMultipleTimes).toBe(false);
+
+      // 4. Uncollect deVariant2 D
+      await prisma.variant.update({
+        where: { id: deVariant2.id },
+        data: { collected: false },
+      });
+      await handleIssueWriteEffects(deIssue2.id, prisma);
+
+      sA = await prisma.story.findUnique({ where: { id: usStoryId } });
+      sB = await prisma.story.findUnique({ where: { id: usStory2.id } });
+      sC = await prisma.story.findUnique({ where: { id: deStoryId } });
+      sD = await prisma.story.findUnique({ where: { id: deStory2.id } });
+
+      expect(sA?.collected).toBe(false);
+      expect(sB?.collected).toBe(false);
+      expect(sC?.collected).toBe(false);
+      expect(sD?.collected).toBe(false);
+
+      expect(sA?.collectedMultipleTimes).toBe(false);
+      expect(sB?.collectedMultipleTimes).toBe(false);
+      expect(sC?.collectedMultipleTimes).toBe(false);
+      expect(sD?.collectedMultipleTimes).toBe(false);
+    } finally {
+      await prisma.story.deleteMany({
+        where: { id: { in: [usStory2.id, deStory2.id] } },
+      });
+      await prisma.variant.deleteMany({
+        where: { id: { in: [usVariant2.id, deVariant2.id] } },
+      });
+      await prisma.issue.deleteMany({
+        where: { id: { in: [usIssue2.id, deIssue2.id] } },
+      });
+    }
+  });
+
   afterAll(async () => {
     await prisma.$disconnect();
     if (globalThis.__shortboxPrismaPool__) {
