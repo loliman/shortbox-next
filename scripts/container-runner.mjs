@@ -18,7 +18,7 @@ const processes = [
   },
   {
     name: "worker",
-    child: spawn(process.execPath, ["dist/worker/worker/index.js"], {
+    child: spawn(process.execPath, ["--conditions=react-server", "dist/worker/worker/index.js"], {
       stdio: "inherit",
       env: process.env,
     }),
