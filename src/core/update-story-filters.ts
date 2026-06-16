@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma/client";
 import { updateStoryFilterFlagsForIssue } from "../lib/server/story-filter-write";
+import { handleIssueWriteEffects } from "../lib/server/issue-materialize-write";
 import { env } from "../lib/env";
 
 const DEFAULT_BATCH_SIZE = 250;
@@ -66,6 +67,7 @@ export async function runUpdateStoryFilters(
         for (const issueId of batch) {
           console.log(`Processing issue ID: ${issueId}`);
           await updateStoryFilterFlagsForIssue(issueId);
+          await handleIssueWriteEffects(BigInt(issueId), prisma);
           processed += 1;
         }
       }

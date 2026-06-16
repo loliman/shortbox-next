@@ -606,14 +606,7 @@ function buildDetailedActionChips({
   }
 
   if (!isCover && !exclusive && !us && hasSession && item.parent) {
-    const parentIssueCollected = Boolean(item.parent.issue?.collected);
-    const parentReprintsCollected = Boolean(
-      item.parent.reprints?.some((reprint) => reprint?.issue?.collected)
-    );
-    const parentChildrenCollected = Boolean(
-      item.parent.children?.some((child) => child?.issue?.collected)
-    );
-    if (!parentIssueCollected && !parentReprintsCollected && !parentChildrenCollected) {
+    if (!item.collected) {
       chips.push(<Chip key="notownedus" color="error" label="Ungesammeltes US-Material" />);
     }
   }
