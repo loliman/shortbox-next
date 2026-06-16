@@ -140,6 +140,11 @@ function CollectionSection({
             label="Erstausgaben, die ich nicht besitze"
             onToggle={() => setFieldValue("onlyUnownedFirstPrints", !values.onlyUnownedFirstPrints)}
           />
+          <FilterSwitch
+            checked={values.onlyUnownedPublisherFirstPrints}
+            label="Verlagsinterne Erstausgaben, die ich nicht besitze"
+            onToggle={() => setFieldValue("onlyUnownedPublisherFirstPrints", !values.onlyUnownedPublisherFirstPrints)}
+          />
         </Box>
       </Stack>
 

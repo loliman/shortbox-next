@@ -200,6 +200,7 @@ export function buildFilterLabels(rawFilter?: string | null, us?: boolean): stri
     ["onlyNeededIssues", "Welche Ausgaben brauche ich noch?"],
     ["onlyIncompleteSeries", "Unvollständige Serien"],
     ["onlyUnownedFirstPrints", "Erstausgaben, die ich nicht besitze"],
+    ["onlyUnownedPublisherFirstPrints", "Verlagsinterne Erstausgaben, die ich nicht besitze"],
     ["onlyNewUsMaterial", "US-Material ab Startjahr 2025"],
     ["onlySellingList", "Verkaufsliste"],
     ["onlyFirstOfMonthRelease", "Erschienen am 01. des Monats"],

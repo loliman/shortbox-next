@@ -37,6 +37,7 @@ type RuntimeFilter = Filter & {
   onlyNeededIssues?: boolean;
   onlyIncompleteSeries?: boolean;
   onlyUnownedFirstPrints?: boolean;
+  onlyUnownedPublisherFirstPrints?: boolean;
   onlyNewUsMaterial?: boolean;
   onlySellingList?: boolean;
   onlyFirstOfMonthRelease?: boolean;
@@ -87,6 +88,7 @@ const supportedDirectFilterKeys = new Set([
   "onlyNeededIssues",
   "onlyIncompleteSeries",
   "onlyUnownedFirstPrints",
+  "onlyUnownedPublisherFirstPrints",
   "onlyNewUsMaterial",
   "onlySellingList",
   "onlyFirstOfMonthRelease",
@@ -1049,6 +1051,42 @@ async function resolveCustomFilterToIssueIds(filter: RuntimeFilter): Promise<num
     issueAndConditions.push({ id: { in: firstOfMonthIssueIds } });
   }
 
+  if (filter.onlyUnownedPublisherFirstPrints) {
+    // Find issues where:
+    // 1. The user does not own any variant (no_owned_variants = true)
+    // 2. The issue has at least one story with a parent (i.e. a German translation)
+    // 3. No other issue from the same publisher published the same parent story earlier
+    const publisherFirstPrintRows = await prisma.$queryRaw<Array<{ id: bigint }>>`
+      SELECT DISTINCT i.id
+      FROM shortbox.issue i
+      JOIN shortbox.story s ON s.fk_issue = i.id
+      JOIN (
+        SELECT fk_issue, MIN(releasedate) AS min_release
+        FROM shortbox.variant
+        GROUP BY fk_issue
+      ) v ON v.fk_issue = i.id
+      WHERE i.no_owned_variants = true
+        AND s.fk_parent IS NOT NULL
+        AND i.fk_publisher IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1
+          FROM shortbox.story s2
+          JOIN shortbox.issue i2 ON i2.id = s2.fk_issue
+          JOIN (
+            SELECT fk_issue, MIN(releasedate) AS min_release
+            FROM shortbox.variant
+            GROUP BY fk_issue
+          ) v2 ON v2.fk_issue = i2.id
+          WHERE s2.fk_parent = s.fk_parent
+            AND i2.fk_publisher = i.fk_publisher
+            AND i2.id != i.id
+            AND v2.min_release < v.min_release
+        )
+    `;
+    const publisherFirstPrintIssueIds = publisherFirstPrintRows.map((r) => r.id);
+    issueAndConditions.push({ id: { in: publisherFirstPrintIssueIds } });
+  }
+
   if (hasCrossFilter) {
     if (isUsMode) {
       const parentStoryIds = otherStories.map(s => s.fkParent).filter((id): id is bigint => id != null);
@@ -1257,7 +1295,8 @@ const resolveFilterStateCached = cache(
       (filter as RuntimeFilter).onlyIssuesWithMultipleCollectedVariants ||
       (filter as RuntimeFilter).onlyIncompleteSeries ||
       (filter as RuntimeFilter).onlyFirstOfMonthRelease ||
-      (filter as RuntimeFilter).onlySellingList
+      (filter as RuntimeFilter).onlySellingList ||
+      (filter as RuntimeFilter).onlyUnownedPublisherFirstPrints
     );
 
     if (hasIdListFilter) {

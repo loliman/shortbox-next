@@ -53,6 +53,7 @@ export interface FilterValues {
   onlyNeededIssues: boolean;
   onlyIncompleteSeries: boolean;
   onlyUnownedFirstPrints: boolean;
+  onlyUnownedPublisherFirstPrints: boolean;
   onlyNewUsMaterial: boolean;
   onlySellingList: boolean;
   onlyFirstOfMonthRelease: boolean;
@@ -107,6 +108,7 @@ export interface FilterSubmitValues {
   onlyNeededIssues?: boolean;
   onlyIncompleteSeries?: boolean;
   onlyUnownedFirstPrints?: boolean;
+  onlyUnownedPublisherFirstPrints?: boolean;
   onlyNewUsMaterial?: boolean;
   onlySellingList?: boolean;
   onlyFirstOfMonthRelease?: boolean;

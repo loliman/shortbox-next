@@ -615,5 +615,24 @@ describe("buildDirectIssueFilterWhere – new custom filter flags", () => {
       },
     });
   });
+
+  it("should_not_emit_direct_where_conditions_for_onlyUnownedPublisherFirstPrints", () => {
+    // onlyUnownedPublisherFirstPrints is resolved via SQL in resolveCustomFilterToIssueIds,
+    // not via buildDirectIssueFilterWhere. The direct filter should still return non-null
+    // (i.e. not bail out), but must not contain any has* clause for this flag.
+    const where = buildDirectIssueFilterWhere({
+      onlyUnownedPublisherFirstPrints: true,
+      us: false,
+    }) as WhereWithAggregates | null;
+
+    // The function should produce a valid WHERE (not null/empty) so pagination works
+    expect(where).not.toBeNull();
+
+    // No hasFirstPrint or similar aggregate clause should be emitted for this flag
+    const aggregates = aggregateClauses(where as WhereWithAggregates);
+    expect(aggregates).not.toContainEqual(
+      expect.objectContaining({ hasFirstPrint: expect.anything() })
+    );
+  });
 });
 
