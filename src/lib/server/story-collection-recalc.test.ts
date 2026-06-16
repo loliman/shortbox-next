@@ -295,6 +295,8 @@ describe("Story collection recalculation", () => {
       },
     });
 
+    await handleIssueWriteEffects(deIssue2.id, prisma);
+
     try {
       let sA = await prisma.story.findUnique({ where: { id: usStoryId } });
       let sB = await prisma.story.findUnique({ where: { id: usStory2.id } });
@@ -305,6 +307,9 @@ describe("Story collection recalculation", () => {
       expect(sB?.collected).toBe(false);
       expect(sC?.collected).toBe(false);
       expect(sD?.collected).toBe(false);
+
+      let issue2 = await prisma.issue.findUnique({ where: { id: deIssue2.id } });
+      expect(issue2?.notOwnedUsMaterial).toBe(true);
 
       // 1. Collect deVariant (containing deStory C)
       await prisma.variant.update({
@@ -328,6 +333,9 @@ describe("Story collection recalculation", () => {
       expect(sC?.collectedMultipleTimes).toBe(false);
       expect(sD?.collectedMultipleTimes).toBe(false);
 
+      issue2 = await prisma.issue.findUnique({ where: { id: deIssue2.id } });
+      expect(issue2?.notOwnedUsMaterial).toBe(false);
+
       // 2. Collect deVariant2 (containing deStory2 D)
       await prisma.variant.update({
         where: { id: deVariant2.id },
@@ -349,6 +357,9 @@ describe("Story collection recalculation", () => {
       expect(sB?.collectedMultipleTimes).toBe(true);
       expect(sC?.collectedMultipleTimes).toBe(true);
       expect(sD?.collectedMultipleTimes).toBe(true);
+
+      issue2 = await prisma.issue.findUnique({ where: { id: deIssue2.id } });
+      expect(issue2?.notOwnedUsMaterial).toBe(false);
 
       // 3. Uncollect deVariant C
       await prisma.variant.update({
@@ -372,6 +383,9 @@ describe("Story collection recalculation", () => {
       expect(sC?.collectedMultipleTimes).toBe(false);
       expect(sD?.collectedMultipleTimes).toBe(false);
 
+      issue2 = await prisma.issue.findUnique({ where: { id: deIssue2.id } });
+      expect(issue2?.notOwnedUsMaterial).toBe(false);
+
       // 4. Uncollect deVariant2 D
       await prisma.variant.update({
         where: { id: deVariant2.id },
@@ -393,6 +407,9 @@ describe("Story collection recalculation", () => {
       expect(sB?.collectedMultipleTimes).toBe(false);
       expect(sC?.collectedMultipleTimes).toBe(false);
       expect(sD?.collectedMultipleTimes).toBe(false);
+
+      issue2 = await prisma.issue.findUnique({ where: { id: deIssue2.id } });
+      expect(issue2?.notOwnedUsMaterial).toBe(true);
     } finally {
       await prisma.story.deleteMany({
         where: { id: { in: [usStory2.id, deStory2.id] } },

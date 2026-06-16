@@ -83,6 +83,7 @@ export async function recalculateCollectionFlagsForIssues(
         number: issue.number,
       },
       select: {
+        id: true,
         variants: {
           select: { collected: true },
         },
@@ -93,6 +94,7 @@ export async function recalculateCollectionFlagsForIssues(
       sib.variants.some(v => v.collected === true)
     );
     const noOwnedVariants = !anySiblingCollected;
+    const siblingIssueIds = siblingIssues.map(sib => sib.id);
 
     const parentIds = issue.stories
       .map(s => s.fkParent)
@@ -103,9 +105,55 @@ export async function recalculateCollectionFlagsForIssues(
     let notOwnedUsMaterial = false;
 
     if (parentIds.length > 0) {
+      const allParentIds = await resolveRecursiveRelatedParentIds(parentIds, tx);
+
+      // Fetch all stories for allParentIds to get their id and fkReprint
+      const storiesInFamilies = await tx.story.findMany({
+        where: { id: { in: allParentIds } },
+        select: { id: true, fkReprint: true },
+      });
+
+      const adjacency = new Map<bigint, Set<bigint>>();
+      for (const story of storiesInFamilies) {
+        const id = story.id;
+        if (!adjacency.has(id)) adjacency.set(id, new Set());
+        if (story.fkReprint != null) {
+          const reprintId = story.fkReprint;
+          if (!adjacency.has(reprintId)) adjacency.set(reprintId, new Set());
+          adjacency.get(id)!.add(reprintId);
+          adjacency.get(reprintId)!.add(id);
+        }
+      }
+
+      const componentMap = new Map<bigint, Set<bigint>>();
+      const visited = new Set<bigint>();
+      for (const id of allParentIds) {
+        if (visited.has(id)) continue;
+        const component = new Set<bigint>();
+        const queue = [id];
+        visited.add(id);
+        while (queue.length > 0) {
+          const current = queue.shift()!;
+          component.add(current);
+          const neighbors = adjacency.get(current);
+          if (neighbors) {
+            for (const neighbor of neighbors) {
+              if (!visited.has(neighbor)) {
+                visited.add(neighbor);
+                queue.push(neighbor);
+              }
+            }
+          }
+        }
+        for (const compId of component) {
+          componentMap.set(compId, component);
+        }
+      }
+
       const collectedUsStories = await tx.story.findMany({
         where: {
-          id: { in: parentIds },
+          id: { in: allParentIds },
+          fkIssue: { notIn: siblingIssueIds },
           issue: {
             variants: { some: { collected: true } },
             series: { publisher: { original: true } },
@@ -113,11 +161,11 @@ export async function recalculateCollectionFlagsForIssues(
         },
         select: { id: true },
       });
-      const collectedUsParentIds = new Set(collectedUsStories.map(s => s.id));
 
       const collectedDeStories = await tx.story.findMany({
         where: {
-          fkParent: { in: parentIds },
+          fkParent: { in: allParentIds },
+          fkIssue: { notIn: siblingIssueIds },
           issue: {
             variants: { some: { collected: true } },
             series: { publisher: { original: false } },
@@ -125,7 +173,6 @@ export async function recalculateCollectionFlagsForIssues(
         },
         select: {
           fkParent: true,
-          fkIssue: true,
           issue: {
             select: {
               series: {
@@ -144,10 +191,13 @@ export async function recalculateCollectionFlagsForIssues(
       for (const story of issue.stories) {
         const parentId = story.fkParent;
         if (parentId == null) continue;
-        const isOwnedInUs = collectedUsParentIds.has(parentId);
+
+        const component = componentMap.get(parentId) ?? new Set([parentId]);
+
+        const isOwnedInUs = collectedUsStories.some(s => component.has(s.id));
 
         const isOwnedInOtherDe = collectedDeStories.some(de =>
-          de.fkParent === parentId && de.fkIssue !== issue.id
+          component.has(de.fkParent!)
         );
 
         if (!isOwnedInUs && !isOwnedInOtherDe) {
@@ -155,8 +205,7 @@ export async function recalculateCollectionFlagsForIssues(
         }
 
         const isOwnedInSamePublisherDe = collectedDeStories.some(de =>
-          de.fkParent === parentId &&
-          de.fkIssue !== issue.id &&
+          component.has(de.fkParent!) &&
           getNormalizedPublisherGroup(de.issue?.series?.publisher?.name) === publisherGroup
         );
 
@@ -167,38 +216,10 @@ export async function recalculateCollectionFlagsForIssues(
 
       doubleCollected = allOwnedElsewhere;
       doublePublisherCollected = allOwnedPublisherElsewhere;
-    }
-
-    if (parentIds.length > 0) {
-      const collectedUsStories = await tx.story.findMany({
-        where: {
-          id: { in: parentIds },
-          issue: {
-            variants: { some: { collected: true } },
-            series: { publisher: { original: true } },
-          },
-        },
-        select: { id: true },
-      });
-      const collectedUsParentIds = new Set(collectedUsStories.map(s => s.id));
-
-      const collectedDeStories = await tx.story.findMany({
-        where: {
-          fkParent: { in: parentIds },
-          issue: {
-            variants: { some: { collected: true } },
-          },
-        },
-        select: { fkParent: true },
-      });
-      const collectedDeParentIds = new Set(collectedDeStories.map(s => s.fkParent!));
 
       const hasUnownedUsMaterial = issue.stories.some(story => {
         if (story.fkParent === null) return false;
-        const parentId = story.fkParent;
-        const ownedUs = collectedUsParentIds.has(parentId);
-        const ownedDe = collectedDeParentIds.has(parentId);
-        return !ownedUs && !ownedDe;
+        return !story.collected;
       });
 
       notOwnedUsMaterial = hasUnownedUsMaterial;
@@ -355,12 +376,11 @@ export async function handleIssueWriteEffects(
   });
 
   const familyIds = Array.from(new Set(stories.map(s => s.fkParent ?? s.id)));
-  await recalculateStoryCollectionFlagsForFamilies(familyIds, tx);
+  
+  // Resolve all recursively connected parent IDs across reprint chains
+  const allParentIds = await resolveRecursiveRelatedParentIds(familyIds, tx);
 
-  const parentIds = stories
-    .map(s => s.fkParent)
-    .filter((id): id is bigint => id != null);
-  const ownStoryIds = stories.map(s => s.id);
+  await recalculateStoryCollectionFlagsForFamilies(familyIds, tx);
 
   const issue = await tx.issue.findUnique({
     where: { id: issueId },
@@ -376,12 +396,12 @@ export async function handleIssueWriteEffects(
       OR: [
         { id: issueId },
         ...(fkSeries !== null ? [{ fkSeries, number }] : []),
-        ...(parentIds.length > 0 || ownStoryIds.length > 0
+        ...(allParentIds.length > 0
           ? [
               {
                 stories: {
                   some: {
-                    fkParent: { in: [...parentIds, ...ownStoryIds] },
+                    fkParent: { in: allParentIds },
                   },
                 },
               },
