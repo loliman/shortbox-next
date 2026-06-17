@@ -11,6 +11,7 @@ type AdminTaskRun = {
   startedAt: string;
   finishedAt: string | null;
   dryRun: boolean;
+  triggeredBy: "cron" | "manual";
   status: "SUCCESS" | "FAILED";
   summary: string;
   details: string | null;
@@ -84,6 +85,7 @@ function mapResultRowToRun(
     startedAt: toIso(row.created_at) || new Date().toISOString(),
     finishedAt: isPending ? null : toIso(row.created_at),
     dryRun: parsed.dryRun,
+    triggeredBy: parsed.triggeredBy,
     status: parsed.status,
     summary: parsed.summary,
     details: parsed.details,
@@ -95,6 +97,7 @@ function parseTaskResult(resultJson: string) {
     const parsed = JSON.parse(resultJson) as {
       status?: unknown;
       dryRun?: unknown;
+      triggeredBy?: unknown;
       summary?: unknown;
       details?: unknown;
     };
@@ -102,6 +105,7 @@ function parseTaskResult(resultJson: string) {
     return {
       status: parsed.status === "FAILED" ? ("FAILED" as const) : ("SUCCESS" as const),
       dryRun: Boolean(parsed.dryRun),
+      triggeredBy: parsed.triggeredBy === "cron" ? ("cron" as const) : ("manual" as const),
       summary: toSummaryText(parsed.summary),
       details: toDetailsText(parsed.details),
       workerState: extractWorkerState(parsed.details),
@@ -110,6 +114,7 @@ function parseTaskResult(resultJson: string) {
     return {
       status: "SUCCESS" as const,
       dryRun: false,
+      triggeredBy: "manual" as const,
       summary: "Task completed",
       details: resultJson,
       workerState: null,
@@ -142,6 +147,7 @@ function mapQueuedRowToRun(
     startedAt: toIso(row.run_at) || toIso(row.created_at) || new Date().toISOString(),
     finishedAt: null,
     dryRun,
+    triggeredBy: "manual" as const,
     status: row.last_error ? "FAILED" : "SUCCESS",
     summary,
     details: JSON.stringify(

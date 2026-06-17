@@ -6,6 +6,7 @@ import type { RebuildSearchIndexTaskPayload } from "../task-registry";
 const task: Task = async (rawPayload, helpers) => {
   const payload = (rawPayload ?? {}) as RebuildSearchIndexTaskPayload;
   const dryRun = Boolean(payload?.dryRun);
+  const triggeredBy = (rawPayload as Record<string, unknown>)?._cron ? "cron" : "manual";
 
   try {
     const report = await runRebuildSearchIndex({ dryRun });
@@ -15,6 +16,7 @@ const task: Task = async (rawPayload, helpers) => {
 
     await persistTaskResult(helpers, "rebuild-search-index", {
       status: "SUCCESS",
+      triggeredBy,
       dryRun: report.dryRun,
       summary:
         `totalRows=${report.totalRows}, publishers=${report.publisherRows}, ` +
@@ -27,6 +29,7 @@ const task: Task = async (rawPayload, helpers) => {
     const message = error instanceof Error ? error.message : String(error);
     await persistTaskResult(helpers, "rebuild-search-index", {
       status: "FAILED",
+      triggeredBy,
       dryRun,
       summary: message,
       details: {

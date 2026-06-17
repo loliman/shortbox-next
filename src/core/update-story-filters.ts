@@ -4,10 +4,12 @@ import { handleIssueWriteEffects } from "../lib/server/issue-materialize-write";
 import { env } from "../lib/env";
 
 const DEFAULT_BATCH_SIZE = 250;
+const DEFAULT_PARALLEL_CONCURRENCY = 5;
 
 export type UpdateStoryFiltersOptions = {
   dryRun?: boolean;
   batchSize?: number;
+  parallelConcurrency?: number;
 };
 
 export type UpdateStoryFiltersReport = {
@@ -35,11 +37,37 @@ const chunk = <T>(items: T[], size: number): T[][] => {
   return chunks;
 };
 
+/**
+ * Processes a slice of issue IDs in parallel, in groups of `concurrency`.
+ * The outer batch loop remains sequential to keep DB connections bounded.
+ */
+async function processIssueIds(issueIds: number[], concurrency: number): Promise<number> {
+  let processed = 0;
+  const slots = chunk(issueIds, concurrency);
+
+  for (const slot of slots) {
+    await Promise.all(
+      slot.map(async (issueId) => {
+        console.log(`Processing issue ID: ${issueId}`);
+        await updateStoryFilterFlagsForIssue(issueId);
+        await handleIssueWriteEffects(BigInt(issueId), prisma);
+      })
+    );
+    processed += slot.length;
+  }
+
+  return processed;
+}
+
 export async function runUpdateStoryFilters(
   options?: UpdateStoryFiltersOptions
 ): Promise<UpdateStoryFiltersReport | null> {
   const dryRun = Boolean(options?.dryRun);
   const batchSize = resolveBatchSize(options?.batchSize);
+  const parallelConcurrency =
+    typeof options?.parallelConcurrency === "number" && options.parallelConcurrency > 0
+      ? Math.trunc(options.parallelConcurrency)
+      : DEFAULT_PARALLEL_CONCURRENCY;
   const startedAt = new Date().toISOString();
 
   try {
@@ -64,12 +92,7 @@ export async function runUpdateStoryFilters(
       if (dryRun) {
         processed += batch.length;
       } else {
-        for (const issueId of batch) {
-          console.log(`Processing issue ID: ${issueId}`);
-          await updateStoryFilterFlagsForIssue(issueId);
-          await handleIssueWriteEffects(BigInt(issueId), prisma);
-          processed += 1;
-        }
+        processed += await processIssueIds(batch, parallelConcurrency);
       }
     }
 

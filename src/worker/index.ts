@@ -27,6 +27,12 @@ export async function startWorker(): Promise<void> {
     connectionString: resolveConnectionString(),
     concurrency: env.WORKER_CONCURRENCY,
     taskList: loadTaskList(),
+    // Stündlich zur vollen Stunde (UTC). max=1 verhindert Retry-Stapel bei Fehlern.
+    crontab: [
+      `0 * * * * update-story-badges     ?id=cron-story-badges&max=1`,
+      `0 * * * * update-de-series-genres  ?id=cron-series-genres&max=1`,
+      `0 * * * * rebuild-search-index     ?id=cron-search-index&max=1`,
+    ].join("\n"),
   });
 
   console.log("Graphile worker started");

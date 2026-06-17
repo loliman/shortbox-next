@@ -76,6 +76,7 @@ type RunLike = {
   taskKey?: string | null;
   taskName?: string | null;
   dryRun?: boolean | null;
+  triggeredBy?: string | null;
   status?: string | null;
   summary?: string | null;
   details?: string | null;
@@ -609,6 +610,14 @@ function AdminTasksPage(props: Readonly<AdminTasksProps>) {
                                   sx={{ flexShrink: 0 }}
                                   label={run?.dryRun ? "Dry" : "Live"}
                               />
+                              {run?.triggeredBy === "cron" ? (
+                                <Chip
+                                  size="small"
+                                  variant="outlined"
+                                  label="Cron"
+                                  sx={{ flexShrink: 0, fontStyle: "italic" }}
+                                />
+                              ) : null}
                               <Typography
                                 variant="body2"
                                 sx={{

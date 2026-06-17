@@ -6,6 +6,7 @@ import { CleanupTaskPayload } from "../task-registry";
 const task: Task = async (rawPayload, helpers) => {
   const payload = (rawPayload ?? {}) as CleanupTaskPayload;
   const dryRun = Boolean(payload?.dryRun);
+  const triggeredBy = (rawPayload as Record<string, unknown>)?._cron ? "cron" : "manual";
 
   try {
     const report = await runCleanup({ dryRun });
@@ -15,6 +16,7 @@ const task: Task = async (rawPayload, helpers) => {
 
     await persistTaskResult(helpers, "cleanup-db", {
       status: "SUCCESS",
+      triggeredBy,
       dryRun: report.dryRun,
       summary: `affected=${report.totalAffected}, stages=${report.stages.length}, dryRun=${report.dryRun}`,
       details: {
@@ -25,6 +27,7 @@ const task: Task = async (rawPayload, helpers) => {
     const message = error instanceof Error ? error.message : String(error);
     await persistTaskResult(helpers, "cleanup-db", {
       status: "FAILED",
+      triggeredBy,
       dryRun,
       summary: message,
       details: {

@@ -6,6 +6,7 @@ import type { UpdateStoryFiltersTaskPayload } from "../task-registry";
 const task: Task = async (rawPayload, helpers) => {
   const payload = (rawPayload ?? {}) as UpdateStoryFiltersTaskPayload;
   const dryRun = Boolean(payload?.dryRun);
+  const triggeredBy = (rawPayload as Record<string, unknown>)?._cron ? "cron" : "manual";
 
   try {
     const report = await runUpdateStoryFilters({
@@ -19,6 +20,7 @@ const task: Task = async (rawPayload, helpers) => {
 
     await persistTaskResult(helpers, "update-story-badges", {
       status: "SUCCESS",
+      triggeredBy,
       dryRun: report.dryRun,
       summary: `processed=${report.processed}/${report.issueCount}, batches=${report.batchCount}, dryRun=${report.dryRun}`,
       details: {
@@ -29,6 +31,7 @@ const task: Task = async (rawPayload, helpers) => {
     const message = error instanceof Error ? error.message : String(error);
     await persistTaskResult(helpers, "update-story-badges", {
       status: "FAILED",
+      triggeredBy,
       dryRun,
       summary: message,
       details: {
