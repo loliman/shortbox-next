@@ -28,6 +28,7 @@ export interface IssueEditorFormValues {
   isbn?: string;
   arcs?: Array<Record<string, unknown>>;
   stories: Array<Record<string, unknown>>;
+  storyString?: string;
   copyBatch: {
     enabled: boolean;
     count: number | string;

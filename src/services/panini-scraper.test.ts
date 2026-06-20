@@ -240,6 +240,37 @@ describe("scrapePaniniIssue – HTML parsing", () => {
     expect(data.penciler).toBe("Sal Buscema");
   });
 
+  it("should parse variant and limitation correctly if present", async () => {
+    const variantHtml = `
+      <html>
+        <body>
+          <h1 class="page-title"><span>Spider-Man Noir Hardcover-Variant A</span></h1>
+          <p class="product-limited-edition">
+            <strong>Limitierte Auflage, nur 222 Exemplare erhältlich</strong>
+          </p>
+          <ul class="product-info-main">
+            <li class="item pnn_pages_number">
+              <strong class="label">Seitenzahl:</strong>
+              <span class="data">120</span>
+            </li>
+          </ul>
+        </body>
+      </html>
+    `;
+    mockRequest.mockResolvedValueOnce(makeResponse(variantHtml));
+
+    const result = await scrapePaniniIssue(VALID_URL);
+    expect(result.error).toBeUndefined();
+    expect(result.data).toBeDefined();
+
+    const data = result.data!;
+    expect(data.title).toBe("Spider-Man Noir Hardcover-Variant A");
+    expect(data.seriesTitle).toBe("Spider-Man Noir");
+    expect(data.variant).toBe("Hardcover-Variant A");
+    expect(data.limitation).toBe("222");
+    expect(data.pages).toBe(120);
+  });
+
   it("should handle network errors gracefully", async () => {
     mockRequest.mockRejectedValueOnce(Object.assign(new Error("ENOTFOUND"), { code: "ENOTFOUND" }));
     mockRequest.mockRejectedValueOnce(Object.assign(new Error("ENOTFOUND"), { code: "ENOTFOUND" }));

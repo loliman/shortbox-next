@@ -15,6 +15,8 @@ export interface PaniniScrapedIssue {
   price?: string;
   writer?: string;
   penciler?: string;
+  variant?: string;
+  limitation?: string;
 }
 
 export interface PaniniScrapeResult {
@@ -93,9 +95,13 @@ function parseProductPage(html: string, url: string): PaniniScrapeResult {
   const details = extractDetails($);
   const releasedate = parseReleaseDate(details.erscheinungsdatum ?? "");
 
+  const variant = extractVariantName(title);
+  const seriesTitle = cleanSeriesTitle(title, variant);
+  const limitation = extractLimitation($);
+
   const data: PaniniScrapedIssue = {
     title,
-    seriesTitle: title,
+    seriesTitle,
     isbn: normalizeIsbn(details.isbn ?? ""),
     pages: parseIntSafe(details.seiten ?? ""),
     releasedate,
@@ -103,6 +109,8 @@ function parseProductPage(html: string, url: string): PaniniScrapeResult {
     price: details.preis,
     writer: details.autor,
     penciler: details.zeichner,
+    variant: variant || undefined,
+    limitation: limitation || undefined,
   };
 
   return { data };
@@ -333,6 +341,32 @@ function parseIntSafe(raw: string): number {
 
 function ws(s: string) {
   return s.replaceAll(/\s+/g, " ").trim();
+}
+
+function extractVariantName(title: string): string {
+  const match = /(?:Hardcover-)?Variant(?:\s+[A-Z0-9]+)?/i.exec(title);
+  return match ? match[0].trim() : "";
+}
+
+function cleanSeriesTitle(title: string, variantName: string): string {
+  if (!variantName) return title;
+  const escaped = variantName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  let clean = title.replace(new RegExp(`\\s*[-–—]?\\s*${escaped}\\s*`, "i"), "").trim();
+  clean = clean.replace(/\s*\(\s*\)\s*/g, "").trim();
+  clean = clean.replace(/\s*[-–—,]\s*$/, "").trim();
+  return clean;
+}
+
+function extractLimitation($: ReturnType<typeof cheerio.load>): string {
+  const el = $(".product-limited-edition, .limited-edition").first();
+  if (!el.length) return "";
+  const text = el.text().trim();
+  const match = /(\d+)\s*(?:Exemplare|Copies|Stück)/i.exec(text);
+  if (match) {
+    return match[1];
+  }
+  const numMatch = /\d+/.exec(text);
+  return numMatch ? numMatch[0] : "";
 }
 
 /* ==================

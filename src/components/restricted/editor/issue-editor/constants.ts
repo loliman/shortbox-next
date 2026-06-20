@@ -40,6 +40,7 @@ export function createEmptyIssueValues(): IssueEditorFormValues {
     isbn: "",
     arcs: [],
     stories: [],
+    storyString: "",
     copyBatch: {
       enabled: false,
       count: 1,

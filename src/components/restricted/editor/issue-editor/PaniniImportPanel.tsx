@@ -181,7 +181,11 @@ function applyImportedData(
   if (data.pages) setFieldValue("pages", data.pages, false);
   if (data.releasedate) setFieldValue("releasedate", data.releasedate, false);
 
+  if (data.variant) setFieldValue("variant", data.variant, false);
+  if (data.limitation) setFieldValue("limitation", data.limitation, false);
+
   if (data.containsRaw) {
+    setFieldValue("storyString", data.containsRaw, false);
     const storyItems = buildStoryItemsFromContains(data.containsRaw);
     if (storyItems.length > 0) {
       setFieldValue("stories", storyItems, false);
@@ -240,6 +244,8 @@ function buildSuccessMessage(data: PaniniScrapedIssue): string {
   if (data.isbn) parts.push(`ISBN: ${data.isbn}`);
   if (data.pages) parts.push(`${data.pages} Seiten`);
   if (data.releasedate) parts.push(`Erscheint: ${data.releasedate}`);
+  if (data.variant) parts.push(`Variante: ${data.variant}`);
+  if (data.limitation) parts.push(`Limitierung: ${data.limitation}`);
 
   const storyCount = data.containsRaw
     ? parseStoryReferences(normalizePaniniContainsString(data.containsRaw)).references.length
