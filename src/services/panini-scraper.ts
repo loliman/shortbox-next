@@ -157,12 +157,12 @@ function extractDetails($: ReturnType<typeof cheerio.load>): ProductDetails {
     });
   }
 
-  // Strategy 3: Generic labeled rows
+  // Strategy 3: Generic labeled rows or list items (newer Panini layout)
   if (!hasAnyDetail(details)) {
-    $(".product-info-attributes .item, .product-detail .row, .product-info-detailed .item").each(
+    $("li.item, .product-info-attributes .item, .product-detail .row, .product-info-detailed .item").each(
       (_, el) => {
         const label = ws($(el).find(".label, .title, strong, th").first().text()).toLowerCase();
-        const value = ws($(el).find(".data, .value, td").text());
+        const value = ws($(el).find(".data, .value, td").first().text());
         mapDetailLabel(details, label, value);
       }
     );
@@ -209,7 +209,10 @@ function mapDetailLabel(details: ProductDetails, label: string, value: string) {
     label.includes("enthält") ||
     label.includes("enthalt") ||
     label.includes("inhalt") ||
-    label.includes("beinhaltet")
+    label.includes("beinhaltet") ||
+    label.includes("story") ||
+    label.includes("stories") ||
+    label.includes("storys")
   ) {
     details.enthaelt ??= value;
   } else if (label.includes("preis") || label.includes("price")) {
@@ -341,25 +344,73 @@ async function requestTextWithRetry(url: string): Promise<{ statusCode: number; 
 
   for (let attempt = 0; attempt < HTTP_MAX_ATTEMPTS; attempt += 1) {
     try {
-      const res = await request(url, {
-        headers: {
+      const cookieJar = new Map<string, string>();
+      let currentUrl = url;
+      let responseText = "";
+      let statusCode = 200;
+
+      // Follow redirects manually to handle Queue-it logic and preserve cookies
+      for (let redirectCount = 0; redirectCount < 10; redirectCount += 1) {
+        const parsedUrl = new URL(currentUrl);
+        const host = parsedUrl.hostname;
+
+        const cookieHeaders: string[] = [];
+        for (const [key, value] of cookieJar.entries()) {
+          if (host.includes("panini.de")) {
+            cookieHeaders.push(`${key}=${value}`);
+          }
+        }
+
+        const headers: Record<string, string> = {
           "user-agent": USER_AGENT,
           accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
           "accept-language": "de-DE,de;q=0.9",
-        },
-        maxRedirections: 5,
-      });
-      const text = await res.body.text();
+        };
+        if (cookieHeaders.length > 0) {
+          headers["cookie"] = cookieHeaders.join("; ");
+        }
+
+        const res = await request(currentUrl, {
+          headers,
+        });
+
+        statusCode = res.statusCode;
+
+        // Parse set-cookie
+        const setCookieHeaders = res.headers["set-cookie"];
+        if (setCookieHeaders) {
+          const array = Array.isArray(setCookieHeaders) ? setCookieHeaders : [setCookieHeaders];
+          for (const cookieStr of array) {
+            const parts = cookieStr.split(";")[0].split("=");
+            if (parts.length >= 2) {
+              const name = parts[0].trim();
+              const value = parts.slice(1).join("=").trim();
+              cookieJar.set(name, value);
+            }
+          }
+        }
+
+        const isRedirect = [301, 302, 303, 307, 308].includes(statusCode);
+        const location = res.headers["location"];
+
+        if (isRedirect && typeof location === "string") {
+          currentUrl = new URL(location, currentUrl).toString();
+          continue;
+        }
+
+        responseText = await res.body.text();
+        break;
+      }
 
       if (
         attempt + 1 < HTTP_MAX_ATTEMPTS &&
-        RETRYABLE_HTTP_STATUS_CODES.has(res.statusCode)
+        RETRYABLE_HTTP_STATUS_CODES.has(statusCode)
       ) {
         await wait(HTTP_RETRY_DELAY_MS);
         continue;
       }
 
-      return { statusCode: res.statusCode, text };
+      return { statusCode, text: responseText };
     } catch (error) {
       lastError = error;
       if (
