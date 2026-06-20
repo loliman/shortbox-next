@@ -347,6 +347,7 @@ async function requestTextWithRetry(url: string): Promise<{ statusCode: number; 
           accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
           "accept-language": "de-DE,de;q=0.9",
         },
+        maxRedirections: 5,
       });
       const text = await res.body.text();
 
