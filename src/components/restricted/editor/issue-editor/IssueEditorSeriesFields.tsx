@@ -12,11 +12,13 @@ import {
   getPublisherOptionKey,
   getSeriesOptionKey,
 } from "../../../generic/autocompleteOptionKeys";
+import PaniniImportPanel from "./PaniniImportPanel";
 
 interface IssueEditorSeriesFieldsProps {
   values: IssueEditorFormValues;
   setFieldValue: (field: string, value: unknown, shouldValidate?: boolean) => void;
   showHints?: boolean;
+  edit?: boolean;
   lockedFields?: {
     title?: boolean;
     publisher?: boolean;
@@ -46,6 +48,7 @@ function IssueEditorSeriesFields({
   values,
   setFieldValue,
   showHints = true,
+  edit,
   lockedFields,
 }: Readonly<IssueEditorSeriesFieldsProps>) {
   const formik = useFormikContext<IssueEditorFormValues>();
@@ -111,6 +114,10 @@ function IssueEditorSeriesFields({
 
   return (
     <Grid container spacing={2}>
+      <Grid size={12}>
+        <PaniniImportPanel values={values} edit={edit} setFieldValue={setFieldValue} />
+      </Grid>
+
       <Grid size={{ xs: 12, md: 8 }}>
         <FastField disabled={titleLocked} name="title" label="Titel" component={TextField} fullWidth />
       </Grid>

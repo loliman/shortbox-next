@@ -93,6 +93,7 @@ function IssueEditorFormContent(props: Readonly<IssueEditorFormContentProps>) {
           values={values}
           setFieldValue={setFieldValue}
           showHints={showHints}
+          edit={edit}
           lockedFields={lockedFields}
         />
       </IssueEditorSection>
