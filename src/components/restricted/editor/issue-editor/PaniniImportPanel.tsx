@@ -228,6 +228,7 @@ function buildStoryItemsFromContains(containsRaw: string): FieldItem[] {
  */
 function normalizePaniniContainsString(raw: string): string {
   return raw
+    .replace(/\s*\((?!\d{4}\b)[^)]+\)/g, "") // remove parenthesized annotations that are not 4-digit years (e.g. (I), (Part 1))
     .replaceAll(/\s*\(\d{4}\)\s*/g, " ") // remove (year)
     .replaceAll(/\s*&\s*/g, ", ") // & → ,
     .trim();
