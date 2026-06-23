@@ -576,7 +576,7 @@ function attachCollectionContext(page: PdfLayoutPage, anchors: PreviewImportLayo
 }
 
 function selectCollectionTitleRows(page: PdfLayoutPage) {
-  const collectionRowIndex = page.rows.findIndex((row) => /\bCOLLECTION\b/i.test(row.text));
+  const collectionRowIndex = page.rows.findIndex((row) => /\b(?:COLLECTION|CHRONIKEN|ORIGINS|KLASSIKER)\b/i.test(row.text));
   if (collectionRowIndex < 0) return [];
 
   const collectionRow = page.rows[collectionRowIndex];
@@ -586,9 +586,17 @@ function selectCollectionTitleRows(page: PdfLayoutPage) {
   for (let index = collectionRowIndex - 1; index >= 0; index -= 1) {
     const candidate = page.rows[index];
     if (!candidate) continue;
-    if (collectionRow.y - candidate.y > 48) break;
+    if (Math.abs(collectionRow.y - candidate.y) > 48) break;
     if (!isTitleLikeRow(candidate)) continue;
     rows.unshift(candidate);
+    break;
+  }
+  for (let index = collectionRowIndex + 1; index < page.rows.length; index += 1) {
+    const candidate = page.rows[index];
+    if (!candidate) continue;
+    if (Math.abs(collectionRow.y - candidate.y) > 48) break;
+    if (!isTitleLikeRow(candidate)) continue;
+    rows.push(candidate);
     break;
   }
 
@@ -604,13 +612,42 @@ function normalizeLooseSearchValue(value: string) {
 }
 
 function hasCollectionTitleAffinity(collectionTitle: string, title: string) {
+  const cleanTitle = title.toLowerCase();
+  if (/\b(?:band|vol|volume)\b/i.test(cleanTitle)) {
+    return true;
+  }
+
   const collectionTokens = tokenizeCollectionContext(collectionTitle);
   const titleTokens = tokenizeCollectionContext(title);
   if (collectionTokens.length === 0 || titleTokens.length === 0) return false;
 
-  const collectionSet = new Set(collectionTokens);
-  const sharedTokenCount = titleTokens.filter((token) => collectionSet.has(token)).length;
+  let sharedTokenCount = 0;
+  for (const tToken of titleTokens) {
+    if (collectionTokens.some((cToken) => areSimilarTitleTokens(cToken, tToken))) {
+      sharedTokenCount += 1;
+    }
+  }
+
   return sharedTokenCount >= Math.min(2, titleTokens.length);
+}
+
+function areSimilarTitleTokens(left: string, right: string) {
+  const cleanLeft = left.toLocaleLowerCase("de-DE").replaceAll(/[^a-z0-9äöüß]/g, "");
+  const cleanRight = right.toLocaleLowerCase("de-DE").replaceAll(/[^a-z0-9äöüß]/g, "");
+  if (!cleanLeft || !cleanRight) return false;
+  if (cleanLeft === cleanRight) return true;
+  if (
+    Math.min(cleanLeft.length, cleanRight.length) >= 3 &&
+    (cleanLeft.includes(cleanRight) || cleanRight.includes(cleanLeft))
+  ) {
+    return true;
+  }
+  if (cleanLeft.length >= 5 && cleanRight.length >= 5) {
+    if (cleanLeft.slice(-5) === cleanRight.slice(-5)) return true;
+    if (cleanLeft.slice(0, 5) === cleanRight.slice(0, 5)) return true;
+  }
+
+  return false;
 }
 
 function tokenizeCollectionContext(value: string) {

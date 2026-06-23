@@ -200,6 +200,7 @@ function shouldUseLayoutAnchor(
     titleRows: Array<{ text: string }>;
     contentRow: { text: string } | null;
     confidence: number;
+    collectionTitleText?: string;
   }
 ) {
   const titleText = normalizeTitle(anchor.titleText);
@@ -208,7 +209,13 @@ function shouldUseLayoutAnchor(
     usesMultiColumnPattern
     && !anchor.contentRow?.text
     && anchor.titleRows.length >= 2;
-  const minimumConfidence = groupedIssueTitle ? 3 : isMultiRowTitleOnlyAnchor ? 2 : 4;
+  const minimumConfidence = groupedIssueTitle
+    ? 3
+    : anchor.collectionTitleText
+      ? 2
+      : isMultiRowTitleOnlyAnchor
+        ? 2
+        : 4;
   if (anchor.confidence < minimumConfidence) return false;
   if (!titleText || normalizeLooseSearchValue(titleText) === normalizeLooseSearchValue(anchor.issueCode)) {
     return false;
@@ -224,7 +231,7 @@ function shouldUseLayoutAnchor(
       || isMultiRowTitleOnlyAnchor;
   }
 
-  return Boolean(anchor.contentRow?.text) && Boolean(titleText);
+  return (Boolean(anchor.contentRow?.text) || Boolean(anchor.collectionTitleText)) && Boolean(titleText);
 }
 
 function looksLikeFragmentaryLayoutTitle(
@@ -247,40 +254,48 @@ function composeLayoutSourceTitle(anchor: {
 }) {
   const cleanedTitleRows = cleanLayoutTitleRows(anchor.titleRows);
 
+  let title = "";
   const colorSplitTitle = deriveColorSplitLayoutTitle(cleanedTitleRows);
   if (colorSplitTitle) {
-    return colorSplitTitle;
-  }
+    title = colorSplitTitle;
+  } else {
+    const titleRows = cleanedTitleRows
+      .map((row) => trimDecorativeLetterWall(normalizeDisplayTitle(row.text)))
+      .filter(Boolean);
+    if (titleRows.length === 0) return "";
 
-  const titleRows = cleanedTitleRows
-    .map((row) => trimDecorativeLetterWall(normalizeTitle(row.text)))
-    .filter(Boolean);
-  if (titleRows.length === 0) return "";
+    const singleContentSeriesTitle = deriveSingleContentSeriesTitle(anchor.contentText || "");
+    if (singleContentSeriesTitle) {
+      const firstRow = normalizeTitle(titleRows[0] || "").replace(/:\s*$/, "");
+      if (normalizeLooseSearchValue(firstRow) === normalizeLooseSearchValue(singleContentSeriesTitle)) {
+        title = singleContentSeriesTitle;
+      }
+    }
 
-  const singleContentSeriesTitle = deriveSingleContentSeriesTitle(anchor.contentText || "");
-  if (singleContentSeriesTitle) {
-    const firstRow = normalizeTitle(titleRows[0] || "").replace(/:\s*$/, "");
-    if (normalizeLooseSearchValue(firstRow) === normalizeLooseSearchValue(singleContentSeriesTitle)) {
-      return singleContentSeriesTitle;
+    if (!title) {
+      const first = titleRows[0] || "";
+      const remainder = normalizeDisplayTitle(titleRows.slice(1).join(" "));
+      const seriesWithNumberPrefix = /^(.*\S)\s+(\d+[A-Za-z]?)\s*:\s*$/.exec(first);
+
+      if (seriesWithNumberPrefix && remainder) {
+        title = `${normalizeTitle(seriesWithNumberPrefix[1] || "")} ${seriesWithNumberPrefix[2] || "1"}: ${remainder}`;
+      } else {
+        const combined = normalizeDisplayTitle([first, remainder].filter(Boolean).join(" "));
+        if (titleRows.length === 1) {
+          title = trimDecorativeLetterWall(normalizeTitle(titleRows[0] || ""));
+        } else {
+          title = combined;
+        }
+      }
     }
   }
 
-  const first = titleRows[0] || "";
-  const remainder = normalizeDisplayTitle(titleRows.slice(1).join(" "));
-  const seriesWithNumberPrefix = /^(.*\S)\s+(\d+[A-Za-z]?)\s*:\s*$/.exec(first);
-
-  if (seriesWithNumberPrefix && remainder) {
-    return `${normalizeTitle(seriesWithNumberPrefix[1] || "")} ${seriesWithNumberPrefix[2] || "1"}: ${remainder}`;
-  }
-
-  const title = normalizeDisplayTitle([first, remainder].filter(Boolean).join(" "));
   const collectionTitle = normalizeDisplayTitle(anchor.collectionTitleText || "");
   if (collectionTitle && title) {
+    if (normalizeLooseSearchValue(title).startsWith(normalizeLooseSearchValue(collectionTitle))) {
+      return title;
+    }
     return `${collectionTitle}: ${title}`;
-  }
-
-  if (titleRows.length === 1) {
-    return trimDecorativeLetterWall(normalizeTitle(titleRows[0] || ""));
   }
 
   return title;
@@ -359,7 +374,7 @@ function isHighlightedPdfColor(fillColor: string | undefined) {
 }
 
 function shouldDiscardLayoutTitleRow(value: string, height: number | undefined, maxHeight: number) {
-  const normalized = normalizeTitle(value);
+  const normalized = collapseDuplicatedTitlePhrase(normalizeTitle(value));
   if (!normalized) return true;
   if (/^(?:Cover|Folgt)$/i.test(normalized)) return true;
   if (/^(?:Vorläufiges Cover|Cover Folgt)$/i.test(normalized)) return true;
@@ -606,12 +621,6 @@ async function parseBlockToDrafts(
   blockIndex: number,
   seriesReader: PreviewImportSeriesMatchReader
 ): Promise<PreviewImportDraft[]> {
-  const interleavedTitansAndNewGodsDrafts = await buildInterleavedTitansAndNewGodsDrafts({
-    block,
-    blockIndex,
-    seriesReader,
-  });
-  if (interleavedTitansAndNewGodsDrafts.length > 0) return interleavedTitansAndNewGodsDrafts;
 
   if (collectContentLines(block).length > 1) return [];
 
@@ -682,71 +691,6 @@ async function parseBlockToDrafts(
   return [mainDraft, ...additionalDrafts];
 }
 
-async function buildInterleavedTitansAndNewGodsDrafts(input: {
-  block: string[];
-  blockIndex: number;
-  seriesReader: PreviewImportSeriesMatchReader;
-}) {
-  const normalizedJoined = normalizeDashPunctuation(input.block.join(" | "));
-  if (
-    !normalizedJoined.includes("Titans 22-27, Titans Annual 2025")
-    || !normalizedJoined.includes("The New Gods 7-12")
-  ) {
-    return [];
-  }
-
-  const titansMetadataLines = collectMinimalMetadataLinesForIssueCode(input.block, "DTI2SB006");
-  const newGodsMetadataLines = collectMinimalMetadataLinesForIssueCode(input.block, "DNGODS002");
-  const newGodsHardcoverMetadataLines = collectMinimalMetadataLinesForIssueCode(input.block, "DNGODS002C");
-
-  if (
-    titansMetadataLines.length === 0
-    || newGodsMetadataLines.length === 0
-    || newGodsHardcoverMetadataLines.length === 0
-  ) {
-    return [];
-  }
-
-  const titans = await buildDraft({
-    draftId: createId(`draft-${input.blockIndex + 1}-titans`),
-    sourceTitle: "Titans 6: Deathstrokes Rückkehr",
-    metadataLines: titansMetadataLines,
-    contentLine: "Inhalt: Titans 22-27, Titans Annual 2025",
-    seriesReader: input.seriesReader,
-    isVariant: false,
-    issueCodeHint: "DTI2SB006",
-  });
-
-  const newGods = await buildDraft({
-    draftId: createId(`draft-${input.blockIndex + 1}-new-gods`),
-    sourceTitle: "New Gods 2: Am Rand Der Finsternis",
-    metadataLines: newGodsMetadataLines,
-    contentLine: "Inhalt: The New Gods 7-12",
-    seriesReader: input.seriesReader,
-    isVariant: false,
-    issueCodeHint: "DNGODS002",
-  });
-
-  const newGodsHardcover = await buildDraft({
-    draftId: createId(`draft-${input.blockIndex + 1}-new-gods-hardcover`),
-    sourceTitle: "New Gods 2: Am Rand Der Finsternis",
-    metadataLines: newGodsHardcoverMetadataLines,
-    contentLine: "",
-    seriesReader: input.seriesReader,
-    isVariant: true,
-    variantIndex: 0,
-    issueCodeHint: "DNGODS002C",
-    variantOfDraftId: newGods.id,
-    baseValues: newGods.values,
-    fallbackReleaseDate: newGods.values.releasedate,
-  });
-
-  newGodsHardcover.values.stories = [];
-  newGodsHardcover.values.format = "Hardcover";
-  newGodsHardcover.values.price = "25";
-
-  return [titans, newGods, newGodsHardcover];
-}
 
 async function buildGroupedIssueDrafts(input: {
   blockIndex: number;
@@ -876,17 +820,16 @@ async function parseCodeAnchoredDrafts(
     const metadataLines = collectCodeMetadataWindow(windowLines, localCodeIndex);
     const rawContentLine = selectCodeAnchoredContentLine(windowLines, localCodeIndex, code);
     const contentDerivedSourceTitle = deriveCodeAnchoredSourceTitleFromContent(rawContentLine, code);
-    const override = deriveSpecialCodeOverride(windowLines, code);
     const contentLine = groupedIssueNumber
-      ? filterContentLineForIssueNumber(override?.contentLine || rawContentLine, groupedIssueNumber) || override?.contentLine || rawContentLine
-      : override?.contentLine || rawContentLine;
+      ? filterContentLineForIssueNumber(rawContentLine, groupedIssueNumber) || rawContentLine
+      : rawContentLine;
     const resolvedSourceTitle = shouldPreferContentDerivedSourceTitle(
-      override?.sourceTitle || sourceTitle,
+      sourceTitle,
       contentDerivedSourceTitle,
       code
     )
       ? contentDerivedSourceTitle
-      : override?.sourceTitle || sourceTitle;
+      : sourceTitle;
     const draft = await buildDraft({
       draftId: createId(`code-draft-${code}`),
       sourceTitle: resolvedSourceTitle,
@@ -906,58 +849,6 @@ async function parseCodeAnchoredDrafts(
   return attachDerivedVariantParents(drafts);
 }
 
-function deriveSpecialCodeOverride(lines: string[], issueCode: string) {
-  const joined = normalizeDashPunctuation(lines.join(" | "));
-  const searchJoined = normalizeLooseSearchValue(joined);
-
-  if (
-    (issueCode === "DWORFI007" || issueCode === "DBAROB004")
-    && (
-      searchJoined.includes("batman robin 2023 20 24")
-      || searchJoined.includes("batman superman batman robin 4")
-      || searchJoined.includes("worlds finest 7")
-    )
-  ) {
-    if (issueCode === "DWORFI007") {
-      return {
-        sourceTitle: "Batman/Superman: World’s Finest 7",
-        contentLine: "Inhalt: Batman/Superman: World’s Finest 40-44",
-      };
-    }
-
-    if (issueCode === "DBAROB004") {
-      return {
-        sourceTitle: "Batman & Robin 4",
-        contentLine: "Inhalt: Batman & Robin (2023) 20-24",
-      };
-    }
-  }
-
-  if (
-    (issueCode === "DTI2SB006" || issueCode === "DNGODS002" || issueCode === "DNGODS002C")
-    && (
-      searchJoined.includes("titans 22 27 titans annual 2025")
-      || searchJoined.includes("the new gods 7 12")
-      || searchJoined.includes("titans 6 new gods 2")
-    )
-  ) {
-    if (issueCode === "DTI2SB006") {
-      return {
-        sourceTitle: "Titans 6: Deathstrokes Rückkehr",
-        contentLine: "Inhalt: Titans 22-27, Titans Annual 2025",
-      };
-    }
-
-    if (issueCode === "DNGODS002" || issueCode === "DNGODS002C") {
-      return {
-        sourceTitle: "New Gods 2: Am Rand Der Finsternis",
-        contentLine: "Inhalt: The New Gods 7-12",
-      };
-    }
-  }
-
-  return null;
-}
 
 function collectMinimalMetadataLinesForIssueCode(lines: string[], issueCode: string) {
   const codeLineIndex = lines.findIndex((line) => containsIssueCode(line, issueCode));
@@ -998,8 +889,8 @@ async function buildDraft(input: {
     contentReference,
     metadata.issueCode
   );
-  const parsedTitle = splitTitleAndNumber(resolvedSourceTitle);
   const derivedIssueNumber = deriveIssueNumberFromIssueCode(metadata.issueCode);
+  const parsedTitle = splitTitleAndNumber(resolvedSourceTitle, derivedIssueNumber);
 
   values.series.publisher.name = "Panini - Marvel & Icon";
   values.series.publisher.us = false;
@@ -1101,12 +992,31 @@ function resolveSourceTitleFromContent(
     : sourceTitle;
 }
 
-function splitTitleAndNumber(sourceTitle: string) {
+function splitTitleAndNumber(sourceTitle: string, codeNumber?: string) {
   const cleaned = stripTrailingRepeatedTitleTail(
     stripMiniSeriesCountMarker(normalizeTitle(sourceTitle))
   );
   const titleSplit = splitParentheticalTitleSuffix(cleaned);
   const normalizedTitle = titleSplit.seriesTitle;
+
+  if (codeNumber) {
+    const escapedNum = escapeRegExp(codeNumber);
+    const codeNumberRegex = new RegExp(
+      String.raw`^(.*?\S)\s+(?:Nr\.\s*|Band\s*|Band\s+\d+:\s*)?${escapedNum}\b(?:\s*[:\-–—]\s*|\s+)?(.*)$`,
+      "i"
+    );
+    const codeMatch = codeNumberRegex.exec(normalizedTitle);
+    if (codeMatch) {
+      const rawRest = codeMatch[2]?.trim() || "";
+      const cleanedRest = cleanTitleRest(rawRest);
+      return {
+        seriesTitle: normalizeTitle(codeMatch[1] ?? "").replace(/[:\-–—,\s]+$/, ""),
+        number: codeNumber,
+        title: normalizeDisplayTitle([cleanedRest, titleSplit.title].filter(Boolean).join(" ")),
+      };
+    }
+  }
+
   const collectionSplit = splitCollectionPrefixTitle(normalizedTitle, titleSplit.title);
   if (collectionSplit) {
     return collectionSplit;
@@ -1145,6 +1055,14 @@ function splitTitleAndNumber(sourceTitle: string) {
   };
 }
 
+function cleanTitleRest(value: string): string {
+  if (!value) return "";
+  let cleaned = value;
+  cleaned = cleaned.replace(/\s*[-–—]?\s*(?:Finalausgabe|Abschlussband|Ausgabe|Variant-Cover|Cover folgt|Neuausgabe|Neuauflage|Sonderausgabe|Neu)\b[!?.]*/gi, "");
+  cleaned = cleaned.replace(/^\s*[:\-–—,\s]+\s*/, "").replace(/\s*[:\-–—,\s]+$/, "");
+  return cleaned.trim();
+}
+
 function splitCollectionPrefixTitle(sourceTitle: string, parentheticalTitle: string) {
   const match = /^(DC Must-Have|DC Events|Marvel Must-Have|Marvel Events):\s+(.+)$/i.exec(sourceTitle);
   if (match) {
@@ -1160,13 +1078,16 @@ function splitCollectionPrefixTitle(sourceTitle: string, parentheticalTitle: str
     };
   }
 
-  const genericCollectionMatch = /^(.*\bCollection)\s*:\s+(.+)$/i.exec(sourceTitle);
+  const genericCollectionMatch = /^(.*\b(?:Collection|Chroniken|Origins|Klassiker|Must-Have|Events))\s*:\s+(.+)$/i.exec(sourceTitle);
   if (!genericCollectionMatch) return null;
+
+  const rawTitle = genericCollectionMatch[2] ?? "";
+  const cleanTitle = rawTitle.replace(new RegExp(String.raw`^(?:Band|Nr\.|No\.)\s*\d+\s*:\s*`, "i"), "").trim();
 
   return {
     seriesTitle: normalizeTitle(genericCollectionMatch[1] ?? ""),
     number: "1",
-    title: normalizeDisplayTitle([genericCollectionMatch[2] ?? "", parentheticalTitle].filter(Boolean).join(" ")),
+    title: normalizeDisplayTitle([cleanTitle, parentheticalTitle].filter(Boolean).join(" ")),
     deriveNumberFromIssueCode: true,
   };
 }
@@ -1316,12 +1237,23 @@ function normalizeDisplayTitle(value: string) {
 
 function collapseDuplicatedTitlePhrase(value: string) {
   const tokens = value.split(/\s+/).filter(Boolean);
-  if (tokens.length < 4 || tokens.length % 2 !== 0) return value;
+  if (tokens.length < 2 || tokens.length % 2 !== 0) return value;
 
   const half = tokens.length / 2;
   const left = tokens.slice(0, half);
   const right = tokens.slice(half);
-  if (!left.every((token, index) => areSimilarTitleTokens(token, right[index] || ""))) {
+  const allMatch = left.every((token, index) => {
+    const rToken = right[index];
+    if (!rToken) return false;
+    if (half === 1) {
+      const cleanL = token.toLowerCase().replaceAll(/[^a-z0-9äöüß]/g, "");
+      const cleanR = rToken.toLowerCase().replaceAll(/[^a-z0-9äöüß]/g, "");
+      return cleanL && cleanL === cleanR;
+    }
+    return areSimilarTitleTokens(token, rToken);
+  });
+
+  if (!allMatch) {
     return value;
   }
 

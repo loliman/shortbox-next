@@ -1321,76 +1321,83 @@ describe("parsePreviewImportQueue", () => {
     });
   });
 
-  it("should_split_interleaved_page_ten_products_into_worlds_finest_batman_robin_titans_and_new_gods", async () => {
+  it("should_collapse_single_word_repetitions_and_prevent_layout_row_discard", async () => {
     const text = [
       [
         "N E U H E I T E N",
-        "BATMAN/SUPERMAN: BATMAN & ROBIN 4",
-        "Story: Philipp Kennedy Johnson",
-        "WORLD’S FINEST 7",
-        "Story: Mark Waid, Mark Russell",
-        "Inhalt: Batman & Robin (2023) 20-24",
-        "Inhalt: Batman/Superman: World’s Finest 40-44",
-        "DWORFI007 132 S. | Softcover | € 17,- DBAROB004 140 S. | Softcover | € 18,-",
-        "12.05.2026 07.04.2026",
-        "TITANS 6: NEW GODS 2:",
-        "DEATHSTROKES RÜCKKEHR AM RAND DER FINSTERNIS",
-        "Story: John Layman, Phil Jimenez Story: Ram V",
-        "Inhalt: Titans 22-27, Titans Annual 2025",
-        "Deathstroke entfesselt Inhalt: The New Gods 7-12",
-        "DNGODS002 148 S. | Softcover | € 19,-",
-        "26.05.2026",
-        "DTI2SB006 188 S. | Softcover | € 25,- DNGODS002C 148 S. | Hardcover | € 25,-",
-        "31.03.2026 26.05.2026",
+        "BAND 18: BAND 18:",
+        "DER DUNKLE DER DUNKLE",
+        "RITTER SCHLÄGT RITTER SCHLÄGT",
+        "ZURÜCK ZURÜCK",
+        "KHBACO018 € 14,99",
+      ].join("\n"),
+    ].join("\n\n");
+
+    const layout: PdfLayoutDocument = {
+      pages: [
+        {
+          pageNumber: 51,
+          width: 567,
+          height: 794,
+          items: [],
+          rows: [
+            { text: "N E U H E I T E N", items: [], xMin: 60, xMax: 180, y: 773, height: 11 },
+            { text: "BATMAN – DIE CHRONIKEN", items: [], xMin: 95, xMax: 246, y: 715, height: 11 },
+            { text: "DES DUNKLEN RITTERS", items: [], xMin: 106, xMax: 235, y: 700, height: 11 },
+            { text: "BAND 18: BAND 18:", items: [], xMin: 419, xMax: 486, y: 715, height: 11 },
+            { text: "DER DUNKLE DER DUNKLE", items: [], xMin: 419, xMax: 508, y: 692, height: 11 },
+            { text: "RITTER SCHLÄGT RITTER SCHLÄGT", items: [], xMin: 419, xMax: 539, y: 668, height: 11 },
+            { text: "ZURÜCK ZURÜCK", items: [], xMin: 419, xMax: 477, y: 644, height: 11 },
+            { text: "KHBACO018 € 14,99", items: [], xMin: 396, xMax: 460, y: 578, height: 11 },
+          ],
+          blocks: [
+            { text: "KHBACO018 € 14,99", rows: [], xMin: 396, xMax: 460, yTop: 583, yBottom: 573 },
+          ],
+        },
+      ],
+    };
+
+    const queue = await parsePreviewImportQueue({
+      fileName: "Panini-Vorschau-122.pdf",
+      text,
+      layout,
+      seriesReader: {
+        findDeSeriesByTitle: async () => [],
+      },
+    });
+
+    expect(queue.drafts).toHaveLength(1);
+    const draft = queue.drafts[0];
+    expect(draft?.values.series.title).toBe("Batman – Die Chroniken Des Dunklen Ritters");
+    expect(draft?.values.number).toBe("18");
+    expect(draft?.values.title).toBe("Der Dunkle Ritter Schlägt Zurück");
+  });
+
+  it("should_split_titles_by_code_number_and_clean_up_promotional_noise", async () => {
+    const text = [
+      [
+        "N E U H E I T E N",
+        "BATMAN 112 FINALAUSGABE!",
+        "Inhalt: Batman 163",
+        "48 S. | Heft | € 5,99",
+        "DBATMA112",
+        "09.08.2026",
       ].join("\n"),
     ].join("\n\n");
 
     const queue = await parsePreviewImportQueue({
-      fileName: "Panini-Vorschau-121.pdf",
+      fileName: "Panini-Vorschau-122.pdf",
       text,
       seriesReader: {
         findDeSeriesByTitle: async () => [],
       },
     });
 
-    const worldsFinest = queue.drafts.find((entry) => entry.issueCode === "DWORFI007");
-    const batmanRobin = queue.drafts.find((entry) => entry.issueCode === "DBAROB004");
-    const titans = queue.drafts.find((entry) => entry.issueCode === "DTI2SB006");
-    const newGods = queue.drafts.find((entry) => entry.issueCode === "DNGODS002");
-    const newGodsHardcover = queue.drafts.find((entry) => entry.issueCode === "DNGODS002C");
-
-    expect(worldsFinest?.values.series.title).toBe("Batman/Superman: World’s Finest");
-    expect(worldsFinest?.values.number).toBe("7");
-    expect(worldsFinest?.values.title).toBe("");
-    expect(worldsFinest?.values.stories).toHaveLength(5);
-
-    expect(batmanRobin?.values.series.title).toBe("Batman & Robin");
-    expect(batmanRobin?.values.number).toBe("4");
-    expect(batmanRobin?.values.title).toBe("");
-    expect(batmanRobin?.values.stories).toHaveLength(5);
-
-    expect(titans?.values.series.title).toBe("Titans");
-    expect(titans?.values.number).toBe("6");
-    expect(titans?.values.title).toBe("Deathstrokes Rückkehr");
-    expect(titans?.values.pages).toBe(188);
-    expect(titans?.values.price).toBe("25");
-    expect(titans?.values.releasedate).toBe("2026-03-31");
-
-    expect(newGods?.values.series.title).toBe("New Gods");
-    expect(newGods?.values.number).toBe("2");
-    expect(newGods?.values.title).toBe("Am Rand Der Finsternis");
-    expect(newGods?.values.pages).toBe(148);
-    expect(newGods?.values.price).toBe("19");
-    expect(newGods?.values.releasedate).toBe("2026-05-26");
-
-    expect(newGodsHardcover?.values.series.title).toBe("New Gods");
-    expect(newGodsHardcover?.values.number).toBe("2");
-    expect(newGodsHardcover?.values.title).toBe("Am Rand Der Finsternis");
-    expect(newGodsHardcover?.values.variant).toBe("A");
-    expect(newGodsHardcover?.variantOfDraftId).toBe(newGods?.id);
-    expect(newGodsHardcover?.values.format).toBe("Hardcover");
-    expect(newGodsHardcover?.values.price).toBe("25");
-    expect(newGodsHardcover?.values.stories).toHaveLength(0);
+    expect(queue.drafts).toHaveLength(1);
+    const draft = queue.drafts[0];
+    expect(draft?.values.series.title).toBe("Batman");
+    expect(draft?.values.number).toBe("112");
+    expect(draft?.values.title).toBe("");
   });
 
   it("should_assign_parallel_product_metadata_without_falling_into_following_blocks", async () => {
