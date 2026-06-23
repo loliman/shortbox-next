@@ -369,6 +369,9 @@ export default function TopBar(ownProps: Readonly<TopBarProps>) {
       {compactLayout && mobileSearchOpen ? (
         <MobileSearchOverlay
           us={us}
+          query={query}
+          isFilterActive={isFilter}
+          session={ownProps.session}
           onClose={() => setMobileSearchOpen(false)}
         />
       ) : null}
@@ -490,12 +493,23 @@ function TopBarSearchCenter(props: Readonly<{
   query?: { filter?: string | null; order?: string | null; direction?: string | null } | null;
   session?: { loggedIn?: boolean } | null;
 }>) {
+  const { push } = usePendingNavigation();
+  const handleFilterChange = (nextFilter: string | null) => {
+    push(
+      buildRouteHref(window.location.pathname, props.query, {
+        filter: nextFilter,
+        from: null,
+        tab: null,
+      })
+    );
+  };
+
   return (
     <Box
       sx={{
         minWidth: 0,
         width: "100%",
-        maxWidth: SEARCH_MAX_WIDTH + 52,
+        maxWidth: SEARCH_MAX_WIDTH,
         justifySelf: "center",
         px: 1,
         display: props.compactLayout ? "none" : "flex",
@@ -507,24 +521,33 @@ function TopBarSearchCenter(props: Readonly<{
         <SearchBar
           us={props.us}
           compactLayout={false}
+          filterQuery={props.isFilterActive}
+          onFilterChange={handleFilterChange}
+          hasSession={Boolean(props.session?.loggedIn)}
         />
       </Box>
-      <TopBarFilterMenu
-        us={props.us}
-        selected={props.selected}
-        isFilterActive={props.isFilterActive}
-        initialFilterCount={props.initialFilterCount}
-        query={props.query}
-        session={props.session}
-      />
     </Box>
   );
 }
 
 function MobileSearchOverlay(props: Readonly<{
   us: boolean;
+  query?: { filter?: string | null; order?: string | null; direction?: string | null } | null;
+  isFilterActive?: string | null;
+  session?: { loggedIn?: boolean } | null;
   onClose: () => void;
 }>) {
+  const { push } = usePendingNavigation();
+  const handleFilterChange = (nextFilter: string | null) => {
+    push(
+      buildRouteHref(window.location.pathname, props.query, {
+        filter: nextFilter,
+        from: null,
+        tab: null,
+      })
+    );
+  };
+
   return (
     <Box
       sx={{
@@ -546,6 +569,9 @@ function MobileSearchOverlay(props: Readonly<{
             us={props.us}
             autoFocus={true}
             compactLayout={true}
+            filterQuery={props.isFilterActive}
+            onFilterChange={handleFilterChange}
+            hasSession={Boolean(props.session?.loggedIn)}
             onFocus={(
               _event: React.FocusEvent<HTMLElement> | React.MouseEvent<HTMLElement> | null,
               focus: boolean

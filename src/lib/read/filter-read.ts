@@ -733,9 +733,22 @@ function applyStoryFlagFilters(and: Prisma.IssueWhereInput[], filter: RuntimeFil
 }
 
 export function buildDirectIssueFilterWhere(
-  filter: Filter | null | undefined
+  filter: any | null | undefined
 ): Prisma.IssueWhereInput | null {
   if (!filter) return null;
+
+  if ("operator" in filter && Array.isArray(filter.operands)) {
+    const compiledOperands = filter.operands
+      .map(buildDirectIssueFilterWhere)
+      .filter(Boolean) as Prisma.IssueWhereInput[];
+
+    if (compiledOperands.length === 0) return null;
+    if (filter.operator === "or") {
+      return { OR: compiledOperands };
+    } else {
+      return { AND: compiledOperands };
+    }
+  }
 
   const runtimeFilter = filter as RuntimeFilter;
   if (hasUnsupportedFilterState(runtimeFilter)) return null;

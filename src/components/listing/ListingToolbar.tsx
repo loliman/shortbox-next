@@ -2,7 +2,6 @@ import React from "react";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import SortContainer from "../SortContainer";
-import FilterSummaryBar from "../filter/FilterSummaryBar";
 import type { ListingQuery } from "../../util/listingQuery";
 import type { SessionData } from "../../types/session";
 import type { SelectedRoot } from "../../types/domain";
@@ -41,14 +40,7 @@ export default function ListingToolbar(props: Readonly<ListingToolbarProps>) {
         </Box>
       ) : null}
 
-      {props.query?.filter ? (
-        <FilterSummaryBar
-          query={props.query}
-          us={previewProps.us}
-          selected={previewProps.selected}
-          compactLayout={compactLayout}
-        />
-      ) : null}
+
     </Stack>
   );
 }
