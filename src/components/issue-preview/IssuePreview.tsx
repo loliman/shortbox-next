@@ -116,16 +116,16 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
           },
           overflow: "hidden",
           position: "relative",
-          transition: "transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease",
+          transition: "transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 240ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 180ms ease",
           opacity: isNavigating ? 0.76 : 1,
           "&:hover": {
-            transform: "translateY(-2px)",
-            boxShadow: theme.shadows[6],
+            transform: "translateY(-4px) scale(1.002)",
+            boxShadow: "0 12px 20px -10px rgba(0,0,0,0.15), 0 10px 15px -3px rgba(0,0,0,0.08)",
           },
           ...theme.applyStyles("dark", {
             backgroundImage: darkBackgroundImage,
             "&:hover": {
-              boxShadow: theme.shadows[8],
+              boxShadow: "0 20px 25px -5px rgba(0,0,0,0.5), 0 10px 10px -5px rgba(0,0,0,0.35)",
             },
           }),
         })}

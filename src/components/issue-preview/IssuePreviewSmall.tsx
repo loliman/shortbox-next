@@ -109,18 +109,21 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
         position: "relative",
         border: "1px solid",
         borderColor: "rgba(0,0,0,0.08)",
-        transition: "transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, opacity 180ms ease",
+        transition: "transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 260ms cubic-bezier(0.2, 0.8, 0.2, 1), border-color 260ms ease, opacity 180ms ease",
         opacity: isNavigating ? 0.76 : 1,
         "&:hover": {
-          transform: "translateY(-2px)",
-          boxShadow: theme.shadows[6],
+          transform: "translateY(-4px)",
+          boxShadow: "0 12px 20px -10px rgba(0,0,0,0.12), 0 10px 15px -3px rgba(0,0,0,0.06)",
           borderColor: "rgba(0,0,0,0.18)",
+          "& .cover-image-box": {
+            transform: "scale(1.035)",
+          },
         },
         ...theme.applyStyles("dark", {
-          backgroundColor: "rgba(16, 16, 16, 0.96)",
           borderColor: "rgba(255,255,255,0.08)",
           "&:hover": {
             borderColor: "rgba(255,255,255,0.18)",
+            boxShadow: "0 20px 25px -5px rgba(0,0,0,0.45), 0 10px 10px -5px rgba(0,0,0,0.3)",
           },
         }),
       })}
@@ -140,8 +143,10 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
       >
         <CardContent sx={{ display: "flex", flexDirection: "column", flex: 1, p: 0, minWidth: 0 }}>
           <Box
+            className="cover-image-box"
             sx={(theme) => ({
               position: "relative",
+              overflow: "hidden",
               aspectRatio: "1 / 1.5",
               width: "100%",
               backgroundColor: "rgba(0, 0, 0, 0.04)",
@@ -149,6 +154,7 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
               backgroundRepeat: "no-repeat",
               backgroundPosition: isCoverLoading ? "200% 0" : "center",
               backgroundSize: isCoverLoading ? "220% 100%" : "cover",
+              transition: "transform 350ms cubic-bezier(0.2, 0.8, 0.2, 1)",
               animation: isCoverLoading ? "coverShimmer 1.4s ease-in-out infinite" : undefined,
               "@keyframes coverShimmer": {
                 "0%": { backgroundPosition: "220% 0" },

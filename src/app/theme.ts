@@ -4,6 +4,7 @@ export type AppThemeMode = "light" | "dark";
 
 type ThemeTokens = {
   bg: string;
+  paperBg: string;
   text: string;
   textSecondary: string;
   border: string;
@@ -14,22 +15,24 @@ type ThemeTokens = {
 function getThemeTokens(mode: AppThemeMode): ThemeTokens {
   if (mode === "dark") {
     return {
-      bg: "#1e1e1e",
-      text: "#e6e6e6",
-      textSecondary: "#b3b3b3",
-      border: "#303030",
-      rowHover: "#2a2a2a",
-      link: "#6ea8ff",
+      bg: "#080b11",
+      paperBg: "#111622",
+      text: "#f3f4f6",
+      textSecondary: "#9ca3af",
+      border: "#1f2937",
+      rowHover: "#1c2535",
+      link: "#60a5fa",
     };
   }
 
   return {
-    bg: "#ffffff",
-    text: "#111111",
-    textSecondary: "#555555",
-    border: "#e6e6e6",
-    rowHover: "#f5f7fa",
-    link: "#2f6feb",
+    bg: "#f9fafb",
+    paperBg: "#ffffff",
+    text: "#111827",
+    textSecondary: "#4b5563",
+    border: "#e5e7eb",
+    rowHover: "#f3f4f6",
+    link: "#2563eb",
   };
 }
 
@@ -50,7 +53,7 @@ function createPalette(mode: AppThemeMode) {
     },
     background: {
       default: tokens.bg,
-      paper: tokens.bg,
+      paper: tokens.paperBg,
     },
     text: {
       primary: tokens.text,
@@ -136,17 +139,21 @@ export const appTheme = createTheme({
     borderRadius: 8,
   },
   typography: {
-    fontFamily: 'Roboto, "Helvetica Neue", Arial, sans-serif',
+    fontFamily: 'var(--font-inter), Roboto, "Helvetica Neue", Arial, sans-serif',
     h5: {
+      fontFamily: 'var(--font-outfit), var(--font-inter), sans-serif',
       fontWeight: 700,
     },
     h6: {
+      fontFamily: 'var(--font-outfit), var(--font-inter), sans-serif',
       fontWeight: 700,
     },
     subtitle1: {
+      fontFamily: 'var(--font-inter), sans-serif',
       fontWeight: 600,
     },
     button: {
+      fontFamily: 'var(--font-outfit), var(--font-inter), sans-serif',
       textTransform: "none",
       fontWeight: 600,
     },
@@ -174,15 +181,17 @@ export const appTheme = createTheme({
     MuiAppBar: {
       styleOverrides: {
         root: ({ theme }) => ({
-          backgroundColor: "rgb(0, 0, 0)",
-          color:
+          backgroundColor:
             theme.palette.mode === "dark"
-              ? theme.palette.common.white
-              : theme.palette.getContrastText(theme.palette.primary.main),
+              ? "rgba(8, 11, 17, 0.72)"
+              : "rgba(255, 255, 255, 0.76)",
+          backdropFilter: "blur(12px)",
+          color: theme.palette.text.primary,
           backgroundImage: "none",
           borderBottomWidth: 1,
           borderBottomStyle: "solid",
           borderBottomColor: theme.vars?.palette.divider ?? theme.palette.divider,
+          transition: "background-color 200ms ease, backdrop-filter 200ms ease",
         }),
       },
     },

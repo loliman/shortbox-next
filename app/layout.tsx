@@ -1,7 +1,20 @@
 import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
+import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-outfit",
+});
 import AppProviders from "@/src/components/AppProviders";
 import { getInitialResponsiveGuess, RESPONSIVE_GUESS_COOKIE_NAME } from "@/src/app/responsiveGuess";
 import { buildWebsiteStructuredData } from "@/src/lib/routes/structured-data";
@@ -52,7 +65,7 @@ export default async function RootLayout({
   const websiteJsonLd = buildWebsiteStructuredData();
 
   return (
-    <html lang="de" suppressHydrationWarning>
+    <html lang="de" suppressHydrationWarning className={`${inter.variable} ${outfit.variable}`}>
       <body>
         <script
           key="website-jsonld"
