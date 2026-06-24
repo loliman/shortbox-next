@@ -22,40 +22,16 @@ body {
   padding-left: 0;
 }
 
-[data-shortbox-shell-content-frame] {
-  padding-top: 0;
-  padding-right: 0;
-  padding-left: 0;
-}
-
 @media (min-width: 600px) {
   [data-shortbox-shell-rail] {
-    padding-top: 16px;
-    padding-right: 16px;
-    padding-left: 16px;
-  }
-
-  [data-shortbox-shell-content-frame] {
-    padding-top: 16px;
-    padding-right: 16px;
-    padding-left: 16px;
+    padding: 0;
   }
 }
 
 @media (min-width: 1200px) {
   [data-shortbox-shell-rail] {
-    margin-left: calc(var(--shortbox-nav-offset, var(--shortbox-shell-initial-nav-offset, 0px)) / 2);
-    padding-right: max(
-      16px,
-      calc(
-        (var(--shortbox-nav-gutter, var(--shortbox-shell-initial-nav-gutter, 0px)) / 2) + 8px -
-          (var(--shortbox-nav-offset, var(--shortbox-shell-initial-nav-offset, 0px)) / 2)
-      )
-    );
-    padding-bottom: 16px;
-    padding-left: calc(
-      (var(--shortbox-nav-gutter, var(--shortbox-shell-initial-nav-gutter, 0px)) / 2) + 8px
-    );
+    margin-left: var(--shortbox-nav-offset, var(--shortbox-shell-initial-nav-offset, 0px));
+    padding: 0;
   }
 }
 
@@ -76,6 +52,11 @@ video,
 canvas {
   display: block;
   max-width: 100%;
+}
+
+.shortbox-layout-card {
+  border-radius: 0px !important;
+  margin-top: 3px !important;
 }
 
 
