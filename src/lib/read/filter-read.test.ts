@@ -636,3 +636,60 @@ describe("buildDirectIssueFilterWhere – new custom filter flags", () => {
   });
 });
 
+describe("buildDirectIssueFilterWhere – publisher and series wildcard * contains/AND", () => {
+  it("should build AND/contains conditions for publisher name with asterisk", () => {
+    const where = buildDirectIssueFilterWhere({
+      publishers: [{ name: "*Panini*" }],
+      us: false,
+    }) as any;
+
+    expect(where.AND).toContainEqual({
+      AND: [
+        {
+          series: {
+            publisher: {
+              name: {
+                contains: "Panini",
+                mode: "insensitive",
+              },
+            },
+          },
+        },
+      ],
+    });
+  });
+
+  it("should build AND/contains conditions for series title with asterisk", () => {
+    const where = buildDirectIssueFilterWhere({
+      series: [{ title: "Spider-Man*Avengers", volume: 1 }],
+      us: false,
+    }) as any;
+
+    expect(where.AND).toContainEqual({
+      AND: [
+        {
+          series: {
+            title: {
+              contains: "Spider-Man",
+              mode: "insensitive",
+            },
+          },
+        },
+        {
+          series: {
+            title: {
+              contains: "Avengers",
+              mode: "insensitive",
+            },
+          },
+        },
+        {
+          series: {
+            volume: 1n,
+          },
+        },
+      ],
+    });
+  });
+});
+

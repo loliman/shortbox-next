@@ -400,28 +400,101 @@ function applyCollectedFilters(and: Prisma.IssueWhereInput[], filter: RuntimeFil
 function applyPublisherFilter(and: Prisma.IssueWhereInput[], filter: RuntimeFilter) {
   const publisherNames = readDirectPublisherNames(filter);
   if (publisherNames.length === 0) return;
-  and.push({
-    series: {
-      publisher: {
-        name: {
-          in: publisherNames,
-        },
-      },
-    },
-  });
+
+  const conditions = publisherNames
+    .map((name) => {
+      if (name.includes("*")) {
+        const parts = name
+          .split("*")
+          .map((p) => p.trim())
+          .filter(Boolean);
+        if (parts.length === 0) return null;
+        return {
+          AND: parts.map((part) => ({
+            series: {
+              publisher: {
+                name: {
+                  contains: part,
+                  mode: "insensitive" as const,
+                },
+              },
+            },
+          })),
+        };
+      } else {
+        return {
+          series: {
+            publisher: {
+              name: {
+                equals: name,
+              },
+            },
+          },
+        };
+      }
+    })
+    .filter(Boolean) as Prisma.IssueWhereInput[];
+
+  if (conditions.length === 0) return;
+  if (conditions.length === 1) {
+    and.push(conditions[0]);
+  } else {
+    and.push({ OR: conditions });
+  }
 }
 
 function applySeriesFilter(and: Prisma.IssueWhereInput[], filter: RuntimeFilter) {
   const seriesConditions = readDirectSeriesConditions(filter);
   if (seriesConditions.length === 0) return;
-  and.push({
-    OR: seriesConditions.map((series) => ({
-      series: {
-        title: series.title,
-        volume: series.volume,
-      },
-    })),
-  });
+
+  const conditions = seriesConditions
+    .map((series) => {
+      const title = series.title;
+      const volume = series.volume;
+
+      if (title.includes("*")) {
+        const parts = title
+          .split("*")
+          .map((p) => p.trim())
+          .filter(Boolean);
+        if (parts.length === 0) return null;
+
+        const titleConditions = parts.map((part) => ({
+          series: {
+            title: {
+              contains: part,
+              mode: "insensitive" as const,
+            },
+          },
+        }));
+
+        return {
+          AND: [
+            ...titleConditions,
+            {
+              series: {
+                volume: volume,
+              },
+            },
+          ],
+        };
+      } else {
+        return {
+          series: {
+            title: title,
+            volume: volume,
+          },
+        };
+      }
+    })
+    .filter(Boolean) as Prisma.IssueWhereInput[];
+
+  if (conditions.length === 0) return;
+  if (conditions.length === 1) {
+    and.push(conditions[0]);
+  } else {
+    and.push({ OR: conditions });
+  }
 }
 
 function applyDirectTermFilters(and: Prisma.IssueWhereInput[], filter: RuntimeFilter) {
