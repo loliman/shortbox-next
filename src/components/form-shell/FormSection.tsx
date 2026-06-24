@@ -30,14 +30,14 @@ export default function FormSection({
         [
           (theme: Theme) => ({
             ...editorSectionSx(theme),
-            backgroundColor:
-              theme.palette.mode === "dark"
-                ? "rgba(30, 30, 30, 0.65)"
-                : "rgba(255, 255, 255, 0.65)",
+            backgroundColor: "rgba(255, 255, 255, 0.65)",
             backdropFilter: "blur(20px)",
             backgroundImage: "none",
             p: { xs: 2, sm: 2.5 },
             boxShadow: "none",
+            ...theme.applyStyles("dark", {
+              backgroundColor: "rgba(13, 17, 23, 0.65)",
+            }),
           }),
           ...sectionSx,
         ] as SxProps<Theme>

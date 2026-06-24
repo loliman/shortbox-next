@@ -114,7 +114,7 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
                 )
               );
             }}
-            sx={{
+            sx={(theme) => ({
               display: "inline-flex",
               alignItems: "center",
               gap: 0.5,
@@ -128,28 +128,43 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
               transition: "all 180ms ease-in-out",
               border: "1px solid",
               opacity: isPending ? 0.6 : 1,
+              // Light mode defaults
               ...(isActive
                 ? {
-                    backgroundColor: theme.palette.mode === "dark"
-                      ? alpha(theme.palette.primary.main, 0.22)
-                      : alpha(theme.palette.primary.main, 0.1),
-                    color: theme.palette.mode === "dark" ? theme.palette.primary.light : theme.palette.primary.dark,
-                    borderColor: theme.palette.mode === "dark"
-                      ? alpha(theme.palette.primary.main, 0.5)
-                      : alpha(theme.palette.primary.main, 0.35),
-                    boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.15)}`,
+                    backgroundColor: "#111827",
+                    color: "#ffffff",
+                    borderColor: "#111827",
+                    boxShadow: "0 2px 6px rgba(0, 0, 0, 0.15)",
                   }
                 : {
-                    backgroundColor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
+                    backgroundColor: "rgba(0, 0, 0, 0.03)",
                     color: theme.palette.text.secondary,
-                    borderColor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)",
+                    borderColor: "rgba(0, 0, 0, 0.12)",
                     "&:hover": {
-                      backgroundColor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)",
+                      backgroundColor: "rgba(0, 0, 0, 0.06)",
                       color: theme.palette.text.primary,
-                      borderColor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.15)",
+                      borderColor: "rgba(0, 0, 0, 0.22)",
                     },
                   }),
-            }}
+              // Dark mode overrides
+              ...theme.applyStyles("dark", isActive
+                ? {
+                    backgroundColor: "#ffffff",
+                    color: "#080b11",
+                    borderColor: "#ffffff",
+                    boxShadow: "0 2px 6px rgba(0, 0, 0, 0.15)",
+                  }
+                : {
+                    backgroundColor: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    borderColor: "rgba(255, 255, 255, 0.35)",
+                    "&:hover": {
+                      backgroundColor: "rgba(255, 255, 255, 0.2)",
+                      color: "#ffffff",
+                      borderColor: "rgba(255, 255, 255, 0.6)",
+                    },
+                  }),
+            })}
           >
             <span>{label}</span>
             {isActive && (

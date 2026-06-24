@@ -16,11 +16,11 @@ function getThemeTokens(mode: AppThemeMode): ThemeTokens {
   if (mode === "dark") {
     return {
       bg: "#080b11",
-      paperBg: "#111622",
+      paperBg: "#0d1117",
       text: "#f3f4f6",
       textSecondary: "#9ca3af",
       border: "#1f2937",
-      rowHover: "#1c2535",
+      rowHover: "#161b22",
       link: "#60a5fa",
     };
   }
@@ -184,13 +184,16 @@ export const appTheme = createTheme({
           backgroundColor:
             theme.palette.mode === "dark"
               ? "rgba(8, 11, 17, 0.72)"
-              : "rgba(255, 255, 255, 0.76)",
+              : "rgba(8, 11, 17, 0.94)",
           backdropFilter: "blur(12px)",
-          color: theme.palette.text.primary,
+          color: theme.palette.common.white,
           backgroundImage: "none",
           borderBottomWidth: 1,
           borderBottomStyle: "solid",
-          borderBottomColor: theme.vars?.palette.divider ?? theme.palette.divider,
+          borderBottomColor:
+            theme.palette.mode === "dark"
+              ? (theme.vars?.palette.divider ?? theme.palette.divider)
+              : "rgba(255, 255, 255, 0.08)",
           transition: "background-color 200ms ease, backdrop-filter 200ms ease",
         }),
       },
@@ -202,6 +205,27 @@ export const appTheme = createTheme({
       styleOverrides: {
         root: ({ theme }) => ({
           borderRadius: (Number(theme.shape.borderRadius) || 12) - 2,
+        }),
+      },
+    },
+    MuiToggleButton: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          color: theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.56)" : "rgba(0, 0, 0, 0.54)",
+          borderColor: theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.12)",
+          "&:hover": {
+            backgroundColor: theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.04)",
+            color: theme.palette.mode === "dark" ? "#ffffff" : "rgba(0, 0, 0, 0.87)",
+          },
+          "&.Mui-selected": {
+            backgroundColor: theme.palette.mode === "dark" ? "#ffffff" : "#111827",
+            color: theme.palette.mode === "dark" ? "#080b11" : "#ffffff",
+            borderColor: theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.3)" : "rgba(0, 0, 0, 0.22)",
+            "&:hover": {
+              backgroundColor: theme.palette.mode === "dark" ? "#f3f4f6" : "#1f2937",
+              color: theme.palette.mode === "dark" ? "#080b11" : "#ffffff",
+            },
+          },
         }),
       },
     },

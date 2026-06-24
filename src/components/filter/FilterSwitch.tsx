@@ -17,7 +17,7 @@ function FilterSwitch({ checked, label, onToggle, disabled = false, sx }: Readon
   return (
     <Box sx={sx}>
       <Box
-        sx={{
+        sx={(theme) => ({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -28,24 +28,24 @@ function FilterSwitch({ checked, label, onToggle, disabled = false, sx }: Readon
           borderRadius: 1.75,
           border: "1px solid",
           borderColor: "divider",
-          bgcolor: (theme) =>
-            theme.palette.mode === "dark"
-              ? alpha(theme.palette.common.black, 0.28)
-              : theme.vars?.palette.background.paper ?? theme.palette.background.paper,
-          boxShadow: (theme) =>
-            theme.palette.mode === "dark"
-              ? "0 4px 14px rgba(0,0,0,0.42)"
-              : "0 1px 3px rgba(0,0,0,0.08)",
+          bgcolor: "var(--mui-palette-background-paper)",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
           transition: "border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease",
           opacity: disabled ? 0.6 : 1,
           "&:hover": {
-            borderColor: (theme) =>
-              alpha(theme.palette.success.main, theme.palette.mode === "dark" ? 0.72 : 0.55),
-            boxShadow: (theme) =>
-              `0 2px 9px ${alpha(theme.palette.success.main, theme.palette.mode === "dark" ? 0.28 : 0.16)}`,
+            borderColor: alpha(theme.palette.success.main, 0.55),
+            boxShadow: `0 2px 9px ${alpha(theme.palette.success.main, 0.16)}`,
             transform: "translateY(-1px)",
           },
-        }}
+          ...theme.applyStyles("dark", {
+            bgcolor: "rgba(0, 0, 0, 0.28)",
+            boxShadow: "0 4px 14px rgba(0,0,0,0.42)",
+            "&:hover": {
+              borderColor: alpha(theme.palette.success.main, 0.72),
+              boxShadow: `0 2px 9px ${alpha(theme.palette.success.main, 0.28)}`,
+            },
+          }),
+        })}
       >
         <Typography
           sx={{

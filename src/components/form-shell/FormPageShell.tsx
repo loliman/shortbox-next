@@ -60,16 +60,16 @@ export default function FormPageShell({
     >
       <Paper
         elevation={0}
-        sx={{
-          ...editorSectionSx,
-          backgroundColor: (theme) =>
-            theme.palette.mode === "dark"
-              ? "rgba(30, 30, 30, 0.65)"
-              : "rgba(255, 255, 255, 0.65)",
+        sx={(theme) => ({
+          ...editorSectionSx(theme),
+          backgroundColor: "rgba(255, 255, 255, 0.65)",
           backdropFilter: "blur(20px)",
           backgroundImage: "none",
           pointerEvents: busy ? "none" : "auto",
-        }}
+          ...theme.applyStyles("dark", {
+            backgroundColor: "rgba(13, 17, 23, 0.65)",
+          }),
+        })}
       >
         <Box sx={{ position: "relative" }}>
           <CardHeader title={title} subheader={subtitle} action={headerAction} sx={headerSx} />
@@ -96,16 +96,16 @@ export default function FormPageShell({
       {notice ? (
         <Paper
           elevation={0}
-          sx={{
-            ...editorSectionSx,
-            backgroundColor: (theme) =>
-              theme.palette.mode === "dark"
-                ? "rgba(30, 30, 30, 0.65)"
-                : "rgba(255, 255, 255, 0.65)",
+          sx={(theme) => ({
+            ...editorSectionSx(theme),
+            backgroundColor: "rgba(255, 255, 255, 0.65)",
             backdropFilter: "blur(20px)",
             backgroundImage: "none",
             pointerEvents: busy ? "none" : "auto",
-          }}
+            ...theme.applyStyles("dark", {
+              backgroundColor: "rgba(13, 17, 23, 0.65)",
+            }),
+          })}
         >
           {notice}
         </Paper>

@@ -55,7 +55,7 @@ export default function PersistentCatalogChromeClient(
     const entries = Array.from(searchParams.entries());
     const nextQuery = entries.length > 0 ? Object.fromEntries(entries) : {};
 
-    if (navigationState?.resolvedFilterQuery) {
+    if (!nextQuery.filter && navigationState?.resolvedFilterQuery) {
       nextQuery.filter = navigationState.resolvedFilterQuery;
     }
 

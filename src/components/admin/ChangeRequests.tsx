@@ -8,6 +8,8 @@ import {
   Alert,
   Box,
   Button,
+  CardContent,
+  CardHeader,
   Divider,
   Stack,
   Typography,
@@ -21,8 +23,6 @@ import { mutationRequest } from "../../lib/client/mutation-request";
 import type { SessionData } from "../../types/session";
 import type { SelectedRoot } from "../../types/domain";
 import type { LayoutRouteData, RouteQuery } from "../../types/route-ui";
-import FormPageShell from "../form-shell/FormPageShell";
-import FormSection from "../form-shell/FormSection";
 
 type SnackbarVariant = "success" | "error" | "warning" | "info";
 
@@ -143,9 +143,13 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
   };
 
   return (
-    <FormPageShell title="Change Requests">
-      <FormSection title="Offene Anfragen">
-        <>
+    <>
+      <CardHeader title="Change Requests" />
+      <CardContent sx={{ pt: 1 }}>
+        <Stack spacing={2}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "text.primary" }}>
+            Offene Anfragen
+          </Typography>
           {loading ? <Typography>Lade Change Requests...</Typography> : null}
           {error ? (
             <Alert severity="warning">
@@ -297,16 +301,16 @@ function ChangeRequestsPage(props: Readonly<ChangeRequestsProps>) {
               }
             )}
           </Box>
-        </>
-      </FormSection>
-    </FormPageShell>
+        </Stack>
+      </CardContent>
+    </>
   );
 }
 
 function JsonDiffReactView(props: Readonly<{ before: JsonValue; after: JsonValue }>) {
   return (
     <Box
-      sx={{
+      sx={(theme) => ({
         overflowX: "auto",
         bgcolor: "background.paper",
         "& .diff": {
@@ -326,9 +330,15 @@ function JsonDiffReactView(props: Readonly<{ before: JsonValue; after: JsonValue
         },
         "& .deletion": {
           color: "#d32f2f",
+          ...theme.applyStyles("dark", {
+            color: "#f87171",
+          }),
         },
         "& .addition": {
           color: "#2e7d32",
+          ...theme.applyStyles("dark", {
+            color: "#4ade80",
+          }),
         },
         "& .deletion::before, & .addition::before": {
           display: "block",
@@ -345,8 +355,11 @@ function JsonDiffReactView(props: Readonly<{ before: JsonValue; after: JsonValue
         },
         "& .unchanged": {
           color: "#808080",
+          ...theme.applyStyles("dark", {
+            color: "#9ca3af",
+          }),
         },
-      }}
+      })}
     >
       <JsonDiffComponent
         jsonA={props.before}

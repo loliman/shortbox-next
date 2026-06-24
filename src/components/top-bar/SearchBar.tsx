@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Backdrop from "@mui/material/Backdrop";
@@ -8,9 +8,12 @@ import CircularProgress from "@mui/material/CircularProgress";
 import TextField from "@mui/material/TextField";
 import InputAdornment from "@mui/material/InputAdornment";
 import Typography from "@mui/material/Typography";
+import Fade from "@mui/material/Fade";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
+import ClearIcon from "@mui/icons-material/Clear";
+import TerminalIcon from "@mui/icons-material/Terminal";
 import Badge from "@mui/material/Badge";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
@@ -25,6 +28,7 @@ import {
   queryStringToFilterValues,
   flattenFilterToChips,
   flattenASTToFlatFilterValues,
+  validateQuery,
   type SerializedFilter,
   type RenderChipToken,
   type ParsedQueryToken,
@@ -50,6 +54,26 @@ const RESULT_ROW_HEIGHT = 44;
 const RESULT_PANEL_MAX_HEIGHT = 911;
 const RESULT_PANEL_BOTTOM_BUFFER = 12;
 
+const COMMANDS: Array<[string, string, string]> = [
+  ["v:", "Verlag", "v:Panini"],
+  ["s:", "Serie", "s:Spider-Man"],
+  ["f:", "Format", "f:Heft"],
+  ["j:", "Jahr", "j:2020"],
+  ["AND", "Beide müssen passen", "v:Panini AND f:Heft"],
+  ["OR", "Mind. eine Bedingung", "v:Panini OR v:Condor"],
+  ["g:", "Genre", "g:Action"],
+  ["p:", "Person", "p:Kirby"],
+  ["w:", "Autor", "w:Lee"],
+  ["pe:", "Zeichner", "pe:Kirby"],
+  ["t:", "Übersetzer", "t:Szatmary"],
+  ["xv:", "Cross-Verlag", "xv:Marvel"],
+  ["xs:", "Cross-Serie", "xs:Avengers"],
+  ["*", "UND für s: & v:", "s:Spidey*Avengers"],
+  ["mit-varianten", "Mit Varianten", "mit-varianten"],
+  ["benötigt", "Benötigt", "benötigt"],
+  ["ungesammeltes-us-material", "Ungesammeltes US-Material", "ungesammeltes-us-material"],
+];
+
 interface SearchBarProps {
   us?: boolean;
   autoFocus?: boolean;
@@ -61,6 +85,7 @@ interface SearchBarProps {
   onFilterChange?: (filter: string | null) => void;
   /** Whether the user has an active session (for Collection filters) */
   hasSession?: boolean;
+  initialFilterCount?: number | null;
 }
 
 type SearchFocusEvent = React.FocusEvent<HTMLElement> | React.MouseEvent<HTMLElement> | null;
@@ -74,6 +99,18 @@ function cleanAST(filter: SerializedFilter, us: boolean): unknown {
     return { operator: filter.operator, operands };
   }
   return serializeFilterValues(filter as FilterValues, us);
+}
+
+function rawQueryToPayload(rawQuery: string, us: boolean): string | null {
+  if (!rawQuery.trim()) return null;
+  try {
+    const { values } = queryStringToFilterValues(rawQuery, createDefaultFilterValues());
+    const payload = cleanAST(values, us);
+    return payload ? JSON.stringify(payload) : null;
+  } catch (e) {
+    console.error("[SearchBar] rawQueryToPayload error:", e);
+    return null;
+  }
 }
 
 export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
@@ -99,8 +136,15 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
   const hasSession = Boolean(ownProps.hasSession);
 
   // ---------------------------------------------------------------------------
-  // Filter token parsing from the current filterQuery JSON
+  // Expert mode and filter query state
   // ---------------------------------------------------------------------------
+  const [expertValue, setExpertValue] = useState("");
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [resetKey, setResetKey] = useState(0);
+  const expertDismissedRef = useRef(false);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+
+  // Filter token parsing from the current filterQuery JSON
   const filterTokens = React.useMemo<RenderChipToken[]>(() => {
     if (!filterQuery) return [];
     try {
@@ -114,6 +158,37 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
       return [];
     }
   }, [filterQuery]);
+
+  const [expertModeActive, setExpertModeActive] = useState(() => filterTokens.length > 0);
+  const [prevFilterTokens, setPrevFilterTokens] = useState(filterTokens);
+  if (filterTokens !== prevFilterTokens) {
+    setPrevFilterTokens(filterTokens);
+    setExpertModeActive(filterTokens.length > 0);
+  }
+
+  const filterQueryString = React.useMemo(() => {
+    if (!filterQuery) return "";
+    try {
+      const parsed = JSON.parse(filterQuery);
+      return filterValuesToQueryString(parsed);
+    } catch {
+      return "";
+    }
+  }, [filterQuery]);
+
+  // Sync expertValue with filterQueryString when not focused or when filterQueryString changes
+  useEffect(() => {
+    if (!focused) {
+      setExpertValue(filterQueryString);
+    }
+  }, [focused, filterQueryString]);
+
+  // Reset dismissed flag when filter changes from outside
+  useEffect(() => {
+    expertDismissedRef.current = false;
+  }, [filterTokens]);
+
+  const isFilterActive = filterTokens.length > 0 || Boolean(filterQuery);
 
   // ---------------------------------------------------------------------------
   // Live query-syntax parsing as user types
@@ -228,39 +303,234 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
   const getResultsSurfaceColor = (theme: Theme) =>
     theme.vars?.palette.background.paper ?? theme.palette.background.paper;
 
-  const handleFocus = (e: SearchFocusEvent, focus: boolean) => {
-    setFocused(focus);
-    ownProps.onFocus?.(e, focus);
-  };
+  const handleNormalFocus = useCallback(
+    (e: SearchFocusEvent, isFocused: boolean) => {
+      setFocused(isFocused);
+      ownProps.onFocus?.(e, isFocused);
+    },
+    [ownProps]
+  );
 
-  const closeSearch = (e: SearchFocusEvent) => {
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
+  const closeNormalSearch = useCallback(
+    (e: SearchFocusEvent) => {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+      handleNormalFocus(e, false);
+      setPattern("");
+    },
+    [handleNormalFocus]
+  );
+
+  const activateExpertMode = useCallback(
+    (sourceTokens: RenderChipToken[]) => {
+      setExpertModeActive(true);
+      setFocused(true);
+      expertDismissedRef.current = false;
+      setExpertValue(filterQueryString);
+      setTimeout(() => {
+        const inputEl = document.querySelector(
+          "input[data-expert-input='true']"
+        ) as HTMLInputElement;
+        if (inputEl) {
+          inputEl.focus();
+          inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length);
+        }
+      }, 50);
+    },
+    [filterQueryString]
+  );
+
+  const exitExpertMode = useCallback(
+    (keepActive?: boolean, skipReset?: boolean) => {
+      setFocused((wasFocused) => {
+        if (!wasFocused) return false;
+
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+        if (!skipReset) {
+          setResetKey((prev) => prev + 1);
+        }
+        setExpertModeActive(keepActive ?? (filterTokens.length > 0));
+        expertDismissedRef.current = true;
+        return false;
+      });
+    },
+    [filterTokens]
+  );
+
+  const handleExpertCommit = useCallback(
+    (rawQuery: string) => {
+      const validation = validateQuery(rawQuery);
+      if (!validation.valid) {
+        setValidationError(validation.error);
+        return;
+      }
+      setValidationError(null);
+      const payload = rawQueryToPayload(rawQuery, us);
+      ownProps.onFilterChange?.(payload);
+      const hasContent = rawQuery.trim().length > 0;
+      exitExpertMode(hasContent, true);
+    },
+    [us, ownProps, exitExpertMode]
+  );
+
+  const handleExpertAbort = useCallback(() => {
+    setValidationError(null);
+    setExpertValue(filterQueryString);
+    exitExpertMode();
+  }, [filterQueryString, exitExpertMode]);
+
+  const handleBackdropClick = useCallback(() => {
+    if (expertModeActive) {
+      handleExpertAbort();
+    } else {
+      closeNormalSearch(null);
     }
-    handleFocus(e, false);
-  };
+  }, [expertModeActive, handleExpertAbort, closeNormalSearch]);
 
-  // ---------------------------------------------------------------------------
-  // Token removal
-  // ---------------------------------------------------------------------------
-  const handleRemoveToken = (idx: number) => {
-    if (!ownProps.onFilterChange) return;
-    const remaining = filterTokens.filter((_, i) => i !== idx);
-    if (remaining.length === 0) {
-      ownProps.onFilterChange(null);
-      return;
-    }
-    const qs = remaining.map((t) => t.raw).join(" ");
-    const { values } = queryStringToFilterValues(qs, createDefaultFilterValues());
-    const payload = cleanAST(values, us);
-    ownProps.onFilterChange(payload ? JSON.stringify(payload) : null);
-  };
+  const handleRemoveToken = useCallback(
+    (idx: number) => {
+      const remaining = filterTokens.filter((_, i) => i !== idx);
+      const raw = remaining.map((t) => t.raw).join(" ");
+      const validation = validateQuery(raw);
+      if (validation.valid) {
+        const payload = rawQueryToPayload(raw, us);
+        ownProps.onFilterChange?.(payload);
+        setValidationError(null);
+      } else {
+        // Fallback: focus and edit, highlight error
+        setExpertValue(raw);
+        setFocused(true);
+        setValidationError(validation.error);
+        setTimeout(() => {
+          const inputEl = document.querySelector(
+            "input[data-expert-input='true']"
+          ) as HTMLInputElement;
+          inputEl?.focus();
+        }, 50);
+      }
+    },
+    [filterTokens, us, ownProps]
+  );
 
-  const handleResetAll = () => {
+  const handleClickToken = useCallback(
+    (idx: number) => {
+      const token = filterTokens[idx];
+      if (!token) return;
+
+      const rawQuery = filterQueryString;
+      setExpertValue(rawQuery);
+      setFocused(true);
+
+      const pos = rawQuery.indexOf(token.raw);
+      if (pos !== -1) {
+        setTimeout(() => {
+          const inputEl = document.querySelector(
+            "input[data-expert-input='true']"
+          ) as HTMLInputElement;
+          if (inputEl) {
+            inputEl.focus();
+            inputEl.setSelectionRange(pos, pos + token.raw.length);
+          }
+        }, 50);
+      }
+    },
+    [filterTokens, filterQueryString]
+  );
+
+  const handleEditorBlur = useCallback(
+    (e: React.FocusEvent<HTMLInputElement>) => {
+      ownProps.onFocus?.(e, false);
+      setTimeout(() => {
+        if (!editorContainerRef.current) return;
+        if (!editorContainerRef.current.contains(document.activeElement)) {
+          handleExpertAbort();
+        }
+      }, 100);
+    },
+    [ownProps, handleExpertAbort]
+  );
+
+  const handleEditorFocus = useCallback(() => {
+    setFocused(true);
+    ownProps.onFocus?.(null, true);
+  }, [ownProps]);
+
+  const handleResetAll = useCallback(() => {
     ownProps.onFilterChange?.(null);
-  };
+    setValidationError(null);
+    setExpertValue("");
+    exitExpertMode(false);
+  }, [ownProps, exitExpertMode]);
 
-  const isFilterActive = filterTokens.length > 0 || Boolean(filterQuery);
+  const expertBoxSx = useMemo(
+    () => (theme: Theme) => ({
+      position: compactLayout ? "relative" : ("absolute" as const),
+      top: 0,
+      left: 0,
+      right: 0,
+      borderRadius: 2.5,
+      border: focused || validationError ? "2px solid" : "1px solid",
+      borderColor: validationError
+        ? theme.palette.error.main
+        : focused
+        ? theme.palette.secondary.main
+        : isFilterActive
+        ? alpha(theme.palette.primary.main, 0.4)
+        : "rgba(0,0,0,0.18)",
+      bgcolor: theme.vars?.palette.background.paper ?? theme.palette.background.paper,
+      color: "var(--shortbox-search-color)",
+      px: 1.25,
+      pt: focused ? "7px" : "6px",
+      pb: focused ? "6px" : "6px",
+      display: "flex",
+      flexDirection: "column" as const,
+      gap: 0.75,
+      boxShadow: validationError
+        ? `0 0 0 3px ${alpha(theme.palette.error.main, 0.22)}, 0 8px 28px ${alpha(theme.palette.common.black, 0.32)}`
+        : focused
+        ? `0 0 0 3px ${alpha(theme.palette.secondary.main, 0.22)}, 0 8px 28px ${alpha(theme.palette.common.black, 0.32)}`
+        : "none",
+      transition: "box-shadow 200ms, border-color 180ms ease, transform 220ms ease",
+      cursor: "text",
+      transform: focused ? (compactLayout ? "scale(1)" : "scale(1.1)") : "scale(1)",
+      transformOrigin: "top center",
+      "& input::placeholder": {
+        color: "var(--shortbox-search-placeholder)",
+        opacity: 1,
+      },
+      "&:hover": {
+        borderColor: validationError
+          ? theme.palette.error.main
+          : focused
+          ? theme.palette.secondary.main
+          : isFilterActive
+          ? alpha(theme.palette.primary.main, 0.6)
+          : "rgba(0,0,0,0.32)",
+      },
+      ...theme.applyStyles("dark", {
+        borderColor: validationError
+          ? theme.palette.error.main
+          : focused
+          ? theme.palette.secondary.main
+          : isFilterActive
+          ? alpha("#e5e7eb", 0.55)
+          : alpha(theme.palette.common.white, 0.34),
+        "&:hover": {
+          borderColor: validationError
+            ? theme.palette.error.main
+            : focused
+            ? theme.palette.secondary.main
+            : isFilterActive
+            ? alpha("#e5e7eb", 0.75)
+            : alpha(theme.palette.common.white, 0.55),
+        },
+      }),
+    } as any),
+    [compactLayout, focused, validationError, isFilterActive]
+  );
 
   // ---------------------------------------------------------------------------
   // Render
@@ -269,357 +539,593 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
     <Box sx={{ width: "100%" }}>
       <Backdrop
         open={focused}
-        onClick={(e) => closeSearch(e as unknown as React.MouseEvent<HTMLElement>)}
-        sx={{
-          zIndex: (theme) => theme.zIndex.appBar + 1,
-          backgroundColor: (theme) =>
-            alpha(theme.palette.common.black, theme.palette.mode === "dark" ? 0.58 : 0.36),
+        onClick={handleBackdropClick}
+        sx={(theme) => ({
+          zIndex: theme.zIndex.appBar + 1,
+          backgroundColor: alpha(theme.palette.common.black, 0.36),
           backdropFilter: "blur(5px)",
-        }}
+          ...theme.applyStyles("dark", {
+            backgroundColor: alpha(theme.palette.common.black, 0.58),
+          }),
+        })}
       />
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, width: "100%" }}>
         {/* Main search + filter chip area */}
-        <Box sx={{ flex: 1, minWidth: 0, position: "relative" }}>
-          <Autocomplete
-            size="small"
-            disablePortal
-            forcePopupIcon={false}
-            open={focused && (resolvedOptions.length > 0 || !shortQuery)}
-            slotProps={{
-              popper: {
-                sx: {
-                  position: "fixed !important",
-                  top: { xs: "86px !important", sm: "94px !important" },
-                  left: "50% !important",
-                  right: "auto !important",
-                  transform: "translateX(-50%) !important",
-                  width: compactLayout
-                    ? "95vw !important"
-                    : "min(96vw, 770px) !important",
-                  maxWidth: compactLayout ? "95vw !important" : "96vw !important",
-                  minWidth: compactLayout ? "95vw !important" : "min(96vw, 770px) !important",
-                  zIndex: (theme) => theme.zIndex.appBar + 3,
-                },
-              },
-              paper: {
-                sx: {
-                  borderRadius: 2,
-                  border: "2px solid",
-                  borderColor: (theme) =>
-                    alpha(theme.palette.text.primary, theme.palette.mode === "dark" ? 0.3 : 0.22),
-                  boxShadow: (theme) =>
-                    `0 18px 44px ${alpha(theme.palette.common.black, 0.42)}`,
-                  backdropFilter: "blur(10px)",
-                  backgroundColor: getResultsSurfaceColor,
-                  backgroundImage: "none",
-                  width: "100%",
-                  height: `${resultsPanelHeight}px`,
-                  minHeight: `${resultsPanelHeight}px`,
-                  maxHeight: `${RESULT_PANEL_MAX_HEIGHT}px`,
-                  transform: focused ? "scale(1.02)" : "scale(1)",
-                  transformOrigin: "top center",
-                  transition: "transform 220ms ease",
-                  overflow: "hidden",
-                  "& .MuiAutocomplete-noOptions": {
-                    height: `${resultsPanelHeight}px`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    textAlign: "center",
-                    width: "100%",
-                    fontSize: "1.35rem",
-                    py: 0,
-                    backgroundColor: "transparent",
-                  },
-                },
-              },
-              listbox: {
-                sx: {
-                  height: `${resultsPanelHeight}px`,
-                  minHeight: `${resultsPanelHeight}px`,
-                  maxHeight: `${RESULT_PANEL_MAX_HEIGHT}px`,
-                  overflowY: "auto",
-                  py: 0.5,
-                  backgroundColor: getResultsSurfaceColor,
-                  backgroundImage: "none",
-                  "& li": { backgroundColor: "transparent" },
-                  "& .MuiAutocomplete-option": {
-                    minHeight: 44,
-                    borderBottom: "1px solid",
-                    borderColor: "divider",
-                    backgroundColor: getResultsSurfaceColor,
-                    color: "text.primary",
-                    "&[aria-selected='true']": {
-                      backgroundColor: (theme) =>
-                        alpha(
-                          theme.palette.primary.main,
-                          theme.palette.mode === "dark" ? 0.24 : 0.08
-                        ),
-                    },
-                    "&.Mui-focused": {
-                      backgroundColor: (theme) =>
-                        alpha(
-                          theme.palette.primary.main,
-                          theme.palette.mode === "dark" ? 0.18 : 0.06
-                        ),
-                    },
-                  },
-                  "& .MuiAutocomplete-option:last-of-type": {
-                    borderBottom: "none",
-                  },
-                },
-              },
-            }}
-            options={resolvedOptions}
-            filterOptions={(x) => x}
-            loading={resolvedLoading}
-            inputValue={pattern}
-            noOptionsText={
-              shortQuery && filterTokens.length === 0 ? (
+        <Box
+          sx={(theme) => ({
+            flex: 1,
+            minWidth: 0,
+            position: "relative",
+            height: compactLayout ? "auto" : "40px",
+            zIndex: (t) => t.zIndex.appBar + 2,
+            // Light mode defaults (on dark AppBar)
+            "--shortbox-search-bg": "#ffffff",
+            "--shortbox-search-color": "#111111",
+            "--shortbox-search-placeholder": "rgba(0, 0, 0, 0.45)",
+            // Dark mode overrides
+            ...theme.applyStyles("dark", {
+              "--shortbox-search-bg": "rgba(255, 255, 255, 0.08)",
+              "--shortbox-search-color": "#ffffff",
+              "--shortbox-search-placeholder": "rgba(255, 255, 255, 0.6)",
+            }),
+          })}
+        >
+          {expertModeActive ? (
+            <Box sx={expertBoxSx} ref={editorContainerRef}>
+              {/* Row 1: Token editor + icons */}
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                 <Box
-                  sx={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: "100%",
-                    minWidth: 0,
-                    gap: 0.15,
+                  sx={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center" }}
+                  onMouseDown={(e) => {
+                    const target = e.target as HTMLElement;
+                    if (!target.closest("input, button, [role='button']")) {
+                      e.preventDefault();
+                      setFocused(true);
+                      setTimeout(() => {
+                        const input = editorContainerRef.current?.querySelector<HTMLInputElement>(
+                          "input[data-expert-input='true']"
+                        );
+                        if (input) {
+                          input.focus();
+                          input.setSelectionRange(input.value.length, input.value.length);
+                        }
+                      }, 50);
+                    }
                   }}
                 >
-                  <Typography
-                    component="span"
-                    noWrap
-                    sx={{ minWidth: 0, flexShrink: 0, fontSize: "1rem", color: "text.primary" }}
-                  >
-                    Tippe, um zu suchen… oder v:Verlag, f:Format, erstdruck
-                  </Typography>
+                  {focused ? (
+                    <input
+                      data-expert-input="true"
+                      value={expertValue}
+                      onChange={(e) => {
+                        setExpertValue(e.target.value);
+                        setValidationError(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleExpertCommit(expertValue);
+                        } else if (e.key === "Escape") {
+                          e.preventDefault();
+                          handleExpertAbort();
+                        }
+                      }}
+                      onFocus={handleEditorFocus}
+                      onBlur={handleEditorBlur}
+                      placeholder="Suchen"
+                      style={{
+                        border: "none",
+                        outline: "none",
+                        background: "transparent",
+                        fontSize: "0.93rem",
+                        fontWeight: 500,
+                        fontFamily: "inherit",
+                        color: "var(--shortbox-search-color)",
+                        width: "100%",
+                        padding: 0,
+                        margin: 0,
+                        lineHeight: 1.5,
+                        cursor: "text",
+                      }}
+                    />
+                  ) : (
+                    <FilterQueryChips
+                      tokens={filterTokens}
+                      onRemoveToken={handleRemoveToken}
+                      onClickToken={handleClickToken}
+                      onResetAll={handleResetAll}
+                      maxVisible={compactLayout ? 1 : 2}
+                    />
+                  )}
                 </Box>
-              ) : (
-                <Typography component="span" noWrap sx={{ fontSize: "1rem", color: "text.primary" }}>
-                  {resolvedError ? "Suche aktuell nicht verfügbar" : "Keine Ergebnisse gefunden"}
-                </Typography>
-              )
-            }
-            getOptionLabel={(option) =>
-              typeof option === "string" ? option : `${getNodeType(option.type)} ${option.label || ""}`
-            }
-            isOptionEqualToValue={(a, b) => (a.url || "") === (b.url || "")}
-            onInputChange={(_, value, reason) => {
-              if (reason === "input" || reason === "clear") setPattern(value);
-            }}
-            onChange={(_, value) => {
-              if (!value || typeof value === "string" || !value.url) return;
-              setPattern("");
-              closeSearch(null);
-              push(value.url);
-            }}
-            onClose={(_, reason) => {
-              if (reason === "escape") closeSearch(null);
-            }}
-            onFocus={(e) => handleFocus(e, true)}
-            onBlur={(e) => handleFocus(e, false)}
-            renderOption={(optionProps, option) => {
-              const { key, ...restOptionProps } = optionProps;
-              return (
-                <li key={key} {...restOptionProps}>
-                  <Box
-                    sx={{ width: "100%", display: "flex", alignItems: "center", gap: 1.25, minWidth: 0 }}
-                  >
-                    <Typography component="span" noWrap sx={{ minWidth: 0, flex: 1 }}>
-                      {option.label || ""}
-                    </Typography>
-                    <Typography
-                      component="span"
-                      variant="caption"
+
+                {/* Right-side icons */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.25,
+                    flexShrink: 0,
+                  }}
+                >
+                  {(expertValue.trim().length > 0 || filterTokens.length > 0) && (
+                    <IconButton
+                      size="small"
+                      aria-label="Filter zurücksetzen"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={handleResetAll}
                       sx={{
-                        px: 0.75,
-                        py: 0.2,
-                        borderRadius: 1,
-                        fontWeight: 700,
-                        flexShrink: 0,
-                        ...getNodeTypeBadgeSx(option.type),
+                        color: "error.main",
+                        p: 0.3,
+                        opacity: 0.75,
+                        "&:hover": { opacity: 1 },
                       }}
                     >
-                      {getNodeType(option.type)}
+                      <ClearIcon sx={{ fontSize: 15 }} />
+                    </IconButton>
+                  )}
+                  <Tooltip title="Expert-Modus · ESC zum Beenden" describeChild>
+                    <Box
+                      sx={{
+                        color: focused ? "secondary.main" : "primary.main",
+                        display: "flex",
+                        alignItems: "center",
+                        px: 0.4,
+                        opacity: 0.9,
+                      }}
+                    >
+                      <TerminalIcon sx={{ fontSize: 18 }} />
+                    </Box>
+                  </Tooltip>
+                </Box>
+              </Box>
+
+              {/* Row 2: Keyboard shortcuts strip */}
+              {focused && (
+                <Box
+                  sx={(theme) => ({
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 2,
+                    pt: 0.5,
+                    borderTop: "1px solid",
+                    borderColor: alpha(theme.palette.divider, 0.55),
+                  })}
+                >
+                  {(
+                    [
+                      ["Enter", "Suchen"],
+                      ["Esc", "Beenden"],
+                    ] as [string, string][]
+                  ).map(([key, label]) => (
+                    <Typography
+                      key={key}
+                      variant="caption"
+                      sx={{
+                        color: "text.disabled",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 0.5,
+                      }}
+                    >
+                      <Box
+                        component="kbd"
+                        sx={(theme) => ({
+                          px: "4px",
+                          py: "1px",
+                          borderRadius: "4px",
+                          border: "1px solid",
+                          borderColor: alpha(theme.palette.text.secondary, 0.28),
+                          fontFamily: "monospace",
+                          fontSize: "0.63rem",
+                          fontWeight: 700,
+                          color: "text.secondary",
+                          bgcolor: alpha(theme.palette.text.primary, 0.04),
+                          lineHeight: 1.6,
+                          userSelect: "none",
+                        })}
+                      >
+                        {key}
+                      </Box>
+                      {label}
                     </Typography>
+                  ))}
+                </Box>
+              )}
+
+              {/* Row 2.5: Validation error message */}
+              {validationError && (
+                <Box
+                  sx={(theme) => ({
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.5,
+                    pt: 0.5,
+                    borderTop: "1px solid",
+                    borderColor: alpha(theme.palette.divider, 0.55),
+                    color: "error.main",
+                  })}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                      fontWeight: 600,
+                    }}
+                  >
+                    ⚠️ {validationError}
+                  </Typography>
+                </Box>
+              )}
+
+              {/* Row 3: Command hints (fade in after 800 ms idle) */}
+              <Fade in={focused} timeout={220} unmountOnExit>
+                <Box
+                  sx={(theme) => ({
+                    borderTop: "1px solid",
+                    borderColor: alpha(theme.palette.divider, 0.55),
+                    pt: 1,
+                  })}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      display: "block",
+                      mb: 0.75,
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.09em",
+                      fontSize: "0.6rem",
+                      color: "text.disabled",
+                    }}
+                  >
+                    Verfügbare Befehle
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+                      gap: "2px 16px",
+                    }}
+                  >
+                    {COMMANDS.map(([cmd, desc, ex]) => (
+                      <Box
+                        key={cmd}
+                        sx={{
+                          display: "flex",
+                          gap: 1,
+                          py: 0.4,
+                          alignItems: "baseline",
+                          borderBottom: "1px solid",
+                          borderColor: "divider",
+                          "&:nth-last-of-type(-n+2)": { borderBottom: "none" },
+                        }}
+                      >
+                        <Typography
+                          component="code"
+                          sx={{
+                            fontFamily: "monospace",
+                            fontWeight: 700,
+                            fontSize: "0.76rem",
+                            color: "secondary.main",
+                            minWidth: 32,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {cmd}
+                        </Typography>
+                        <Box>
+                          <Typography
+                            variant="caption"
+                            sx={{ display: "block", lineHeight: 1.3 }}
+                          >
+                            {desc}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "text.disabled",
+                              fontFamily: "monospace",
+                              fontSize: "0.63rem",
+                            }}
+                          >
+                            {ex}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    ))}
                   </Box>
-                </li>
-              );
-            }}
-            sx={(theme) => ({
-              "--shortbox-search-bg": "var(--mui-palette-background-paper)",
-              width: "100%",
-              position: "relative",
-              zIndex: theme.zIndex.appBar + 2,
-              transform: resolveSearchTransform(focused, compactLayout),
-              transformOrigin: "center",
-              transition: "transform 220ms ease",
-              "& .MuiOutlinedInput-root": {
-                backgroundColor: "var(--shortbox-search-bg)",
-                borderRadius: 2.5,
-                color: theme.palette.mode === "dark" ? theme.palette.common.white : "#111111",
-                opacity: 1,
-                transition:
-                  "box-shadow 180ms ease, border-color 180ms ease, background-color 180ms ease",
-                // Chip container before the input text
-                flexWrap: "nowrap",
-                paddingLeft: filterTokens.length > 0 ? "6px !important" : undefined,
-                "& input": {
-                  color: `${theme.palette.mode === "dark" ? theme.palette.common.white : "#111111"} !important`,
-                  WebkitTextFillColor: `${theme.palette.mode === "dark" ? theme.palette.common.white : "#111111"} !important`,
-                  opacity: "1 !important",
-                  fontWeight: 500,
-                  minWidth: "80px",
+                </Box>
+              </Fade>
+            </Box>
+          ) : (
+            <Autocomplete
+              size="small"
+              disablePortal
+              forcePopupIcon={false}
+              open={focused && (resolvedOptions.length > 0 || !shortQuery)}
+              slotProps={{
+                popper: {
+                  sx: {
+                    position: "fixed !important",
+                    top: { xs: "86px !important", sm: "94px !important" },
+                    left: "50% !important",
+                    right: "auto !important",
+                    transform: "translateX(-50%) !important",
+                    width: compactLayout
+                      ? "95vw !important"
+                      : "min(96vw, 770px) !important",
+                    maxWidth: compactLayout ? "95vw !important" : "96vw !important",
+                    minWidth: compactLayout ? "95vw !important" : "min(96vw, 770px) !important",
+                    zIndex: (theme) => theme.zIndex.appBar + 3,
+                  },
                 },
-                "& input::placeholder": {
-                  color: `${theme.palette.mode === "dark" ? "rgba(255,255,255,0.72)" : "rgba(17,17,17,0.46)"} !important`,
-                  WebkitTextFillColor: `${theme.palette.mode === "dark" ? "rgba(255,255,255,0.72)" : "rgba(17,17,17,0.46)"} !important`,
-                  opacity: "1 !important",
+                paper: {
+                  sx: {
+                    borderRadius: 2,
+                    border: "2px solid",
+                    borderColor: (theme) =>
+                      alpha(theme.palette.text.primary, theme.palette.mode === "dark" ? 0.3 : 0.22),
+                    boxShadow: (theme) =>
+                      `0 18px 44px ${alpha(theme.palette.common.black, 0.42)}`,
+                    backdropFilter: "blur(10px)",
+                    backgroundColor: getResultsSurfaceColor,
+                    backgroundImage: "none",
+                    width: "100%",
+                    height: "auto",
+                    minHeight: "auto",
+                    maxHeight: "none",
+                    transform: focused ? "scale(1.02)" : "scale(1)",
+                    transformOrigin: "top center",
+                    transition: "transform 220ms ease",
+                    overflow: "hidden",
+                    "& .MuiAutocomplete-listbox": {
+                      maxHeight: "min(70dvh, 520px)",
+                      p: 0,
+                    },
+                    "& .MuiAutocomplete-noOptions": {
+                      height: 120,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      textAlign: "center",
+                      width: "100%",
+                      fontSize: "1rem",
+                      fontWeight: 600,
+                      p: 2,
+                    },
+                    "& .MuiAutocomplete-loading": {
+                      height: 120,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: "100%",
+                      p: 2,
+                    },
+                  },
                 },
-                "& fieldset": {
-                  borderColor: isFilterActive
-                    ? alpha(theme.palette.primary.main, theme.palette.mode === "dark" ? 0.55 : 0.4)
-                    : "rgba(17, 17, 17, 0.18)",
-                },
-                "&:hover fieldset": {
-                  borderColor: isFilterActive
-                    ? alpha(theme.palette.primary.main, theme.palette.mode === "dark" ? 0.75 : 0.6)
-                    : "rgba(17, 17, 17, 0.32)",
-                },
-                "&.Mui-focused fieldset": {
-                  borderColor: "#111111",
-                },
-                "&.Mui-focused": {
-                  boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.2)}, 0 10px 26px ${alpha(
-                    theme.palette.common.black,
-                    0.35
-                  )}`,
+              }}
+              options={resolvedOptions}
+              filterOptions={(options) => options}
+              loading={resolvedLoading}
+              inputValue={pattern}
+              noOptionsText={
+                shortQuery ? (
+                  <Typography component="span" noWrap sx={{ fontSize: "1rem", color: "text.primary" }}>
+                    Tippe, um zu suchen… oder v:Verlag, f:Format, erstdruck
+                  </Typography>
+                ) : (
+                  <Typography component="span" noWrap sx={{ fontSize: "1rem", color: "text.primary" }}>
+                    {resolvedError ? "Suche aktuell nicht verfügbar" : "Keine Ergebnisse gefunden"}
+                  </Typography>
+                )
+              }
+              getOptionLabel={(option) =>
+                typeof option === "string" ? option : `${getNodeType(option.type)} ${option.label || ""}`
+              }
+              isOptionEqualToValue={(option, val) => (option.url || "") === (val.url || "")}
+              onInputChange={(_, value, reason) => {
+                if (reason !== "input" && reason !== "clear") return;
+                // "/" at the start activates expert mode
+                if (value.startsWith("/")) {
+                  activateExpertMode(filterTokens);
+                  return;
+                }
+                setPattern(value);
+              }}
+              onChange={(_, value) => {
+                if (!value || typeof value === "string" || !value.url) return;
+                setPattern("");
+                closeNormalSearch(null);
+                push(value.url);
+              }}
+              onClose={(_, reason) => {
+                if (reason === "escape") closeNormalSearch(null);
+              }}
+              onFocus={(e) => {
+                // If filter is active and user didn't explicitly dismiss expert mode, activate it
+                if (filterTokens.length > 0 && !expertDismissedRef.current) {
+                  activateExpertMode(filterTokens);
+                  return;
+                }
+                handleNormalFocus(e, true);
+              }}
+              onBlur={(e) => handleNormalFocus(e, false)}
+              renderOption={(optionProps, option) => {
+                const { key, ...rest } = optionProps;
+                return (
+                  <li key={key} {...rest}>
+                    <Box
+                      sx={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.25,
+                        minWidth: 0,
+                      }}
+                    >
+                      <Typography component="span" noWrap sx={{ flex: 1 }}>
+                        {option.label || ""}
+                      </Typography>
+                      <Typography
+                        component="span"
+                        variant="caption"
+                        sx={{
+                          px: 0.75,
+                          py: 0.2,
+                          borderRadius: 1,
+                          fontWeight: 700,
+                          flexShrink: 0,
+                          ...getNodeTypeBadgeSx(option.type),
+                        }}
+                      >
+                        {getNodeType(option.type)}
+                      </Typography>
+                    </Box>
+                  </li>
+                );
+              }}
+              sx={(theme) => ({
+                width: "100%",
+                transform: resolveSearchTransform(focused, compactLayout),
+                transformOrigin: "top center",
+                transition: "transform 220ms ease",
+                "& .MuiOutlinedInput-root": {
                   backgroundColor: "var(--shortbox-search-bg)",
-                },
-                ...theme.applyStyles("dark", {
-                  backgroundColor: "var(--shortbox-search-bg)",
-                  color: theme.palette.common.white,
+                  borderRadius: 2.5,
+                  transition: "box-shadow 180ms ease, border-color 180ms ease",
                   "& input": {
-                    color: `${theme.palette.common.white} !important`,
-                    WebkitTextFillColor: `${theme.palette.common.white} !important`,
-                    opacity: "1 !important",
+                    color: "var(--shortbox-search-color) !important",
+                    WebkitTextFillColor: "var(--shortbox-search-color) !important",
                     fontWeight: 500,
+                    opacity: "1 !important",
                   },
                   "& input::placeholder": {
-                    color: "rgba(255,255,255,0.72) !important",
-                    WebkitTextFillColor: "rgba(255,255,255,0.72) !important",
+                    color: "var(--shortbox-search-placeholder) !important",
+                    WebkitTextFillColor: "var(--shortbox-search-placeholder) !important",
                     opacity: "1 !important",
                   },
                   "& fieldset": {
                     borderColor: isFilterActive
-                      ? alpha(theme.palette.primary.main, 0.55)
-                      : alpha(theme.palette.common.white, 0.34),
+                      ? alpha(theme.palette.primary.main, theme.palette.mode === "dark" ? 0.55 : 0.4)
+                      : "rgba(17, 17, 17, 0.18)",
                   },
                   "&:hover fieldset": {
                     borderColor: isFilterActive
-                      ? alpha(theme.palette.primary.main, 0.75)
-                      : alpha(theme.palette.common.white, 0.54),
+                      ? alpha(theme.palette.primary.main, theme.palette.mode === "dark" ? 0.75 : 0.6)
+                      : "rgba(17, 17, 17, 0.32)",
                   },
                   "&.Mui-focused fieldset": {
-                    borderColor: theme.palette.primary.light,
+                    borderColor: theme.palette.mode === "dark" ? theme.palette.primary.light : "#111111",
                   },
                   "&.Mui-focused": {
-                    backgroundColor: "var(--mui-palette-background-paper)",
-                    boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.28)}, 0 10px 26px ${alpha(
+                    boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.2)}, 0 10px 26px ${alpha(
                       theme.palette.common.black,
                       0.35
                     )}`,
+                    backgroundColor: "var(--shortbox-search-bg)",
                   },
-                }),
-              },
-              "& .MuiAutocomplete-paper": {
-                backgroundColor: getResultsSurfaceColor,
-                backgroundImage: "none",
-              },
-              "& .MuiAutocomplete-listbox": {
-                backgroundColor: getResultsSurfaceColor,
-                backgroundImage: "none",
-              },
-              "& .MuiAutocomplete-option": {
-                backgroundColor: getResultsSurfaceColor,
-              },
-            })}
-            renderInput={(params) => {
-              const { inputProps, InputProps, ...restParams } = params;
-              return (
-                <TextField
-                  {...restParams}
-                  variant="outlined"
-                  autoFocus={Boolean(ownProps.autoFocus)}
-                  sx={(theme) => ({
-                    "& .MuiOutlinedInput-root": {
-                      backgroundColor: "var(--shortbox-search-bg)",
-                      color: theme.palette.mode === "dark" ? theme.palette.common.white : "#111111",
+                  ...theme.applyStyles("dark", {
+                    "& fieldset": {
+                      borderColor: isFilterActive
+                        ? alpha(theme.palette.primary.main, 0.55)
+                        : alpha(theme.palette.common.white, 0.34),
                     },
-                    "& .MuiOutlinedInput-input": {
-                      fontSize: "0.95rem",
-                      lineHeight: 1.2,
-                      color: `${theme.palette.mode === "dark" ? theme.palette.common.white : "#111111"} !important`,
-                      WebkitTextFillColor: `${theme.palette.mode === "dark" ? theme.palette.common.white : "#111111"} !important`,
-                      fontWeight: 500,
-                      opacity: "1 !important",
+                    "&:hover fieldset": {
+                      borderColor: isFilterActive
+                        ? alpha(theme.palette.primary.main, 0.75)
+                        : alpha(theme.palette.common.white, 0.54),
                     },
-                    ...theme.applyStyles("dark", {
+                    "&.Mui-focused fieldset": {
+                      borderColor: theme.palette.primary.light,
+                    },
+                    "&.Mui-focused": {
+                      backgroundColor: "var(--mui-palette-background-paper)",
+                      boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.28)}, 0 10px 26px ${alpha(
+                        theme.palette.common.black,
+                        0.35
+                      )}`,
+                    },
+                  }),
+                },
+                "& .MuiAutocomplete-paper": {
+                  backgroundColor: getResultsSurfaceColor,
+                  backgroundImage: "none",
+                },
+                "& .MuiAutocomplete-listbox": {
+                  backgroundColor: getResultsSurfaceColor,
+                  backgroundImage: "none",
+                },
+                "& .MuiAutocomplete-option": {
+                  backgroundColor: getResultsSurfaceColor,
+                },
+              })}
+              renderInput={(params) => {
+                const { inputProps, InputProps, ...restParams } = params;
+                return (
+                  <TextField
+                    {...restParams}
+                    variant="outlined"
+                    autoFocus={Boolean(ownProps.autoFocus)}
+                    sx={(theme) => ({
                       "& .MuiOutlinedInput-root": {
-                        backgroundColor: "var(--mui-palette-background-paper)",
-                        color: theme.palette.common.white,
+                        backgroundColor: "var(--shortbox-search-bg)",
+                        color: "var(--shortbox-search-color)",
                       },
                       "& .MuiOutlinedInput-input": {
-                        color: `${theme.palette.common.white} !important`,
-                        WebkitTextFillColor: `${theme.palette.common.white} !important`,
+                        fontSize: "0.95rem",
+                        lineHeight: 1.2,
+                        color: "var(--shortbox-search-color) !important",
+                        WebkitTextFillColor: "var(--shortbox-search-color) !important",
+                        fontWeight: 500,
+                        opacity: "1 !important",
                       },
-                    }),
-                  })}
-                  slotProps={{
-                    htmlInput: {
-                      ...inputProps,
-                      "aria-label": "Shortbox durchsuchen",
-                      "data-shortbox-search-input": "true",
-                      placeholder:
-                        filterTokens.length > 0
-                          ? "weiteren Filter eingeben…"
-                          : `Suchen · ${shortcutHint} · v:Verlag s:Serie f:Format`,
-                    },
-                    input: {
-                      ...InputProps,
-                      startAdornment: filterTokens.length > 0 ? (
-                        <FilterQueryChips
-                          tokens={filterTokens}
-                          onRemoveToken={handleRemoveToken}
-                          onResetAll={handleResetAll}
-                        />
-                      ) : undefined,
-                      endAdornment: (
-                        <>
-                          {loading || navigationPending ? (
-                            <CircularProgress color="inherit" size={18} />
-                          ) : null}
-                          <InputAdornment position="end">
-                            <SearchIcon
-                              sx={(theme) => ({
-                                fontSize: 20,
-                                color: "#111111",
-                                ...theme.applyStyles("dark", {
-                                  color: theme.palette.common.white,
-                                }),
-                              })}
-                            />
-                          </InputAdornment>
-                          {InputProps.endAdornment}
-                        </>
-                      ),
-                    },
-                  }}
-                />
-              );
-            }}
-          />
+                    })}
+                    slotProps={{
+                      htmlInput: {
+                        ...inputProps,
+                        "aria-label": "Shortbox durchsuchen",
+                        "data-shortbox-search-input": "true",
+                        placeholder:
+                          filterTokens.length > 0
+                            ? "weiteren Filter eingeben…"
+                            : `Suchen · ${shortcutHint}`,
+                      },
+                      input: {
+                        ...InputProps,
+                        startAdornment: filterTokens.length > 0 ? (
+                          <FilterQueryChips
+                            tokens={filterTokens}
+                            onRemoveToken={handleRemoveToken}
+                            onResetAll={handleResetAll}
+                          />
+                        ) : undefined,
+                        endAdornment: (
+                          <>
+                            {loading || navigationPending ? (
+                              <CircularProgress color="inherit" size={18} />
+                            ) : null}
+                            <InputAdornment position="end">
+                              <SearchIcon
+                                sx={{
+                                  fontSize: 20,
+                                  color: "var(--shortbox-search-color)",
+                                }}
+                              />
+                            </InputAdornment>
+                            {InputProps.endAdornment}
+                          </>
+                        ),
+                      },
+                    }}
+                  />
+                );
+              }}
+            />
+          )}
         </Box>
 
         {/* Filter toggle button – only on desktop (compactLayout handled in TopBar) */}
@@ -646,7 +1152,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                   onClick={() => setFilterPanelOpen((prev) => !prev)}
                   sx={(theme) => ({
                     color: isFilterActive
-                      ? theme.palette.primary.light
+                      ? theme.palette.secondary.light
                       : theme.palette.mode === "dark"
                       ? "rgba(255,255,255,0.7)"
                       : "rgba(255,255,255,0.85)",

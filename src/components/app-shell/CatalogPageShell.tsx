@@ -97,30 +97,14 @@ function getShellPadding(
   staticDesktopSidePadding: string
 ) {
   return {
-    pl: {
-      xs: 0,
-      sm: 2,
-      md: showNavigation ? 2 : staticDesktopSidePadding,
-      lg: showNavigation
-        ? `calc((var(--shortbox-nav-gutter, ${initialNavGutter}) / 2) + 8px)`
-        : staticDesktopSidePadding,
-    },
-    pr: {
-      xs: 0,
-      sm: 2,
-      md: showNavigation ? 2 : staticDesktopSidePadding,
-      lg: showNavigation
-        ? `max(16px, calc((var(--shortbox-nav-gutter, ${initialNavGutter}) / 2) + 8px - (var(--shortbox-nav-offset, ${initialNavOffset}) / 2)))`
-        : staticDesktopSidePadding,
-    },
-    pt: { xs: 0, sm: 2 },
-    pb: showNavigation
-      ? { xs: COMPACT_BOTTOM_BAR_CLEARANCE, sm: COMPACT_BOTTOM_BAR_CLEARANCE, lg: 2 }
-      : { xs: 0, sm: 2 },
+    pl: 0,
+    pr: 0,
+    pt: 0,
+    pb: 0,
     ml: {
       xs: showNavigation ? `var(--shortbox-nav-offset, ${initialNavOffset})` : 0,
       lg: showNavigation
-        ? `calc(var(--shortbox-nav-offset, ${initialNavOffset}) / 2)`
+        ? `var(--shortbox-nav-offset, ${initialNavOffset})`
         : 0,
     },
   };
@@ -214,6 +198,7 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
           }}
         >
           <Card
+            className="shortbox-layout-card"
             sx={{
               width: "100%",
               display: "flex",
@@ -225,41 +210,27 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
               backgroundColor: "rgba(255, 255, 255, 0.65)",
               backdropFilter: "blur(20px)",
               backgroundImage: "none",
-              border: "1px solid",
+              border: "none",
+              borderLeft: "1px solid",
               borderColor: "rgba(0, 0, 0, 0.06)",
-              boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.07)",
+              boxShadow: "none",
+              borderRadius: "0px !important",
+              mt: "3px",
               '[data-theme="dark"] &': {
-                backgroundColor: "rgba(30, 30, 30, 0.65)",
+                backgroundColor: "var(--mui-palette-background-default)",
                 borderColor: "rgba(255, 255, 255, 0.08)",
-                boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.37)",
+                boxShadow: "none",
               },
             }}
           >
             <Box
               sx={{
                 flexGrow: 1,
-                px: { xs: 0, sm: 2 },
-                pt: { xs: 0, sm: 2 },
-                pb: 0,
+                p: { xs: 2, sm: 3 },
                 minHeight: 0,
                 position: "relative",
                 display: "flex",
                 flexDirection: "column",
-                "&::before": {
-                  content: '""',
-                  position: "fixed",
-                  right: { xs: 12, sm: 20, lg: 28 },
-                  bottom: { xs: 12, sm: 20, lg: 24 },
-                  width: { xs: 160, sm: 220, lg: 280 },
-                  height: { xs: 160, sm: 220, lg: 280 },
-                  backgroundImage: 'url("/background.png")',
-                  backgroundRepeat: "no-repeat",
-                  backgroundPosition: "right bottom",
-                  backgroundSize: "contain",
-                  opacity: 0.12,
-                  zIndex: 0,
-                  pointerEvents: "none",
-                },
               }}
             >
               <Box
@@ -276,6 +247,28 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
               >
                 {props.children}
               </Box>
+
+              <Box
+                data-shortbox-watermark
+                sx={{
+                  position: "absolute",
+                  right: "0px",
+                  bottom: "0px",
+                  width: 220,
+                  height: 220,
+                  backgroundImage: 'url("/background.png")',
+                  backgroundRepeat: "no-repeat",
+                  backgroundPosition: "right bottom",
+                  backgroundSize: "contain",
+                  opacity: 0.12,
+                  zIndex: 10,
+                  pointerEvents: "none",
+                  '[data-theme="dark"] &': {
+                    filter: "invert(1)",
+                    opacity: 0.12,
+                  },
+                }}
+              />
             </Box>
 
             <Box
@@ -287,9 +280,6 @@ export default async function CatalogPageShell(props: Readonly<CatalogPageShellP
                 borderTop: 1,
                 borderColor: "divider",
                 backgroundColor: "transparent",
-                position: "sticky",
-                bottom: 0,
-                zIndex: 1,
                 display: "flex",
                 justifyContent: { xs: "center", sm: "flex-end" },
               }}

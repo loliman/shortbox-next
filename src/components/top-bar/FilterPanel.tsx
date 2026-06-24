@@ -70,21 +70,20 @@ export default function FilterPanel({
         paper: {
           sx: (theme) => ({
             mt: 1,
-            width: "min(96vw, 760px)",
-            maxHeight: "min(80vh, 680px)",
+            width: { xs: "min(96vw, 420px)", md: "fit-content" },
+            maxWidth: "96vw",
+            maxHeight: "min(90vh, 860px)",
             overflowY: "auto",
             borderRadius: 2.5,
             border: "1.5px solid",
-            borderColor:
-              theme.palette.mode === "dark"
-                ? alpha(theme.palette.common.white, 0.14)
-                : alpha(theme.palette.common.black, 0.1),
+            borderColor: alpha(theme.palette.common.black, 0.1),
             boxShadow: `0 24px 64px ${alpha(theme.palette.common.black, 0.42)}`,
             backdropFilter: "blur(16px)",
-            backgroundColor:
-              theme.palette.mode === "dark"
-                ? alpha(theme.palette.background.paper, 0.96)
-                : theme.palette.background.paper,
+            backgroundColor: "rgba(255, 255, 255, 0.96)",
+            ...theme.applyStyles("dark", {
+              borderColor: alpha(theme.palette.common.white, 0.14),
+              backgroundColor: "rgba(13, 17, 23, 0.96)",
+            }),
           }),
         },
       }}
@@ -115,10 +114,10 @@ export default function FilterPanel({
                 position: "sticky",
                 top: 0,
                 zIndex: 1,
-                backgroundColor:
-                  theme.palette.mode === "dark"
-                    ? alpha(theme.palette.background.paper, 0.97)
-                    : theme.palette.background.paper,
+                backgroundColor: "rgba(255, 255, 255, 0.97)",
+                ...theme.applyStyles("dark", {
+                  backgroundColor: "rgba(13, 17, 23, 0.97)",
+                }),
               })}
             >
               <Typography
@@ -181,10 +180,10 @@ export default function FilterPanel({
                         "&.Mui-expanded": { minHeight: 40 },
                         "& .MuiAccordionSummary-content": { my: 0 },
                         "&:hover": {
-                          backgroundColor:
-                            theme.palette.mode === "dark"
-                              ? "rgba(255,255,255,0.04)"
-                              : "rgba(0,0,0,0.02)",
+                          backgroundColor: "rgba(0, 0, 0, 0.02)",
+                          ...theme.applyStyles("dark", {
+                            backgroundColor: "rgba(255, 255, 255, 0.04)",
+                          }),
                         },
                       })}
                     >
@@ -234,10 +233,10 @@ export default function FilterPanel({
                 position: "sticky",
                 bottom: 0,
                 zIndex: 1,
-                backgroundColor:
-                  theme.palette.mode === "dark"
-                    ? alpha(theme.palette.background.paper, 0.97)
-                    : theme.palette.background.paper,
+                backgroundColor: "rgba(255, 255, 255, 0.97)",
+                ...theme.applyStyles("dark", {
+                  backgroundColor: "rgba(13, 17, 23, 0.97)",
+                }),
               })}
             >
               <Button

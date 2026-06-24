@@ -80,6 +80,7 @@ export default async function PersistentCatalogShell(
           }}
         >
           <Card
+            className="shortbox-layout-card"
             sx={{
               width: "100%",
               display: "flex",
@@ -89,13 +90,17 @@ export default async function PersistentCatalogShell(
               backgroundColor: "rgba(255, 255, 255, 0.65)",
               backdropFilter: "blur(20px)",
               backgroundImage: "none",
-              border: "1px solid",
+              border: "none",
+              borderLeft: "1px solid",
               borderColor: "rgba(0, 0, 0, 0.06)",
-              boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.07)",
+              boxShadow: "none",
+              borderRadius: "0px !important",
+              mt: "3px",
+              overflow: "hidden",
               '[data-theme="dark"] &': {
-                backgroundColor: "rgba(30, 30, 30, 0.65)",
+                backgroundColor: "var(--mui-palette-background-default)",
                 borderColor: "rgba(255, 255, 255, 0.08)",
-                boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.37)",
+                boxShadow: "none",
               },
             }}
           >
@@ -103,25 +108,10 @@ export default async function PersistentCatalogShell(
               data-shortbox-shell-content-frame
               sx={{
                 flexGrow: 1,
-                pb: 0,
+                p: { xs: 2, sm: 3 },
                 position: "relative",
                 display: "flex",
                 flexDirection: "column",
-                "&::before": {
-                  content: '""',
-                  position: "fixed",
-                  right: { xs: 12, sm: 20, lg: 28 },
-                  bottom: { xs: 12, sm: 20, lg: 24 },
-                  width: { xs: 160, sm: 220, lg: 280 },
-                  height: { xs: 160, sm: 220, lg: 280 },
-                  backgroundImage: 'url("/background.png")',
-                  backgroundRepeat: "no-repeat",
-                  backgroundPosition: "right bottom",
-                  backgroundSize: "contain",
-                  opacity: 0.12,
-                  zIndex: 0,
-                  pointerEvents: "none",
-                },
               }}
             >
               <Box
@@ -137,6 +127,28 @@ export default async function PersistentCatalogShell(
               >
                 {props.children}
               </Box>
+
+              <Box
+                data-shortbox-watermark
+                sx={{
+                  position: "absolute",
+                  right: "0px",
+                  bottom: "0px",
+                  width: 220,
+                  height: 220,
+                  backgroundImage: 'url("/background.png")',
+                  backgroundRepeat: "no-repeat",
+                  backgroundPosition: "right bottom",
+                  backgroundSize: "contain",
+                  opacity: 0.12,
+                  zIndex: 10,
+                  pointerEvents: "none",
+                  '[data-theme="dark"] &': {
+                    filter: "invert(1)",
+                    opacity: 0.12,
+                  },
+                }}
+              />
             </Box>
 
             <Box
@@ -148,9 +160,6 @@ export default async function PersistentCatalogShell(
                 borderTop: 1,
                 borderColor: "divider",
                 backgroundColor: "transparent",
-                position: "sticky",
-                bottom: 0,
-                zIndex: 1,
                 display: "flex",
                 justifyContent: { xs: "center", sm: "flex-end" },
               }}

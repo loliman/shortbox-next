@@ -131,14 +131,17 @@ function DetailsSection({
           }}
           size="small"
           sx={{
-            gridColumn: { xs: "1", sm: "1 / span 3" },
-            flexWrap: "wrap",
+          gridColumn: { xs: "1", sm: "1 / span 3" },
+            flexWrap: { xs: "wrap", md: "nowrap" },
+            width: "100%",
             mb: 1.1,
             "& .MuiToggleButton-root": {
               textTransform: "none",
-              px: 1,
+              flex: { xs: "1 1 auto", md: 1 },
+              px: 0.8,
               py: 0.35,
-              fontSize: "0.75rem",
+              fontSize: "0.72rem",
+              whiteSpace: "nowrap",
               backgroundColor: "background.paper",
               color: "text.primary",
               borderColor: "rgba(100, 116, 139, 0.35)",

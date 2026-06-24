@@ -4,6 +4,7 @@ import React from "react";
 import Box from "@mui/material/Box";
 import Drawer from "@mui/material/Drawer";
 import SwipeableDrawer from "@mui/material/SwipeableDrawer";
+import type { SxProps, Theme } from "@mui/material/styles";
 import MuiList from "@mui/material/List";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
@@ -44,15 +45,20 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
   const navActionBottomOffset = temporary ? `calc(${COMPACT_BOTTOM_BAR_CLEARANCE} + 14px)` : "14px";
   const navActionRightOffset = "14px";
   const navListBottomPadding = temporary ? `calc(${COMPACT_BOTTOM_BAR_CLEARANCE} + 56px)` : 56;
-  const paperSx = {
+  const paperSx: SxProps<Theme> = {
     width: drawerWidth,
     maxWidth: "100%",
     top: drawerHeaderTopOffset,
     height: drawerHeaderAdjustedHeight,
-    backgroundColor: "background.paper",
+    backgroundColor: "rgba(255, 255, 255, 0.65) !important",
+    backdropFilter: "blur(20px)",
     borderRight: "1px solid",
-    borderRightColor: "divider",
+    borderRightColor: "rgba(0, 0, 0, 0.06)",
     overflow: "hidden",
+    '[data-theme="dark"] &': {
+      backgroundColor: "var(--mui-palette-background-default) !important",
+      borderRightColor: "rgba(255, 255, 255, 0.08)",
+    },
   };
 
 
@@ -139,6 +145,9 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
         ModalProps={{
           keepMounted: false,
         }}
+        PaperProps={{
+          sx: paperSx,
+        }}
         slotProps={{
           paper: {
             sx: paperSx,
@@ -154,6 +163,9 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
     <Drawer
       variant="persistent"
       open={Boolean(drawerOpen)}
+      PaperProps={{
+        sx: paperSx,
+      }}
       slotProps={{
         paper: {
           sx: paperSx,

@@ -302,7 +302,6 @@ export default function TopBar(ownProps: Readonly<TopBarProps>) {
         zIndex: (theme) => theme.zIndex.drawer + 1,
         position: "sticky",
         overflow: "visible",
-        backgroundColor: "rgb(0, 0, 0)",
         backgroundImage: "none",
         borderBottomWidth: 1,
         borderBottomStyle: "solid",
@@ -318,7 +317,7 @@ export default function TopBar(ownProps: Readonly<TopBarProps>) {
           columnGap: 1,
           gridTemplateColumns: {
             xs: "auto minmax(148px, 1fr) auto",
-            sm: "minmax(0, 1fr) minmax(220px, 520px) minmax(0, 1fr)",
+            sm: "minmax(0, 1fr) auto minmax(0, 1fr)",
           },
         }}
       >
@@ -372,6 +371,7 @@ export default function TopBar(ownProps: Readonly<TopBarProps>) {
           query={query}
           isFilterActive={isFilter}
           session={ownProps.session}
+          initialFilterCount={ownProps.initialFilterCount}
           onClose={() => setMobileSearchOpen(false)}
         />
       ) : null}
@@ -508,8 +508,8 @@ function TopBarSearchCenter(props: Readonly<{
     <Box
       sx={{
         minWidth: 0,
-        width: "100%",
-        maxWidth: SEARCH_MAX_WIDTH,
+        width: { sm: "360px", md: SEARCH_MAX_WIDTH },
+        maxWidth: "100%",
         justifySelf: "center",
         px: 1,
         display: props.compactLayout ? "none" : "flex",
@@ -524,6 +524,7 @@ function TopBarSearchCenter(props: Readonly<{
           filterQuery={props.isFilterActive}
           onFilterChange={handleFilterChange}
           hasSession={Boolean(props.session?.loggedIn)}
+          initialFilterCount={props.initialFilterCount}
         />
       </Box>
     </Box>
@@ -535,6 +536,7 @@ function MobileSearchOverlay(props: Readonly<{
   query?: { filter?: string | null; order?: string | null; direction?: string | null } | null;
   isFilterActive?: string | null;
   session?: { loggedIn?: boolean } | null;
+  initialFilterCount?: number | null;
   onClose: () => void;
 }>) {
   const { push } = usePendingNavigation();
@@ -572,6 +574,7 @@ function MobileSearchOverlay(props: Readonly<{
             filterQuery={props.isFilterActive}
             onFilterChange={handleFilterChange}
             hasSession={Boolean(props.session?.loggedIn)}
+            initialFilterCount={props.initialFilterCount}
             onFocus={(
               _event: React.FocusEvent<HTMLElement> | React.MouseEvent<HTMLElement> | null,
               focus: boolean

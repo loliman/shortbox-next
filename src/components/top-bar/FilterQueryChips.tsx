@@ -11,9 +11,11 @@ interface FilterQueryChipsProps {
   tokens: RenderChipToken[];
   /** Called when a token chip's delete button is clicked */
   onRemoveToken: (index: number) => void;
-  /** Called when the "× Alle Filter" reset chip is clicked */
+  /** Called when a token chip itself is clicked (for click-to-edit) */
+  onClickToken?: (index: number) => void;
+  /** Called when the reset-all is triggered (kept for API compat) */
   onResetAll: () => void;
-  /** Maximum number of individual token chips to show before collapsing */
+  /** When false (collapsed), chips are single-line with a fade. When true (expanded), all chips wrap. */
   maxVisible?: number;
 }
 
@@ -31,13 +33,12 @@ const CHIP_SX = {
 export default function FilterQueryChips({
   tokens,
   onRemoveToken,
-  onResetAll,
-  maxVisible = 8,
+  onClickToken,
+  maxVisible = 999,
 }: Readonly<FilterQueryChipsProps>) {
   if (tokens.length === 0) return null;
 
-  const visible = tokens.slice(0, maxVisible);
-  const hiddenCount = Math.max(0, tokens.length - visible.length);
+  const collapsed = maxVisible <= 2;
 
   return (
     <Box
@@ -45,14 +46,15 @@ export default function FilterQueryChips({
         display: "flex",
         alignItems: "center",
         gap: 0.4,
-        flexShrink: 0,
-        flexWrap: "nowrap",
-        overflow: "hidden",
-        maxWidth: "75%",
+        flexShrink: 1,
+        flexWrap: collapsed ? "nowrap" : "wrap",
+        overflow: collapsed ? "hidden" : "visible",
+        maxWidth: "100%",
         pr: 0.5,
+        py: collapsed ? 0 : 0.5,
       }}
     >
-      {visible.map((token, idx) => {
+      {tokens.map((token, idx) => {
         if (token.type === "parenthesis") {
           return (
             <Chip
@@ -62,15 +64,20 @@ export default function FilterQueryChips({
               onDelete={() => onRemoveToken(idx)}
               sx={(theme) => ({
                 ...CHIP_SX,
-                minWidth: 16,
+                minWidth: 18,
                 px: 0,
                 fontWeight: 800,
-                bgcolor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
-                color: "text.secondary",
+                bgcolor: "rgba(0, 0, 0, 0.08)",
+                color: "text.primary",
                 border: "1px solid",
-                borderColor: "divider",
-                "& .MuiChip-label": { px: 0.35 },
+                borderColor: "rgba(0, 0, 0, 0.16)",
+                "& .MuiChip-label": { px: 0.5 },
                 "& .MuiChip-deleteIcon": { display: "none" },
+                ...theme.applyStyles("dark", {
+                  bgcolor: "rgba(255, 255, 255, 0.12)",
+                  color: "common.white",
+                  borderColor: "rgba(255, 255, 255, 0.22)",
+                }),
               })}
             />
           );
@@ -86,15 +93,16 @@ export default function FilterQueryChips({
               sx={(theme) => ({
                 ...CHIP_SX,
                 fontWeight: 800,
-                bgcolor: theme.palette.mode === "dark"
-                  ? alpha(theme.palette.secondary.main, 0.22)
-                  : alpha(theme.palette.secondary.main, 0.12),
-                color: theme.palette.mode === "dark" ? theme.palette.secondary.light : theme.palette.secondary.dark,
+                bgcolor: alpha(theme.palette.secondary.main, 0.12),
+                color: theme.palette.secondary.dark,
                 border: "1px solid",
-                borderColor: theme.palette.mode === "dark"
-                  ? alpha(theme.palette.secondary.main, 0.44)
-                  : alpha(theme.palette.secondary.main, 0.3),
+                borderColor: alpha(theme.palette.secondary.main, 0.3),
                 "& .MuiChip-deleteIcon": { display: "none" },
+                ...theme.applyStyles("dark", {
+                  bgcolor: alpha("#b12c4a", 0.22),
+                  color: "#d45571",
+                  borderColor: alpha("#b12c4a", 0.44),
+                }),
               })}
             />
           );
@@ -106,68 +114,36 @@ export default function FilterQueryChips({
             key={`filter-${idx}`}
             label={token.value}
             size="small"
+            onClick={() => onClickToken?.(idx)}
             onDelete={() => onRemoveToken(idx)}
             sx={(theme) => ({
               ...CHIP_SX,
-              bgcolor: theme.palette.mode === "dark"
-                ? alpha(theme.palette.primary.main, 0.22)
-                : alpha(theme.palette.primary.main, 0.1),
-              color: theme.palette.mode === "dark" ? theme.palette.primary.light : theme.palette.primary.dark,
+              bgcolor: alpha(theme.palette.primary.main, 0.1),
+              color: theme.palette.primary.dark,
               border: "1px solid",
-              borderColor: theme.palette.mode === "dark"
-                ? alpha(theme.palette.primary.main, 0.42)
-                : alpha(theme.palette.primary.main, 0.28),
+              borderColor: alpha(theme.palette.primary.main, 0.28),
               "& .MuiChip-deleteIcon": {
                 ...CHIP_SX["& .MuiChip-deleteIcon"],
-                color: theme.palette.mode === "dark"
-                  ? alpha(theme.palette.primary.light, 0.7)
-                  : alpha(theme.palette.primary.dark, 0.6),
+                color: alpha(theme.palette.primary.dark, 0.6),
                 "&:hover": {
-                  color: theme.palette.mode === "dark" ? theme.palette.primary.light : theme.palette.primary.dark,
+                  color: theme.palette.primary.dark,
                 },
               },
+              ...theme.applyStyles("dark", {
+                bgcolor: alpha("#e5e7eb", 0.22),
+                color: "#f8fafc",
+                borderColor: alpha("#e5e7eb", 0.42),
+                "& .MuiChip-deleteIcon": {
+                  color: alpha("#f8fafc", 0.7),
+                  "&:hover": {
+                    color: "#f8fafc",
+                  },
+                },
+              }),
             })}
           />
         );
       })}
-
-      {hiddenCount > 0 && (
-        <Chip
-          label={`+${hiddenCount}`}
-          size="small"
-          sx={(theme) => ({
-            ...CHIP_SX,
-            bgcolor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
-            color: "text.secondary",
-            border: "1px solid",
-            borderColor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.12)",
-          })}
-        />
-      )}
-
-      {/* Reset-All chip – always at the end */}
-      <Chip
-        label="× Alle Filter"
-        size="small"
-        onClick={onResetAll}
-        sx={(theme) => ({
-          ...CHIP_SX,
-          cursor: "pointer",
-          bgcolor: theme.palette.mode === "dark"
-            ? alpha(theme.palette.error.main, 0.16)
-            : alpha(theme.palette.error.main, 0.08),
-          color: theme.palette.mode === "dark" ? theme.palette.error.light : theme.palette.error.dark,
-          border: "1px solid",
-          borderColor: theme.palette.mode === "dark"
-            ? alpha(theme.palette.error.main, 0.38)
-            : alpha(theme.palette.error.main, 0.24),
-          "&:hover": {
-            bgcolor: theme.palette.mode === "dark"
-              ? alpha(theme.palette.error.main, 0.26)
-              : alpha(theme.palette.error.main, 0.14),
-          },
-        })}
-      />
     </Box>
   );
 }

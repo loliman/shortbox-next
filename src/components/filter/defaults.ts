@@ -2,6 +2,10 @@ import type { FieldItem } from "../../util/filterFieldHelpers";
 import { FILTER_MULTI_VALUE_SEPARATOR } from "./constants";
 import { FilterDateOption, FilterFormatOption, FilterNumberOption, FilterValues } from "./types";
 import { resolveFilterConflicts } from "../../services/filter/filter-conflicts";
+import {
+  flattenASTToFlatFilterValues,
+  type SerializedFilter,
+} from "../../lib/filter-query-syntax";
 
 function isFormatNameObject(value: unknown): value is FilterFormatOption {
   return Boolean(value && typeof value === "object" && "name" in value);
@@ -303,10 +307,21 @@ export function parseFilterValues(queryFilter?: string): FilterValues {
   }
 
   try {
-    const parsed = JSON.parse(queryFilter) as Partial<FilterValues> & {
-      releasedates?: unknown;
-      numbers?: unknown;
-    };
+    const rawParsed = JSON.parse(queryFilter);
+    const isAST =
+      rawParsed &&
+      typeof rawParsed === "object" &&
+      "operator" in rawParsed &&
+      Array.isArray(rawParsed.operands);
+    const parsed = isAST
+      ? (flattenASTToFlatFilterValues(rawParsed as SerializedFilter, defaults) as Partial<FilterValues> & {
+          releasedates?: unknown;
+          numbers?: unknown;
+        })
+      : (rawParsed as Partial<FilterValues> & {
+          releasedates?: unknown;
+          numbers?: unknown;
+        });
     const normalizedReleasedateInputs = normalizeReleaseDateInputs(parsed.releasedates);
     const normalizedNumberInputs = normalizeNumberInputs(parsed.numbers);
 
