@@ -948,6 +948,7 @@ async function createIssueRecord(
   });
 
   const now = new Date();
+  const isNewParent = !parentIssue;
   if (!parentIssue) {
     parentIssue = await tx.issue.create({
       data: {
@@ -1008,7 +1009,7 @@ async function createIssueRecord(
   });
   if (!fullParentIssue) throw new Error("Issue not found after creation");
 
-  if (shouldSyncIssueStories(item, publisher.original)) {
+  if (isNewParent && shouldSyncIssueStories(item, publisher.original)) {
     await syncStoriesFromParentRefs(Number(fullParentIssue.id), item, tx, parentIssueCache, preflightCache);
   }
 

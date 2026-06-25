@@ -347,7 +347,7 @@ describe("editIssue identity conflicts", () => {
     expect(originalStories.length).toBe(1);
     expect(originalStories[0].title).toBe("My Original Story");
 
-    // 2. Create Variant B for the same issue, without stories property in input
+    // 2. Create Variant B for the same issue, with empty stories array in input (simulates form submit)
     const resultIssue2 = await createIssue({
       title: "Story Test Issue",
       number: "42",
@@ -361,6 +361,7 @@ describe("editIssue identity conflicts", () => {
           us: false,
         },
       },
+      stories: [],
     });
 
     expect(resultIssue2.success).toBe(true);
