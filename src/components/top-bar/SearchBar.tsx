@@ -219,6 +219,15 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [caretPos, setCaretPos] = useState(0);
+  const unmountTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (unmountTimeoutRef.current) {
+        clearTimeout(unmountTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const ALL_COMMANDS = React.useMemo(() => {
     const cmds = new Set<string>();
@@ -455,6 +464,10 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
 
   const activateExpertMode = useCallback(
     (sourceTokens: RenderChipToken[]) => {
+      if (unmountTimeoutRef.current) {
+        clearTimeout(unmountTimeoutRef.current);
+        unmountTimeoutRef.current = null;
+      }
       setExpertModeActive(true);
       setFocused(true);
       expertDismissedRef.current = false;
@@ -483,7 +496,22 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
         if (!skipReset) {
           setResetKey((prev) => prev + 1);
         }
-        setExpertModeActive(keepActive ?? (filterTokens.length > 0));
+
+        if (unmountTimeoutRef.current) {
+          clearTimeout(unmountTimeoutRef.current);
+          unmountTimeoutRef.current = null;
+        }
+
+        const nextActive = keepActive ?? (filterTokens.length > 0);
+        if (!nextActive) {
+          unmountTimeoutRef.current = setTimeout(() => {
+            setExpertModeActive(false);
+            unmountTimeoutRef.current = null;
+          }, 250);
+        } else {
+          setExpertModeActive(true);
+        }
+
         expertDismissedRef.current = true;
         return false;
       });
@@ -512,6 +540,19 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
     setExpertValue(filterQueryString);
     exitExpertMode();
   }, [filterQueryString, exitExpertMode]);
+
+  // Global event listener for Escape key to close the expert search panel
+  useEffect(() => {
+    if (!focused) return;
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        handleExpertAbort();
+      }
+    };
+    document.addEventListener("keydown", handleGlobalKeyDown);
+    return () => document.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [focused, handleExpertAbort]);
 
   const handleBackdropClick = useCallback(() => {
     if (expertModeActive) {
