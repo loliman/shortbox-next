@@ -39,6 +39,7 @@ type RuntimeFilter = Filter & {
   onlyUnownedFirstPrints?: boolean;
   onlyUnownedPublisherFirstPrints?: boolean;
   onlyNewUsMaterial?: boolean;
+  excludeOnlyNewUsMaterial?: boolean;
   onlySellingList?: boolean;
   onlyFirstOfMonthRelease?: boolean;
 };
@@ -90,6 +91,7 @@ const supportedDirectFilterKeys = new Set([
   "onlyUnownedFirstPrints",
   "onlyUnownedPublisherFirstPrints",
   "onlyNewUsMaterial",
+  "excludeOnlyNewUsMaterial",
   "onlySellingList",
   "onlyFirstOfMonthRelease",
   "crossPublishers",
@@ -982,6 +984,30 @@ export function buildDirectIssueFilterWhere(
               },
             },
           ],
+        },
+      },
+    });
+  }
+
+  if (runtimeFilter.excludeOnlyNewUsMaterial) {
+    and.push({
+      NOT: {
+        stories: {
+          some: {},
+          none: {
+            OR: [
+              { fkParent: null },
+              {
+                parent: {
+                  issue: {
+                    series: {
+                      startYear: { lt: BigInt(2025) },
+                    },
+                  },
+                },
+              },
+            ],
+          },
         },
       },
     });

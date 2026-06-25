@@ -210,6 +210,7 @@ export function serializeFilterValues(
   if (values.onlyUnownedFirstPrints) payload.onlyUnownedFirstPrints = true;
   if (values.onlyUnownedPublisherFirstPrints) payload.onlyUnownedPublisherFirstPrints = true;
   if (values.onlyNewUsMaterial) payload.onlyNewUsMaterial = true;
+  if (values.excludeOnlyNewUsMaterial) payload.excludeOnlyNewUsMaterial = true;
   if (values.onlySellingList) payload.onlySellingList = true;
   if (values.onlyFirstOfMonthRelease) payload.onlyFirstOfMonthRelease = true;
 

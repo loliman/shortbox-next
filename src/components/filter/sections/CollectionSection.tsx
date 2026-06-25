@@ -155,6 +155,13 @@ function CollectionSection({
               onToggle={() => setFieldValue("onlyNotOwnedUsMaterial", !values.onlyNotOwnedUsMaterial)}
             />
           )}
+          {!us && (
+            <FilterSwitch
+              checked={values.excludeOnlyNewUsMaterial}
+              label="Kein reines US-Material ab Startjahr 2025"
+              onToggle={() => setFieldValue("excludeOnlyNewUsMaterial", !values.excludeOnlyNewUsMaterial)}
+            />
+          )}
         </Box>
       </Stack>
 

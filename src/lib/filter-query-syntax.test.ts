@@ -59,6 +59,7 @@ function createDefaultFilterValues() {
     onlyUnownedFirstPrints: false,
     onlyUnownedPublisherFirstPrints: false,
     onlyNewUsMaterial: false,
+    excludeOnlyNewUsMaterial: false,
     onlySellingList: false,
     onlyFirstOfMonthRelease: false,
     crossPublishers: [],
@@ -486,14 +487,15 @@ describe("Extended Expert Mode capabilities", () => {
   });
 
   it("should parse new collection/selling/admin flags", () => {
-    const { values: parsed } = queryStringToFilterValues("mit-varianten AND benötigt AND mehrfach-gesammelt AND ungesammeltes-us-material");
+    const { values: parsed } = queryStringToFilterValues("mit-varianten AND benötigt AND mehrfach-gesammelt AND ungesammeltes-us-material AND kein-us-material-neu");
     const flat = flattenASTToFlatFilterValues(parsed, createDefaultFilterValues());
     expect(flat).toEqual(
       expect.objectContaining({
         withVariants: true,
         onlyNeededIssues: true,
         onlyIssuesWithMultipleCollectedVariants: true,
-        onlyNotOwnedUsMaterial: true
+        onlyNotOwnedUsMaterial: true,
+        excludeOnlyNewUsMaterial: true,
       })
     );
   });
@@ -512,6 +514,7 @@ describe("Extended Expert Mode capabilities", () => {
       withVariants: true,
       onlyNeededIssues: true,
       onlyNotOwnedUsMaterial: true,
+      excludeOnlyNewUsMaterial: true,
       crossNumber: "10",
       crossExclusive: true,
       crossPublishers: [{ name: "Condor" }],
@@ -524,6 +527,7 @@ describe("Extended Expert Mode capabilities", () => {
     expect(qs).toContain("mit-varianten");
     expect(qs).toContain("benötigt");
     expect(qs).toContain("ungesammeltes-us-material");
+    expect(qs).toContain("kein-us-material-neu");
     expect(qs).toContain("xn:10");
     expect(qs).toContain("xexklusiv");
     expect(qs).toContain("xv:Condor");

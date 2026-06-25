@@ -616,6 +616,35 @@ describe("buildDirectIssueFilterWhere – new custom filter flags", () => {
     });
   });
 
+  it("should emit correct conditions for excludeOnlyNewUsMaterial", () => {
+    const where = buildDirectIssueFilterWhere({
+      excludeOnlyNewUsMaterial: true,
+      us: false,
+    }) as any;
+
+    expect(where.AND).toContainEqual({
+      NOT: {
+        stories: {
+          some: {},
+          none: {
+            OR: [
+              { fkParent: null },
+              {
+                parent: {
+                  issue: {
+                    series: {
+                      startYear: { lt: BigInt(2025) },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        },
+      },
+    });
+  });
+
   it("should_not_emit_direct_where_conditions_for_onlyUnownedPublisherFirstPrints", () => {
     // onlyUnownedPublisherFirstPrints is resolved via SQL in resolveCustomFilterToIssueIds,
     // not via buildDirectIssueFilterWhere. The direct filter should still return non-null

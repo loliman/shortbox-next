@@ -55,6 +55,7 @@ export interface FilterValues {
   onlyUnownedFirstPrints: boolean;
   onlyUnownedPublisherFirstPrints: boolean;
   onlyNewUsMaterial: boolean;
+  excludeOnlyNewUsMaterial: boolean;
   onlySellingList: boolean;
   onlyFirstOfMonthRelease: boolean;
   crossPublishers: FieldItem[];
@@ -110,6 +111,7 @@ export interface FilterSubmitValues {
   onlyUnownedFirstPrints?: boolean;
   onlyUnownedPublisherFirstPrints?: boolean;
   onlyNewUsMaterial?: boolean;
+  excludeOnlyNewUsMaterial?: boolean;
   onlySellingList?: boolean;
   onlyFirstOfMonthRelease?: boolean;
   crossPublishers?: FieldItem[];

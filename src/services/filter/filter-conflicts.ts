@@ -36,6 +36,8 @@ export type RawConflictingFilterFlags = {
   onlyCollected?: unknown;
   onlyNotCollected?: unknown;
   onlyNotCollectedNoOwnedVariants?: unknown;
+  onlyNewUsMaterial?: unknown;
+  excludeOnlyNewUsMaterial?: unknown;
 };
 
 /**
@@ -62,6 +64,8 @@ export type ResolvedConflictFlags = {
   onlyCollected: boolean;
   onlyNotCollected: boolean;
   onlyNotCollectedNoOwnedVariants: boolean;
+  onlyNewUsMaterial: boolean;
+  excludeOnlyNewUsMaterial: boolean;
 };
 
 /**
@@ -86,6 +90,10 @@ export function resolveFilterConflicts(raw: RawConflictingFilterFlags): Resolved
     raw.notOnlyOnePrint
   );
   const [noPrint, notNoPrint] = resolveNegatablePair(raw.noPrint, raw.notNoPrint);
+  const [onlyNewUsMaterial, excludeOnlyNewUsMaterial] = resolveNegatablePair(
+    raw.onlyNewUsMaterial,
+    raw.excludeOnlyNewUsMaterial
+  );
 
   const { onlyCollected, onlyNotCollected, onlyNotCollectedNoOwnedVariants } =
     resolveCollectionMode(
@@ -114,6 +122,8 @@ export function resolveFilterConflicts(raw: RawConflictingFilterFlags): Resolved
     onlyCollected,
     onlyNotCollected,
     onlyNotCollectedNoOwnedVariants,
+    onlyNewUsMaterial,
+    excludeOnlyNewUsMaterial,
   };
 }
 

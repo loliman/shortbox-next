@@ -220,6 +220,9 @@ const FLAG_MAP: Record<string, FlagTarget[]> = {
   "double-publisher-collected": [{ field: "onlyDoubleTripplePublisherCollected", value: true }],
   "us-material-neu": [{ field: "onlyNewUsMaterial", value: true }],
   "new-us-material": [{ field: "onlyNewUsMaterial", value: true }],
+  "kein-us-material-neu": [{ field: "excludeOnlyNewUsMaterial", value: true }],
+  "kein-neues-us-material": [{ field: "excludeOnlyNewUsMaterial", value: true }],
+  "no-new-us-material": [{ field: "excludeOnlyNewUsMaterial", value: true }],
   verkaufsliste: [{ field: "onlySellingList", value: true }],
   "selling-list": [{ field: "onlySellingList", value: true }],
   "ohne-comicguide": [{ field: "noComicguideId", value: true }],
@@ -727,6 +730,7 @@ function flatFilterValuesToTokenStrings(values: FilterValues): string[] {
   if (values.onlyDoubleTripplePublisherCollected) parts.push("mehrfach-vorhanden-verlag");
   if (values.onlyNotOwnedUsMaterial) parts.push("ungesammeltes-us-material");
   if (values.onlyNewUsMaterial) parts.push("us-material-neu");
+  if (values.excludeOnlyNewUsMaterial) parts.push("kein-us-material-neu");
   if (values.onlySellingList) parts.push("verkaufsliste");
   if (values.noComicguideId) parts.push("ohne-comicguide");
   if (values.noContent) parts.push("ohne-stories");
@@ -1180,6 +1184,7 @@ function resetToDefaults(val: FilterValues): FilterValues {
     onlyUnownedFirstPrints: false,
     onlyUnownedPublisherFirstPrints: false,
     onlyNewUsMaterial: false,
+    excludeOnlyNewUsMaterial: false,
     onlySellingList: false,
     onlyFirstOfMonthRelease: false,
     crossPublishers: [],
@@ -1238,6 +1243,7 @@ export function mergeFlatFilterValues(a: FilterValues, b: FilterValues): FilterV
   if (b.onlyUnownedFirstPrints) result.onlyUnownedFirstPrints = true;
   if (b.onlyUnownedPublisherFirstPrints) result.onlyUnownedPublisherFirstPrints = true;
   if (b.onlyNewUsMaterial) result.onlyNewUsMaterial = true;
+  if (b.excludeOnlyNewUsMaterial) result.excludeOnlyNewUsMaterial = true;
   if (b.onlySellingList) result.onlySellingList = true;
   if (b.onlyFirstOfMonthRelease) result.onlyFirstOfMonthRelease = true;
   if (b.crossExclusive) result.crossExclusive = true;
