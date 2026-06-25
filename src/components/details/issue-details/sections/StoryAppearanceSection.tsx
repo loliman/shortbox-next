@@ -33,11 +33,11 @@ export function StoryAppearanceSection(props: Readonly<StoryAppearanceSectionPro
             color: "text.secondary",
           }}
         >
-          Auftritte
+          Inhalt
         </Typography>
         <IconButton
           size="small"
-          aria-label={expanded ? "Auftritte einklappen" : "Auftritte ausklappen"}
+          aria-label={expanded ? "Inhalt einklappen" : "Inhalt ausklappen"}
           onClick={() => setExpanded((prev) => !prev)}
           sx={{
             ml: 1,

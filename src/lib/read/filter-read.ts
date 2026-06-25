@@ -165,6 +165,17 @@ function readDirectSeriesConditions(filter: RuntimeFilter) {
 }
 
 function buildArcTermIssueWhere(term: string, us: boolean): Prisma.IssueWhereInput {
+  if (term.includes("*")) {
+    const parts = term
+      .split("*")
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (parts.length === 0) return {};
+    return {
+      AND: parts.map((part) => buildArcTermIssueWhere(part, us)),
+    };
+  }
+
   if (us) {
     return {
       arcs: {
@@ -203,6 +214,17 @@ function buildArcTermIssueWhere(term: string, us: boolean): Prisma.IssueWhereInp
 }
 
 function buildAppearanceTermIssueWhere(term: string, us: boolean): Prisma.IssueWhereInput {
+  if (term.includes("*")) {
+    const parts = term
+      .split("*")
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (parts.length === 0) return {};
+    return {
+      AND: parts.map((part) => buildAppearanceTermIssueWhere(part, us)),
+    };
+  }
+
   return {
     OR: [
       {
@@ -268,6 +290,17 @@ function buildAppearanceTermIssueWhere(term: string, us: boolean): Prisma.IssueW
 }
 
 function buildRealityTermIssueWhere(term: string, us: boolean): Prisma.IssueWhereInput {
+  if (term.includes("*")) {
+    const parts = term
+      .split("*")
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (parts.length === 0) return {};
+    return {
+      AND: parts.map((part) => buildRealityTermIssueWhere(part, us)),
+    };
+  }
+
   const marker = `(${term})`;
   return {
     OR: [
@@ -667,9 +700,24 @@ function normalizeIndividualTypes(rawType: unknown): string[] {
 function buildIndividualBranches(name: string, types: string[]): Prisma.StoryWhereInput[] {
   const branches: Prisma.StoryWhereInput[] = [];
 
+  const individualFilter = name.includes("*")
+    ? {
+        AND: name
+          .split("*")
+          .map((p) => p.trim())
+          .filter(Boolean)
+          .map((part) => ({
+            name: {
+              contains: part,
+              mode: "insensitive" as const,
+            },
+          })),
+      }
+    : { name };
+
   if (types.length === 0) {
-    branches.push({ individuals: { some: { individual: { name } } } });
-    branches.push({ parent: { individuals: { some: { individual: { name } } } } });
+    branches.push({ individuals: { some: { individual: individualFilter } } });
+    branches.push({ parent: { individuals: { some: { individual: individualFilter } } } });
     return branches;
   }
 
@@ -680,7 +728,7 @@ function buildIndividualBranches(name: string, types: string[]): Prisma.StoryWhe
     branches.push({
       individuals: {
         some: {
-          individual: { name },
+          individual: individualFilter,
           type: { equals: TRANSLATOR_INDIVIDUAL_TYPE, mode: "insensitive" },
         },
       },
@@ -689,7 +737,7 @@ function buildIndividualBranches(name: string, types: string[]): Prisma.StoryWhe
 
   if (nonTranslatorTypes.length > 0) {
     const linkClause = {
-      individual: { name },
+      individual: individualFilter,
       type: { in: nonTranslatorTypes, mode: "insensitive" as const },
     };
     branches.push({ parent: { individuals: { some: linkClause } } });
@@ -727,15 +775,34 @@ function applyGenresFilter(and: Prisma.IssueWhereInput[], filter: RuntimeFilter)
   const terms = readGenreTerms(filter);
   if (terms.length === 0) return;
   and.push({
-    AND: terms.map((term) => ({
-      series: {
-        genres: {
-          some: {
-            genre: { contains: term, mode: "insensitive" },
+    AND: terms.map((term) => {
+      if (term.includes("*")) {
+        const parts = term
+          .split("*")
+          .map((p) => p.trim())
+          .filter(Boolean);
+        return {
+          series: {
+            genres: {
+              some: {
+                AND: parts.map((part) => ({
+                  genre: { contains: part, mode: "insensitive" as const },
+                })),
+              },
+            },
+          },
+        };
+      }
+      return {
+        series: {
+          genres: {
+            some: {
+              genre: { contains: term, mode: "insensitive" as const },
+            },
           },
         },
-      },
-    })),
+      };
+    }),
   });
 }
 
@@ -806,17 +873,19 @@ function applyStoryFlagFilters(and: Prisma.IssueWhereInput[], filter: RuntimeFil
 }
 
 export function buildDirectIssueFilterWhere(
-  filter: any | null | undefined
+  filter: unknown
 ): Prisma.IssueWhereInput | null {
-  if (!filter) return null;
+  if (!filter || typeof filter !== "object") return null;
 
-  if ("operator" in filter && Array.isArray(filter.operands)) {
-    const compiledOperands = filter.operands
+  const filterObj = filter as Record<string, unknown>;
+
+  if ("operator" in filterObj && Array.isArray(filterObj.operands)) {
+    const compiledOperands = filterObj.operands
       .map(buildDirectIssueFilterWhere)
       .filter(Boolean) as Prisma.IssueWhereInput[];
 
     if (compiledOperands.length === 0) return null;
-    if (filter.operator === "or") {
+    if (filterObj.operator === "or") {
       return { OR: compiledOperands };
     } else {
       return { AND: compiledOperands };

@@ -150,18 +150,18 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
               ...theme.applyStyles("dark", isActive
                 ? {
                     backgroundColor: "#ffffff",
-                    color: "#080b11",
+                    color: "#141413",
                     borderColor: "#ffffff",
                     boxShadow: "0 2px 6px rgba(0, 0, 0, 0.15)",
                   }
                 : {
-                    backgroundColor: "rgba(255, 255, 255, 0.12)",
-                    color: "#ffffff",
-                    borderColor: "rgba(255, 255, 255, 0.35)",
+                    backgroundColor: "rgba(255, 255, 255, 0.06)",
+                    color: "#c7c4bc",
+                    borderColor: "rgba(255, 255, 255, 0.2)",
                     "&:hover": {
-                      backgroundColor: "rgba(255, 255, 255, 0.2)",
-                      color: "#ffffff",
-                      borderColor: "rgba(255, 255, 255, 0.6)",
+                      backgroundColor: "rgba(255, 255, 255, 0.12)",
+                      color: "#f9f8f6",
+                      borderColor: "rgba(255, 255, 255, 0.35)",
                     },
                   }),
             })}
@@ -195,7 +195,6 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
   const viewToggle = (
     <ToggleButtonGroup
       size="small"
-      color="primary"
       exclusive
       value={currentView}
       disabled={isPending}

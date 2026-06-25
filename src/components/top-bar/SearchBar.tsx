@@ -9,6 +9,7 @@ import TextField from "@mui/material/TextField";
 import InputAdornment from "@mui/material/InputAdornment";
 import Typography from "@mui/material/Typography";
 import Fade from "@mui/material/Fade";
+import Collapse from "@mui/material/Collapse";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
@@ -17,8 +18,9 @@ import TerminalIcon from "@mui/icons-material/Terminal";
 import Badge from "@mui/material/Badge";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
+import Button from "@mui/material/Button";
 import { alpha } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
+import type { SxProps, Theme } from "@mui/material/styles";
 import { usePendingNavigation } from "../generic/usePendingNavigation";
 import FilterQueryChips from "./FilterQueryChips";
 import FilterPanel from "./FilterPanel";
@@ -54,24 +56,95 @@ const RESULT_ROW_HEIGHT = 44;
 const RESULT_PANEL_MAX_HEIGHT = 911;
 const RESULT_PANEL_BOTTOM_BUFFER = 12;
 
-const COMMANDS: Array<[string, string, string]> = [
-  ["v:", "Verlag", "v:Panini"],
-  ["s:", "Serie", "s:Spider-Man"],
-  ["f:", "Format", "f:Heft"],
-  ["j:", "Jahr", "j:2020"],
-  ["AND", "Beide müssen passen", "v:Panini AND f:Heft"],
-  ["OR", "Mind. eine Bedingung", "v:Panini OR v:Condor"],
-  ["g:", "Genre", "g:Action"],
-  ["p:", "Person", "p:Kirby"],
-  ["w:", "Autor", "w:Lee"],
-  ["pe:", "Zeichner", "pe:Kirby"],
-  ["t:", "Übersetzer", "t:Szatmary"],
-  ["xv:", "Cross-Verlag", "xv:Marvel"],
-  ["xs:", "Cross-Serie", "xs:Avengers"],
-  ["*", "UND für s: & v:", "s:Spidey*Avengers"],
-  ["mit-varianten", "Mit Varianten", "mit-varianten"],
-  ["benötigt", "Benötigt", "benötigt"],
-  ["ungesammeltes-us-material", "Ungesammeltes US-Material", "ungesammeltes-us-material"],
+interface CommandGroup {
+  category: string;
+  items: Array<[string, string, string]>;
+}
+
+const COMMAND_GROUPS: CommandGroup[] = [
+  {
+    category: "Allgemein & Nummer",
+    items: [
+      ["v:", "Verlag", "v:Panini"],
+      ["s:", "Serie", "s:Spider-Man"],
+      ["f:", "Format", "f:Heft"],
+      ["j:", "Jahr", "j:2020"],
+      ["n:", "Nummer", "n:5"],
+      ["mit-varianten", "Mit Varianten", "mit-varianten"],
+      ["g:", "Genre", "g:Action"],
+      ["p:", "Person / Creator", "p:Kirby"],
+    ],
+  },
+  {
+    category: "Logik & Wildcards",
+    items: [
+      ["AND", "Logisches UND", "v:Panini AND f:Heft"],
+      ["OR", "Logisches ODER", "v:Panini OR v:Condor"],
+      ["*", "Wildcard / UND-Suche", "p:*Panini*"],
+    ],
+  },
+  {
+    category: "Mitwirkende",
+    items: [
+      ["w:", "Autor / Writer", "w:Lee"],
+      ["pe:", "Zeichner / Penciler", "pe:Kirby"],
+      ["i:", "Inker", "i:Thibert"],
+      ["co:", "Kolorist / Colorist", "co:Martin"],
+      ["le:", "Letterer", "le:Rosen"],
+      ["ed:", "Editor", "ed:Thomas"],
+      ["t:", "Übersetzer / Translator", "t:Szatmary"],
+    ],
+  },
+  {
+    category: "Inhalt",
+    items: [
+      ["a:", "Event / Story Arc", "a:Spider-Verse"],
+      ["ap:", "Auftritt / Appearance", "ap:Spider-Man"],
+      ["r:", "Realität / Reality", "r:Earth-616"],
+      ["erstdruck", "Erstveröffentlichung", "erstdruck"],
+      ["nachdruck", "Reiner Nachdruck", "nachdruck"],
+      ["exklusiv", "Exklusiver Inhalt", "exklusiv"],
+      ["einzeln-erschienen", "Einzige Veröffentlichung", "einzeln-erschienen"],
+      ["sonst-nur-tb", "Sonst nur in Taschenbuch", "sonst-nur-tb"],
+      ["nur-taschenbuch", "Nur in Taschenbuch", "nur-taschenbuch"],
+      ["nur-einmal-deutsch", "Nur 1x dt. erschienen", "nur-einmal-deutsch"],
+      ["nicht-deutsch", "Nicht dt. erschienen", "nicht-deutsch"],
+      ["inhalt-und", "Inhalts-Verknüpfung: UND", "inhalt-und"],
+    ],
+  },
+  {
+    category: "Sammlung & Admin",
+    items: [
+      ["gesammelt", "Gesammelt", "gesammelt"],
+      ["nicht-gesammelt", "Nicht gesammelt", "nicht-gesammelt"],
+      ["nicht-gesammelt-ohne-varianten", "Ungesammelt (ohne Variants)", "nicht-gesammelt-ohne-varianten"],
+      ["benötigt", "Benötigte Ausgaben", "benötigt"],
+      ["mehrfach-gesammelt", "Mehrfach gesammelt", "mehrfach-gesammelt"],
+      ["unvollständige-serien", "Unvollständige Serien", "unvollständige-serien"],
+      ["fehlende-erstausgaben", "Fehlende Erstausgaben", "fehlende-erstausgaben"],
+      ["fehlende-verlagserstausgaben", "Fehlende Verlagserstausgaben", "fehlende-verlagserstausgaben"],
+      ["ungesammeltes-us-material", "Ungesammeltes US-Material", "ungesammeltes-us-material"],
+      ["mehrfach-vorhanden", "Doppelt/Dreifach gesammelt", "mehrfach-vorhanden"],
+      ["mehrfach-vorhanden-verlag", "Verlagsintern doppelt", "mehrfach-vorhanden-verlag"],
+      ["us-material-neu", "US-Material ab 2025", "us-material-neu"],
+      ["verkaufsliste", "Verkaufsliste", "verkaufsliste"],
+      ["ohne-comicguide", "Ohne Comicguide ID", "ohne-comicguide"],
+      ["ohne-stories", "Ohne Stories", "ohne-stories"],
+      ["erstes-des-monats", "Am 01. des Monats", "erstes-des-monats"],
+    ],
+  },
+  {
+    category: "Cross-Scope",
+    items: [
+      ["xv:", "Cross-Verlag", "xv:Marvel"],
+      ["xs:", "Cross-Serie", "xs:Avengers"],
+      ["xn:", "Cross-Nummer", "xn:10"],
+      ["xvol:", "Cross-Volume", "xvol:1"],
+      ["xyear:", "Cross-Startjahr", "xyear:1963"],
+      ["xend:", "Cross-Endjahr", "xend:1996"],
+      ["xexklusiv", "Cross-Scope exklusiv", "xexklusiv"],
+    ],
+  },
 ];
 
 interface SearchBarProps {
@@ -141,8 +214,65 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
   const [expertValue, setExpertValue] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
   const [resetKey, setResetKey] = useState(0);
+  const [activeCategory, setActiveCategory] = useState("Allgemein & Nummer");
   const expertDismissedRef = useRef(false);
   const editorContainerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [caretPos, setCaretPos] = useState(0);
+
+  const ALL_COMMANDS = React.useMemo(() => {
+    const cmds = new Set<string>();
+    for (const group of COMMAND_GROUPS) {
+      for (const [cmd] of group.items) {
+        if (cmd !== "*") {
+          cmds.add(cmd);
+        }
+      }
+    }
+    return Array.from(cmds);
+  }, []);
+
+  const autocompleteData = React.useMemo(() => {
+    if (!focused || !expertValue) {
+      return { prefix: "", typedPart: "", suffixPart: "", bestMatch: "", textAfterCaret: "" };
+    }
+
+    const textUpToCaret = expertValue.slice(0, caretPos);
+    const textAfterCaret = expertValue.slice(caretPos);
+
+    const lastSpaceIdx = textUpToCaret.lastIndexOf(" ");
+    const prefix = lastSpaceIdx === -1 ? "" : textUpToCaret.slice(0, lastSpaceIdx + 1);
+    const currentWord = lastSpaceIdx === -1 ? textUpToCaret : textUpToCaret.slice(lastSpaceIdx + 1);
+
+    const shouldSuggest =
+      currentWord.length > 0 &&
+      !currentWord.includes(":") &&
+      !currentWord.includes('"');
+
+    if (!shouldSuggest) {
+      return { prefix, typedPart: currentWord, suffixPart: "", bestMatch: "", textAfterCaret };
+    }
+
+    const matches = ALL_COMMANDS.filter((cmd) =>
+      cmd.toLowerCase().startsWith(currentWord.toLowerCase())
+    );
+
+    if (matches.length === 0) {
+      return { prefix, typedPart: currentWord, suffixPart: "", bestMatch: "", textAfterCaret };
+    }
+
+    matches.sort((a, b) => a.length - b.length);
+    const bestMatch = matches[0];
+    const suffixPart = bestMatch.slice(currentWord.length);
+
+    return {
+      prefix,
+      typedPart: currentWord,
+      suffixPart,
+      bestMatch,
+      textAfterCaret,
+    };
+  }, [focused, expertValue, caretPos, ALL_COMMANDS]);
 
   // Filter token parsing from the current filterQuery JSON
   const filterTokens = React.useMemo<RenderChipToken[]>(() => {
@@ -180,6 +310,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
   useEffect(() => {
     if (!focused) {
       setExpertValue(filterQueryString);
+      setCaretPos(filterQueryString.length);
     }
   }, [focused, filterQueryString]);
 
@@ -402,6 +533,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
       } else {
         // Fallback: focus and edit, highlight error
         setExpertValue(raw);
+        setCaretPos(raw.length);
         setFocused(true);
         setValidationError(validation.error);
         setTimeout(() => {
@@ -422,6 +554,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
 
       const rawQuery = filterQueryString;
       setExpertValue(rawQuery);
+      setCaretPos(rawQuery.length);
       setFocused(true);
 
       const pos = rawQuery.indexOf(token.raw);
@@ -433,6 +566,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
           if (inputEl) {
             inputEl.focus();
             inputEl.setSelectionRange(pos, pos + token.raw.length);
+            setCaretPos(pos + token.raw.length);
           }
         }, 50);
       }
@@ -462,10 +596,11 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
     ownProps.onFilterChange?.(null);
     setValidationError(null);
     setExpertValue("");
+    setCaretPos(0);
     exitExpertMode(false);
   }, [ownProps, exitExpertMode]);
 
-  const expertBoxSx = useMemo(
+  const expertBoxSx = useMemo<SxProps<Theme>>(
     () => (theme: Theme) => ({
       position: compactLayout ? "relative" : ("absolute" as const),
       top: 0,
@@ -528,7 +663,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
             : alpha(theme.palette.common.white, 0.55),
         },
       }),
-    } as any),
+    }),
     [compactLayout, focused, validationError, isFilterActive]
   );
 
@@ -595,40 +730,99 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                   }}
                 >
                   {focused ? (
-                    <input
-                      data-expert-input="true"
-                      value={expertValue}
-                      onChange={(e) => {
-                        setExpertValue(e.target.value);
-                        setValidationError(null);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleExpertCommit(expertValue);
-                        } else if (e.key === "Escape") {
-                          e.preventDefault();
-                          handleExpertAbort();
-                        }
-                      }}
-                      onFocus={handleEditorFocus}
-                      onBlur={handleEditorBlur}
-                      placeholder="Suchen"
-                      style={{
-                        border: "none",
-                        outline: "none",
-                        background: "transparent",
-                        fontSize: "0.93rem",
-                        fontWeight: 500,
-                        fontFamily: "inherit",
-                        color: "var(--shortbox-search-color)",
-                        width: "100%",
-                        padding: 0,
-                        margin: 0,
-                        lineHeight: 1.5,
-                        cursor: "text",
-                      }}
-                    />
+                    <Box sx={{ position: "relative", flex: 1, minWidth: 0, display: "flex", alignItems: "center" }}>
+                      {/* Autocomplete Suggestion Suffix Layer */}
+                      {autocompleteData.suffixPart && (
+                        <Box
+                          sx={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            pointerEvents: "none",
+                            fontSize: "0.93rem",
+                            fontWeight: 500,
+                            fontFamily: "inherit",
+                            lineHeight: 1.5,
+                            whiteSpace: "pre",
+                            overflow: "hidden",
+                            color: "transparent",
+                            padding: 0,
+                            margin: 0,
+                          }}
+                        >
+                          {autocompleteData.prefix + autocompleteData.typedPart}
+                          <span
+                            style={{
+                              color: "rgba(128, 128, 128, 0.65)",
+                            }}
+                          >
+                            {autocompleteData.suffixPart}
+                          </span>
+                        </Box>
+                      )}
+                      <input
+                        ref={inputRef}
+                        data-expert-input="true"
+                        value={expertValue}
+                        onChange={(e) => {
+                          setExpertValue(e.target.value);
+                          setValidationError(null);
+                          setCaretPos(e.target.selectionStart ?? e.target.value.length);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleExpertCommit(expertValue);
+                          } else if (e.key === "Escape") {
+                            e.preventDefault();
+                            handleExpertAbort();
+                          } else if (e.key === "Tab" || e.key === "ArrowRight") {
+                            if (autocompleteData.suffixPart) {
+                              e.preventDefault();
+                              const newValue =
+                                autocompleteData.prefix +
+                                autocompleteData.bestMatch +
+                                autocompleteData.textAfterCaret;
+                              setExpertValue(newValue);
+                              const newCaretPos =
+                                autocompleteData.prefix.length +
+                                autocompleteData.bestMatch.length;
+                              setCaretPos(newCaretPos);
+                              setTimeout(() => {
+                                if (inputRef.current) {
+                                  inputRef.current.focus();
+                                  inputRef.current.setSelectionRange(newCaretPos, newCaretPos);
+                                }
+                              }, 0);
+                            }
+                          }
+                        }}
+                        onSelect={(e) => {
+                          const target = e.target as HTMLInputElement;
+                          setCaretPos(target.selectionStart ?? target.value.length);
+                        }}
+                        onFocus={handleEditorFocus}
+                        onBlur={handleEditorBlur}
+                        placeholder="Suchen"
+                        style={{
+                          border: "none",
+                          outline: "none",
+                          background: "transparent",
+                          fontSize: "0.93rem",
+                          fontWeight: 500,
+                          fontFamily: "inherit",
+                          color: "var(--shortbox-search-color)",
+                          width: "100%",
+                          padding: 0,
+                          margin: 0,
+                          lineHeight: 1.5,
+                          cursor: "text",
+                          position: "relative",
+                          zIndex: 2,
+                        }}
+                      />
+                    </Box>
                   ) : (
                     <FilterQueryChips
                       tokens={filterTokens}
@@ -681,165 +875,211 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                 </Box>
               </Box>
 
-              {/* Row 2: Keyboard shortcuts strip */}
-              {focused && (
-                <Box
-                  sx={(theme) => ({
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 2,
-                    pt: 0.5,
-                    borderTop: "1px solid",
-                    borderColor: alpha(theme.palette.divider, 0.55),
-                  })}
-                >
-                  {(
-                    [
-                      ["Enter", "Suchen"],
-                      ["Esc", "Beenden"],
-                    ] as [string, string][]
-                  ).map(([key, label]) => (
-                    <Typography
-                      key={key}
-                      variant="caption"
-                      sx={{
-                        color: "text.disabled",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 0.5,
-                      }}
-                    >
-                      <Box
-                        component="kbd"
-                        sx={(theme) => ({
-                          px: "4px",
-                          py: "1px",
-                          borderRadius: "4px",
-                          border: "1px solid",
-                          borderColor: alpha(theme.palette.text.secondary, 0.28),
-                          fontFamily: "monospace",
-                          fontSize: "0.63rem",
-                          fontWeight: 700,
-                          color: "text.secondary",
-                          bgcolor: alpha(theme.palette.text.primary, 0.04),
-                          lineHeight: 1.6,
-                          userSelect: "none",
-                        })}
-                      >
-                        {key}
-                      </Box>
-                      {label}
-                    </Typography>
-                  ))}
-                </Box>
-              )}
-
-              {/* Row 2.5: Validation error message */}
-              {validationError && (
-                <Box
-                  sx={(theme) => ({
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 0.5,
-                    pt: 0.5,
-                    borderTop: "1px solid",
-                    borderColor: alpha(theme.palette.divider, 0.55),
-                    color: "error.main",
-                  })}
-                >
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 0.5,
-                      fontWeight: 600,
-                    }}
-                  >
-                    ⚠️ {validationError}
-                  </Typography>
-                </Box>
-              )}
-
-              {/* Row 3: Command hints (fade in after 800 ms idle) */}
-              <Fade in={focused} timeout={220} unmountOnExit>
-                <Box
-                  sx={(theme) => ({
-                    borderTop: "1px solid",
-                    borderColor: alpha(theme.palette.divider, 0.55),
-                    pt: 1,
-                  })}
-                >
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      display: "block",
-                      mb: 0.75,
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.09em",
-                      fontSize: "0.6rem",
-                      color: "text.disabled",
-                    }}
-                  >
-                    Verfügbare Befehle
-                  </Typography>
+              {/* Collapsible Helper Panel: Keyboard shortcuts, Validation error, and Command hints */}
+              <Collapse in={focused} timeout={280} unmountOnExit>
+                <Fade in={focused} timeout={280}>
                   <Box
                     sx={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
-                      gap: "2px 16px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 0.75,
                     }}
                   >
-                    {COMMANDS.map(([cmd, desc, ex]) => (
-                      <Box
-                        key={cmd}
-                        sx={{
-                          display: "flex",
-                          gap: 1,
-                          py: 0.4,
-                          alignItems: "baseline",
-                          borderBottom: "1px solid",
-                          borderColor: "divider",
-                          "&:nth-last-of-type(-n+2)": { borderBottom: "none" },
-                        }}
-                      >
+                    {/* Row 2: Keyboard shortcuts strip */}
+                    <Box
+                      sx={(theme) => ({
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 2,
+                        pt: 0.5,
+                        borderTop: "1px solid",
+                        borderColor: alpha(theme.palette.divider, 0.55),
+                      })}
+                    >
+                      {(
+                        [
+                          ["Enter", "Suchen"],
+                          ["Esc", "Beenden"],
+                        ] as [string, string][]
+                      ).map(([key, label]) => (
                         <Typography
-                          component="code"
+                          key={key}
+                          variant="caption"
                           sx={{
-                            fontFamily: "monospace",
-                            fontWeight: 700,
-                            fontSize: "0.76rem",
-                            color: "secondary.main",
-                            minWidth: 32,
-                            flexShrink: 0,
+                            color: "text.disabled",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.5,
                           }}
                         >
-                          {cmd}
-                        </Typography>
-                        <Box>
-                          <Typography
-                            variant="caption"
-                            sx={{ display: "block", lineHeight: 1.3 }}
-                          >
-                            {desc}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: "text.disabled",
+                          <Box
+                            component="kbd"
+                            sx={(theme) => ({
+                              px: "4px",
+                              py: "1px",
+                              borderRadius: "4px",
+                              border: "1px solid",
+                              borderColor: alpha(theme.palette.text.secondary, 0.28),
                               fontFamily: "monospace",
                               fontSize: "0.63rem",
+                              fontWeight: 700,
+                              color: "text.secondary",
+                              bgcolor: alpha(theme.palette.text.primary, 0.04),
+                              lineHeight: 1.6,
+                              userSelect: "none",
+                            })}
+                          >
+                            {key}
+                          </Box>
+                          {label}
+                        </Typography>
+                      ))}
+                    </Box>
+
+                    {/* Row 2.5: Validation error message */}
+                    {validationError && (
+                      <Box
+                        sx={(theme) => ({
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 0.5,
+                          pt: 0.5,
+                          borderTop: "1px solid",
+                          borderColor: alpha(theme.palette.divider, 0.55),
+                          color: "error.main",
+                        })}
+                      >
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                            fontWeight: 600,
+                          }}
+                        >
+                          ⚠️ {validationError}
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {/* Row 3: Command hints */}
+                    <Box
+                      sx={(theme) => ({
+                        borderTop: "1px solid",
+                        borderColor: alpha(theme.palette.divider, 0.55),
+                        pt: 1,
+                      })}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          display: "block",
+                          mb: 1.25,
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.09em",
+                          fontSize: "0.6rem",
+                          color: "text.disabled",
+                        }}
+                      >
+                        Verfügbare Befehle
+                      </Typography>
+
+                      {/* Category Tabs */}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: 0.75,
+                          mb: 1.5,
+                          borderBottom: "1px solid",
+                          borderColor: "divider",
+                          pb: 1.25,
+                        }}
+                      >
+                        {COMMAND_GROUPS.map((g) => (
+                          <Button
+                            key={g.category}
+                            size="small"
+                            variant={activeCategory === g.category ? "contained" : "outlined"}
+                            onClick={() => setActiveCategory(g.category)}
+                            sx={{
+                              textTransform: "none",
+                              fontSize: "0.72rem",
+                              py: 0.25,
+                              px: 1,
+                              borderRadius: 1.5,
+                              fontWeight: activeCategory === g.category ? 700 : 500,
                             }}
                           >
-                            {ex}
-                          </Typography>
-                        </Box>
+                            {g.category}
+                          </Button>
+                        ))}
                       </Box>
-                    ))}
+
+                      {/* Active Group Items */}
+                      <Box
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                          gap: "6px 20px",
+                          minHeight: 120,
+                        }}
+                      >
+                        {COMMAND_GROUPS.find((g) => g.category === activeCategory)
+                          ?.items.map(([cmd, desc, ex]) => (
+                            <Box
+                              key={cmd}
+                              sx={{
+                                display: "flex",
+                                gap: 1.5,
+                                py: 0.6,
+                                alignItems: "baseline",
+                                borderBottom: "1px solid",
+                                borderColor: "divider",
+                              }}
+                            >
+                              <Typography
+                                component="code"
+                                sx={{
+                                  fontFamily: "monospace",
+                                  fontWeight: 700,
+                                  fontSize: "0.76rem",
+                                  color: "secondary.main",
+                                  minWidth: 40,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                {cmd}
+                              </Typography>
+                              <Box>
+                                <Typography
+                                  variant="caption"
+                                  sx={{ display: "block", fontWeight: 600, lineHeight: 1.3 }}
+                                >
+                                  {desc}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    color: "text.disabled",
+                                    fontFamily: "monospace",
+                                    fontSize: "0.63rem",
+                                    display: "block",
+                                    mt: 0.25,
+                                  }}
+                                >
+                                  {ex}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          ))}
+                      </Box>
+                    </Box>
                   </Box>
-                </Box>
-              </Fade>
+                </Fade>
+              </Collapse>
             </Box>
           ) : (
             <Autocomplete

@@ -691,5 +691,248 @@ describe("buildDirectIssueFilterWhere – publisher and series wildcard * contai
       ],
     });
   });
+
+  it("should build AND/contains conditions for appearances, realities, arcs, individuals, genres with asterisks", () => {
+    const where = buildDirectIssueFilterWhere({
+      appearances: [{ name: "*Spider-Man*" }],
+      realities: [{ name: "*616*" }],
+      arcs: [{ title: "*Spider-Verse*" }],
+      individuals: [{ name: "*Lee*", type: [] }],
+      genres: ["*Action*"],
+      us: false,
+    }) as any;
+
+    // 1. Genres
+    expect(where.AND).toContainEqual({
+      AND: [
+        {
+          series: {
+            genres: {
+              some: {
+                AND: [
+                  {
+                    genre: {
+                      contains: "Action",
+                      mode: "insensitive",
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      ],
+    });
+
+    // 2. Individuals
+    expect(where.AND).toContainEqual({
+      stories: {
+        some: {
+          OR: [
+            {
+              individuals: {
+                some: {
+                  individual: {
+                    AND: [
+                      {
+                        name: {
+                          contains: "Lee",
+                          mode: "insensitive",
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+            {
+              parent: {
+                individuals: {
+                  some: {
+                    individual: {
+                      AND: [
+                        {
+                          name: {
+                            contains: "Lee",
+                            mode: "insensitive",
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    // 3. Arcs
+    expect(where.AND).toContainEqual({
+      AND: [
+        {
+          AND: [
+            {
+              stories: {
+                some: {
+                  parent: {
+                    issue: {
+                      arcs: {
+                        some: {
+                          arc: {
+                            title: {
+                              contains: "Spider-Verse",
+                              mode: "insensitive",
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    // 4. Appearances
+    expect(where.AND).toContainEqual({
+      AND: [
+        {
+          AND: [
+            {
+              OR: [
+                {
+                  stories: {
+                    some: {
+                      appearances: {
+                        some: {
+                          appearance: {
+                            name: {
+                              contains: "Spider-Man",
+                              mode: "insensitive",
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+                {
+                  stories: {
+                    some: {
+                      children: {
+                        some: {
+                          appearances: {
+                            some: {
+                              appearance: {
+                                name: {
+                                  contains: "Spider-Man",
+                                  mode: "insensitive",
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+                {
+                  stories: {
+                    some: {
+                      parent: {
+                        appearances: {
+                          some: {
+                            appearance: {
+                              name: {
+                                contains: "Spider-Man",
+                                mode: "insensitive",
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+
+    // 5. Realities
+    expect(where.AND).toContainEqual({
+      AND: [
+        {
+          AND: [
+            {
+              OR: [
+                {
+                  stories: {
+                    some: {
+                      appearances: {
+                        some: {
+                          appearance: {
+                            name: {
+                              contains: "(616)",
+                              mode: "insensitive",
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+                {
+                  stories: {
+                    some: {
+                      children: {
+                        some: {
+                          appearances: {
+                            some: {
+                              appearance: {
+                                name: {
+                                  contains: "(616)",
+                                  mode: "insensitive",
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+                {
+                  stories: {
+                    some: {
+                      parent: {
+                        appearances: {
+                          some: {
+                            appearance: {
+                              name: {
+                                contains: "(616)",
+                                mode: "insensitive",
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+  });
 });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useRef, useState, useEffect } from "react";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import { alpha } from "@mui/material/styles";
@@ -26,22 +26,45 @@ const CHIP_SX = {
   letterSpacing: "0.01em",
   borderRadius: "6px",
   "& .MuiChip-label": { px: 0.75 },
-  "& .MuiChip-deleteIcon": { fontSize: 13, ml: 0.25 },
   flexShrink: 0,
 } as const;
 
 export default function FilterQueryChips({
   tokens,
-  onRemoveToken,
   onClickToken,
   maxVisible = 999,
 }: Readonly<FilterQueryChipsProps>) {
-  if (tokens.length === 0) return null;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [overflows, setOverflows] = useState(false);
 
   const collapsed = maxVisible <= 2;
 
+  useEffect(() => {
+    if (!collapsed) return;
+
+    const checkOverflow = () => {
+      if (containerRef.current) {
+        const { scrollWidth, clientWidth } = containerRef.current;
+        setOverflows(scrollWidth > clientWidth);
+      }
+    };
+
+    const observer = new ResizeObserver(checkOverflow);
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+      setOverflows(false);
+    };
+  }, [tokens, collapsed]);
+
+  if (tokens.length === 0) return null;
+
   return (
     <Box
+      ref={containerRef}
       sx={{
         display: "flex",
         alignItems: "center",
@@ -50,8 +73,14 @@ export default function FilterQueryChips({
         flexWrap: collapsed ? "nowrap" : "wrap",
         overflow: collapsed ? "hidden" : "visible",
         maxWidth: "100%",
-        pr: 0.5,
+        pr: collapsed && overflows ? 3 : 0.5,
         py: collapsed ? 0 : 0.5,
+        maskImage: collapsed && overflows
+          ? "linear-gradient(to right, #000 0%, #000 calc(100% - 24px), transparent 100%)"
+          : "none",
+        WebkitMaskImage: collapsed && overflows
+          ? "linear-gradient(to right, #000 0%, #000 calc(100% - 24px), transparent 100%)"
+          : "none",
       }}
     >
       {tokens.map((token, idx) => {
@@ -61,7 +90,6 @@ export default function FilterQueryChips({
               key={`paren-${idx}`}
               label={token.value}
               size="small"
-              onDelete={() => onRemoveToken(idx)}
               sx={(theme) => ({
                 ...CHIP_SX,
                 minWidth: 18,
@@ -72,7 +100,6 @@ export default function FilterQueryChips({
                 border: "1px solid",
                 borderColor: "rgba(0, 0, 0, 0.16)",
                 "& .MuiChip-label": { px: 0.5 },
-                "& .MuiChip-deleteIcon": { display: "none" },
                 ...theme.applyStyles("dark", {
                   bgcolor: "rgba(255, 255, 255, 0.12)",
                   color: "common.white",
@@ -89,7 +116,6 @@ export default function FilterQueryChips({
               key={`op-${idx}`}
               label={token.value}
               size="small"
-              onDelete={() => onRemoveToken(idx)}
               sx={(theme) => ({
                 ...CHIP_SX,
                 fontWeight: 800,
@@ -97,7 +123,6 @@ export default function FilterQueryChips({
                 color: theme.palette.secondary.dark,
                 border: "1px solid",
                 borderColor: alpha(theme.palette.secondary.main, 0.3),
-                "& .MuiChip-deleteIcon": { display: "none" },
                 ...theme.applyStyles("dark", {
                   bgcolor: alpha("#b12c4a", 0.22),
                   color: "#d45571",
@@ -115,30 +140,16 @@ export default function FilterQueryChips({
             label={token.value}
             size="small"
             onClick={() => onClickToken?.(idx)}
-            onDelete={() => onRemoveToken(idx)}
             sx={(theme) => ({
               ...CHIP_SX,
               bgcolor: alpha(theme.palette.primary.main, 0.1),
               color: theme.palette.primary.dark,
               border: "1px solid",
               borderColor: alpha(theme.palette.primary.main, 0.28),
-              "& .MuiChip-deleteIcon": {
-                ...CHIP_SX["& .MuiChip-deleteIcon"],
-                color: alpha(theme.palette.primary.dark, 0.6),
-                "&:hover": {
-                  color: theme.palette.primary.dark,
-                },
-              },
               ...theme.applyStyles("dark", {
                 bgcolor: alpha("#e5e7eb", 0.22),
                 color: "#f8fafc",
                 borderColor: alpha("#e5e7eb", 0.42),
-                "& .MuiChip-deleteIcon": {
-                  color: alpha("#f8fafc", 0.7),
-                  "&:hover": {
-                    color: "#f8fafc",
-                  },
-                },
               }),
             })}
           />

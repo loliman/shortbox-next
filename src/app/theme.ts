@@ -15,13 +15,13 @@ type ThemeTokens = {
 function getThemeTokens(mode: AppThemeMode): ThemeTokens {
   if (mode === "dark") {
     return {
-      bg: "#080b11",
-      paperBg: "#0d1117",
-      text: "#f3f4f6",
-      textSecondary: "#9ca3af",
-      border: "#1f2937",
-      rowHover: "#161b22",
-      link: "#60a5fa",
+      bg: "#141413",
+      paperBg: "#1b1b1a",
+      text: "#f3f2ef",
+      textSecondary: "#9d9a94",
+      border: "#2d2b28",
+      rowHover: "#222120",
+      link: "#d4a373",
     };
   }
 
@@ -42,9 +42,9 @@ function createPalette(mode: AppThemeMode) {
   return {
     mode,
     primary: {
-      main: mode === "dark" ? "#e5e7eb" : "#000000",
-      light: mode === "dark" ? "#f8fafc" : "#2b2b2b",
-      dark: mode === "dark" ? "#cbd5e1" : "#000000",
+      main: mode === "dark" ? "#eae6df" : "#000000",
+      light: mode === "dark" ? "#f9f8f6" : "#2b2b2b",
+      dark: mode === "dark" ? "#d1c9bd" : "#000000",
     },
     secondary: {
       main: "#b12c4a",
@@ -77,10 +77,10 @@ function chipAccentStyles(
 
   const accents: Record<string, { bgTop: string; bgBottom: string; border: string; text: string }> = {
     primary: {
-      bgTop: "rgba(96, 165, 250, 0.25)",
-      bgBottom: "rgba(96, 165, 250, 0.15)",
-      border: "rgba(147, 197, 253, 0.35)",
-      text: "#bfe0ff",
+      bgTop: "rgba(212, 163, 115, 0.25)",
+      bgBottom: "rgba(212, 163, 115, 0.15)",
+      border: "rgba(226, 180, 140, 0.35)",
+      text: "#f0d5be",
     },
     secondary: {
       bgTop: "rgba(255, 70, 100, 0.25)",
@@ -183,8 +183,8 @@ export const appTheme = createTheme({
         root: ({ theme }) => ({
           backgroundColor:
             theme.palette.mode === "dark"
-              ? "rgba(8, 11, 17, 0.72)"
-              : "rgba(8, 11, 17, 0.94)",
+              ? "rgba(20, 20, 19, 0.72)"
+              : "rgba(20, 20, 19, 0.94)",
           backdropFilter: "blur(12px)",
           color: theme.palette.common.white,
           backgroundImage: "none",
@@ -211,19 +211,19 @@ export const appTheme = createTheme({
     MuiToggleButton: {
       styleOverrides: {
         root: ({ theme }) => ({
-          color: theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.56)" : "rgba(0, 0, 0, 0.54)",
-          borderColor: theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.12)",
+          color: theme.palette.mode === "dark" ? "#c7c4bc" : "rgba(0, 0, 0, 0.54)",
+          borderColor: theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.25)" : "rgba(0, 0, 0, 0.12)",
           "&:hover": {
             backgroundColor: theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.04)",
-            color: theme.palette.mode === "dark" ? "#ffffff" : "rgba(0, 0, 0, 0.87)",
+            color: theme.palette.mode === "dark" ? "#f9f8f6" : "rgba(0, 0, 0, 0.87)",
           },
-          "&.Mui-selected": {
+          "&.Mui-selected, &.Mui-selected.MuiToggleButton-standard, &.Mui-selected.MuiToggleButton-primary": {
             backgroundColor: theme.palette.mode === "dark" ? "#ffffff" : "#111827",
-            color: theme.palette.mode === "dark" ? "#080b11" : "#ffffff",
-            borderColor: theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.3)" : "rgba(0, 0, 0, 0.22)",
+            color: theme.palette.mode === "dark" ? "#141413" : "#ffffff",
+            borderColor: theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.35)" : "rgba(0, 0, 0, 0.22)",
             "&:hover": {
               backgroundColor: theme.palette.mode === "dark" ? "#f3f4f6" : "#1f2937",
-              color: theme.palette.mode === "dark" ? "#080b11" : "#ffffff",
+              color: theme.palette.mode === "dark" ? "#141413" : "#ffffff",
             },
           },
         }),

@@ -65,7 +65,7 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
     darkBackgroundImage =
       "linear-gradient(110deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.04) 75%)";
   } else if (usesFallbackCover) {
-    darkBackgroundImage = `linear-gradient(rgba(0,0,0,0.08), rgba(0,0,0,0.08)), url(${NO_COVER_URL})`;
+    darkBackgroundImage = `linear-gradient(rgba(20,20,19,0.08), rgba(20,20,19,0.08)), url(${NO_COVER_URL})`;
   }
   const coverOverlay =
     effectiveCoverUrl === NO_COVER_URL
@@ -96,7 +96,7 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
   const provisionalDarkCoverOverlay = showsOriginalStoryCover
     ? {
         background:
-          "linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.01) 52%)",
+          "linear-gradient(rgba(20,20,19,0.3), rgba(20,20,19,0.3)), linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.01) 52%)",
       }
     : darkCoverOverlay;
 
@@ -214,7 +214,7 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
                 bottom: 0,
                 p: 1.25,
                 background:
-                  "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(5,7,10,0.92) 100%)",
+                  "linear-gradient(180deg, rgba(20,20,19,0) 0%, rgba(20,20,19,0.92) 100%)",
               }}
             >
               <Stack spacing={0.4} sx={{ minWidth: 0 }}>
@@ -266,7 +266,7 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
               overflow: "hidden",
               backgroundColor: "rgba(228, 228, 228, 0.58)",
               ...theme.applyStyles("dark", {
-                backgroundColor: "rgba(24, 24, 24, 0.84)",
+                backgroundColor: "rgba(27, 27, 26, 0.84)",
               }),
             })}
           >
@@ -339,7 +339,7 @@ export function IssuePreviewPlaceholderSmall(props: Readonly<{ idx?: number; isL
                 bottom: 0,
                 p: 1.25,
                 background:
-                  "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(5,7,10,0.92) 100%)",
+                  "linear-gradient(180deg, rgba(20,20,19,0) 0%, rgba(20,20,19,0.92) 100%)",
               }}
             >
               <Skeleton

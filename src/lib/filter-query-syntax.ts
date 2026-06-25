@@ -834,30 +834,6 @@ export function queryStringToFilterValues(
     }
 
     if (tok.type === "FILTER") {
-      const { kind, value, compare, raw } = tok.token;
-      if ((kind === "serie" || kind === "verlag") && value.includes("*")) {
-        const parts = value.split("*").map((p) => p.trim()).filter(Boolean);
-        const defaultBase = resetToDefaults(base);
-        const operands = parts.map((part) => {
-          const freshLeaf = tokensToFilterValues(
-            [
-              {
-                kind,
-                value: part,
-                compare,
-                raw: `${kind === "serie" ? "s" : "v"}:${part}`,
-              },
-            ],
-            defaultBase
-          );
-          return freshLeaf;
-        });
-
-        if (operands.length === 0) return base;
-        if (operands.length === 1) return operands[0];
-        return { operator: "and", operands };
-      }
-
       const leaf = { ...base };
       const freshLeaf = tokensToFilterValues([tok.token], resetToDefaults(leaf));
       return freshLeaf;

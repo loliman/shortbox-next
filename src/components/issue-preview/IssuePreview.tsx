@@ -82,17 +82,17 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
     borderLeftColorKey = "secondary.main";
   }
   let darkBackgroundImage =
-    "linear-gradient(rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.28)), linear-gradient(to right, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.58) 40%, rgba(0, 0, 0, 0.08) 100%), url(" +
+    "linear-gradient(rgba(20, 20, 19, 0.28), rgba(20, 20, 19, 0.28)), linear-gradient(to right, rgba(20, 20, 19, 0.88) 0%, rgba(20, 20, 19, 0.58) 40%, rgba(20, 20, 19, 0.08) 100%), url(" +
     effectiveCoverUrl +
     ")";
   if (isCoverLoading) {
     darkBackgroundImage =
-      "linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), linear-gradient(110deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.04) 75%)";
+      "linear-gradient(rgba(20, 20, 19, 0.35), rgba(20, 20, 19, 0.35)), linear-gradient(110deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.04) 75%)";
   } else if (usesFallbackCover) {
-    darkBackgroundImage = `linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), linear-gradient(to right, rgba(0, 0, 0, 0.84) 0%, rgba(0, 0, 0, 0.54) 40%, rgba(0, 0, 0, 0.08) 100%), url(${NO_COVER_URL})`;
+    darkBackgroundImage = `linear-gradient(rgba(20, 20, 19, 0.2), rgba(20, 20, 19, 0.2)), linear-gradient(to right, rgba(20, 20, 19, 0.84) 0%, rgba(20, 20, 19, 0.54) 40%, rgba(20, 20, 19, 0.08) 100%), url(${NO_COVER_URL})`;
   } else if (showsOriginalStoryCover) {
     darkBackgroundImage =
-      "linear-gradient(rgba(0, 0, 0, 0.46), rgba(0, 0, 0, 0.46)), linear-gradient(to right, rgba(0, 0, 0, 0.92) 0%, rgba(0, 0, 0, 0.68) 40%, rgba(0, 0, 0, 0.18) 100%), url(" +
+      "linear-gradient(rgba(20, 20, 19, 0.46), rgba(20, 20, 19, 0.46)), linear-gradient(to right, rgba(20, 20, 19, 0.92) 0%, rgba(20, 20, 19, 0.68) 40%, rgba(20, 20, 19, 0.18) 100%), url(" +
       effectiveCoverUrl +
       ")";
   }

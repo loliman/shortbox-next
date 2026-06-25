@@ -498,20 +498,11 @@ describe("Extended Expert Mode capabilities", () => {
     );
   });
 
-  it("should parse asterisk as logical AND replacement for series and publishers", () => {
+  it("should preserve asterisk wildcards in series and publishers values", () => {
     const { values: parsed } = queryStringToFilterValues("s:Spidey*Avengers AND v:Panini*Marvel");
-    
-    expect(parsed).toHaveProperty("operator", "and");
-    const operands = (parsed as any).operands;
-    expect(operands).toHaveLength(4);
-    
-    const seriesTitles = operands.map((o: any) => o.series?.[0]?.title).filter(Boolean);
-    const publisherNames = operands.map((o: any) => o.publishers?.[0]?.name).filter(Boolean);
-    
-    expect(seriesTitles).toContain("Spidey");
-    expect(seriesTitles).toContain("Avengers");
-    expect(publisherNames).toContain("Panini");
-    expect(publisherNames).toContain("Marvel");
+    const flat = flattenASTToFlatFilterValues(parsed, createDefaultFilterValues());
+    expect(flat.series[0].title).toBe("Spidey*Avengers");
+    expect(flat.publishers[0].name).toBe("Panini*Marvel");
   });
 
   it("should serialize extended filters back to a query string representation", () => {
