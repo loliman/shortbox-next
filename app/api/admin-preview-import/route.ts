@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireApiAdminSession } from "@/src/lib/server/guards";
-import { readActivePreviewImportQueue, replaceActivePreviewImportQueue, clearActivePreviewImportQueue, advanceActivePreviewImportQueue, rewindActivePreviewImportQueue } from "@/src/lib/server/preview-import-session";
+import { readActivePreviewImportQueue, replaceActivePreviewImportQueue, clearActivePreviewImportQueue, advanceActivePreviewImportQueue, rewindActivePreviewImportQueue, skipUntilInActivePreviewImportQueue } from "@/src/lib/server/preview-import-session";
 import { extractTextFromPdfBuffer } from "@/src/lib/server/pdf-text-extract";
 import { extractPdfLayoutFromBuffer } from "@/src/lib/server/pdf-layout-extract";
 import { readDeSeriesByTitle, readUsSeriesByTitle } from "@/src/lib/read/preview-import-read";
@@ -68,14 +68,40 @@ export async function PATCH(request: NextRequest) {
   if (auth.response) return auth.response;
 
   const body = (await request.json()) as {
-    action?: "skip" | "complete" | "back";
+    action?: "skip" | "complete" | "back" | "skip-until";
     draftId?: string;
+    targetDraftId?: string;
     createdIssueId?: string;
   };
 
   if (body.action === "back") {
     try {
       const nextQueue = await rewindActivePreviewImportQueue();
+
+      return NextResponse.json(
+        { queue: nextQueue?.queue || null },
+        { headers: { "Cache-Control": "no-store" } }
+      );
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Queue konnte nicht aktualisiert werden" },
+        { status: 400, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+  }
+
+  if (body.action === "skip-until") {
+    const draftId = readTextValue(body.draftId);
+    const targetDraftId = readTextValue(body.targetDraftId);
+    if (!draftId || !targetDraftId) {
+      return NextResponse.json(
+        { error: "draftId und targetDraftId werden benötigt" },
+        { status: 400, headers: { "Cache-Control": "no-store" } }
+      );
+    }
+
+    try {
+      const nextQueue = await skipUntilInActivePreviewImportQueue(draftId, targetDraftId);
 
       return NextResponse.json(
         { queue: nextQueue?.queue || null },

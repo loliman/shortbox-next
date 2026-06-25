@@ -5,6 +5,9 @@ import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
+import FormControl from "@mui/material/FormControl";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useRouter } from "next/navigation";
@@ -164,6 +167,9 @@ function PreviewImportQueueEditor(props: Readonly<{
   const [validationMessage, setValidationMessage] = React.useState<string | null>(null);
   const draft = props.queue.currentDraft;
   const values = React.useMemo(() => structuredClone(draft.values), [draft.values]);
+  const remainingDrafts = React.useMemo(() => {
+    return props.queue.queue.drafts.slice(props.queue.currentDraftIndex + 1);
+  }, [props.queue.queue.drafts, props.queue.currentDraftIndex]);
 
   return (
     <Formik
@@ -313,6 +319,68 @@ function PreviewImportQueueEditor(props: Readonly<{
                   >
                     Überspringen
                   </Button>
+                  {remainingDrafts.length > 0 && (
+                    <FormControl size="small" sx={{ minWidth: 220 }}>
+                      <Select
+                        value=""
+                        displayEmpty
+                        disabled={isSubmitting}
+                        onChange={async (event) => {
+                          const targetDraftId = event.target.value;
+                          if (!targetDraftId) return;
+
+                          const targetDraft = remainingDrafts.find((d) => d.id === targetDraftId);
+                          const targetLabel = targetDraft
+                            ? `${targetDraft.values.series.title} #${targetDraft.values.number}`
+                            : "";
+
+                          if (
+                            !window.confirm(
+                              `Möchtest du wirklich alle Ausgaben bis zu "${targetLabel}" überspringen?`
+                            )
+                          ) {
+                            return;
+                          }
+
+                          try {
+                            await mutationRequest({
+                              url: "/api/admin-preview-import",
+                              method: "PATCH",
+                              body: {
+                                action: "skip-until",
+                                draftId: draft.id,
+                                targetDraftId,
+                              },
+                            });
+                            snackbar.enqueueSnackbar(`Ausgaben übersprungen bis ${targetLabel}.`, {
+                              variant: "success",
+                            });
+                            router.refresh();
+                          } catch (error) {
+                            snackbar.enqueueSnackbar(
+                              error instanceof Error ? error.message : "Fehler beim Überspringen der Ausgaben",
+                              { variant: "error" }
+                            );
+                          }
+                        }}
+                        renderValue={() => "Überspringen bis..."}
+                      >
+                        <MenuItem value="" disabled>
+                          Überspringen bis...
+                        </MenuItem>
+                        {remainingDrafts.map((d) => {
+                          const label = `${d.values.series.title} #${d.values.number}${
+                            d.values.title ? `: ${d.values.title}` : ""
+                          }`;
+                          return (
+                            <MenuItem key={d.id} value={d.id}>
+                              {label}
+                            </MenuItem>
+                          );
+                        })}
+                      </Select>
+                    </FormControl>
+                  )}
                 </Box>
 
                 <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>

@@ -1,10 +1,9 @@
 import "server-only";
 
 import { prisma } from "../prisma/client";
-import { cookies } from "next/headers";
-import { SESSION_COOKIE_NAME } from "./session";
-import type { ActivePreviewImportQueue, PreviewImportQueue } from "../../types/preview-import";
 import { findCurrentDraft, findPreviousSkippedDraftIndex } from "./preview-import-session-shared";
+import { readServerSession } from "./session";
+import type { ActivePreviewImportQueue, PreviewImportQueue } from "../../types/preview-import";
 
 type SessionPayload = {
   previewImportQueue?: PreviewImportQueue | null;
@@ -26,13 +25,14 @@ function toSessionPayload(data: string | null | undefined): SessionPayload {
   }
 }
 
-async function readServerSessionId() {
-  const cookieStore = await cookies();
-  return (cookieStore.get(SESSION_COOKIE_NAME)?.value ?? "").trim();
+async function readUserQueueSessionKey() {
+  const session = await readServerSession();
+  if (!session?.userId) return null;
+  return `usr-q-${session.userId}`;
 }
 
 async function readSessionPayload() {
-  const sid = await readServerSessionId();
+  const sid = await readUserQueueSessionKey();
   if (!sid) return { sid: "", payload: {} as SessionPayload };
 
   const session = await prisma.session.findUnique({
@@ -162,6 +162,47 @@ export async function rewindActivePreviewImportQueue() {
         }
       : draft
   );
+
+  const nextQueue: PreviewImportQueue = {
+    ...activeQueue.queue,
+    drafts: nextDrafts,
+    updatedAt: nowIso(),
+  };
+
+  await replaceActivePreviewImportQueue(nextQueue);
+  return readActivePreviewImportQueue();
+}
+
+export async function skipUntilInActivePreviewImportQueue(
+  currentDraftId: string,
+  targetDraftId: string
+) {
+  const activeQueue = await readActivePreviewImportQueue();
+  if (!activeQueue) throw new Error("Keine aktive Import-Queue gefunden");
+
+  const drafts = activeQueue.queue.drafts;
+  const currentIndex = drafts.findIndex((d) => d.id === currentDraftId);
+  const targetIndex = drafts.findIndex((d) => d.id === targetDraftId);
+
+  if (currentIndex < 0) {
+    throw new Error("Aktueller Draft wurde nicht gefunden");
+  }
+  if (targetIndex < 0) {
+    throw new Error("Ziel-Draft wurde nicht gefunden");
+  }
+  if (targetIndex <= currentIndex) {
+    throw new Error("Man kann nur vorwärts springen");
+  }
+
+  const nextDrafts = drafts.map((draft, idx) => {
+    if (idx >= currentIndex && idx < targetIndex) {
+      return {
+        ...draft,
+        status: "skipped" as const,
+      };
+    }
+    return draft;
+  });
 
   const nextQueue: PreviewImportQueue = {
     ...activeQueue.queue,

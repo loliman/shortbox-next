@@ -9,6 +9,7 @@
  */
 
 import type { FilterValues } from "../types/filter";
+import type { FieldItem } from "../util/filterFieldHelpers";
 
 // ---------------------------------------------------------------------------
 // Token & AST types
