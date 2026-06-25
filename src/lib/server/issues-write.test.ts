@@ -1,4 +1,4 @@
-import { editIssue } from "./issues-write";
+import { editIssue, createIssue } from "./issues-write";
 import { prisma } from "../prisma/client";
 
 describe("editIssue identity conflicts", () => {
@@ -313,7 +313,78 @@ describe("editIssue identity conflicts", () => {
     expect(result.success).toBe(true);
   });
 
+  it("should not delete existing stories when creating a new variant for an existing issue without stories", async () => {
+    // 1. Create a parent issue with stories
+    const resultIssue1 = await createIssue({
+      title: "Story Test Issue",
+      number: "42",
+      format: "Heft",
+      variant: "A",
+      series: {
+        title: seriesTitle,
+        volume: 1,
+        publisher: {
+          name: publisherName,
+          us: false,
+        },
+      },
+      stories: [
+        {
+          number: 1,
+          title: "My Original Story",
+        },
+      ],
+    });
 
+    expect(resultIssue1.success).toBe(true);
+    if (!resultIssue1.success) throw new Error("Expected resultIssue1 to be successful");
+    const parentId = BigInt(resultIssue1.data.item.id);
+
+    // Verify story was created
+    const originalStories = await prisma.story.findMany({
+      where: { fkIssue: parentId },
+    });
+    expect(originalStories.length).toBe(1);
+    expect(originalStories[0].title).toBe("My Original Story");
+
+    // 2. Create Variant B for the same issue, without stories property in input
+    const resultIssue2 = await createIssue({
+      title: "Story Test Issue",
+      number: "42",
+      format: "Heft",
+      variant: "B",
+      series: {
+        title: seriesTitle,
+        volume: 1,
+        publisher: {
+          name: publisherName,
+          us: false,
+        },
+      },
+    });
+
+    expect(resultIssue2.success).toBe(true);
+    if (!resultIssue2.success) throw new Error("Expected resultIssue2 to be successful");
+    expect(BigInt(resultIssue2.data.item.id)).toBe(parentId); // Reuses parent issue
+
+    // 3. Verify story still exists on parent issue (was NOT deleted!)
+    const afterStories = await prisma.story.findMany({
+      where: { fkIssue: parentId },
+    });
+    expect(afterStories.length).toBe(1);
+    expect(afterStories[0].title).toBe("My Original Story");
+
+    // Clean up
+    await prisma.story.deleteMany({
+      where: { fkIssue: parentId },
+    });
+    await prisma.variant.deleteMany({
+      where: { fkIssue: parentId },
+    });
+    await prisma.issue.delete({
+      where: { id: parentId },
+    });
+  });
 
   afterAll(async () => {
     await prisma.$disconnect();

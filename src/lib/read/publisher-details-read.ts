@@ -2,6 +2,7 @@ import "server-only";
 
 import { prisma } from "../prisma/client";
 import { serializePreviewIssue } from "./issue-read-shared";
+import { createPreviewIssueInclude } from "./issue-feed-read";
 import { matchesPublisherSelectionBySlug } from "./publisher-selection";
 import { readNavigationFilterState } from "./navigation-read";
 import type { RouteQuery } from "../../types/route-ui";
@@ -86,56 +87,7 @@ export async function readPublisherDetailsQuery(input: {
       },
       orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
       take: 50,
-      include: {
-        series: {
-          include: {
-            publisher: true,
-          },
-        },
-        stories: {
-          include: {
-            parent: {
-              select: {
-                collectedMultipleTimes: true,
-                children: {
-                  select: {
-                    id: true,
-                  },
-                },
-              },
-            },
-            children: {
-              select: {
-                id: true,
-                issue: {
-                  select: {
-                    variants: {
-                      orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
-                      take: 1,
-                      select: {
-                        collected: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-            reprint: {
-              select: {
-                id: true,
-              },
-            },
-            reprintedBy: {
-              select: {
-                id: true,
-              },
-            },
-          },
-        },
-        variants: {
-          orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
-        },
-      },
+      include: createPreviewIssueInclude(),
     }),
   ]);
 

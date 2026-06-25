@@ -136,7 +136,7 @@ function createFeedCursorWhere(cursor: FeedCursor | null, field: FeedCursorField
   } as Prisma.IssueWhereInput;
 }
 
-function createPreviewIssueInclude() {
+export function createPreviewIssueInclude() {
   return Prisma.validator<Prisma.IssueInclude>()({
     series: {
       include: {
@@ -155,6 +155,17 @@ function createPreviewIssueInclude() {
                 id: true,
                 preferredCoverUrl: true,
                 preferredVariantId: true,
+                variants: {
+                  orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
+                  select: {
+                    comicGuideId: true,
+                    covers: {
+                      select: {
+                        url: true,
+                      },
+                    },
+                  },
+                },
               },
             },
             children: {
@@ -195,6 +206,17 @@ function createPreviewIssueInclude() {
                 id: true,
                 preferredCoverUrl: true,
                 preferredVariantId: true,
+                variants: {
+                  orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
+                  select: {
+                    comicGuideId: true,
+                    covers: {
+                      select: {
+                        url: true,
+                      },
+                    },
+                  },
+                },
               },
             },
           },

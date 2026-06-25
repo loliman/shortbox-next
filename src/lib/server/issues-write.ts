@@ -1008,7 +1008,9 @@ async function createIssueRecord(
   });
   if (!fullParentIssue) throw new Error("Issue not found after creation");
 
-  await syncStoriesFromParentRefs(Number(fullParentIssue.id), item, tx, parentIssueCache, preflightCache);
+  if (shouldSyncIssueStories(item, publisher.original)) {
+    await syncStoriesFromParentRefs(Number(fullParentIssue.id), item, tx, parentIssueCache, preflightCache);
+  }
 
   return {
     item: toIssuePayload(fullParentIssue, createdVariant),
