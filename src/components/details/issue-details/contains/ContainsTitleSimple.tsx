@@ -43,9 +43,6 @@ type ContainsTitleSimpleProps = {
 
 export function ContainsTitleSimple(props: Readonly<ContainsTitleSimpleProps>) {
   const item = props.item;
-  const stackActions =
-    props.compactLayout ??
-    Boolean(props.isPhone || (props.isTablet && !props.isTabletLandscape));
   const children = Array.isArray(item.children) ? item.children : [];
   const reprints = Array.isArray(item.reprints) ? item.reprints : [];
   const hasIssueReference = Boolean(item.series);
@@ -64,22 +61,16 @@ export function ContainsTitleSimple(props: Readonly<ContainsTitleSimpleProps>) {
   return (
     <Box
       data-testid="story-header"
-      sx={
-        stackActions
-          ? {
-              width: "100%",
-              display: "block",
-            }
-          : {
-              width: "100%",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-              gap: 1,
-            }
-      }
+      sx={{
+        width: "100%",
+        display: "flex",
+        flexDirection: { xs: "column", md: "row" },
+        justifyContent: "space-between",
+        alignItems: { xs: "stretch", md: "flex-start" },
+        gap: 1,
+      }}
     >
-      <Box sx={{ minWidth: 0 }}>
+      <Box sx={{ minWidth: 0, flex: 1 }}>
         <Box sx={{ display: "grid", rowGap: 0.3 }}>
           <Typography
             variant="overline"
@@ -136,12 +127,12 @@ export function ContainsTitleSimple(props: Readonly<ContainsTitleSimpleProps>) {
           </Typography>
         </Box>
 
-        {stackActions && actionChips.length > 0 ? (
+        {actionChips.length > 0 && (
           <Box
             sx={{
               mt: 1,
               pt: 0.75,
-              display: "flex",
+              display: { xs: "flex", md: "none" },
               flexWrap: "wrap",
               gap: 0.6,
               alignItems: "center",
@@ -149,15 +140,15 @@ export function ContainsTitleSimple(props: Readonly<ContainsTitleSimpleProps>) {
           >
             {actionChips}
           </Box>
-        ) : null}
+        )}
       </Box>
 
-      {stackActions ? null : (
+      {actionChips.length > 0 && (
         <Box
           sx={{
+            display: { xs: "none", md: "flex" },
             ml: "auto",
             alignSelf: "center",
-            display: "flex",
             flexWrap: "wrap",
             gap: 0.6,
             justifyContent: "flex-end",

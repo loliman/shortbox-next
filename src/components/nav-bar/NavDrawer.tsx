@@ -44,7 +44,7 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
   const drawerWidth = getNavDrawerWidth(temporary);
   const navActionBottomOffset = temporary ? `calc(${COMPACT_BOTTOM_BAR_CLEARANCE} + 14px)` : "14px";
   const navActionRightOffset = "14px";
-  const navListBottomPadding = temporary ? `calc(${COMPACT_BOTTOM_BAR_CLEARANCE} + 56px)` : 56;
+  const navListBottomPadding = temporary ? `calc(${COMPACT_BOTTOM_BAR_CLEARANCE} + 56px)` : "56px";
   const paperSx: SxProps<Theme> = {
     width: drawerWidth,
     maxWidth: "100%",

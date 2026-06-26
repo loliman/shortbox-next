@@ -5,7 +5,7 @@ import Box from "@mui/material/Box";
 import CardHeader from "@mui/material/CardHeader";
 import CardContent from "@mui/material/CardContent";
 import Paper from "@mui/material/Paper";
-import SnackbarContent from "@mui/material/SnackbarContent";
+import Alert from "@mui/material/Alert";
 import Typography from "@mui/material/Typography";
 import Divider from "@mui/material/Divider";
 import { generateIssueSubHeader } from "../../util/issues";
@@ -133,15 +133,19 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
       }}
     >
       {releaseDate && today < releaseDate ? (
-        <SnackbarContent
+        <Alert
+          severity="warning"
           id="notVerifiedWarning"
-          message="Diese Ausgabe ist noch nicht im Handel erhältlich und noch nicht vorab verifiziert worden. Die angezeigten Informationen weichen gegebenenfalls von den tatsächlichen Daten ab."
           sx={{
-            width: { sm: "100%" },
-              height: { sm: "auto" },
-            borderRadius: { sm: 0 },
+            width: "100%",
+            borderRadius: 0,
+            py: 0.75,
+            px: 2,
+            fontSize: "0.82rem",
           }}
-        />
+        >
+          Diese Ausgabe ist noch nicht im Handel erhältlich und noch nicht vorab verifiziert worden. Die angezeigten Informationen weichen gegebenenfalls von den tatsächlichen Daten ab.
+        </Alert>
       ) : null}
       {breadcrumbJsonLd ? (
         <script

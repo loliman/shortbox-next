@@ -5,7 +5,7 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import React from "react";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
-import { alpha, useTheme } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ViewStreamIcon from "@mui/icons-material/ViewStream";
@@ -22,15 +22,13 @@ import {
 import { buildRouteHref } from "./generic/routeHref";
 import { usePendingNavigation } from "./generic/usePendingNavigation";
 
-const SORT_OPTIONS = ["updatedat", "createdat", "releasedate", "series", "publisher"] as const;
+const SORT_OPTIONS = ["updatedat", "createdat", "releasedate"] as const;
 type SortOption = (typeof SORT_OPTIONS)[number];
 
 const SORT_OPTION_LABELS: Record<SortOption, string> = {
   updatedat: "Änderung",
   createdat: "Erfassung",
   releasedate: "Erscheinung",
-  series: "Serie",
-  publisher: "Verlag",
 };
 
 type SortContainerProps = {
@@ -46,7 +44,6 @@ type SortContainerProps = {
 };
 
 export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
-  const theme = useTheme();
   const localPendingNavigation = usePendingNavigation();
   const { isPending, push } = ownProps.pendingNavigation ?? localPendingNavigation;
   const query = ownProps.query;
@@ -80,7 +77,7 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
       sx={{
         display: "flex",
         alignItems: "center",
-        gap: 0.75,
+        gap: { xs: 0.5, sm: 0.75 },
         overflowX: "auto",
         scrollbarWidth: "none",
         "&::-webkit-scrollbar": { display: "none" },
@@ -92,8 +89,7 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
       {SORT_OPTIONS.map((option) => {
         const isActive = option === currentOrder;
         const label = SORT_OPTION_LABELS[option];
-        const defaultDir: "ASC" | "DESC" =
-          option === "series" || option === "publisher" ? "ASC" : "DESC";
+        const defaultDir: "ASC" | "DESC" = "DESC";
 
         return (
           <Box
@@ -118,10 +114,10 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
               display: "inline-flex",
               alignItems: "center",
               gap: 0.5,
-              px: 1.5,
-              py: 0.6,
-              borderRadius: "20px",
-              fontSize: "0.75rem",
+              px: { xs: 1, sm: 1.5 },
+              py: { xs: 0.4, sm: 0.6 },
+              borderRadius: "16px",
+              fontSize: { xs: "0.68rem", sm: "0.75rem" },
               fontWeight: 600,
               cursor: isPending ? "default" : "pointer",
               userSelect: "none",
@@ -180,9 +176,9 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
                 }}
               >
                 {currentDirection === "ASC" ? (
-                  <ArrowUpwardIcon sx={{ fontSize: 13, fontWeight: "bold" }} />
+                  <ArrowUpwardIcon sx={{ fontSize: { xs: 11, sm: 13 }, fontWeight: "bold" }} />
                 ) : (
-                  <ArrowDownwardIcon sx={{ fontSize: 13, fontWeight: "bold" }} />
+                  <ArrowDownwardIcon sx={{ fontSize: { xs: 11, sm: 13 }, fontWeight: "bold" }} />
                 )}
               </Box>
             )}
@@ -211,6 +207,17 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
           )
         );
       }}
+      sx={{
+        "& .MuiToggleButton-root": {
+          px: { xs: 0.75, sm: 1.25 },
+          py: { xs: 0.25, sm: 0.5 },
+          minWidth: { xs: 28, sm: 36 },
+          height: { xs: 26, sm: 32 },
+          "& .MuiSvgIcon-root": {
+            fontSize: { xs: "0.95rem", sm: "1.15rem" },
+          },
+        },
+      }}
     >
       <ToggleButton value="strip" aria-label="Streifenansicht">
         <ViewStreamIcon fontSize="small" />
@@ -226,12 +233,22 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
       sx={{
         display: "flex",
         alignItems: "center",
-        gap: 1.5,
+        justifyContent: "space-between",
+        gap: { xs: 0.5, sm: 1.5 },
         width: "100%",
       }}
     >
-      {pendingIndicator}
-      {sortChips}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          flex: 1,
+          minWidth: 0,
+        }}
+      >
+        {pendingIndicator}
+        {sortChips}
+      </Box>
       {viewToggle}
     </Box>
   );

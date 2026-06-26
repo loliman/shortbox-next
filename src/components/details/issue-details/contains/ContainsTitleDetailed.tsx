@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import Typography from "@mui/material/Typography";
 import Link from "@mui/material/Link";
 import Chip from "@mui/material/Chip";
@@ -10,6 +12,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import CoverTooltip from "../../../nav-bar/CoverTooltip";
 import { generateLabel, generateSeoUrl } from "../../../../lib/routes/hierarchy";
 import type { SelectedRoot } from "../../../../types/domain";
+import { romanize } from "../../../../util/util";
 import { IssueReferenceInline } from "../../../generic/IssueNumberInline";
 import { buildRouteHref } from "../../../generic/routeHref";
 import { usePendingNavigation } from "../../../generic/usePendingNavigation";
@@ -89,23 +92,7 @@ type ContainsTitleDetailedNavigationProps = {
   query?: Record<string, unknown> | null;
 };
 
-function getContainsTitleLayoutSx(stackActions: boolean) {
-  return stackActions
-    ? {
-        width: "100%",
-        display: "grid",
-        gridTemplateColumns: "minmax(0, 1fr) auto",
-        alignItems: "start",
-        columnGap: 1,
-      }
-    : {
-        width: "100%",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "flex-start",
-        gap: 1,
-      };
-}
+
 
 function getContainsSeriesLabel(issue: ContainsIssueLike | undefined, hasIssueReference: boolean) {
   if (hasIssueReference !== true || issue?.series == null) return undefined;
@@ -161,6 +148,7 @@ function ContainsTitleDetailedMainText(props: Readonly<{
   showParentTitle: boolean;
   parentTitle: string | undefined;
   variant: string;
+  romanStoryNumber?: string;
 }>) {
   const seriesLabel = getContainsSeriesLabel(props.issue, props.hasIssueReference);
 
@@ -213,6 +201,7 @@ function ContainsTitleDetailedMainText(props: Readonly<{
           number={props.hasIssueReference ? props.issue?.number : undefined}
           legacy_number={props.issue?.legacy_number}
         />
+        {props.romanStoryNumber || null}
       </Typography>
       {props.showParentTitle ? (
         <Typography
@@ -258,45 +247,7 @@ function ContainsTitleDetailedReprintBlock(props: Readonly<{
 }>) {
   if (!props.reprintIssue) return null;
 
-  const content = props.allowInteractiveActions ? (
-    <Link
-      component="button"
-      type="button"
-      variant="body2"
-      underline="hover"
-      color="text.primary"
-      sx={{
-        mt: 0.25,
-        p: 0,
-        textAlign: "left",
-        lineHeight: 1.43,
-        fontWeight: 600,
-      }}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (!props.reprintSelection) return;
-        props.push(
-          buildRouteHref(generateSeoUrl(props.reprintSelection, true), props.query, {
-            expand: props.reprintNumber,
-          })
-        );
-      }}
-    >
-      {props.reprintLabel}
-    </Link>
-  ) : (
-    <Typography
-      variant="body2"
-      color="text.primary"
-      sx={{
-        mt: 0.25,
-        lineHeight: 1.43,
-        fontWeight: 600,
-      }}
-    >
-      {props.reprintLabel}
-    </Typography>
-  );
+  const showLink = props.allowInteractiveActions;
 
   return (
     <Box
@@ -314,34 +265,83 @@ function ContainsTitleDetailedReprintBlock(props: Readonly<{
         US-Original
       </Typography>
       <CoverTooltip issue={props.reprintIssue} us={props.us} number={props.reprintNumber}>
-        {content}
+        <Box sx={{ width: "100%" }}>
+          <Link
+            component="button"
+            type="button"
+            variant="body2"
+            underline="hover"
+            color="text.primary"
+            sx={{
+              display: showLink ? "block" : { xs: "block", sm: "none" },
+              mt: 0.25,
+              p: 0,
+              textAlign: "left",
+              lineHeight: 1.43,
+              fontWeight: 600,
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!props.reprintSelection) return;
+              props.push(
+                buildRouteHref(generateSeoUrl(props.reprintSelection, true), props.query, {
+                  expand: props.reprintNumber,
+                })
+              );
+            }}
+          >
+            {props.reprintLabel}
+          </Link>
+          {!showLink && (
+            <Typography
+              variant="body2"
+              color="text.primary"
+              sx={{
+                display: { xs: "none", sm: "block" },
+                mt: 0.25,
+                lineHeight: 1.43,
+                fontWeight: 600,
+              }}
+            >
+              {props.reprintLabel}
+            </Typography>
+          )}
+        </Box>
       </CoverTooltip>
     </Box>
   );
 }
 
 function ContainsTitleDetailedActionArea(props: Readonly<{
-  stackActions: boolean;
   actionChips: React.ReactElement[];
   detailButton: React.ReactNode;
 }>) {
-  if (props.stackActions) {
-    return <Box sx={{ justifySelf: "end", alignSelf: "center" }}>{props.detailButton}</Box>;
-  }
+  if (!props.detailButton && props.actionChips.length === 0) return null;
 
   return (
     <Box
       sx={{
-        ml: "auto",
+        ml: { xs: 0, md: "auto" },
         alignSelf: "center",
         display: "flex",
-        flexWrap: "wrap",
-        gap: 0.6,
-        justifyContent: "flex-end",
         alignItems: "center",
+        justifyContent: { xs: "flex-start", md: "flex-end" },
+        gap: 0.6,
       }}
     >
-      {props.actionChips}
+      {props.actionChips.length > 0 && (
+        <Box
+          sx={{
+            display: { xs: "none", md: "flex" },
+            flexWrap: "wrap",
+            gap: 0.6,
+            justifyContent: "flex-end",
+            alignItems: "center",
+          }}
+        >
+          {props.actionChips}
+        </Box>
+      )}
       {props.detailButton}
     </Box>
   );
@@ -356,9 +356,12 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
   const storyExpandNumber = readContainsTitleText(item.parent?.number ?? item.number);
   const storyNumberLabel = "";
 
-  const stackActions =
-    props.compactLayout ??
-    Boolean(props.isPhone || (props.isTablet && !props.isTabletLandscape));
+  const rawStoryNumber = item.parent?.number ?? item.number;
+  const parsedStoryNumber = typeof rawStoryNumber === "number" ? rawStoryNumber : parseInt(String(rawStoryNumber), 10);
+  const romanStoryNumber = Number.isInteger(parsedStoryNumber) && parsedStoryNumber > 0
+    ? ` [${romanize(parsedStoryNumber)}]`
+    : "";
+
   const exclusive = Boolean(item.exclusive && !props.us);
   const variant = !props.us && issue?.variant ? " " + issue.variant : "";
   const itemTitle = normalizeDisplayStoryTitle(item.title);
@@ -392,8 +395,18 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
   });
 
   return (
-    <Box data-testid="story-header" sx={getContainsTitleLayoutSx(stackActions)}>
-      <Box sx={{ minWidth: 0 }}>
+    <Box
+      data-testid="story-header"
+      sx={{
+        width: "100%",
+        display: "flex",
+        flexDirection: { xs: "column", md: "row" },
+        justifyContent: "space-between",
+        alignItems: { xs: "stretch", md: "flex-start" },
+        gap: 1,
+      }}
+    >
+      <Box sx={{ minWidth: 0, flex: 1 }}>
         <ContainsTitleDetailedMainText
           storyTitleLabel={storyTitleLabel}
           storyNumberLabel={storyNumberLabel}
@@ -402,6 +415,7 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
           showParentTitle={showParentTitle}
           parentTitle={parentTitle}
           variant={variant}
+          romanStoryNumber={romanStoryNumber}
         />
 
         <ContainsTitleDetailedReprintBlock
@@ -429,11 +443,11 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
           {addinfoText === "" ? null : addinfoText}
         </Typography>
 
-        {stackActions && actionChips.length > 0 ? (
+        {actionChips.length > 0 && (
           <Box
             sx={{
               mt: 1,
-              display: "flex",
+              display: { xs: "flex", md: "none" },
               flexWrap: "wrap",
               gap: 0.6,
               alignItems: "center",
@@ -441,11 +455,10 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
           >
             {actionChips}
           </Box>
-        ) : null}
+        )}
       </Box>
 
       <ContainsTitleDetailedActionArea
-        stackActions={stackActions}
         actionChips={actionChips}
         detailButton={detailButton}
       />
@@ -493,6 +506,7 @@ export function ContainsTitleDetailedNavigation(
             underline="hover"
             color="text.primary"
             sx={{
+              display: { xs: "none", sm: "inline-block" },
               p: 0,
               textAlign: "right",
               lineHeight: 1.43,

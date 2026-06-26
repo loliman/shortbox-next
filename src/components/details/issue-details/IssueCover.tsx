@@ -97,7 +97,7 @@ export function IssueCover(props: Readonly<IssueCoverProps>) {
             alignItems: "center",
             justifyContent: "center",
             p: 1,
-            borderRadius: (Number(theme.shape.borderRadius) || 12) + 2,
+            borderRadius: 0,
             backgroundColor: theme.vars?.palette.background.paper ?? theme.palette.background.paper,
             backgroundImage:
               "linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(244,246,248,0.92) 100%)",

@@ -1195,11 +1195,11 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
               inputValue={pattern}
               noOptionsText={
                 shortQuery ? (
-                  <Typography component="span" noWrap sx={{ fontSize: "1rem", color: "text.primary" }}>
+                  <Typography component="span" noWrap sx={{ fontSize: "1rem", color: "text.primary", minWidth: 0 }}>
                     Tippe, um zu suchen… oder v:Verlag, f:Format, erstdruck
                   </Typography>
                 ) : (
-                  <Typography component="span" noWrap sx={{ fontSize: "1rem", color: "text.primary" }}>
+                  <Typography component="span" noWrap sx={{ fontSize: "1rem", color: "text.primary", minWidth: 0 }}>
                     {resolvedError ? "Suche aktuell nicht verfügbar" : "Keine Ergebnisse gefunden"}
                   </Typography>
                 )

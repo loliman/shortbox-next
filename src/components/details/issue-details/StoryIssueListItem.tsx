@@ -60,8 +60,8 @@ export function StoryIssueListItem(props: Readonly<StoryIssueListItemProps>) {
         )
       }
     >
-      <Box sx={{ minWidth: 0 }}>
-        <Box>
+      <Box sx={{ minWidth: 0, overflow: "hidden" }}>
+        <Box sx={{ minWidth: 0 }}>
           <Box
             sx={{
               display: "flex",

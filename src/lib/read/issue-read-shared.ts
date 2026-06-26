@@ -17,8 +17,6 @@ const ALLOWED_LAST_EDITED_SORT_FIELDS = new Set([
   "title",
   "id",
   "releasedate",
-  "series",
-  "publisher",
 ]);
 
 const ROMAN_NUMBER_PATTERN = /^(M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3}))$/i;
@@ -577,21 +575,6 @@ export function sortLastEditedRows<
     })();
 
     if (compareValue !== 0) return compareValue;
-
-    if (field === "publisher") {
-      const publisherCompare =
-        naturalCompare(normalizeText(left.series?.publisher?.name), normalizeText(right.series?.publisher?.name)) *
-        factor;
-      if (publisherCompare !== 0) return publisherCompare;
-    }
-
-    if (field === "series" || field === "publisher") {
-      const seriesCompare =
-        naturalCompare(normalizeText(left.series?.title), normalizeText(right.series?.title)) * factor;
-      if (seriesCompare !== 0) return seriesCompare;
-      const volumeCompare = (Number(left.series?.volume ?? 0) - Number(right.series?.volume ?? 0)) * factor;
-      if (volumeCompare !== 0) return volumeCompare;
-    }
 
     return (Number(left.id) - Number(right.id)) * factor;
   });

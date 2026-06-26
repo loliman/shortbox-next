@@ -235,10 +235,6 @@ export function createPreviewIssueInclude() {
   });
 }
 
-type PreviewIssueRow = Prisma.IssueGetPayload<{
-  include: ReturnType<typeof createPreviewIssueInclude>;
-}>;
-
 export async function readLastEditedIssues(
   filter: Filter | undefined,
   first: number | undefined,
@@ -292,11 +288,43 @@ export async function readLastEditedIssues(
     return connection;
   }
 
-  const rows = await prisma.issue.findMany({
-    where,
-    include: createPreviewIssueInclude(),
-    take: Math.min((limit + 1) * 5, 250),
-  });
+  const rows = sortField === "releasedate"
+    ? await (async () => {
+        const variants = await prisma.variant.findMany({
+          where: {
+            issue: where,
+          },
+          orderBy: [
+            { releaseDate: sortDirection },
+            { id: sortDirection },
+          ],
+          select: {
+            fkIssue: true,
+          },
+          distinct: ["fkIssue"],
+          take: Math.min((limit + 1) * 5, 250),
+        });
+
+        const issueIds = variants.map((v) => v.fkIssue);
+        const unsortedRows = await prisma.issue.findMany({
+          where: {
+            id: {
+              in: issueIds,
+            },
+          },
+          include: createPreviewIssueInclude(),
+        });
+
+        const rowsMap = new Map(unsortedRows.map((r) => [r.id, r]));
+        return issueIds
+          .map((id) => rowsMap.get(id))
+          .filter((r): r is NonNullable<typeof r> => r !== undefined);
+      })()
+    : await prisma.issue.findMany({
+        where,
+        include: createPreviewIssueInclude(),
+        take: Math.min((limit + 1) * 5, 250),
+      });
 
   const sortedRows = sortLastEditedRows(rows, normalizeSortField(order), normalizeSortDirection(direction));
   const pageRows = sortedRows.slice(0, limit + 1);
@@ -373,7 +401,6 @@ export async function readIssueNavigationNodes(
   );
 
   const nodes: Issue[] = sortedRows.map((issue) => {
-    const preferredVariant = pickPreferredIssueVariant(issue.variants);
     const serialized = serializeNavbarIssue(issue);
     serialized.variants = issue.variants
       .slice()

@@ -296,85 +296,89 @@ export default function TopBar(ownProps: Readonly<TopBarProps>) {
   }, [compactLayout, focusQuickSearchInput]);
 
   return (
-    <AppBar
-      position="sticky"
-      sx={{
-        zIndex: (theme) => theme.zIndex.drawer + 1,
-        position: "sticky",
-        overflow: "visible",
-        backgroundImage: "none",
-        borderBottomWidth: 1,
-        borderBottomStyle: "solid",
-        borderBottomColor: (theme) => theme.vars?.palette.divider ?? theme.palette.divider,
-      }}
-    >
-      <Toolbar
+    <>
+      <AppBar
+        position="sticky"
         sx={{
-          display: compactLayout ? "flex" : "grid",
-          alignItems: "center",
-          justifyContent: compactLayout ? "space-between" : undefined,
-          width: "100%",
-          columnGap: 1,
-          gridTemplateColumns: {
-            xs: "auto minmax(148px, 1fr) auto",
-            sm: "minmax(0, 1fr) auto minmax(0, 1fr)",
-          },
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          position: "sticky",
+          overflow: "visible",
+          backgroundImage: "none",
+          borderBottomWidth: 1,
+          borderBottomStyle: "solid",
+          borderBottomColor: (theme) => theme.vars?.palette.divider ?? theme.palette.divider,
         }}
       >
-        <TopBarStart
-          compactLayout={compactLayout}
-          showNavigation={showNavigation}
-          drawerOpen={drawerOpen}
-          toggleDrawer={toggleDrawer}
-          us={us}
-          query={query}
-          resetNavigationState={ownProps.resetNavigationState}
-          onNavigate={navigate}
-        />
-
-        <TopBarCompactActions
-          compactLayout={compactLayout}
-          toggleTheme={ownProps.toggleTheme}
-        />
-
-        <TopBarSearchCenter
-          compactLayout={compactLayout}
-          us={us}
-          selected={selected}
-          isFilterActive={isFilter}
-          initialFilterCount={ownProps.initialFilterCount}
-          query={query}
-          session={ownProps.session}
-        />
-
-        {compactLayout ? null : (
-          <DeferredDesktopActions
+        <Toolbar
+          sx={{
+            display: compactLayout ? "flex" : "grid",
+            alignItems: "center",
+            justifyContent: compactLayout ? "space-between" : undefined,
+            width: "100%",
+            columnGap: 1,
+            gridTemplateColumns: {
+              xs: "auto minmax(148px, 1fr) auto",
+              sm: "minmax(0, 1fr) auto minmax(0, 1fr)",
+            },
+          }}
+        >
+          <TopBarStart
+            compactLayout={compactLayout}
+            showNavigation={showNavigation}
+            drawerOpen={drawerOpen}
+            toggleDrawer={toggleDrawer}
             us={us}
-            session={ownProps.session}
             query={query}
-            localeSwitchAriaLabel={localeSwitchAriaLabel}
-            changeRequestsCount={changeRequestsCount}
-            previewImportActive={previewImportActive}
-            toggleTheme={ownProps.toggleTheme}
-            onNavigate={navigate}
-            navigationPending={navigationPending}
-            onLogout={onLogout}
             resetNavigationState={ownProps.resetNavigationState}
-            SwitchComponent={Android12Switch}
+            onNavigate={navigate}
           />
-        )}
-      </Toolbar>
 
-      {compactLayout && mobileSearchOpen ? (
-        <MobileSearchOverlay
-          us={us}
-          query={query}
-          isFilterActive={isFilter}
-          session={ownProps.session}
-          initialFilterCount={ownProps.initialFilterCount}
-          onClose={() => setMobileSearchOpen(false)}
-        />
-      ) : null}
+          <TopBarCompactActions
+            compactLayout={compactLayout}
+            toggleTheme={ownProps.toggleTheme}
+          />
+
+          <TopBarSearchCenter
+            compactLayout={compactLayout}
+            us={us}
+            selected={selected}
+            isFilterActive={isFilter}
+            initialFilterCount={ownProps.initialFilterCount}
+            query={query}
+            session={ownProps.session}
+          />
+
+          {compactLayout ? null : (
+            <DeferredDesktopActions
+              us={us}
+              session={ownProps.session}
+              query={query}
+              localeSwitchAriaLabel={localeSwitchAriaLabel}
+              changeRequestsCount={changeRequestsCount}
+              previewImportActive={previewImportActive}
+              toggleTheme={ownProps.toggleTheme}
+              onNavigate={navigate}
+              navigationPending={navigationPending}
+              onLogout={onLogout}
+              resetNavigationState={ownProps.resetNavigationState}
+              SwitchComponent={Android12Switch}
+            />
+          )}
+        </Toolbar>
+
+        {compactLayout && mobileSearchOpen ? (
+          <MobileSearchOverlay
+            us={us}
+            query={query}
+            isFilterActive={isFilter}
+            session={ownProps.session}
+            initialFilterCount={ownProps.initialFilterCount}
+            onClose={() => setMobileSearchOpen(false)}
+          />
+        ) : null}
+
+        {progressVisible ? <GlobalNavigationIndicator /> : null}
+      </AppBar>
 
       {compactLayout ? (
         <DeferredMobileBottomBar
@@ -400,10 +404,7 @@ export default function TopBar(ownProps: Readonly<TopBarProps>) {
           FilterButton={TopBarFilterMenu}
         />
       ) : null}
-
-      {progressVisible ? <GlobalNavigationIndicator /> : null}
-
-    </AppBar>
+    </>
   );
 }
 
