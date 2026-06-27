@@ -576,6 +576,53 @@ describe("buildDirectIssueFilterWhere – new custom filter flags", () => {
     });
   });
 
+  it("should emit correct conditions for onlyNeededDeComics2024", () => {
+    const where = buildDirectIssueFilterWhere({
+      onlyNeededDeComics2024: true,
+      us: false,
+    }) as any;
+
+    expect(where.AND).toContainEqual({
+      noOwnedVariants: true,
+      OR: [
+        {
+          stories: {
+            some: {
+              collected: false,
+              parent: {
+                issue: {
+                  series: {
+                    startYear: { lte: BigInt(2024) },
+                  },
+                },
+              },
+            },
+          },
+        },
+        {
+          stories: {
+            some: {
+              otherOnlyTb: true,
+              parent: {
+                issue: {
+                  series: {
+                    startYear: { lte: BigInt(2024) },
+                  },
+                },
+              },
+            },
+          },
+        },
+        {
+          hasExclusiveStory: true,
+          series: {
+            startYear: { lte: BigInt(2024) },
+          },
+        },
+      ],
+    });
+  });
+
   it("should emit correct conditions for onlyUnownedFirstPrints", () => {
     const where = buildDirectIssueFilterWhere({
       onlyUnownedFirstPrints: true,

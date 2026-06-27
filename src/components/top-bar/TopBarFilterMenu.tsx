@@ -130,6 +130,7 @@ function buildFilterTooltipTitle(isFilterActive: boolean, rawFilter?: string | n
     ["onlyDoubleTrippleCollected", "Doppelt & Dreifach gesammelt"],
     ["onlyDoubleTripplePublisherCollected", "Doppelt & Dreifach verlagsintern"],
     ["onlyNotOwnedUsMaterial", "Ungesammeltes US-Material"],
+    ["onlyNeededDeComics2024", "Benötigte deutsche Comics (bis 2024)"],
     ["firstPrint", "Erstveröffentlichung"],
     ["onlyPrint", "Einzige Veröffentlichung"],
     ["onlyTb", "Nur in Taschenbuch"],

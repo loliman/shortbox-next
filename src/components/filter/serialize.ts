@@ -213,6 +213,7 @@ export function serializeFilterValues(
   if (values.excludeOnlyNewUsMaterial) payload.excludeOnlyNewUsMaterial = true;
   if (values.onlySellingList) payload.onlySellingList = true;
   if (values.onlyFirstOfMonthRelease) payload.onlyFirstOfMonthRelease = true;
+  if (values.onlyNeededDeComics2024) payload.onlyNeededDeComics2024 = true;
 
   assignMappedValues(payload, "crossPublishers", values.crossPublishers, (publisher) => {
     const normalizedPublisher = stripItem(publisher);

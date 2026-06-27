@@ -87,6 +87,7 @@ const supportedDirectFilterKeys = new Set([
   "onlyNotCollectedNoOwnedVariants",
   "onlyIssuesWithMultipleCollectedVariants",
   "onlyNeededIssues",
+  "onlyNeededDeComics2024",
   "onlyIncompleteSeries",
   "onlyUnownedFirstPrints",
   "onlyUnownedPublisherFirstPrints",
@@ -959,6 +960,48 @@ export function buildDirectIssueFilterWhere(
     });
   }
 
+  if (runtimeFilter.onlyNeededDeComics2024) {
+    and.push({
+      noOwnedVariants: true,
+      OR: [
+        {
+          stories: {
+            some: {
+              collected: false,
+              parent: {
+                issue: {
+                  series: {
+                    startYear: { lte: BigInt(2024) },
+                  },
+                },
+              },
+            },
+          },
+        },
+        {
+          stories: {
+            some: {
+              otherOnlyTb: true,
+              parent: {
+                issue: {
+                  series: {
+                    startYear: { lte: BigInt(2024) },
+                  },
+                },
+              },
+            },
+          },
+        },
+        {
+          hasExclusiveStory: true,
+          series: {
+            startYear: { lte: BigInt(2024) },
+          },
+        },
+      ],
+    });
+  }
+
   if (runtimeFilter.onlyUnownedFirstPrints) {
     and.push({
       noOwnedVariants: true,
@@ -1185,6 +1228,7 @@ async function resolveCustomFilterToIssueIds(filter: RuntimeFilter): Promise<num
   delete directFilter.onlyIncompleteSeries;
   delete directFilter.onlyFirstOfMonthRelease;
   delete directFilter.onlySellingList;
+  delete directFilter.onlyNeededDeComics2024;
 
   const directWhere = buildDirectIssueFilterWhere(directFilter);
   if (!directWhere) return [];
@@ -1443,6 +1487,61 @@ async function resolveCustomFilterToIssueIds(filter: RuntimeFilter): Promise<num
     issueAndConditions.push({ id: { in: finalSellingIssueIds } });
   }
 
+  if (filter.onlyNeededDeComics2024) {
+    const targetSeriesRows = await prisma.$queryRaw<Array<{ fk_series: bigint }>>`
+      SELECT fk_series
+      FROM shortbox.issue
+      WHERE fk_series IS NOT NULL
+      GROUP BY fk_series
+      HAVING SUM(CASE WHEN no_owned_variants = false THEN 1 ELSE 0 END) >= 1
+         AND SUM(CASE WHEN no_owned_variants = false THEN 1 ELSE 0 END) * 2 > COUNT(*)
+    `;
+    const targetSeriesIds = targetSeriesRows.map((r) => r.fk_series);
+
+    issueAndConditions.push({
+      noOwnedVariants: true,
+      OR: [
+        {
+          stories: {
+            some: {
+              collected: false,
+              parent: {
+                issue: {
+                  series: {
+                    startYear: { lte: BigInt(2024) },
+                  },
+                },
+              },
+            },
+          },
+        },
+        {
+          stories: {
+            some: {
+              otherOnlyTb: true,
+              parent: {
+                issue: {
+                  series: {
+                    startYear: { lte: BigInt(2024) },
+                  },
+                },
+              },
+            },
+          },
+        },
+        {
+          hasExclusiveStory: true,
+          series: {
+            startYear: { lte: BigInt(2024) },
+          },
+        },
+        {
+          fkSeries: { in: targetSeriesIds },
+        },
+      ],
+    });
+  }
+
   const candidates = await prisma.issue.findMany({
     where: {
       AND: issueAndConditions
@@ -1477,7 +1576,8 @@ const resolveFilterStateCached = cache(
       (filter as RuntimeFilter).onlyIncompleteSeries ||
       (filter as RuntimeFilter).onlyFirstOfMonthRelease ||
       (filter as RuntimeFilter).onlySellingList ||
-      (filter as RuntimeFilter).onlyUnownedPublisherFirstPrints
+      (filter as RuntimeFilter).onlyUnownedPublisherFirstPrints ||
+      (filter as RuntimeFilter).onlyNeededDeComics2024
     );
 
     if (hasIdListFilter) {

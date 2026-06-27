@@ -157,6 +157,13 @@ function CollectionSection({
           )}
           {!us && (
             <FilterSwitch
+              checked={values.onlyNeededDeComics2024}
+              label="Benötigte deutsche Comics (bis 2024)"
+              onToggle={() => setFieldValue("onlyNeededDeComics2024", !values.onlyNeededDeComics2024)}
+            />
+          )}
+          {!us && (
+            <FilterSwitch
               checked={values.excludeOnlyNewUsMaterial}
               label="Kein reines US-Material ab Startjahr 2025"
               onToggle={() => setFieldValue("excludeOnlyNewUsMaterial", !values.excludeOnlyNewUsMaterial)}

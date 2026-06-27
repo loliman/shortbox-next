@@ -119,6 +119,7 @@ const COMMAND_GROUPS: CommandGroup[] = [
       ["nicht-gesammelt", "Nicht gesammelt", "nicht-gesammelt"],
       ["nicht-gesammelt-ohne-varianten", "Ungesammelt (ohne Variants)", "nicht-gesammelt-ohne-varianten"],
       ["benötigt", "Benötigte Ausgaben", "benötigt"],
+      ["benötigte-de-comics-2024", "Benötigte deutsche Comics (bis 2024)", "benötigte-de-comics-2024"],
       ["mehrfach-gesammelt", "Mehrfach gesammelt", "mehrfach-gesammelt"],
       ["unvollständige-serien", "Unvollständige Serien", "unvollständige-serien"],
       ["fehlende-erstausgaben", "Fehlende Erstausgaben", "fehlende-erstausgaben"],

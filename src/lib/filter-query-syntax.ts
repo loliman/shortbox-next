@@ -207,6 +207,12 @@ const FLAG_MAP: Record<string, FlagTarget[]> = {
   "benötigt": [{ field: "onlyNeededIssues", value: true }],
   "benoetigt": [{ field: "onlyNeededIssues", value: true }],
   needed: [{ field: "onlyNeededIssues", value: true }],
+  "benötigte-de-comics-2024": [{ field: "onlyNeededDeComics2024", value: true }],
+  "benoetigte-de-comics-2024": [{ field: "onlyNeededDeComics2024", value: true }],
+  "needed-de-comics-2024": [{ field: "onlyNeededDeComics2024", value: true }],
+  "benötigt-de-2024": [{ field: "onlyNeededDeComics2024", value: true }],
+  "benoetigt-de-2024": [{ field: "onlyNeededDeComics2024", value: true }],
+  "needed-de-2024": [{ field: "onlyNeededDeComics2024", value: true }],
   "unvollständige-serien": [{ field: "onlyIncompleteSeries", value: true }],
   "unvollstaendige-serien": [{ field: "onlyIncompleteSeries", value: true }],
   "incomplete-series": [{ field: "onlyIncompleteSeries", value: true }],
@@ -723,6 +729,7 @@ function flatFilterValuesToTokenStrings(values: FilterValues): string[] {
   // New collection and admin flags
   if (values.onlyIssuesWithMultipleCollectedVariants) parts.push("mehrfach-gesammelt");
   if (values.onlyNeededIssues) parts.push("benötigt");
+  if (values.onlyNeededDeComics2024) parts.push("benötigte-de-comics-2024");
   if (values.onlyIncompleteSeries) parts.push("unvollständige-serien");
   if (values.onlyUnownedFirstPrints) parts.push("fehlende-erstausgaben");
   if (values.onlyUnownedPublisherFirstPrints) parts.push("fehlende-verlagserstausgaben");
@@ -1180,6 +1187,7 @@ function resetToDefaults(val: FilterValues): FilterValues {
     onlyNotOwnedUsMaterial: false,
     onlyIssuesWithMultipleCollectedVariants: false,
     onlyNeededIssues: false,
+    onlyNeededDeComics2024: false,
     onlyIncompleteSeries: false,
     onlyUnownedFirstPrints: false,
     onlyUnownedPublisherFirstPrints: false,
@@ -1239,6 +1247,7 @@ export function mergeFlatFilterValues(a: FilterValues, b: FilterValues): FilterV
   if (b.onlyNotOwnedUsMaterial) result.onlyNotOwnedUsMaterial = true;
   if (b.onlyIssuesWithMultipleCollectedVariants) result.onlyIssuesWithMultipleCollectedVariants = true;
   if (b.onlyNeededIssues) result.onlyNeededIssues = true;
+  if (b.onlyNeededDeComics2024) result.onlyNeededDeComics2024 = true;
   if (b.onlyIncompleteSeries) result.onlyIncompleteSeries = true;
   if (b.onlyUnownedFirstPrints) result.onlyUnownedFirstPrints = true;
   if (b.onlyUnownedPublisherFirstPrints) result.onlyUnownedPublisherFirstPrints = true;

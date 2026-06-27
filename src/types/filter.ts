@@ -58,6 +58,7 @@ export interface FilterValues {
   excludeOnlyNewUsMaterial: boolean;
   onlySellingList: boolean;
   onlyFirstOfMonthRelease: boolean;
+  onlyNeededDeComics2024: boolean;
   crossPublishers: FieldItem[];
   crossSeries: FieldItem[];
   crossNumber: string;
@@ -114,6 +115,7 @@ export interface FilterSubmitValues {
   excludeOnlyNewUsMaterial?: boolean;
   onlySellingList?: boolean;
   onlyFirstOfMonthRelease?: boolean;
+  onlyNeededDeComics2024?: boolean;
   crossPublishers?: FieldItem[];
   crossSeries?: FieldItem[];
   crossNumber?: string;
