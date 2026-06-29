@@ -58,7 +58,7 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "server-only": "^0.0.1",
-    "undici": "^8.0.1",
+    "undici": "^8.5.0",
     "yup": "^1.7.1"
   },
   "devDependencies": {
@@ -72,18 +72,18 @@
     "@types/node": "^25.5.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "dotenv": "^17.4.0",
+    "dotenv": "^17.4.2",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.2",
-    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-plugin-boundaries": "^6.0.2",
-    "graphql": "^16.13.2",
+    "graphql": "^17.0.1",
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.3.0",
     "pa11y": "^9.1.1",
     "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
-    "tsx": "^4.21.0",
+    "tsx": "^4.22.4",
     "typescript": "^6.0.2",
     "unlighthouse": "^0.17.7"
   }
