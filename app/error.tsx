@@ -1,11 +1,21 @@
 "use client";
 
+import React from "react";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import Paper from "@mui/material/Paper";
 
-export default function NotFound() {
+type ErrorProps = Readonly<{
+  error: Error & { digest?: string };
+  reset: () => void;
+}>;
+
+export default function ErrorBoundary({ error }: ErrorProps) {
+  React.useEffect(() => {
+    console.error("Shortbox runtime error boundary caught:", error);
+  }, [error]);
+
   return (
     <Box
       component="main"
@@ -82,7 +92,7 @@ export default function NotFound() {
               display: "block",
             }}
           >
-            404 / Route nicht gefunden
+            Interner Fehler
           </Typography>
           <Typography
             variant="h3"
@@ -95,18 +105,36 @@ export default function NotFound() {
               fontSize: { xs: "2rem", sm: "2.5rem" },
             }}
           >
-            Diese Route gibt es nicht.
+            Etwas ist schiefgelaufen.
           </Typography>
           <Typography
             variant="body1"
             sx={{
               lineHeight: 1.6,
               color: "text.secondary",
-              mb: 0,
+              mb: error?.digest ? 3 : 0,
             }}
           >
-            Der angeforderte Pfad passt zu keiner bekannten Shortbox-Seite. Am schnellsten kommst du über die deutsche oder US-Übersicht wieder in den Katalog.
+            Ups, da ist was schief gelaufen... Bitte versuche es später noch einmal oder lade die Seite in deinem Browser neu.
           </Typography>
+
+          {error?.digest ? (
+            <Typography
+              variant="body2"
+              sx={{
+                fontFamily: "monospace",
+                color: "text.secondary",
+                fontSize: "0.85rem",
+                mb: 0,
+                backgroundColor: "action.hover",
+                p: 1.5,
+                borderRadius: 2,
+                display: "inline-block",
+              }}
+            >
+              Fehler-ID: {error.digest}
+            </Typography>
+          ) : null}
         </Paper>
       </Container>
     </Box>

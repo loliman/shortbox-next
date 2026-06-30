@@ -5,9 +5,8 @@ import { useRouter } from "next/navigation";
 import Button from "@mui/material/Button";
 import { Field, Form, Formik } from "formik";
 import { TextField } from "./generic/FormikTextField";
-import Card from "@mui/material/Card";
-import CardHeader from "@mui/material/CardHeader";
-import CardContent from "@mui/material/CardContent";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import { LoginSchema } from "../util/yupSchema";
@@ -67,49 +66,126 @@ function LoginView(props: Readonly<LoginProps>) {
       {({ submitForm, isSubmitting }) => (
         <Box
           sx={{
-            minHeight: "100dvh",
+            minHeight: "80vh",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            p: 2,
+            p: { xs: 1, sm: 3 },
           }}
         >
           <Form id="loginForm" style={{ width: "100%", maxWidth: 520 }}>
-            <Card>
-              <CardHeader title="Login" subheader="Bitte Benutzername und Passwort eingeben" />
+            <Paper
+              elevation={0}
+              sx={{
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 6,
+                padding: { xs: 3.5, sm: 5 },
+                backgroundColor: "background.paper",
+                boxShadow: (theme) =>
+                  theme.palette.mode === "dark"
+                    ? "0 18px 50px rgba(0,0,0,0.36)"
+                    : "0 18px 50px rgba(0,0,0,0.06)",
+              }}
+            >
+              {/* Logo */}
+              <Box sx={{ mb: 4, display: "flex", justifyContent: "flex-start" }}>
+                <Box
+                  component="img"
+                  src="/Shortbox_Logo.png"
+                  alt="Shortbox"
+                  sx={{
+                    height: 36,
+                  }}
+                />
+              </Box>
 
-              <CardContent sx={{ pt: 1 }}>
-                <Stack spacing={2}>
-                  <Field name="name" label="Name" component={TextField} fullWidth />
-                  <Field
-                    name="password"
-                    type="password"
-                    label="Passwort"
-                    component={TextField}
-                    fullWidth
-                  />
-                </Stack>
+              <Typography
+                variant="overline"
+                component="p"
+                sx={{
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  color: "secondary.main",
+                  mb: 1,
+                  display: "block",
+                }}
+              >
+                Anmeldung / Shortbox
+              </Typography>
+              <Typography
+                variant="h3"
+                component="h1"
+                sx={{
+                  fontFamily: "var(--font-outfit), sans-serif",
+                  fontWeight: 700,
+                  lineHeight: 1.1,
+                  mb: 1,
+                  fontSize: { xs: "2rem", sm: "2.5rem" },
+                }}
+              >
+                Bereich betreten.
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "text.secondary",
+                  mb: 4,
+                }}
+              >
+                Bitte Benutzername und Passwort eingeben.
+              </Typography>
 
-                <Box sx={{ mt: 3, display: "flex", justifyContent: "flex-end", gap: 1 }}>
-                  <Button
-                    disabled={isSubmitting}
-                    onClick={() => router.back()}
-                    variant="outlined"
-                    color="inherit"
-                  >
-                    Abbrechen
-                  </Button>
-                  <Button
-                    disabled={isSubmitting}
-                    onClick={submitForm}
-                    variant="contained"
-                    color="primary"
-                  >
-                    Login
-                  </Button>
-                </Box>
-              </CardContent>
-            </Card>
+              <Stack spacing={2.5}>
+                <Field name="name" label="Benutzername" component={TextField} fullWidth />
+                <Field
+                  name="password"
+                  type="password"
+                  label="Passwort"
+                  component={TextField}
+                  fullWidth
+                />
+              </Stack>
+
+              <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end", gap: 1.5 }}>
+                <Button
+                  disabled={isSubmitting}
+                  onClick={() => router.back()}
+                  variant="outlined"
+                  color="primary"
+                  sx={{
+                    borderRadius: 50,
+                    px: 3.5,
+                    py: 1,
+                    textTransform: "none",
+                    fontWeight: 600,
+                    borderColor: "divider",
+                    color: "text.primary",
+                    "&:hover": {
+                      borderColor: "text.primary",
+                      backgroundColor: "action.hover",
+                    },
+                  }}
+                >
+                  Abbrechen
+                </Button>
+                <Button
+                  disabled={isSubmitting}
+                  onClick={submitForm}
+                  variant="contained"
+                  color="primary"
+                  sx={{
+                    borderRadius: 50,
+                    px: 3.5,
+                    py: 1,
+                    textTransform: "none",
+                    fontWeight: 600,
+                  }}
+                >
+                  Login
+                </Button>
+              </Box>
+            </Paper>
           </Form>
         </Box>
       )}

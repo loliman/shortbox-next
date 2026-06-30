@@ -7,6 +7,8 @@ import MuiList from "@mui/material/List";
 import type { Issue, SelectedRoot, Series } from "../../types/domain";
 import IssuesBranch from "./IssuesBranch";
 import { NestedEmptyRow, NestedLoadingRow, NestedRow } from "./NestedNavRow";
+import { romanize } from "../../util/util";
+import { TextHighlight } from "./TextHighlight";
 import {
   createSeriesLabel,
   doesSeriesNodeMatchIssueSeries,
@@ -52,6 +54,8 @@ type SeriesBranchProps = {
   allowAutoRevealFallback?: boolean;
   bypassInitialIssueCollapseAnimation?: boolean;
   onPriorityPathReady?: () => void;
+  filterText?: string;
+  matchingIssuesBySeries?: Map<string, IssueNode[]>;
 };
 
 const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBranchProps>) {
@@ -79,6 +83,8 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
     allowAutoRevealFallback,
     bypassInitialIssueCollapseAnimation,
     onPriorityPathReady,
+    filterText,
+    matchingIssuesBySeries,
   } = props;
   const publisherName = publisher.name || "";
   const seriesStateKey = `${props.navStateKey}|${publisherName}`;
@@ -344,12 +350,13 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
         if (!seriesNode) return;
         setExpandedSeries((prev) => ({ ...prev, [navAction.seriesKey!]: true }));
         void ensureIssueNodesLoaded(seriesNode);
-        requestAnimationFrame(() => {
-          if (selectedRowKey === navAction.seriesKey) {
+        
+        if (selectedRowKey === navAction.seriesKey) {
+          requestAnimationFrame(() => {
             scrollSeriesRowIntoView(navAction.seriesKey!, true);
-          }
-        });
-        return;
+          });
+          return;
+        }
       }
 
       if (navAction.rowKey) {
@@ -364,6 +371,51 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
     selectedRowKey,
     seriesNodes,
   ]);
+
+  const renderSeriesLabel = React.useCallback((seriesNode: SeriesNode) => {
+    const title = seriesNode.title || "";
+    const volume = seriesNode.volume == null ? "" : ` (Vol. ${romanize(seriesNode.volume)})`;
+    const startyear = seriesNode.startyear ?? "?";
+    const year = ` (${startyear})`;
+
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          width: "100%",
+          minWidth: 0,
+          gap: 0.5,
+          alignItems: "baseline",
+          justifyContent: "space-between",
+        }}
+      >
+        <Box
+          sx={{
+            flex: "1 1 auto",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            minWidth: 0,
+          }}
+        >
+          <TextHighlight text={title} search={filterText || ""} />
+        </Box>
+        <Box
+          component="span"
+          sx={{
+            flex: "0 0 auto",
+            whiteSpace: "nowrap",
+            fontSize: "0.82rem",
+            opacity: 0.65,
+            color: "text.secondary",
+          }}
+        >
+          {volume}
+          {year}
+        </Box>
+      </Box>
+    );
+  }, [filterText]);
 
   if (pendingPublisherKey === `publisher:${publisherName}`) {
     return <NestedLoadingRow depth={1} message="Serien werden geladen..." />;
@@ -388,22 +440,39 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
       {visibleSeriesNodes.map((seriesNode) => {
         const seriesKey = getSeriesKey(seriesNode);
         const selected = isSeriesNodeSelected(seriesNode, activeSeriesKey, selectedIssue);
-        const expanded = Boolean(expandedSeries[seriesKey]);
+        const isForceExpanded = Boolean(filterText && matchingIssuesBySeries?.has(seriesKey));
+        const expanded = isForceExpanded || Boolean(expandedSeries[seriesKey]);
         const bypassIssueCollapse =
           expanded &&
           Boolean(bypassInitialIssueCollapseAnimation) &&
           seriesKey === activeSeriesKey;
+
+        const defaultIssues = initialIssueNodesBySeriesKey?.[seriesKey];
+        const issuesForSeries = (() => {
+          if (!filterText) return defaultIssues;
+          if (matchingIssuesBySeries?.has(seriesKey)) {
+            return matchingIssuesBySeries.get(seriesKey) || [];
+          }
+          const normalizedQuery = filterText.toLowerCase().trim();
+          const seriesMatches = seriesNode.title?.toLowerCase().includes(normalizedQuery) ||
+                                seriesNode.publisher?.name?.toLowerCase().includes(normalizedQuery);
+          if (seriesMatches) {
+            return defaultIssues || [];
+          }
+          return [];
+        })();
+
         const issueBranch = (
           <IssuesBranch
             us={us}
             series={seriesNode}
-            initialIssueNodes={initialIssueNodesBySeriesKey?.[seriesKey]}
-                selectedIssue={selectedIssue}
-                session={session}
-                pushSelection={pushSelection}
-                navScrollContainerRef={navScrollContainerRef}
-                navigationPending={navigationPending}
-                pendingNavigationKey={pendingNavigationKey}
+            initialIssueNodes={issuesForSeries}
+            selectedIssue={selectedIssue}
+            session={session}
+            pushSelection={pushSelection}
+            navScrollContainerRef={navScrollContainerRef}
+            navigationPending={navigationPending}
+            pendingNavigationKey={pendingNavigationKey}
             loading={pendingPublisherKey === `series:${publisherName}:${seriesKey}`}
             scrollRequestId={navAction?.type === "scrollToSelected" ? navAction.token : 0}
             selectedRowKey={selectedRowKey}
@@ -414,6 +483,7 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
             onPriorityPathReady={
               seriesKey === activeSeriesKey ? onPriorityPathReady : undefined
             }
+            filterText={filterText}
           />
         );
 
@@ -431,7 +501,8 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
               rowKey={seriesKey}
               depth={1}
               navRowKey={seriesKey}
-              label={createSeriesLabel(seriesNode)}
+              label={renderSeriesLabel(seriesNode)}
+              title={createSeriesLabel(seriesNode)}
               selected={selected}
               expanded={expanded}
               pending={

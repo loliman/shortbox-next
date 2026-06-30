@@ -181,11 +181,8 @@ export const appTheme = createTheme({
     MuiAppBar: {
       styleOverrides: {
         root: ({ theme }) => ({
-          backgroundColor:
-            theme.palette.mode === "dark"
-              ? "rgba(20, 20, 19, 0.72)"
-              : "rgba(20, 20, 19, 0.94)",
-          backdropFilter: "blur(12px)",
+          backgroundColor: "#000000",
+          backdropFilter: "none",
           color: theme.palette.common.white,
           backgroundImage: "none",
           borderBottomWidth: 1,

@@ -8,7 +8,11 @@ import type { SxProps, Theme } from "@mui/material/styles";
 import MuiList from "@mui/material/List";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
+import TextField from "@mui/material/TextField";
+import InputAdornment from "@mui/material/InputAdornment";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
+import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
 import {
   COMPACT_BOTTOM_BAR_CLEARANCE,
   drawerHeaderAdjustedHeight,
@@ -26,6 +30,9 @@ type NavDrawerProps = {
   listRef: React.RefObject<HTMLUListElement | null>;
   onScrollToSelected?: () => void;
   disableScrollToSelected?: boolean;
+  filterValue?: string;
+  onFilterChange?: (value: string) => void;
+  onFilterFocus?: () => void;
   children: React.ReactNode;
 };
 
@@ -39,11 +46,12 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
     listRef,
     onScrollToSelected,
     disableScrollToSelected = false,
+    filterValue = "",
+    onFilterChange = () => {},
+    onFilterFocus,
     children,
   } = props;
   const drawerWidth = getNavDrawerWidth(temporary);
-  const navActionBottomOffset = temporary ? `calc(${COMPACT_BOTTOM_BAR_CLEARANCE} + 14px)` : "14px";
-  const navActionRightOffset = "14px";
   const navListBottomPadding = temporary ? `calc(${COMPACT_BOTTOM_BAR_CLEARANCE} + 56px)` : "56px";
   const paperSx: SxProps<Theme> = {
     width: drawerWidth,
@@ -61,7 +69,6 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
     },
   };
 
-
   const handleNavScroll = React.useCallback(
     (event: React.UIEvent<HTMLDivElement>) => {
       writeNavScrollTop(navStateKey, event.currentTarget.scrollTop);
@@ -75,15 +82,51 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
     >
       <Box
         sx={{
-          position: "absolute",
-          right: navActionRightOffset,
-          bottom: navActionBottomOffset,
-          zIndex: 2,
-          pointerEvents: "auto",
+          p: 1.5,
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          display: "flex",
+          alignItems: "center",
+          gap: 1.5,
+          flexShrink: 0,
         }}
       >
+        <TextField
+          size="small"
+          fullWidth
+          placeholder="Serien filtern..."
+          value={filterValue}
+          onChange={(e) => onFilterChange(e.target.value)}
+          onFocus={onFilterFocus}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                </InputAdornment>
+              ),
+              endAdornment: filterValue ? (
+                <InputAdornment position="end">
+                  <IconButton
+                    size="small"
+                    onClick={() => onFilterChange("")}
+                    aria-label="Filter leeren"
+                    sx={{ p: 0.25 }}
+                  >
+                    <ClearIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ) : null,
+            },
+          }}
+          sx={{
+            "& .MuiOutlinedInput-root": {
+              borderRadius: "8px",
+            },
+          }}
+        />
         <Tooltip describeChild title="Zur Auswahl springen">
-          <Box component="span" sx={{ display: "inline-flex", pointerEvents: "auto" }}>
+          <Box component="span" sx={{ display: "inline-flex" }}>
             <IconButton
               aria-label="Zur Auswahl"
               onClick={onScrollToSelected}
@@ -92,20 +135,18 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
               sx={{
                 width: 40,
                 height: 40,
-                color: "primary.contrastText",
-                borderRadius: "50%",
+                color: "primary.main",
+                borderRadius: "8px",
                 border: "1px solid",
-                borderColor: "rgba(255,255,255,0.22)",
-                backgroundColor: "primary.main",
-                boxShadow: 4,
+                borderColor: "divider",
+                backgroundColor: "transparent",
                 "&:hover": {
-                  backgroundColor: "primary.dark",
+                  backgroundColor: "action.hover",
                 },
                 "&.Mui-disabled": {
                   color: "text.disabled",
                   borderColor: "divider",
                   backgroundColor: "action.disabledBackground",
-                  boxShadow: 0,
                 },
               }}
             >

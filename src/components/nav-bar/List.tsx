@@ -48,6 +48,7 @@ import {
 } from "./navStateStorage";
 import { readCachedIssues, readCachedSeries, writeCachedIssues, writeCachedSeries } from "./navDataCache";
 import NavLoadingPlaceholder from "./NavLoadingPlaceholder";
+import { TextHighlight } from "./TextHighlight";
 
 interface ListProps {
   initialPublisherNodes?: PublisherNode[];
@@ -146,6 +147,36 @@ export default function List(props: Readonly<ListProps>) {
         ?.name || selectedPublisherName;
     return buildExpandedPublishers(canonicalPublisherName ? [canonicalPublisherName] : []);
   });
+  const [filterText, setFilterText] = React.useState("");
+  const [allSeries, setAllSeries] = React.useState<SeriesNode[]>([]);
+  const [allSeriesLoaded, setAllSeriesLoaded] = React.useState(false);
+  const [loadingAllSeries, setLoadingAllSeries] = React.useState(false);
+
+  const lazyLoadAllSeries = React.useCallback(async () => {
+    if (allSeriesLoaded || loadingAllSeries) return;
+    setLoadingAllSeries(true);
+    try {
+      const params = new URLSearchParams({
+        scope: "series",
+        us: String(us),
+      });
+      if (filterQuery) params.set("filter", filterQuery);
+      if (routeFilterKind) params.set("routeFilterKind", routeFilterKind);
+      if (routeFilterSlug) params.set("routeFilterSlug", routeFilterSlug);
+      
+      const response = await fetch(`/api/public-navigation?${params.toString()}`, { cache: "no-store" });
+      if (response.ok) {
+        const payload = (await response.json()) as { items?: SeriesNode[] };
+        setAllSeries(payload.items || []);
+        setAllSeriesLoaded(true);
+      }
+    } catch (e) {
+      console.error("Failed to load all series for filter", e);
+    } finally {
+      setLoadingAllSeries(false);
+    }
+  }, [allSeriesLoaded, loadingAllSeries, us, filterQuery, routeFilterKind, routeFilterSlug]);
+
   const [publisherExpansionReady, setPublisherExpansionReady] = React.useState(false);
   const [pendingPublisherKey, setPendingPublisherKey] = React.useState<string | null>(null);
   const [pendingNavigationKey, setPendingNavigationKey] = React.useState<string | null>(null);
@@ -233,6 +264,102 @@ export default function List(props: Readonly<ListProps>) {
       selectedIssueNodes &&
       selectedIssueIndex < 0
   );
+
+  const normalizedQuery = React.useMemo(() => filterText.toLowerCase().trim(), [filterText]);
+
+  const { matchingPublishers, matchingSeriesKeys, matchingIssuesBySeries } = React.useMemo(() => {
+    const pubSet = new Set<string>();
+    const seriesSet = new Set<string>();
+    const issuesMap = new Map<string, IssueNode[]>();
+
+    if (!normalizedQuery) {
+      return { matchingPublishers: pubSet, matchingSeriesKeys: seriesSet, matchingIssuesBySeries: issuesMap };
+    }
+
+    // 1. Match publishers by name
+    for (const pub of visiblePublisherNodes) {
+      if (pub.name?.toLowerCase().includes(normalizedQuery)) {
+        pubSet.add(pub.name);
+      }
+    }
+
+    // 2. Match series (both preloaded and dynamically loaded ones)
+    const allSeriesToSearch = allSeries.length > 0 
+      ? allSeries 
+      : Object.values(seriesNodesByPublisher).flat();
+
+    for (const seriesNode of allSeriesToSearch) {
+      const titleMatches = seriesNode.title?.toLowerCase().includes(normalizedQuery);
+      const pubName = seriesNode.publisher?.name || "";
+      const pubMatches = pubName.toLowerCase().includes(normalizedQuery);
+
+      if (titleMatches || pubMatches) {
+        if (pubName) {
+          pubSet.add(pubName);
+        }
+        seriesSet.add(getSeriesKey(seriesNode));
+      }
+    }
+
+    // 3. Match loaded issues
+    for (const [seriesKey, issues] of Object.entries(issueNodesBySeriesKey)) {
+      const matchingIssues = issues.filter(
+        (issue) =>
+          issue.number?.toLowerCase().includes(normalizedQuery) ||
+          issue.title?.toLowerCase().includes(normalizedQuery) ||
+          issue.legacy_number?.toLowerCase().includes(normalizedQuery)
+      );
+      if (matchingIssues.length > 0) {
+        issuesMap.set(seriesKey, matchingIssues);
+        seriesSet.add(seriesKey);
+        const seriesNode = allSeriesToSearch.find((s) => getSeriesKey(s) === seriesKey);
+        if (seriesNode?.publisher?.name) {
+          pubSet.add(seriesNode.publisher.name);
+        }
+      }
+    }
+
+    return { matchingPublishers: pubSet, matchingSeriesKeys: seriesSet, matchingIssuesBySeries: issuesMap };
+  }, [normalizedQuery, visiblePublisherNodes, allSeries, seriesNodesByPublisher, issueNodesBySeriesKey]);
+
+  const filteredPublishers = React.useMemo(() => {
+    if (!normalizedQuery) return visiblePublisherNodes;
+    return visiblePublisherNodes.filter((pub) => matchingPublishers.has(pub.name || ""));
+  }, [visiblePublisherNodes, normalizedQuery, matchingPublishers]);
+
+  const effectiveExpandedPublishers = React.useMemo(() => {
+    if (normalizedQuery) {
+      const expanded: Record<string, boolean> = {};
+      for (const pubName of matchingPublishers) {
+        expanded[pubName] = true;
+      }
+      return expanded;
+    }
+    return expandedPublishers;
+  }, [expandedPublishers, normalizedQuery, matchingPublishers]);
+
+  const seriesNodesByPublisherFiltered = React.useMemo(() => {
+    const result: Record<string, SeriesNode[]> = {};
+    for (const pub of visiblePublisherNodes) {
+      const pubName = pub.name || "";
+      const defaultSeries = seriesNodesByPublisher[pubName] || [];
+      if (!normalizedQuery) {
+        result[pubName] = defaultSeries;
+        continue;
+      }
+      
+      const allSeriesToSearch = allSeries.length > 0 ? allSeries : defaultSeries;
+      result[pubName] = allSeriesToSearch.filter(
+        (s) =>
+          s.publisher?.name === pubName &&
+          (s.title?.toLowerCase().includes(normalizedQuery) ||
+            pubName.toLowerCase().includes(normalizedQuery) ||
+            matchingSeriesKeys.has(getSeriesKey(s)))
+      );
+    }
+    return result;
+  }, [visiblePublisherNodes, seriesNodesByPublisher, normalizedQuery, allSeries, matchingSeriesKeys]);
+
   const initialViewportSelection = React.useMemo<InitialViewportSelection | null>(
     () =>
       getInitialViewportSelection({
@@ -792,14 +919,14 @@ export default function List(props: Readonly<ListProps>) {
   ]);
 
   let content: React.ReactNode;
-  if (loading && visiblePublisherNodes.length === 0) {
+  if (loading && filteredPublishers.length === 0) {
     content = <NavLoadingPlaceholder />;
-  } else if (visiblePublisherNodes.length === 0) {
+  } else if (filteredPublishers.length === 0) {
     content = <NestedEmptyRow depth={0} message="Keine Einträge vorhanden" />;
   } else {
-    content = visiblePublisherNodes.map((publisherNode) => {
+    content = filteredPublishers.map((publisherNode) => {
       const publisherName = publisherNode.name || "";
-      const expanded = Boolean(expandedPublishers[publisherName]);
+      const expanded = Boolean(effectiveExpandedPublishers[publisherName]);
       const selected = isSameEntityName(selectedPublisherName, publisherName);
       const isCanonicalSelectedPublisher = isSameEntityName(
         publisherName,
@@ -811,7 +938,7 @@ export default function List(props: Readonly<ListProps>) {
         <SeriesBranch
           us={us}
           publisher={publisherNode}
-          initialSeriesNodes={seriesNodesByPublisher[publisherName]}
+          initialSeriesNodes={seriesNodesByPublisherFiltered[publisherName]}
           initialIssueNodesBySeriesKey={issueNodesBySeriesKey}
           navStateKey={navStateKey}
           activeSeriesKey={selected ? selectedSeriesKey : null}
@@ -832,6 +959,8 @@ export default function List(props: Readonly<ListProps>) {
           allowAutoRevealFallback={allowAutoRevealFallback}
           bypassInitialIssueCollapseAnimation={bypassSeriesCollapse}
           onPriorityPathReady={isCanonicalSelectedPublisher ? handleSelectedPathReady : undefined}
+          filterText={filterText}
+          matchingIssuesBySeries={matchingIssuesBySeries}
         />
       );
 
@@ -861,7 +990,7 @@ export default function List(props: Readonly<ListProps>) {
             showDivider={true}
             navRowKey={publisherName}
             selected={selected}
-            label={publisherName}
+            label={<TextHighlight text={publisherName} search={filterText} />}
             expanded={expanded}
             pending={
               pendingPublisherKey === `publisher:${publisherName}` ||
@@ -887,6 +1016,9 @@ export default function List(props: Readonly<ListProps>) {
       listRef={listRef}
       onScrollToSelected={handleScrollToSelected}
       disableScrollToSelected={!selectedRowKey}
+      filterValue={filterText}
+      onFilterChange={setFilterText}
+      onFilterFocus={lazyLoadAllSeries}
     >
       {content}
     </NavDrawer>

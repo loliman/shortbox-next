@@ -10,12 +10,14 @@ import Box from "@mui/material/Box";
 import { alpha } from "@mui/material/styles";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import Tooltip from "@mui/material/Tooltip";
 import { getDepthPadding } from "./listTreeUtils";
 
 type NestedRowProps = {
   rowKey: string;
   depth: number;
-  label: string;
+  label: React.ReactNode;
+  title?: string;
   showDivider?: boolean;
   navRowKey?: string;
   selected?: boolean;
@@ -34,6 +36,69 @@ export const NestedRow = React.memo(function NestedRow(props: Readonly<NestedRow
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     onClick(event, rowKey);
   };
+
+  const button = (
+    <ListItemButton
+      className="row"
+      divider={false}
+      selected={props.selected ?? false}
+      disabled={props.disabled}
+      onClick={handleClick}
+      sx={(theme) => ({
+        minWidth: 0,
+        pr: 1,
+        backgroundColor: "transparent",
+        color: "var(--mui-palette-text-primary)",
+        "&:hover": {
+          backgroundColor: props.selected ? "transparent" : "action.hover",
+        },
+        "&.Mui-selected": {
+          backgroundColor: "transparent",
+          boxShadow: "none",
+          color: "var(--mui-palette-text-primary)",
+          ...theme.applyStyles("dark", {
+            backgroundColor: "transparent",
+            color: "var(--mui-palette-text-primary)",
+          }),
+        },
+        "&.Mui-selected:hover": {
+          backgroundColor: "transparent",
+          ...theme.applyStyles("dark", {
+            backgroundColor: "transparent",
+          }),
+        },
+        "& .MuiListItemText-primary": {
+          color: "var(--mui-palette-text-primary) !important",
+          WebkitTextFillColor: "var(--mui-palette-text-primary) !important",
+          opacity: "1 !important",
+        },
+      })}
+    >
+      <ListItemText
+        primary={props.label}
+        sx={{
+          "& .MuiListItemText-primary": {
+            color: "var(--mui-palette-text-primary) !important",
+            WebkitTextFillColor: "var(--mui-palette-text-primary) !important",
+            opacity: "1 !important",
+          },
+        }}
+        slotProps={{
+          primary: {
+            noWrap: typeof props.label === "string",
+            sx: {
+              fontWeight: props.selected ? 700 : 400,
+              color: "var(--mui-palette-text-primary) !important",
+              WebkitTextFillColor: "var(--mui-palette-text-primary) !important",
+              opacity: 1,
+            },
+          },
+        }}
+      />
+    </ListItemButton>
+  );
+
+  const tooltipTitle = props.title ?? (typeof props.label === "string" ? props.label : undefined);
 
   return (
     <ListItem
@@ -68,65 +133,13 @@ export const NestedRow = React.memo(function NestedRow(props: Readonly<NestedRow
       })}
     >
       <ExpandToggle expanded={props.expanded} pending={props.pending} onToggle={handleToggle} />
-      <ListItemButton
-        className="row"
-        divider={false}
-        selected={props.selected ?? false}
-        disabled={props.disabled}
-        onClick={handleClick}
-        sx={(theme) => ({
-          minWidth: 0,
-          pr: 1,
-          backgroundColor: "transparent",
-          color: "var(--mui-palette-text-primary)",
-          "&:hover": {
-            backgroundColor: props.selected ? "transparent" : "action.hover",
-          },
-          "&.Mui-selected": {
-            backgroundColor: "transparent",
-            boxShadow: "none",
-            color: "var(--mui-palette-text-primary)",
-            ...theme.applyStyles("dark", {
-              backgroundColor: "transparent",
-              color: "var(--mui-palette-text-primary)",
-            }),
-          },
-          "&.Mui-selected:hover": {
-            backgroundColor: "transparent",
-            ...theme.applyStyles("dark", {
-              backgroundColor: "transparent",
-            }),
-          },
-          "& .MuiListItemText-primary": {
-            color: "var(--mui-palette-text-primary) !important",
-            WebkitTextFillColor: "var(--mui-palette-text-primary) !important",
-            opacity: "1 !important",
-          },
-        })}
-      >
-        <ListItemText
-          primary={props.label}
-          title={props.label}
-          sx={{
-            "& .MuiListItemText-primary": {
-              color: "var(--mui-palette-text-primary) !important",
-              WebkitTextFillColor: "var(--mui-palette-text-primary) !important",
-              opacity: "1 !important",
-            },
-          }}
-          slotProps={{
-            primary: {
-              noWrap: true,
-              sx: {
-                fontWeight: props.selected ? 700 : 400,
-                color: "var(--mui-palette-text-primary) !important",
-                WebkitTextFillColor: "var(--mui-palette-text-primary) !important",
-                opacity: 1,
-              },
-            },
-          }}
-        />
-      </ListItemButton>
+      {tooltipTitle ? (
+        <Tooltip title={tooltipTitle} enterDelay={600} enterNextDelay={600} arrow placement="right">
+          {button}
+        </Tooltip>
+      ) : (
+        button
+      )}
     </ListItem>
   );
 });

@@ -9,6 +9,7 @@ import Typography from "@mui/material/Typography";
 import { alpha } from "@mui/material/styles";
 import type { Issue, SelectedRoot } from "../../types/domain";
 import CoverTooltip from "./CoverTooltip";
+import { TextHighlight } from "./TextHighlight";
 import { NestedEmptyRow, NestedLoadingRow } from "./NestedNavRow";
 import {
   createIssueSecondary,
@@ -45,6 +46,7 @@ type IssuesBranchProps = {
   deferProgressiveWindowing?: boolean;
   allowAutoRevealFallback?: boolean;
   onPriorityPathReady?: () => void;
+  filterText?: string;
 };
 
 const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBranchProps>) {
@@ -63,6 +65,7 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
     deferProgressiveWindowing,
     allowAutoRevealFallback,
     onPriorityPathReady,
+    filterText,
   } = props;
   const selectedSeries = doesSeriesNodeMatchIssueSeries(series, selectedIssue?.series);
   const selectedIssueNumber = selectedSeries ? normalizeIssueNumber(selectedIssue?.number) : "";
@@ -232,9 +235,9 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
   ]);
 
   React.useEffect(() => {
-    if (!scrollRequestId) return;
+    if (!scrollRequestId || props.loading) return;
     return scheduleIssueAutoReveal(`force|${scrollRequestId}|${selectedRowKey || ""}`, true);
-  }, [scheduleIssueAutoReveal, scrollRequestId, selectedRowKey]);
+  }, [scheduleIssueAutoReveal, scrollRequestId, selectedRowKey, props.loading]);
 
   if (props.loading) {
     return <NestedLoadingRow depth={2} />;
@@ -377,7 +380,7 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
                               whiteSpace: "nowrap",
                             }}
                           >
-                            {createSidebarIssueLabel(issueNode, us)}
+                            <TextHighlight text={createSidebarIssueLabel(issueNode, us)} search={filterText || ""} />
                           </Box>
                         </Typography>
                         {issueIsPending ? (

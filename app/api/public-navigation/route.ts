@@ -4,6 +4,7 @@ import {
   readNavigationFilterState,
   readNavigationIssues,
   readNavigationSeries,
+  readAllNavigationSeriesCached,
 } from "@/src/lib/read/navigation-read";
 import { resolveNavigationFilterQuery } from "@/src/lib/routes/seo-filter-navigation";
 
@@ -23,7 +24,12 @@ export async function GET(request: NextRequest) {
     if (scope === "series") {
       const publisher = (searchParams.get("publisher") || "").trim();
       if (!publisher) {
-        return NextResponse.json({ error: "publisher fehlt" }, { status: 400 });
+        const items = await readAllNavigationSeriesCached(
+          us,
+          JSON.stringify(filterState.directIssueWhere),
+          JSON.stringify(filterState.filteredIssueIds)
+        );
+        return NextResponse.json({ items }, { headers: { "Cache-Control": "no-store" } });
       }
 
       const items = await readNavigationSeries({

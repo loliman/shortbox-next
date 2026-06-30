@@ -211,6 +211,79 @@ const readNavigationSeriesCached = unstable_cache(
   { revalidate: 300, tags: [NAVIGATION_CACHE_TAG] }
 );
 
+export async function readAllNavigationSeries(scope: NavigationScope) {
+  let seriesScopeFilter: Prisma.SeriesWhereInput = {};
+  if (scope.directIssueWhere) {
+    seriesScopeFilter = {
+      issues: {
+        some: scope.directIssueWhere,
+      },
+    };
+  } else if (scope.filteredIssueIds) {
+    seriesScopeFilter = {
+      issues: {
+        some: {
+          id: {
+            in: scope.filteredIssueIds,
+          },
+        },
+      },
+    };
+  }
+
+  const series = await prisma.series.findMany({
+    where: {
+      publisher: {
+        original: scope.us,
+      },
+      ...seriesScopeFilter,
+    },
+    orderBy: [{ title: "asc" }, { volume: "asc" }, { startYear: "asc" }, { id: "asc" }],
+    include: {
+      publisher: true,
+    },
+  });
+
+  return series
+    .map((entry) => ({
+      id: String(entry.id),
+      title: entry.title || "",
+      volume: Number(entry.volume),
+      startyear: Number(entry.startYear),
+      endyear: entry.endYear === null ? null : Number(entry.endYear),
+      publisher: entry.publisher
+        ? {
+            name: entry.publisher.name,
+            us: entry.publisher.original,
+          }
+        : null,
+    }))
+    .sort((a, b) => {
+      const titleCmp = compareSeriesTitle(a.title, b.title);
+      if (titleCmp !== 0) return titleCmp;
+      if (a.volume !== b.volume) return a.volume - b.volume;
+      return Number(a.id) - Number(b.id);
+    });
+}
+
+export const readAllNavigationSeriesCached = unstable_cache(
+  async (
+    us: boolean,
+    directIssueWhereJson: string | null,
+    filteredIssueIdsJson: string | null
+  ) => {
+    return readAllNavigationSeries({
+      us,
+      directIssueWhere: directIssueWhereJson
+        ? (JSON.parse(directIssueWhereJson) as Prisma.IssueWhereInput)
+        : null,
+      filteredIssueIds: parseFilteredIssueIds(filteredIssueIdsJson),
+    });
+  },
+  ["navigation-all-series"],
+  { revalidate: 300, tags: [NAVIGATION_CACHE_TAG] }
+);
+
 export async function readNavigationIssues(scope: NavigationIssuesScope) {
   const filteredIssueWhere = scope.filteredIssueIds
     ? {
