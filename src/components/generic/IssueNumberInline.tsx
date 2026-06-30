@@ -6,6 +6,7 @@ type IssueNumberInlineProps = {
   number?: string | number | null;
   legacy_number?: string | null;
   prefix?: string;
+  suffix?: React.ReactNode;
 };
 
 export function IssueNumberInline(props: Readonly<IssueNumberInlineProps>) {
@@ -27,6 +28,7 @@ export function IssueNumberInline(props: Readonly<IssueNumberInlineProps>) {
       }}
     >
       {number ? <Box component="span">{`${props.prefix || "#"}${number}`}</Box> : null}
+      {props.suffix || null}
       {legacyLabel ? (
         <Box
           component="span"
@@ -49,6 +51,7 @@ type IssueReferenceInlineProps = {
   number?: string | number | null;
   legacy_number?: string | null;
   prefix?: string;
+  suffix?: React.ReactNode;
 };
 
 export function IssueReferenceInline(props: Readonly<IssueReferenceInlineProps>) {
@@ -69,6 +72,7 @@ export function IssueReferenceInline(props: Readonly<IssueReferenceInlineProps>)
         number={props.number}
         legacy_number={props.legacy_number}
         prefix={props.prefix}
+        suffix={props.suffix}
       />
     </Box>
   );

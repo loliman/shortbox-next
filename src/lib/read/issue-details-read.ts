@@ -104,6 +104,11 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
                   },
                 },
               },
+              _count: {
+                select: {
+                  stories: true,
+                },
+              },
             },
           },
         },
@@ -155,6 +160,11 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
                   },
                 },
               },
+              _count: {
+                select: {
+                  stories: true,
+                },
+              },
             },
           },
         },
@@ -199,6 +209,11 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
                   },
                 },
               },
+              _count: {
+                select: {
+                  stories: true,
+                },
+              },
             },
           },
         },
@@ -233,6 +248,11 @@ const issueDetailsStoryInclude = Prisma.validator<Prisma.StoryInclude>()({
                   },
                 },
               },
+            },
+          },
+          _count: {
+            select: {
+              stories: true,
             },
           },
         },
@@ -699,6 +719,7 @@ function toIssueReferenceShape(issue: any) {
     individuals: Array.isArray(issue.individuals)
       ? issue.individuals.map(toIssueIndividualEntryShape)
       : [],
+    storiesCount: issue._count?.stories ?? (Array.isArray(issue.stories) ? issue.stories.length : 1),
   };
 }
 

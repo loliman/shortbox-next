@@ -24,6 +24,7 @@ type ContainsIssueLike = {
   variant?: string | null;
   collected?: boolean | null;
   stories?: Array<unknown> | null;
+  storiesCount?: number | null;
   series?: {
     title?: string;
     volume?: number;
@@ -200,8 +201,8 @@ function ContainsTitleDetailedMainText(props: Readonly<{
           seriesLabel={seriesLabel}
           number={props.hasIssueReference ? props.issue?.number : undefined}
           legacy_number={props.issue?.legacy_number}
+          suffix={props.romanStoryNumber || undefined}
         />
-        {props.romanStoryNumber || null}
       </Typography>
       {props.showParentTitle ? (
         <Typography
@@ -358,7 +359,8 @@ export function ContainsTitleDetailed(props: Readonly<ContainsTitleDetailedProps
 
   const rawStoryNumber = item.parent?.number ?? item.number;
   const parsedStoryNumber = typeof rawStoryNumber === "number" ? rawStoryNumber : parseInt(String(rawStoryNumber), 10);
-  const romanStoryNumber = Number.isInteger(parsedStoryNumber) && parsedStoryNumber > 0
+  const storiesCount = item.parent?.issue?.storiesCount ?? 1;
+  const romanStoryNumber = Number.isInteger(parsedStoryNumber) && parsedStoryNumber > 0 && storiesCount > 1
     ? ` [${romanize(parsedStoryNumber)}]`
     : "";
 
