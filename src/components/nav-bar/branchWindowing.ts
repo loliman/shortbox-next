@@ -3,9 +3,9 @@ export const LARGE_BRANCH_CHUNK_SIZE = 120;
 export const LARGE_BRANCH_SELECTED_BUFFER = 24;
 export const LARGE_BRANCH_OCCLUSION_THRESHOLD = 48;
 export const NAV_LIST_TOP_PADDING = 4;
-export const PUBLISHER_ROW_HEIGHT = 48;
-export const SERIES_ROW_HEIGHT = 44;
-export const ISSUE_ROW_HEIGHT = 36;
+export const PUBLISHER_ROW_HEIGHT = 40;
+export const SERIES_ROW_HEIGHT = 36;
+export const ISSUE_ROW_HEIGHT = 30;
 export const LARGE_BRANCH_SCROLL_OVERSCAN_ROWS = 12;
 
 export type BranchWindowRange = {

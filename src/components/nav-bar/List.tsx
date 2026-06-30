@@ -924,7 +924,7 @@ export default function List(props: Readonly<ListProps>) {
   } else if (filteredPublishers.length === 0) {
     content = <NestedEmptyRow depth={0} message="Keine Einträge vorhanden" />;
   } else {
-    content = filteredPublishers.map((publisherNode) => {
+    content = filteredPublishers.map((publisherNode, index) => {
       const publisherName = publisherNode.name || "";
       const expanded = Boolean(effectiveExpandedPublishers[publisherName]);
       const selected = isSameEntityName(selectedPublisherName, publisherName);
@@ -987,7 +987,7 @@ export default function List(props: Readonly<ListProps>) {
           <NestedRow
             rowKey={publisherName}
             depth={0}
-            showDivider={true}
+            showDivider={index !== 0}
             navRowKey={publisherName}
             selected={selected}
             label={<TextHighlight text={publisherName} search={filterText} />}

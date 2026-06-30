@@ -47,6 +47,7 @@ export const NestedRow = React.memo(function NestedRow(props: Readonly<NestedRow
       sx={(theme) => ({
         minWidth: 0,
         pr: 1,
+        py: props.depth === 0 ? "4px" : props.depth === 1 ? "2px" : "1px",
         backgroundColor: "transparent",
         color: "var(--mui-palette-text-primary)",
         "&:hover": {
@@ -71,6 +72,7 @@ export const NestedRow = React.memo(function NestedRow(props: Readonly<NestedRow
           color: "var(--mui-palette-text-primary) !important",
           WebkitTextFillColor: "var(--mui-palette-text-primary) !important",
           opacity: "1 !important",
+          fontSize: props.depth === 0 ? "0.92rem" : props.depth === 1 ? "0.85rem" : "0.8rem",
         },
       })}
     >
@@ -81,6 +83,7 @@ export const NestedRow = React.memo(function NestedRow(props: Readonly<NestedRow
             color: "var(--mui-palette-text-primary) !important",
             WebkitTextFillColor: "var(--mui-palette-text-primary) !important",
             opacity: "1 !important",
+            fontSize: props.depth === 0 ? "0.92rem" : props.depth === 1 ? "0.85rem" : "0.8rem",
           },
         }}
         slotProps={{

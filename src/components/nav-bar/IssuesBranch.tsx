@@ -50,7 +50,7 @@ type IssuesBranchProps = {
 };
 
 const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBranchProps>) {
-  const ISSUE_ROW_HEIGHT = 36;
+  const ISSUE_ROW_HEIGHT = 30;
   const ISSUE_AUTO_REVEAL_MAX_ATTEMPTS = 8;
   const {
     series,

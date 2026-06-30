@@ -82,12 +82,14 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
     >
       <Box
         sx={{
-          p: 1.5,
+          height: 40,
+          px: 1.5,
+          boxSizing: "border-box",
           borderBottom: "1px solid",
           borderColor: "divider",
           display: "flex",
           alignItems: "center",
-          gap: 1.5,
+          gap: 1,
           flexShrink: 0,
         }}
       >
@@ -121,7 +123,19 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
           }}
           sx={{
             "& .MuiOutlinedInput-root": {
-              borderRadius: "8px",
+              backgroundColor: "transparent",
+              "& fieldset": {
+                border: "none",
+              },
+              "&:hover": {
+                backgroundColor: "transparent",
+              },
+              "&.Mui-focused": {
+                backgroundColor: "transparent",
+              },
+              "& .MuiOutlinedInput-input": {
+                padding: "4px 0",
+              },
             },
           }}
         />
@@ -133,24 +147,22 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
               disabled={disableScrollToSelected}
               size="small"
               sx={{
-                width: 40,
-                height: 40,
-                color: "primary.main",
-                borderRadius: "8px",
-                border: "1px solid",
-                borderColor: "divider",
+                width: 32,
+                height: 32,
+                color: "text.secondary",
+                borderRadius: "50%",
                 backgroundColor: "transparent",
                 "&:hover": {
                   backgroundColor: "action.hover",
+                  color: "primary.main",
                 },
                 "&.Mui-disabled": {
                   color: "text.disabled",
-                  borderColor: "divider",
-                  backgroundColor: "action.disabledBackground",
+                  backgroundColor: "transparent",
                 },
               }}
             >
-              <MyLocationIcon sx={{ fontSize: 20 }} />
+              <MyLocationIcon sx={{ fontSize: 18 }} />
             </IconButton>
           </Box>
         </Tooltip>
@@ -165,7 +177,7 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
           sx={{
             width: "100%",
             p: 0,
-            pt: 0.5,
+            pt: 0,
             pb: navListBottomPadding,
           }}
         >

@@ -59,7 +59,7 @@ type SeriesBranchProps = {
 };
 
 const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBranchProps>) {
-  const SERIES_ROW_HEIGHT = 44;
+  const SERIES_ROW_HEIGHT = 36;
   const {
     activeSeriesKey,
     ensureIssueNodesLoaded,
@@ -386,12 +386,12 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
           minWidth: 0,
           gap: 0.5,
           alignItems: "baseline",
-          justifyContent: "space-between",
+          justifyContent: "flex-start",
         }}
       >
         <Box
           sx={{
-            flex: "1 1 auto",
+            flex: "0 1 auto",
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
@@ -405,7 +405,7 @@ const SeriesBranch = React.memo(function SeriesBranch(props: Readonly<SeriesBran
           sx={{
             flex: "0 0 auto",
             whiteSpace: "nowrap",
-            fontSize: "0.82rem",
+            fontSize: "0.78rem",
             opacity: 0.65,
             color: "text.secondary",
           }}
