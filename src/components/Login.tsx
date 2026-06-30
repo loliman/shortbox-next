@@ -124,7 +124,7 @@ function LoginView(props: Readonly<LoginProps>) {
                   fontSize: { xs: "2rem", sm: "2.5rem" },
                 }}
               >
-                Bereich betreten.
+                Login
               </Typography>
               <Typography
                 variant="body2"

@@ -92,7 +92,7 @@ export default function ErrorBoundary({ error }: ErrorProps) {
               display: "block",
             }}
           >
-            Interner Fehler
+            HTTP 500
           </Typography>
           <Typography
             variant="h3"
@@ -105,7 +105,7 @@ export default function ErrorBoundary({ error }: ErrorProps) {
               fontSize: { xs: "2rem", sm: "2.5rem" },
             }}
           >
-            Etwas ist schiefgelaufen.
+            Interner Fehler
           </Typography>
           <Typography
             variant="body1"
@@ -115,7 +115,7 @@ export default function ErrorBoundary({ error }: ErrorProps) {
               mb: error?.digest ? 3 : 0,
             }}
           >
-            Ups, da ist was schief gelaufen... Bitte versuche es später noch einmal oder lade die Seite in deinem Browser neu.
+            Ups, da ist was schiefgelaufen... Bitte versuche es später noch einmal oder lade die Seite in deinem Browser neu.
           </Typography>
 
           {error?.digest ? (

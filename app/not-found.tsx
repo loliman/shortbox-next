@@ -82,7 +82,7 @@ export default function NotFound() {
               display: "block",
             }}
           >
-            404 / Route nicht gefunden
+            HTTP 404
           </Typography>
           <Typography
             variant="h3"
@@ -95,7 +95,7 @@ export default function NotFound() {
               fontSize: { xs: "2rem", sm: "2.5rem" },
             }}
           >
-            Diese Route gibt es nicht.
+            Route nicht gefunden
           </Typography>
           <Typography
             variant="body1"
@@ -105,7 +105,7 @@ export default function NotFound() {
               mb: 0,
             }}
           >
-            Der angeforderte Pfad passt zu keiner bekannten Shortbox-Seite. Am schnellsten kommst du über die deutsche oder US-Übersicht wieder in den Katalog.
+            Die gewünschte Route ist nicht verfügbar. Bitte prüfe die URL und lade die Seite neu.
           </Typography>
         </Paper>
       </Container>

@@ -139,10 +139,10 @@ export default function GlobalError({ error }: GlobalErrorProps) {
             <div className="logo-container">
               <img src="/Shortbox_Logo.png" alt="Shortbox" className="logo-img" />
             </div>
-            <p className="overline">Globaler Fehler / Shortbox</p>
-            <h1 className="title">Etwas ist schiefgelaufen.</h1>
+            <p className="overline">HTTP 500</p>
+            <h1 className="title">Interner Fehler</h1>
             <p className="text">
-              Die Seite konnte gerade nicht geladen werden. Bitte versuche es später noch einmal oder lade die Seite in deinem Browser neu.
+              Ups, da ist was schiefgelaufen... Bitte versuche es später noch einmal oder lade die Seite in deinem Browser neu.
             </p>
 
             {error?.digest ? (
