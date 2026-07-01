@@ -4,6 +4,7 @@ import React from "react";
 import Box from "@mui/material/Box";
 import Drawer from "@mui/material/Drawer";
 import SwipeableDrawer from "@mui/material/SwipeableDrawer";
+import { alpha } from "@mui/material/styles";
 import type { SxProps, Theme } from "@mui/material/styles";
 import MuiList from "@mui/material/List";
 import IconButton from "@mui/material/IconButton";
@@ -108,7 +109,7 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
                     sx={{
                       color: "text.secondary",
                       opacity: 0.5,
-                      fontSize: "1.1rem",
+                      fontSize: "1.0rem",
                       transition: "color 0.15s ease, opacity 0.15s ease",
                     }}
                   />
@@ -130,22 +131,27 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
           }}
           sx={{
             "& .MuiOutlinedInput-root": {
-              backgroundColor: "transparent",
-              borderRadius: "20px",
+              height: 28,
+              backgroundColor: "rgba(0, 0, 0, 0.035)",
+              borderRadius: "14px",
               px: 1,
-              transition: "background-color 0.15s ease, box-shadow 0.15s ease",
+              transition: "background-color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease",
               "& fieldset": {
-                border: "none",
+                border: "1px solid",
+                borderColor: "rgba(0, 0, 0, 0.06)",
               },
               "&:hover": {
-                backgroundColor: "rgba(0, 0, 0, 0.025)",
-                '[data-theme="dark"] &': {
-                  backgroundColor: "rgba(255, 255, 255, 0.04)",
+                backgroundColor: "rgba(0, 0, 0, 0.055)",
+                "& fieldset": {
+                  borderColor: "rgba(0, 0, 0, 0.12)",
                 },
               },
               "&.Mui-focused": {
-                backgroundColor: "rgba(0, 0, 0, 0.045)",
-                boxShadow: (theme) => `0 0 0 1px ${theme.palette.divider}`,
+                backgroundColor: "#ffffff",
+                boxShadow: (theme) => `0 0 0 2.5px ${alpha(theme.palette.primary.main, 0.12)}`,
+                "& fieldset": {
+                  borderColor: "primary.main",
+                },
                 "& .MuiInputAdornment-positionStart .MuiSvgIcon-root": {
                   opacity: 0.8,
                   color: "primary.main",
@@ -153,19 +159,34 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
                     color: "primary.light",
                   },
                 },
-                '[data-theme="dark"] &': {
-                  backgroundColor: "rgba(255, 255, 255, 0.08)",
-                  boxShadow: (theme) => `0 0 0 1px ${theme.palette.divider}`,
+              },
+              '[data-theme="dark"] &': {
+                backgroundColor: "rgba(255, 255, 255, 0.06)",
+                "& fieldset": {
+                  borderColor: "rgba(255, 255, 255, 0.06)",
+                },
+                "&:hover": {
+                  backgroundColor: "rgba(255, 255, 255, 0.09)",
+                  "& fieldset": {
+                    borderColor: "rgba(255, 255, 255, 0.12)",
+                  },
+                },
+                "&.Mui-focused": {
+                  backgroundColor: "var(--mui-palette-background-paper)",
+                  boxShadow: (theme) => `0 0 0 2.5px ${alpha(theme.palette.primary.light, 0.18)}`,
+                  "& fieldset": {
+                    borderColor: "primary.light",
+                  },
                 },
               },
-              "& .MuiOutlinedInput-input": {
-                padding: "4px 4px 4px 0",
-                fontSize: "0.85rem",
-              },
-              "& .MuiInputBase-input::placeholder": {
-                fontSize: "0.85rem",
-                opacity: 0.5,
-              },
+            },
+            "& .MuiOutlinedInput-input": {
+              padding: "0 4px",
+              fontSize: "0.82rem",
+            },
+            "& .MuiInputBase-input::placeholder": {
+              fontSize: "0.82rem",
+              opacity: 0.5,
             },
           }}
         />
@@ -177,12 +198,13 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
               disabled={disableScrollToSelected}
               size="small"
               sx={{
-                width: 32,
-                height: 32,
+                width: 28,
+                height: 28,
                 color: "text.secondary",
                 borderRadius: "50%",
                 backgroundColor: "transparent",
-                opacity: 0.6,
+                opacity: 0.7,
+                transition: "all 0.15s ease",
                 "&:hover": {
                   backgroundColor: "action.hover",
                   color: "primary.main",
@@ -195,7 +217,7 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
                 },
               }}
             >
-              <MyLocationIcon sx={{ fontSize: 18 }} />
+              <MyLocationIcon sx={{ fontSize: 16 }} />
             </IconButton>
           </Box>
         </Tooltip>
