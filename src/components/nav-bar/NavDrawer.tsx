@@ -96,7 +96,7 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
         <TextField
           size="small"
           fullWidth
-          placeholder="Serien filtern..."
+          placeholder="Filtern..."
           value={filterValue}
           onChange={(e) => onFilterChange(e.target.value)}
           onFocus={onFilterFocus}
@@ -104,7 +104,14 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
             input: {
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                  <SearchIcon
+                    sx={{
+                      color: "text.secondary",
+                      opacity: 0.5,
+                      fontSize: "1.1rem",
+                      transition: "color 0.15s ease, opacity 0.15s ease",
+                    }}
+                  />
                 </InputAdornment>
               ),
               endAdornment: filterValue ? (
@@ -124,17 +131,40 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
           sx={{
             "& .MuiOutlinedInput-root": {
               backgroundColor: "transparent",
+              borderRadius: "20px",
+              px: 1,
+              transition: "background-color 0.15s ease, box-shadow 0.15s ease",
               "& fieldset": {
                 border: "none",
               },
               "&:hover": {
-                backgroundColor: "transparent",
+                backgroundColor: "rgba(0, 0, 0, 0.025)",
+                '[data-theme="dark"] &': {
+                  backgroundColor: "rgba(255, 255, 255, 0.04)",
+                },
               },
               "&.Mui-focused": {
-                backgroundColor: "transparent",
+                backgroundColor: "rgba(0, 0, 0, 0.045)",
+                boxShadow: (theme) => `0 0 0 1px ${theme.palette.divider}`,
+                "& .MuiInputAdornment-positionStart .MuiSvgIcon-root": {
+                  opacity: 0.8,
+                  color: "primary.main",
+                  '[data-theme="dark"] &': {
+                    color: "primary.light",
+                  },
+                },
+                '[data-theme="dark"] &': {
+                  backgroundColor: "rgba(255, 255, 255, 0.08)",
+                  boxShadow: (theme) => `0 0 0 1px ${theme.palette.divider}`,
+                },
               },
               "& .MuiOutlinedInput-input": {
-                padding: "4px 0",
+                padding: "4px 4px 4px 0",
+                fontSize: "0.85rem",
+              },
+              "& .MuiInputBase-input::placeholder": {
+                fontSize: "0.85rem",
+                opacity: 0.5,
               },
             },
           }}
@@ -152,13 +182,16 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
                 color: "text.secondary",
                 borderRadius: "50%",
                 backgroundColor: "transparent",
+                opacity: 0.6,
                 "&:hover": {
                   backgroundColor: "action.hover",
                   color: "primary.main",
+                  opacity: 1,
                 },
                 "&.Mui-disabled": {
                   color: "text.disabled",
                   backgroundColor: "transparent",
+                  opacity: 0.35,
                 },
               }}
             >

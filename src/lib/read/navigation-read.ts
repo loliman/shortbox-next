@@ -53,7 +53,11 @@ function parseFilteredIssueIds(filteredIssueIdsJson: string | null) {
 }
 
 export async function readNavigationPublishers(scope: NavigationScope) {
-  let publisherScopeFilter: Prisma.PublisherWhereInput = {};
+  let publisherScopeFilter: Prisma.PublisherWhereInput = {
+    series: {
+      some: {},
+    },
+  };
   if (scope.directIssueWhere) {
     publisherScopeFilter = {
       series: {
