@@ -15,6 +15,7 @@ export type StoryIssue = {
     volume?: number;
     publisher?: { name?: string; us?: boolean };
   };
+  storiesCount?: number;
 };
 
 export type StoryIssueRelation = {

@@ -779,7 +779,8 @@ function sortStoryIssueReferencesByReleaseDate<T>(references: T[] | null | undef
   return Array.isArray(references) ? [...references].sort(compareStoryIssueReferencesByReleaseDate) : [];
 }
 
-function toIssueStoryShape(story: any, includeParent: boolean, issueOverride?: any) {
+function toIssueStoryShape(story: any, includeParent: boolean, issueOverride?: any, customChildren?: any[]) {
+  const childrenSource = customChildren ?? story.children;
   return {
     id: serializeIssueId(story.id),
     number: serializeNullableIssueNumber(story.number),
@@ -800,7 +801,7 @@ function toIssueStoryShape(story: any, includeParent: boolean, issueOverride?: a
     parent: includeParent ? toIssueParentStoryShape(story.parent) : null,
     reprintOf: story.reprint ? toIssueStoryReferenceShape(story.reprint) : null,
     reprints: sortStoryIssueReferencesByReleaseDate(story.reprintedBy).map(toIssueStoryReferenceShape),
-    children: sortStoryIssueReferencesByReleaseDate(story.children).map(toIssueStoryReferenceShape),
+    children: sortStoryIssueReferencesByReleaseDate(childrenSource).map(toIssueStoryReferenceShape),
     individuals: Array.isArray(story.individuals)
       ? story.individuals.map((entry: any) => ({
           id: serializeIssueId(entry.individual.id),
@@ -854,7 +855,124 @@ export async function readIssueDetailStories(input: {
     ? { ...issue, variants: [selectedVariant] }
     : issue;
 
-  return issue.stories.map((story: any) => toIssueStoryShape(story, true, issueOverride));
+  const storyIds = issue.stories.map((story: any) => story.id);
+  const storyToChildren = new Map<number, any[]>();
+
+  if (storyIds.length > 0) {
+    try {
+      // 1. Walk up to get root IDs for each target story
+      const roots = await prisma.$queryRaw<Array<{ target_id: string | bigint; root_id: string | bigint }>>`
+        WITH RECURSIVE reprint_up AS (
+          SELECT id as target_id, id, fk_reprint 
+          FROM shortbox.story 
+          WHERE id IN (${Prisma.join(storyIds)})
+          
+          UNION ALL
+          
+          SELECT ru.target_id, s.id, s.fk_reprint 
+          FROM shortbox.story s
+          INNER JOIN reprint_up ru ON s.id = ru.fk_reprint
+        )
+        SELECT target_id, id as root_id 
+        FROM reprint_up 
+        WHERE fk_reprint IS NULL
+      `;
+
+      // Create mappings
+      const targetToRoot = new Map<number, number>();
+      const rootIds: bigint[] = [];
+      for (const row of roots) {
+        const target = Number(row.target_id);
+        const root = Number(row.root_id);
+        targetToRoot.set(target, root);
+        rootIds.push(BigInt(root));
+      }
+
+      const rootToDescendants = new Map<number, Set<number>>();
+      const allRelatedStoryIds: bigint[] = [];
+      
+      if (rootIds.length > 0) {
+        const uniqueRootIds = Array.from(new Set(rootIds));
+        // 2. Walk down to get all descendants of these roots
+        const descendants = await prisma.$queryRaw<Array<{ root_id: string | bigint; id: string | bigint }>>`
+          WITH RECURSIVE reprint_down AS (
+            SELECT id as root_id, id 
+            FROM shortbox.story 
+            WHERE id IN (${Prisma.join(uniqueRootIds)})
+            
+            UNION ALL
+            
+            SELECT rd.root_id, s.id 
+            FROM shortbox.story s
+            INNER JOIN reprint_down rd ON s.fk_reprint = rd.id
+          )
+          SELECT root_id, id FROM reprint_down
+        `;
+
+        for (const row of descendants) {
+          const root = Number(row.root_id);
+          const desc = Number(row.id);
+          allRelatedStoryIds.push(BigInt(desc));
+          
+          if (!rootToDescendants.has(root)) {
+            rootToDescendants.set(root, new Set());
+          }
+          rootToDescendants.get(root)!.add(desc);
+        }
+      }
+
+      // 3. Find all German children of any of these descendant story IDs
+      const children = allRelatedStoryIds.length > 0
+        ? await prisma.story.findMany({
+            where: {
+              fkParent: {
+                in: allRelatedStoryIds,
+              },
+            },
+            include: (issueDetailsStoryInclude as any).children.include,
+          })
+        : [];
+
+      // Group children by target story ID
+      for (const story of issue.stories) {
+        const targetId = Number(story.id);
+        const rootId = targetToRoot.get(targetId);
+        if (rootId === undefined) {
+          storyToChildren.set(targetId, story.children || []);
+          continue;
+        }
+        const descendantSet = rootToDescendants.get(rootId);
+        if (!descendantSet) {
+          storyToChildren.set(targetId, story.children || []);
+          continue;
+        }
+
+        // Filter children whose fkParent is in the descendantSet
+        const targetChildren = children.filter((c: any) => descendantSet.has(Number(c.fkParent)));
+        
+        // Deduplicate children by ID
+        const seenIds = new Set<string>();
+        const uniqueTargetChildren = [];
+        for (const child of targetChildren) {
+          const cid = String(child.id);
+          if (!seenIds.has(cid)) {
+            seenIds.add(cid);
+            uniqueTargetChildren.push(child);
+          }
+        }
+        storyToChildren.set(targetId, uniqueTargetChildren);
+      }
+    } catch (e) {
+      console.error("Failed to fetch reprint-aware children recursively, falling back to direct children", e);
+      for (const story of issue.stories) {
+        storyToChildren.set(Number(story.id), story.children || []);
+      }
+    }
+  }
+
+  return issue.stories.map((story: any) => 
+    toIssueStoryShape(story, true, issueOverride, storyToChildren.get(Number(story.id)))
+  );
 }
 
 function toIssueParentStoryShape(story: any) {
@@ -896,6 +1014,9 @@ function toIssueStoryReferenceShape(story: any) {
     number: serializeNullableIssueNumber(story.number),
     title: story.title || null,
     issue: toIssueReferenceShape(story.issue),
-    parent: story.parent ? toIssueReferenceShape(story.parent.issue) : null,
+    parent: story.parent ? {
+      issue: toIssueReferenceShape(story.parent.issue),
+      number: serializeNullableIssueNumber(story.parent.number),
+    } : null,
   };
 }
