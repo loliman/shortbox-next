@@ -319,7 +319,16 @@ export async function editIssue(item: IssueInput): Promise<Result<IssueWriteItem
           where: {
             fkIssue: resolvedExisting.id,
             format: normalizeText(item.format),
-            variantLabel: normalizeOptionalText(item.variant),
+            ...(normalizeOptionalText(item.variant) === null
+              ? {
+                  OR: [
+                    { variantLabel: null },
+                    { variantLabel: "" },
+                  ],
+                }
+              : {
+                  variantLabel: normalizeOptionalText(item.variant),
+                }),
           },
         });
       }
@@ -354,7 +363,16 @@ export async function editIssue(item: IssueInput): Promise<Result<IssueWriteItem
           where: {
             fkIssue: targetIssue.id,
             format: normalizeText(item.format),
-            variantLabel: normalizeOptionalText(item.variant) || null,
+            ...(normalizeOptionalText(item.variant) === null
+              ? {
+                  OR: [
+                    { variantLabel: null },
+                    { variantLabel: "" },
+                  ],
+                }
+              : {
+                  variantLabel: normalizeOptionalText(item.variant),
+                }),
           },
         });
         if (duplicateVariantInTarget) {
@@ -558,7 +576,16 @@ export async function editIssue(item: IssueInput): Promise<Result<IssueWriteItem
           where: {
             fkIssue: resolvedExisting.id,
             format: normalizeText(item.format),
-            variantLabel: normalizeOptionalText(item.variant) || null,
+            ...(normalizeOptionalText(item.variant) === null
+              ? {
+                  OR: [
+                    { variantLabel: null },
+                    { variantLabel: "" },
+                  ],
+                }
+              : {
+                  variantLabel: normalizeOptionalText(item.variant),
+                }),
             NOT: {
               id: existingVariant.id,
             },
@@ -733,7 +760,16 @@ export async function deleteIssueByLookup(item: IssueInput, executor: PrismaExec
         where: {
           fkIssue: parentIssue.id,
           format: normalizeText(item.format),
-          variantLabel: normalizeOptionalText(item.variant) || null,
+          ...(normalizeOptionalText(item.variant) === null
+            ? {
+                OR: [
+                  { variantLabel: null },
+                  { variantLabel: "" },
+                ],
+              }
+            : {
+                variantLabel: normalizeOptionalText(item.variant),
+              }),
         },
       });
       if (!variant) throw new Error("Variant not found");
@@ -968,7 +1004,16 @@ async function createIssueRecord(
     where: {
       fkIssue: parentIssue.id,
       format: normalizeText(item.format),
-      variantLabel: normalizeOptionalText(item.variant) || null,
+      ...(normalizeOptionalText(item.variant) === null
+        ? {
+            OR: [
+              { variantLabel: null },
+              { variantLabel: "" },
+            ],
+          }
+        : {
+            variantLabel: normalizeOptionalText(item.variant),
+          }),
     },
   });
   if (duplicateVariant) {
