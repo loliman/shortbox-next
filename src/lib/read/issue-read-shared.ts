@@ -73,28 +73,49 @@ export function toOptionalText(value: unknown) {
   return normalized === "" ? null : normalized;
 }
 
-function parseSortableIssueNumber(value: string): number | null {
+function parseLeadingNumberAndSuffix(value: string): { numeric: number | null; suffix: string } {
   const trimmed = normalizeIssueNumberForSort(value);
-  const unicodeFractionMatch = /^(-?\d+)?\s*([¼½¾])$/.exec(trimmed);
+
+  // Check unicode fractions like "22½" or "½"
+  const unicodeFractionMatch = /^(\d+)?\s*([¼½¾])(.*)$/.exec(trimmed);
   if (unicodeFractionMatch) {
     const whole = Number(unicodeFractionMatch[1] || 0);
     const fraction = UNICODE_FRACTION_VALUES[unicodeFractionMatch[2]];
-    if (Number.isFinite(whole) && fraction != null) return whole + fraction;
-  }
-
-  const fractionMatch = FRACTION_NUMBER_PATTERN.exec(trimmed);
-  if (fractionMatch) {
-    const numerator = Number(fractionMatch[1]);
-    const denominator = Number(fractionMatch[2]);
-    if (Number.isFinite(numerator) && Number.isFinite(denominator) && denominator !== 0) {
-      return numerator / denominator;
+    const remainder = unicodeFractionMatch[3];
+    if (fraction != null) {
+      return { numeric: whole + fraction, suffix: remainder };
     }
-    return null;
   }
 
-  if (!DECIMAL_NUMBER_PATTERN.test(trimmed)) return null;
-  const parsed = Number(trimmed.replace(",", "."));
-  return Number.isFinite(parsed) ? parsed : null;
+  // Check fractions like "22 1/2" or "1/2"
+  const fractionMatch = /^(\d+)?\s*(\d+)\s*\/\s*(\d+)(.*)$/.exec(trimmed);
+  if (fractionMatch) {
+    const whole = fractionMatch[1] ? Number(fractionMatch[1]) : 0;
+    const numerator = Number(fractionMatch[2]);
+    const denominator = Number(fractionMatch[3]);
+    const remainder = fractionMatch[4];
+    if (Number.isFinite(numerator) && Number.isFinite(denominator) && denominator !== 0) {
+      return { numeric: whole + (numerator / denominator), suffix: remainder };
+    }
+  }
+
+  // Check decimals or integers
+  const decimalMatch = /^([-+]?\d+(?:[.,]\d+)?)(.*)$/.exec(trimmed);
+  if (decimalMatch) {
+    const numPart = decimalMatch[1].replace(",", ".");
+    const parsed = Number(numPart);
+    if (Number.isFinite(parsed)) {
+      return { numeric: parsed, suffix: decimalMatch[2] };
+    }
+  }
+
+  return { numeric: null, suffix: trimmed };
+}
+
+function parseSortableIssueNumber(value: string): number | null {
+  const parsed = parseLeadingNumberAndSuffix(value);
+  if (parsed.suffix === "") return parsed.numeric;
+  return null;
 }
 
 function fromRoman(value: string): number {
@@ -136,7 +157,7 @@ function getIssueFormatPriority(value: unknown): number {
 function getIssueNumberSortBucket(value: string): 0 | 1 | 2 | 3 {
   if (value !== "" && ROMAN_NUMBER_PATTERN.test(value)) return 0;
   if (value !== "" && ALPHA_ONLY_PATTERN.test(value)) return 1;
-  if (parseSortableIssueNumber(value) != null) return 2;
+  if (parseLeadingNumberAndSuffix(value).numeric !== null) return 2;
   return 3;
 }
 
@@ -168,10 +189,15 @@ export function compareIssueNumber(leftRaw: unknown, rightRaw: unknown): number 
 
   if (leftIsRoman && rightIsRoman) return fromRoman(left) - fromRoman(right);
 
-  const leftSortable = parseSortableIssueNumber(left);
-  const rightSortable = parseSortableIssueNumber(right);
-  if (leftSortable != null && rightSortable != null && leftSortable !== rightSortable) {
-    return leftSortable - rightSortable;
+  if (leftBucket === 2) {
+    const leftParsed = parseLeadingNumberAndSuffix(left);
+    const rightParsed = parseLeadingNumberAndSuffix(right);
+    if (leftParsed.numeric !== null && rightParsed.numeric !== null) {
+      if (leftParsed.numeric !== rightParsed.numeric) {
+        return leftParsed.numeric - rightParsed.numeric;
+      }
+      return naturalCompare(leftParsed.suffix, rightParsed.suffix);
+    }
   }
 
   return naturalCompare(left, right);

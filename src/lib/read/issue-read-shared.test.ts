@@ -1,4 +1,4 @@
-import { pickFirstOriginalStoryCoverReference, pickIssuePreviewStorySource, sortLastEditedRows } from "./issue-read-shared";
+import { compareIssueNumber, pickFirstOriginalStoryCoverReference, pickIssuePreviewStorySource, sortLastEditedRows } from "./issue-read-shared";
 
 describe("pickIssuePreviewStorySource", () => {
   it("should_prefer_story_bearing_sibling_when_variant_has_no_stories", () => {
@@ -145,3 +145,32 @@ describe("sortLastEditedRows", () => {
     expect(sorted[1].id).toBe(2n);
   });
 });
+
+describe("compareIssueNumber", () => {
+  it("should sort plain numeric issue numbers correctly", () => {
+    expect(compareIssueNumber("2", "10")).toBeLessThan(0);
+    expect(compareIssueNumber("22", "23")).toBeLessThan(0);
+  });
+
+  it("should sort alphanumeric issue numbers with numeric prefix directly after their base numeric issue", () => {
+    const list = ["23", "22: The Amazing Spider-Man: Hooky", "22", "22.5"];
+    const sorted = [...list].sort(compareIssueNumber);
+    expect(sorted).toEqual(["22", "22: The Amazing Spider-Man: Hooky", "22.5", "23"]);
+  });
+
+  it("should handle Roman numerals correctly", () => {
+    expect(compareIssueNumber("I", "II")).toBeLessThan(0);
+    expect(compareIssueNumber("V", "IV")).toBeGreaterThan(0);
+  });
+
+  it("should sort alpha-only issues correctly", () => {
+    expect(compareIssueNumber("A", "B")).toBeLessThan(0);
+  });
+
+  it("should sort Roman before Alpha, Alpha before Numeric, and Numeric before Others", () => {
+    const list = ["Iron Man 2020", "22", "A", "II"];
+    const sorted = [...list].sort(compareIssueNumber);
+    expect(sorted).toEqual(["II", "A", "22", "Iron Man 2020"]);
+  });
+});
+

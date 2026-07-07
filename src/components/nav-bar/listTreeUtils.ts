@@ -215,23 +215,11 @@ export function normalizeIssueNumber(value: unknown): string {
   return normalizeIssuePart(value).replaceAll(/\s+/g, "").toUpperCase();
 }
 
-export function getIssueNumberPrefix(number: string): string {
-  const prefixPattern = /^\d+/;
-  const match = prefixPattern.exec(number);
-  return match ? match[0] : "";
-}
-
 export function isIssueNumberMatch(nodeNumberRaw: unknown, selectedNumberRaw: unknown): boolean {
   const nodeNumber = normalizeIssueNumber(nodeNumberRaw);
   const selectedNumber = normalizeIssueNumber(selectedNumberRaw);
   if (!nodeNumber || !selectedNumber) return false;
-  if (nodeNumber === selectedNumber) return true;
-
-  const nodePrefix = getIssueNumberPrefix(nodeNumber);
-  const selectedPrefix = getIssueNumberPrefix(selectedNumber);
-  if (nodePrefix && selectedPrefix && nodePrefix === selectedPrefix) return true;
-
-  return false;
+  return nodeNumber === selectedNumber;
 }
 
 export function normalizeSeriesVolume(value: unknown): string {

@@ -413,6 +413,11 @@ function normalizeIssueNumberKey(value: string): string {
     const colonIndex = input.indexOf(":");
     if (colonIndex < 0) return input;
     const prefix = input.slice(0, colonIndex).trim();
+    const suffix = input.slice(colonIndex + 1).trim();
+    const isDescriptiveTitle = /[a-zA-Z]{3,}/.test(suffix);
+    if (isDescriptiveTitle) {
+      return input;
+    }
     return /^\d+[a-z.]*$/i.test(prefix) ? prefix : input;
   };
 
