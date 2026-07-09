@@ -86,7 +86,7 @@ export default function FilterFormClient(props: Readonly<FilterFormClientProps>)
           >
             <Paper
               elevation={0}
-              sx={{
+              sx={(theme) => ({
                 width: 240,
                 position: "sticky",
                 top: 88,
@@ -94,12 +94,12 @@ export default function FilterFormClient(props: Readonly<FilterFormClientProps>)
                 border: "1px solid",
                 borderColor: "divider",
                 overflow: "hidden",
-                bgcolor: (theme) =>
-                  theme.palette.mode === "dark"
-                    ? "rgba(30, 30, 30, 0.65)"
-                    : "rgba(255, 255, 255, 0.65)",
+                backgroundColor: "rgba(255, 255, 255, 0.65)",
+                ...theme.applyStyles("dark", {
+                  backgroundColor: "rgba(18, 18, 18, 0.75)",
+                }),
                 backdropFilter: "blur(20px)",
-              }}
+              })}
             >
               <List disablePadding>
                 {visibleSections.map((sec) => (
@@ -107,18 +107,18 @@ export default function FilterFormClient(props: Readonly<FilterFormClientProps>)
                     key={sec.id}
                     selected={activeSection === sec.id}
                     onClick={() => setActiveSection(sec.id)}
-                    sx={{
+                    sx={(theme) => ({
                       py: 1.5,
                       px: 2.5,
                       borderLeft: "4px solid transparent",
                       "&.Mui-selected": {
                         borderLeftColor: "primary.main",
-                        bgcolor: (theme) =>
-                          theme.palette.mode === "dark"
-                            ? "rgba(255, 255, 255, 0.05)"
-                            : "rgba(0, 0, 0, 0.03)",
+                        backgroundColor: "rgba(0, 0, 0, 0.03)",
+                        ...theme.applyStyles("dark", {
+                          backgroundColor: "rgba(255, 255, 255, 0.05)",
+                        }),
                       },
-                    }}
+                    })}
                   >
                     <ListItemText
                       primary={sec.label}
@@ -134,17 +134,17 @@ export default function FilterFormClient(props: Readonly<FilterFormClientProps>)
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Paper
                 elevation={0}
-                sx={{
+                sx={(theme) => ({
                   p: 3,
                   borderRadius: 2,
                   border: "1px solid",
                   borderColor: "divider",
-                  bgcolor: (theme) =>
-                    theme.palette.mode === "dark"
-                      ? "rgba(30, 30, 30, 0.45)"
-                      : "rgba(255, 255, 255, 0.45)",
+                  backgroundColor: "rgba(255, 255, 255, 0.45)",
+                  ...theme.applyStyles("dark", {
+                    backgroundColor: "rgba(18, 18, 18, 0.55)",
+                  }),
                   backdropFilter: "blur(20px)",
-                }}
+                })}
               >
                 <Stack spacing={3}>
                   <Typography variant="h6" fontWeight={700}>
@@ -176,16 +176,16 @@ export default function FilterFormClient(props: Readonly<FilterFormClientProps>)
                   expanded={expandedAccordion === sec.id}
                   onChange={handleAccordionChange(sec.id)}
                   elevation={0}
-                  sx={{
+                  sx={(theme) => ({
                     borderRadius: "8px !important",
                     border: "1px solid",
                     borderColor: "divider",
-                    bgcolor: (theme) =>
-                      theme.palette.mode === "dark"
-                        ? "rgba(30, 30, 30, 0.45)"
-                        : "rgba(255, 255, 255, 0.45)",
+                    backgroundColor: "rgba(255, 255, 255, 0.45)",
+                    ...theme.applyStyles("dark", {
+                      backgroundColor: "rgba(18, 18, 18, 0.55)",
+                    }),
                     "&:before": { display: "none" },
-                  }}
+                  })}
                 >
                   <AccordionSummary
                     expandIcon={<ExpandMoreIcon />}

@@ -61,17 +61,17 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
     accentKey = "secondary";
   }
   let lightBackgroundImage =
-    "linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.3)), linear-gradient(to right, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.62) 40%, rgba(255, 255, 255, 0) 100%), url(" +
+    "linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.3)), linear-gradient(to right, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.65) 45%, rgba(255, 255, 255, 0) 100%), url(" +
     effectiveCoverUrl +
     ")";
   if (isCoverLoading) {
     lightBackgroundImage =
       "linear-gradient(rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.35)), linear-gradient(110deg, rgba(0, 0, 0, 0.04) 25%, rgba(0, 0, 0, 0.14) 50%, rgba(0, 0, 0, 0.04) 75%)";
   } else if (usesFallbackCover) {
-    lightBackgroundImage = `linear-gradient(rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.22)), linear-gradient(to right, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.58) 40%, rgba(255, 255, 255, 0.08) 100%), url(${NO_COVER_URL})`;
+    lightBackgroundImage = `linear-gradient(rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.22)), linear-gradient(to right, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.58) 45%, rgba(255, 255, 255, 0.08) 100%), url(${NO_COVER_URL})`;
   } else if (showsOriginalStoryCover) {
     lightBackgroundImage =
-      "linear-gradient(rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0.52)), linear-gradient(to right, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.72) 40%, rgba(255, 255, 255, 0.18) 100%), url(" +
+      "linear-gradient(rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0.52)), linear-gradient(to right, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.72) 45%, rgba(255, 255, 255, 0.18) 100%), url(" +
       effectiveCoverUrl +
       ")";
   }
@@ -82,17 +82,17 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
     borderLeftColorKey = "secondary.main";
   }
   let darkBackgroundImage =
-    "linear-gradient(rgba(20, 20, 19, 0.28), rgba(20, 20, 19, 0.28)), linear-gradient(to right, rgba(20, 20, 19, 0.88) 0%, rgba(20, 20, 19, 0.58) 40%, rgba(20, 20, 19, 0.08) 100%), url(" +
+    "linear-gradient(rgba(20, 20, 19, 0.28), rgba(20, 20, 19, 0.28)), linear-gradient(to right, rgba(20, 20, 19, 0.92) 0%, rgba(20, 20, 19, 0.62) 45%, rgba(20, 20, 19, 0) 100%), url(" +
     effectiveCoverUrl +
     ")";
   if (isCoverLoading) {
     darkBackgroundImage =
       "linear-gradient(rgba(20, 20, 19, 0.35), rgba(20, 20, 19, 0.35)), linear-gradient(110deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.04) 75%)";
   } else if (usesFallbackCover) {
-    darkBackgroundImage = `linear-gradient(rgba(20, 20, 19, 0.2), rgba(20, 20, 19, 0.2)), linear-gradient(to right, rgba(20, 20, 19, 0.84) 0%, rgba(20, 20, 19, 0.54) 40%, rgba(20, 20, 19, 0.08) 100%), url(${NO_COVER_URL})`;
+    darkBackgroundImage = `linear-gradient(rgba(20, 20, 19, 0.2), rgba(20, 20, 19, 0.2)), linear-gradient(to right, rgba(20, 20, 19, 0.84) 0%, rgba(20, 20, 19, 0.54) 45%, rgba(20, 20, 19, 0.08) 100%), url(${NO_COVER_URL})`;
   } else if (showsOriginalStoryCover) {
     darkBackgroundImage =
-      "linear-gradient(rgba(20, 20, 19, 0.46), rgba(20, 20, 19, 0.46)), linear-gradient(to right, rgba(20, 20, 19, 0.92) 0%, rgba(20, 20, 19, 0.68) 40%, rgba(20, 20, 19, 0.18) 100%), url(" +
+      "linear-gradient(rgba(20, 20, 19, 0.46), rgba(20, 20, 19, 0.46)), linear-gradient(to right, rgba(20, 20, 19, 0.92) 0%, rgba(20, 20, 19, 0.68) 45%, rgba(20, 20, 19, 0.18) 100%), url(" +
       effectiveCoverUrl +
       ")";
   }
@@ -140,7 +140,7 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
             transform: isNavigating ? "scale(0.992)" : "scale(1)",
           }}
         >
-          <CardContent sx={{ py: 2 }}>
+          <CardContent sx={{ py: 2, pr: { xs: "80px", sm: "110px", md: "130px" } }}>
             <Stack spacing={1.25}>
               <Box>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>

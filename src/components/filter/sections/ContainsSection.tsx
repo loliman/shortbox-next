@@ -127,7 +127,13 @@ function ContainsSection({
             setFieldValue(negatedField, targetMode === "exclude");
           }}
           sx={{
+            gap: { xs: "6px", sm: 0 },
+            "& .MuiToggleButtonGroup-middleButton, & .MuiToggleButtonGroup-firstButton, & .MuiToggleButtonGroup-lastButton": {
+              borderRadius: { xs: "6px !important", sm: undefined },
+              border: { xs: "1px solid rgba(100, 116, 139, 0.35) !important", sm: undefined },
+            },
             "& .MuiToggleButton-root": {
+              flex: { xs: "1 1 auto", sm: "initial" },
               px: 1,
               py: 0.4,
               textTransform: "none",
@@ -174,8 +180,15 @@ function ContainsSection({
 
   return (
     <Stack spacing={1.5}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
-        <Typography variant="h6">Inhalt</Typography>
+      <Stack
+        direction={{ xs: "column", md: "row" }}
+        justifyContent="space-between"
+        alignItems={{ xs: "stretch", md: "center" }}
+        spacing={1.5}
+      >
+        <Typography variant="h6" sx={{ display: { xs: "none", md: "block" } }}>
+          Inhalt
+        </Typography>
         <ToggleButtonGroup
           size="small"
           exclusive
@@ -186,7 +199,13 @@ function ContainsSection({
             }
           }}
           sx={{
+            gap: { xs: "6px", sm: 0 },
+            "& .MuiToggleButtonGroup-middleButton, & .MuiToggleButtonGroup-firstButton, & .MuiToggleButtonGroup-lastButton": {
+              borderRadius: { xs: "6px !important", sm: undefined },
+              border: { xs: "1px solid rgba(100, 116, 139, 0.35) !important", sm: undefined },
+            },
             "& .MuiToggleButton-root": {
+              flex: { xs: "1 1 auto", sm: "initial" },
               px: 1.5,
               py: 0.3,
               textTransform: "none",

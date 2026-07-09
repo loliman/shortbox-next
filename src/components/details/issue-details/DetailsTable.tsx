@@ -43,7 +43,7 @@ export function DetailsTable(props: Readonly<DetailsTableProps>) {
         boxShadow: 1,
         backgroundColor: "rgba(255, 255, 255, 0.75)",
         '[data-theme="dark"] &': {
-          backgroundColor: "rgba(30, 30, 30, 0.75)",
+          backgroundColor: "rgba(18, 18, 18, 0.85)",
         },
       }}
     >

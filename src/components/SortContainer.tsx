@@ -84,6 +84,7 @@ export default function SortContainer(ownProps: Readonly<SortContainerProps>) {
         whiteSpace: "nowrap",
         flex: 1,
         py: 0.5,
+        pr: { xs: 2.5, sm: 0 },
       }}
     >
       {SORT_OPTIONS.map((option) => {

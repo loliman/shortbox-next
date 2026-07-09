@@ -13,10 +13,11 @@ interface FormActionsProps {
 function FormActions({ isSubmitting, onReset, onCancel, onSubmit }: Readonly<FormActionsProps>) {
   return (
     <Stack
-      direction={{ xs: "column", md: "row" }}
-      spacing={1.5}
+      direction="row"
+      spacing={1}
       justifyContent="space-between"
-      alignItems={{ xs: "stretch", md: "center" }}
+      alignItems="center"
+      sx={{ width: "100%" }}
     >
       <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
         <Button disabled={isSubmitting} onClick={onReset} variant="text" color="inherit">

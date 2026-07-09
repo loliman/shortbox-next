@@ -54,8 +54,27 @@ export default function Home(props: Readonly<HomeProps>) {
               },
             },
           }}
+          titleTypographyProps={{
+            variant: "h5",
+            sx: {
+              fontFamily: "var(--font-outfit), sans-serif",
+              fontSize: { xs: "1.35rem", sm: "1.6rem", md: "1.8rem" },
+              fontWeight: 800,
+              lineHeight: 1.25,
+              letterSpacing: "-0.015em",
+            },
+          }}
+          subheaderTypographyProps={{
+            variant: "subtitle2",
+            sx: {
+              fontSize: { xs: "0.82rem", sm: "0.9rem" },
+              fontWeight: 500,
+              opacity: 0.8,
+              mt: 0.5,
+            },
+          }}
           title="All-New, All-Different Shortbox"
-          subheader="Das deutsche Archiv für Marvel Comics"
+          subheader={props.us ? "Das US-Archiv für Marvel Comics" : "Das deutsche Archiv für Marvel Comics"}
           action={<SortContainer query={props.query as ListingQuery} selected={props.selected} us={props.us} />}
         />
         <Typography

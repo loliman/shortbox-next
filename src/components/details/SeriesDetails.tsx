@@ -126,9 +126,28 @@ export default function SeriesDetails(props: Readonly<SeriesDetailsProps>) {
     <Box sx={detailsBackgroundSx}>
       <CardHeader
         sx={{
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          alignItems: { xs: "stretch", sm: "center" },
+          gap: { xs: 1.5, sm: 0 },
+          "& .MuiCardHeader-content": {
+            width: "100%",
+          },
           "& .MuiCardHeader-action": {
             m: 0,
-            alignSelf: "center",
+            alignSelf: { xs: "flex-end", sm: "center" },
+          },
+        }}
+        titleTypographyProps={{
+          variant: "h5",
+          sx: {
+            fontSize: {
+              xs: "1.15rem",
+              sm: "1.35rem",
+              md: "1.65rem",
+            },
+            fontWeight: 700,
+            lineHeight: 1.25,
           },
         }}
         title={

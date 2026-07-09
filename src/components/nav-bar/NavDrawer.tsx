@@ -241,12 +241,18 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
         ModalProps={{
           keepMounted: false,
         }}
-        PaperProps={{
-          sx: paperSx,
-        }}
         slotProps={{
           paper: {
             sx: paperSx,
+          },
+          backdrop: {
+            sx: (theme) => ({
+              backgroundColor: "rgba(0, 0, 0, 0.35)",
+              backdropFilter: "blur(4px)",
+              ...theme.applyStyles("dark", {
+                backgroundColor: "rgba(0, 0, 0, 0.65)",
+              }),
+            }),
           },
         }}
       >

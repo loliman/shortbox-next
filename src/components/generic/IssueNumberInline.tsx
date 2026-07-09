@@ -19,24 +19,30 @@ export function IssueNumberInline(props: Readonly<IssueNumberInlineProps>) {
     <Box
       component="span"
       sx={{
-        display: "inline-flex",
-        alignItems: "baseline",
-        gap: 0.75,
-        minWidth: 0,
-        flexWrap: "wrap",
+        display: "inline",
+        whiteSpace: "nowrap",
         color: "inherit",
       }}
     >
-      {number ? <Box component="span">{`${props.prefix || "#"}${number}`}</Box> : null}
-      {props.suffix || null}
+      {number ? (
+        <Box component="span" sx={{ display: "inline", ml: 0.5 }}>
+          {`${props.prefix || "#"}${number}`}
+        </Box>
+      ) : null}
+      {props.suffix ? (
+        <Box component="span" sx={{ display: "inline", ml: 0.5 }}>
+          {props.suffix}
+        </Box>
+      ) : null}
       {legacyLabel ? (
         <Box
           component="span"
           sx={{
+            display: "inline",
+            ml: 0.5,
             color: "text.secondary",
             fontSize: "0.85em",
             fontWeight: 400,
-            whiteSpace: "nowrap",
           }}
         >
           {legacyLabel}
@@ -59,15 +65,11 @@ export function IssueReferenceInline(props: Readonly<IssueReferenceInlineProps>)
     <Box
       component="span"
       sx={{
-        display: "inline-flex",
-        alignItems: "baseline",
-        gap: 0.75,
-        minWidth: 0,
-        flexWrap: "wrap",
+        display: "inline",
         color: "inherit",
       }}
     >
-      {props.seriesLabel ? <Box component="span">{props.seriesLabel}</Box> : null}
+      {props.seriesLabel ? <Box component="span" sx={{ display: "inline" }}>{props.seriesLabel}</Box> : null}
       <IssueNumberInline
         number={props.number}
         legacy_number={props.legacy_number}

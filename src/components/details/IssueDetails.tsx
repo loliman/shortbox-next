@@ -163,9 +163,28 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
       ) : null}
       <CardHeader
         sx={{
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          alignItems: { xs: "stretch", sm: "center" },
+          gap: { xs: 1.5, sm: 0 },
+          "& .MuiCardHeader-content": {
+            width: "100%",
+          },
           "& .MuiCardHeader-action": {
             m: 0,
-            alignSelf: "center",
+            alignSelf: { xs: "flex-end", sm: "center" },
+          },
+        }}
+        titleTypographyProps={{
+          variant: "h5",
+          sx: {
+            fontSize: {
+              xs: "1.15rem",
+              sm: "1.35rem",
+              md: "1.65rem",
+            },
+            fontWeight: 700,
+            lineHeight: 1.25,
           },
         }}
         title={
@@ -346,7 +365,7 @@ function renderAddInfo(issue: Issue): React.ReactNode {
         p: 2,
         backgroundColor: "rgba(255, 255, 255, 0.75)",
         '[data-theme="dark"] &': {
-          backgroundColor: "rgba(30, 30, 30, 0.75)",
+          backgroundColor: "rgba(18, 18, 18, 0.85)",
         },
       }}
     >
@@ -475,7 +494,7 @@ function renderIssueSummaryCard(
         boxShadow: 1,
         backgroundColor: "rgba(255, 255, 255, 0.75)",
         '[data-theme="dark"] &': {
-          backgroundColor: "rgba(30, 30, 30, 0.75)",
+          backgroundColor: "rgba(18, 18, 18, 0.85)",
         },
       }}
     >

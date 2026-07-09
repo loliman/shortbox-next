@@ -94,8 +94,8 @@ export function ContainsItem(props: Readonly<ContainsItemProps>) {
             ? "rgba(198, 204, 214, 0.52)"
             : (theme.vars?.palette.divider ?? theme.palette.divider),
           background: isHighlighted
-            ? "linear-gradient(90deg, rgba(188, 196, 210, 0.16) 0%, rgba(30, 30, 30, 0.75) 36%)"
-            : "rgba(30, 30, 30, 0.75)",
+            ? "linear-gradient(90deg, rgba(188, 196, 210, 0.16) 0%, rgba(18, 18, 18, 0.85) 36%)"
+            : "rgba(18, 18, 18, 0.85)",
           boxShadow: isHighlighted
             ? "0 10px 28px -18px rgba(180, 188, 202, 0.7), 0 0 0 1px rgba(188, 196, 210, 0.42) inset"
             : theme.shadows[1],

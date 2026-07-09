@@ -73,6 +73,11 @@ function CollectionSection({
             flexWrap: { xs: "wrap", md: "nowrap" },
             width: "100%",
             mb: 1.1,
+            gap: { xs: "6px", md: 0 },
+            "& .MuiToggleButtonGroup-middleButton, & .MuiToggleButtonGroup-firstButton, & .MuiToggleButtonGroup-lastButton": {
+              borderRadius: { xs: "6px !important", md: undefined },
+              border: { xs: "1px solid rgba(100, 116, 139, 0.35) !important", md: undefined },
+            },
             "& .MuiToggleButton-root": {
               textTransform: "none",
               flex: { xs: "1 1 auto", md: 1 },

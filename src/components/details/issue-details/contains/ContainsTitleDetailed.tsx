@@ -598,7 +598,9 @@ function buildDetailedActionChips({
   }
 
   if (!isCover && item.onlyapp && item.parent) {
-    chips.push(<Chip key="onlyapp" label="Einzige Veröffentlichung" color="secondary" />);
+    chips.push(
+      <Chip key="onlyapp" variant="outlined" label="Einzige Veröffentlichung" color="secondary" />
+    );
   }
 
   if (!isCover && !item.onlyapp && item.parent) {

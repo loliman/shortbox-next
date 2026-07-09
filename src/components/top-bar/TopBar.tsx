@@ -12,6 +12,8 @@ import IconButton from "@mui/material/IconButton";
 import ButtonBase from "@mui/material/ButtonBase";
 import type { SelectedRoot } from "../../types/domain";
 import CloseIcon from "@mui/icons-material/Close";
+import MenuIcon from "@mui/icons-material/Menu";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import { isMockMode } from "../../app/mockMode";
 import { mutationRequest } from "../../lib/client/mutation-request";
 import type { RouteQuery } from "../../types/route-ui";
@@ -679,52 +681,5 @@ function GlobalNavigationIndicator() {
 }
 
 function HamburgerIcon(props: Readonly<{ open: boolean }>) {
-  const barSx = {
-    position: "absolute" as const,
-    left: 0,
-    width: "100%",
-    height: 2,
-    borderRadius: 999,
-    backgroundColor: "currentColor",
-    transition: "transform 220ms ease, opacity 220ms ease, top 220ms ease",
-  };
-
-  return (
-    <Box
-      component="span"
-      sx={{
-        position: "relative",
-        display: "inline-block",
-        width: 18,
-        height: 14,
-      }}
-      aria-hidden
-    >
-      <Box
-        component="span"
-        sx={{
-          ...barSx,
-          top: props.open ? 6 : 0,
-          transform: props.open ? "rotate(45deg)" : "none",
-        }}
-      />
-      <Box
-        component="span"
-        sx={{
-          ...barSx,
-          top: 6,
-          opacity: props.open ? 0 : 1,
-          transform: props.open ? "scaleX(0.7)" : "none",
-        }}
-      />
-      <Box
-        component="span"
-        sx={{
-          ...barSx,
-          top: props.open ? 6 : 12,
-          transform: props.open ? "rotate(-45deg)" : "none",
-        }}
-      />
-    </Box>
-  );
+  return props.open ? <ChevronLeftIcon /> : <MenuIcon />;
 }

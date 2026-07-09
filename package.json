@@ -21,6 +21,7 @@
     "test:unit:coverage": "jest --runInBand --coverage",
     "test:watch": "jest --watch",
     "test:e2e:smoke": "playwright test",
+    "test:visual-audit": "playwright test tests/e2e/screenshots.spec.ts && node scripts/generate-screenshot-dashboard.mjs",
     "test:seo:smoke": "node scripts/seo-smoke-test.mjs",
     "test:seo:sitemap": "node scripts/sitemap-monitor.mjs",
     "test:a11y:pa11y": "node scripts/run-pa11y-audit.mjs",

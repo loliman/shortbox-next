@@ -82,9 +82,10 @@ export function createIssueSeriesLabel(issueNode: IssueNode, us: boolean): strin
 export function createSidebarIssueLabel(issueNode: IssueNode, us: boolean): string {
   const number = issueNode.number ? `#${issueNode.number}` : "";
   const legacyLabel = getLegacyNumberLabel(issueNode);
-  const seriesLabel = createIssueSeriesLabel(issueNode, us);
+  const issueTitle =
+    issueNode.title && issueNode.title !== issueNode.series?.title ? issueNode.title : "";
 
-  return [number, legacyLabel, seriesLabel].filter(Boolean).join(" ");
+  return [number, legacyLabel, issueTitle].filter(Boolean).join(" ");
 }
 
 export function getSelectedPublisherName(selected: SelectedRoot): string {

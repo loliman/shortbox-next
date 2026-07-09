@@ -66,11 +66,12 @@ function LoginView(props: Readonly<LoginProps>) {
       {({ submitForm, isSubmitting }) => (
         <Box
           sx={{
-            minHeight: "80vh",
+            minHeight: { xs: "auto", sm: "80vh" },
+            py: { xs: 4, sm: 0 },
+            px: { xs: 1.5, sm: 3 },
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            p: { xs: 1, sm: 3 },
           }}
         >
           <Form id="loginForm" style={{ width: "100%", maxWidth: 520 }}>
@@ -80,7 +81,7 @@ function LoginView(props: Readonly<LoginProps>) {
                 border: "1px solid",
                 borderColor: "divider",
                 borderRadius: 6,
-                padding: { xs: 3.5, sm: 5 },
+                padding: { xs: 2.25, sm: 5 },
                 backgroundColor: "background.paper",
                 boxShadow: (theme) =>
                   theme.palette.mode === "dark"
@@ -147,20 +148,28 @@ function LoginView(props: Readonly<LoginProps>) {
                 />
               </Stack>
 
-              <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end", gap: 1.5 }}>
+              <Box
+                sx={{
+                  mt: 4,
+                  display: "flex",
+                  flexDirection: { xs: "column-reverse", sm: "row" },
+                  justifyContent: "flex-end",
+                  gap: 1.5,
+                }}
+              >
                 <Button
                   disabled={isSubmitting}
                   onClick={() => router.back()}
                   variant="outlined"
                   color="primary"
                   sx={{
-                    borderRadius: 50,
                     px: 3.5,
-                    py: 1,
+                    py: 1.25,
                     textTransform: "none",
                     fontWeight: 600,
                     borderColor: "divider",
                     color: "text.primary",
+                    width: { xs: "100%", sm: "auto" },
                     "&:hover": {
                       borderColor: "text.primary",
                       backgroundColor: "action.hover",
@@ -175,11 +184,11 @@ function LoginView(props: Readonly<LoginProps>) {
                   variant="contained"
                   color="primary"
                   sx={{
-                    borderRadius: 50,
                     px: 3.5,
-                    py: 1,
+                    py: 1.25,
                     textTransform: "none",
                     fontWeight: 600,
+                    width: { xs: "100%", sm: "auto" },
                   }}
                 >
                   Login

@@ -26,7 +26,7 @@ function ContributorsSection({ values, us, setFieldValue }: Readonly<Contributor
 
   return (
     <Stack spacing={2}>
-      <Typography variant="h6">Mitwirkende</Typography>
+      <Typography variant="h6" sx={{ display: { xs: "none", md: "block" } }}>Mitwirkende</Typography>
 
       <Stack spacing={1}>
         {CONTRIBUTOR_FIELDS.map((field) => (
