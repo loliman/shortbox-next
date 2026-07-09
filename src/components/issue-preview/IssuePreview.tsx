@@ -116,7 +116,7 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
           },
           overflow: "hidden",
           position: "relative",
-          transition: "transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 240ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 180ms ease",
+          transition: "transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 240ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 180ms ease, background-color 250ms ease, color 250ms ease, border-color 250ms ease",
           opacity: isNavigating ? 0.76 : 1,
           "&:hover": {
             transform: "translateY(-4px) scale(1.002)",

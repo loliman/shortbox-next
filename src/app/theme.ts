@@ -19,8 +19,8 @@ function getThemeTokens(mode: AppThemeMode): ThemeTokens {
       paperBg: "#1b1b1a",
       text: "#f3f2ef",
       textSecondary: "#9d9a94",
-      border: "#2d2b28",
-      rowHover: "#222120",
+      border: "#201f1d",
+      rowHover: "#1b1b1a",
       link: "#d4a373",
     };
   }
@@ -123,10 +123,28 @@ function chipAccentStyles(
   };
 }
 
+const customShadows = Array(25).fill("none") as any;
+customShadows[0] = "none";
+customShadows[1] = "0 1px 2px rgba(0, 0, 0, 0.04)";
+customShadows[2] = "0 4px 12px rgba(0, 0, 0, 0.05)";
+customShadows[3] = "0 8px 20px rgba(0, 0, 0, 0.06)";
+customShadows[4] = "0 10px 24px rgba(0, 0, 0, 0.07)";
+customShadows[6] = "0 12px 28px rgba(0, 0, 0, 0.08)";
+customShadows[8] = "0 16px 36px rgba(0, 0, 0, 0.09)";
+customShadows[12] = "0 20px 48px rgba(0, 0, 0, 0.1)";
+customShadows[16] = "0 24px 60px rgba(0, 0, 0, 0.12)";
+customShadows[24] = "0 32px 72px rgba(0, 0, 0, 0.15)";
+for (let i = 1; i < 25; i++) {
+  if (customShadows[i] === "none") {
+    customShadows[i] = `0 ${i * 2}px ${i * 4}px rgba(0,0,0,0.05)`;
+  }
+}
+
 export const appTheme = createTheme({
   cssVariables: {
     colorSchemeSelector: '[data-theme="%s"]',
   },
+  shadows: customShadows,
   colorSchemes: {
     light: {
       palette: createPalette("light"),
@@ -136,7 +154,7 @@ export const appTheme = createTheme({
     },
   },
   shape: {
-    borderRadius: 8,
+    borderRadius: 12,
   },
   typography: {
     fontFamily: 'var(--font-inter), Roboto, "Helvetica Neue", Arial, sans-serif',
@@ -160,7 +178,41 @@ export const appTheme = createTheme({
   },
   components: {
     MuiCssBaseline: {
-      styleOverrides: {
+      styleOverrides: (theme) => ({
+        html: {
+          scrollbarWidth: "thin",
+          scrollbarColor:
+            theme.palette.mode === "dark"
+              ? "rgba(255, 255, 255, 0.12) transparent"
+              : "rgba(0, 0, 0, 0.12) transparent",
+        },
+        body: {
+          transition: "background-color 250ms ease, color 250ms ease, border-color 250ms ease",
+        },
+        // Premium slim scrollbars
+        "*::-webkit-scrollbar": {
+          width: "8px",
+          height: "8px",
+        },
+        "*::-webkit-scrollbar-track": {
+          background: "transparent",
+        },
+        "*::-webkit-scrollbar-thumb": {
+          backgroundColor: "rgba(0, 0, 0, 0.12)",
+          borderRadius: "8px",
+          transition: "background-color 150ms ease",
+          "&:hover": {
+            backgroundColor: "rgba(0, 0, 0, 0.22)",
+          },
+        },
+        ...theme.applyStyles("dark", {
+          "*::-webkit-scrollbar-thumb": {
+            backgroundColor: "rgba(255, 255, 255, 0.12)",
+            "&:hover": {
+              backgroundColor: "rgba(255, 255, 255, 0.22)",
+            },
+          },
+        }),
         ".data-fade": {
           animation: "dataFadeIn 320ms cubic-bezier(0.22, 1, 0.36, 1)",
           willChange: "opacity, transform",
@@ -175,6 +227,20 @@ export const appTheme = createTheme({
             animationTimingFunction: "linear",
             transform: "none",
           },
+        },
+      }),
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          transition: "background-color 250ms ease, color 250ms ease, border-color 250ms ease, box-shadow 250ms ease",
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          transition: "background-color 250ms ease, color 250ms ease, border-color 250ms ease, box-shadow 250ms ease",
         },
       },
     },
@@ -191,7 +257,7 @@ export const appTheme = createTheme({
             theme.palette.mode === "dark"
               ? (theme.vars?.palette.divider ?? theme.palette.divider)
               : "rgba(255, 255, 255, 0.08)",
-          transition: "background-color 200ms ease, backdrop-filter 200ms ease",
+          transition: "background-color 250ms ease, color 250ms ease, border-color 250ms ease",
         }),
       },
     },
@@ -201,7 +267,7 @@ export const appTheme = createTheme({
       },
       styleOverrides: {
         root: ({ theme }) => ({
-          borderRadius: (Number(theme.shape.borderRadius) || 12) - 2,
+          borderRadius: (Number(theme.shape.borderRadius) || 12) - 4,
         }),
       },
     },
@@ -287,6 +353,7 @@ export const appTheme = createTheme({
           "&.Mui-expanded": {
             margin: 0,
           },
+          transition: "background-color 250ms ease, border-color 250ms ease",
         },
       },
     },

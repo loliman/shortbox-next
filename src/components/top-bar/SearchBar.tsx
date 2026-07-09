@@ -555,6 +555,35 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
     return () => document.removeEventListener("keydown", handleGlobalKeyDown);
   }, [focused, handleExpertAbort]);
 
+  // Global listener for Cmd+K or Ctrl+K shortcut to focus search input
+  useEffect(() => {
+    const handleShortcut = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key?.toLowerCase() === "k") {
+        e.preventDefault();
+        const searchInput = document.querySelector('[data-shortbox-search-input="true"]') as HTMLInputElement;
+        if (searchInput) {
+          searchInput.focus();
+          searchInput.select();
+        }
+      }
+    };
+    globalThis.window?.addEventListener("keydown", handleShortcut);
+    return () => globalThis.window?.removeEventListener("keydown", handleShortcut);
+  }, []);
+
+  // Autofocus helper to ensure 100% reliable focus when modal/overlay opens
+  useEffect(() => {
+    if (ownProps.autoFocus) {
+      const timeout = globalThis.setTimeout(() => {
+        const input = document.querySelector('[data-shortbox-search-input="true"]') as HTMLInputElement;
+        if (input) {
+          input.focus();
+        }
+      }, 150);
+      return () => globalThis.clearTimeout(timeout);
+    }
+  }, [ownProps.autoFocus]);
+
   const handleBackdropClick = useCallback(() => {
     if (expertModeActive) {
       handleExpertAbort();
@@ -1342,7 +1371,13 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                   backgroundImage: "none",
                 },
                 "& .MuiAutocomplete-option": {
-                  backgroundColor: getResultsSurfaceColor,
+                  backgroundColor: "transparent",
+                  "&:hover, &.Mui-focused, &[data-focus='true']": {
+                    backgroundColor: (theme) =>
+                      theme.palette.mode === "dark"
+                        ? "rgba(255, 255, 255, 0.08) !important"
+                        : "rgba(0, 0, 0, 0.04) !important",
+                  },
                 },
               })}
               renderInput={(params) => {

@@ -18,12 +18,24 @@ export function AppInlineLoader(props: Readonly<AppInlineLoaderProps>) {
         display: "flex",
         justifyContent: centered ? "center" : "flex-start",
         alignItems: "center",
-        gap: label ? 1 : 0,
-        py: 2,
+        gap: 1.5,
+        py: 2.5,
+        transition: "all 200ms ease",
       }}
     >
-      <CircularProgress size={size} />
-      {label ? <Typography color="text.secondary">{label}</Typography> : null}
+      <CircularProgress size={size} thickness={4.5} />
+      {label ? (
+        <Typography
+          variant="body2"
+          sx={{
+            color: "text.secondary",
+            fontSize: "0.88rem",
+            fontWeight: 500,
+          }}
+        >
+          {label}
+        </Typography>
+      ) : null}
     </Box>
   );
 }

@@ -132,6 +132,52 @@ function ThemeModeBridge(props: Readonly<AppProvidersProps>) {
 
   const chromeLoading = navigationPayloadLoading || navigationUiLoading;
 
+  // Intercept all document clicks on internal links to start progress indicator
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const handleGlobalClick = (e: MouseEvent) => {
+      // Find closest anchor tag
+      const anchor = (e.target as HTMLElement).closest("a");
+      if (!anchor) return;
+
+      const href = anchor.getAttribute("href");
+      if (!href) return;
+
+      // Ignore external links, mailto, tel, target="_blank", or download links
+      if (
+        href.startsWith("http") ||
+        href.startsWith("#") ||
+        href.startsWith("mailto:") ||
+        href.startsWith("tel:") ||
+        anchor.getAttribute("target") === "_blank" ||
+        anchor.hasAttribute("download")
+      ) {
+        return;
+      }
+
+      // Ignore modifiers (Cmd, Ctrl, Shift, Alt) or non-left clicks
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
+        return;
+      }
+
+      // Trigger the navigation indicator!
+      beginNavigation();
+    };
+
+    const handlePopState = () => {
+      beginNavigation();
+    };
+
+    document.addEventListener("click", handleGlobalClick, { capture: true });
+    globalThis.addEventListener("popstate", handlePopState);
+
+    return () => {
+      document.removeEventListener("click", handleGlobalClick, { capture: true });
+      globalThis.removeEventListener("popstate", handlePopState);
+    };
+  }, [beginNavigation]);
+
   useEffect(() => {
     if (navigationPending !== true) return;
 

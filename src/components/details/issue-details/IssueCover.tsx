@@ -45,12 +45,19 @@ export function IssueCover(props: Readonly<IssueCoverProps>) {
           cursor: "zoom-in",
           display: "block",
           transition:
-            "background-color 180ms ease, background-image 180ms ease, border-color 180ms ease, box-shadow 180ms ease",
+            "transform 250ms cubic-bezier(0.4, 0, 0.2, 1), background-color 180ms ease, background-image 180ms ease, border-color 180ms ease, box-shadow 250ms ease",
+          "&:hover": {
+            transform: "scale(1.015)",
+            boxShadow: theme.shadows[6],
+          },
           ...theme.applyStyles("dark", {
             backgroundColor: "#0b0b0c",
             backgroundImage:
               "linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%)",
             boxShadow: "0 10px 28px rgba(0,0,0,0.42)",
+            "&:hover": {
+              boxShadow: "0 14px 36px rgba(0,0,0,0.55)",
+            },
           }),
         })}
       >

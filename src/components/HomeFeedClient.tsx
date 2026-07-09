@@ -4,13 +4,20 @@ import React from "react";
 import dynamic from "next/dynamic";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
+import Card from "@mui/material/Card";
+import Button from "@mui/material/Button";
+import Typography from "@mui/material/Typography";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
+import SearchOffIcon from "@mui/icons-material/SearchOff";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import { useSnackbarBridge } from "./generic/useSnackbarBridge";
 import IssuePreview from "./issue-preview/IssuePreview";
 import IssuePreviewSmall from "./issue-preview/IssuePreviewSmall";
 import LoadingDots from "./generic/LoadingDots";
 import type { PreviewIssue } from "./issue-preview/utils/issuePreviewUtils";
+import { buildRouteHref } from "./generic/routeHref";
+import { usePendingNavigation } from "./generic/usePendingNavigation";
 import {
   getListingDirection,
   getListingOrder,
@@ -62,6 +69,7 @@ export default function HomeFeedClient(props: Readonly<HomeFeedClientProps>) {
   });
   const isTablet = !isPhone && !isDesktop;
   const { enqueueSnackbar } = useSnackbarBridge();
+  const { isPending, push } = usePendingNavigation();
   const query = props.query as
     | { filter?: string; order?: string; direction?: string; view?: string }
     | null
@@ -69,6 +77,92 @@ export default function HomeFeedClient(props: Readonly<HomeFeedClientProps>) {
   const routeUs = Boolean(props.us);
   const filter = parseListingFilter(query, routeUs);
   const compactLayout = isPhone || (isTablet && !isLandscape);
+
+  const requestKey = React.useMemo(
+    () =>
+      JSON.stringify({
+        us: routeUs,
+        order: getListingOrder(query),
+        direction: getListingDirection(query),
+        filter,
+      }),
+    [routeUs, query, filter]
+  );
+
+  const [items, setItems] = React.useState<PreviewIssue[]>(() => props.initialItems ?? []);
+  const [fetchingMore, setFetchingMore] = React.useState(false);
+  const [hasMore, setHasMore] = React.useState(Boolean(props.initialHasMore));
+  const [nextCursor, setNextCursor] = React.useState<string | null>(props.initialNextCursor ?? null);
+
+  const cacheKey = React.useMemo(() => `shortbox_home_cache_${requestKey}`, [requestKey]);
+  const scrollKey = React.useMemo(() => `shortbox_home_scroll_${requestKey}`, [requestKey]);
+
+  // Clean cache on fresh navigations (i.e. not back/forward)
+  React.useEffect(() => {
+    if (typeof window === "undefined" || !window.performance) return;
+    try {
+      const navs = window.performance.getEntriesByType("navigation");
+      const navType = navs[0] ? (navs[0] as any).type : "";
+      if (navType && navType !== "back_forward") {
+        sessionStorage.removeItem(cacheKey);
+        sessionStorage.removeItem(scrollKey);
+      }
+    } catch (e) {}
+  }, [cacheKey, scrollKey]);
+
+  // Restore state from sessionStorage on popstate / back-navigation
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        const { items: cachedItems, nextCursor: cachedCursor, hasMore: cachedHasMore } = JSON.parse(cached);
+        setItems(cachedItems);
+        setNextCursor(cachedCursor);
+        setHasMore(cachedHasMore);
+
+        const savedScroll = sessionStorage.getItem(scrollKey);
+        if (savedScroll) {
+          globalThis.setTimeout(() => {
+            window.scrollTo(0, parseInt(savedScroll, 10));
+          }, 100);
+        }
+      }
+    } catch (e) {}
+  }, [cacheKey, scrollKey]);
+
+  // Save state on items/hasMore/nextCursor change
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (items.length > (props.initialItems?.length ?? 0)) {
+      try {
+        sessionStorage.setItem(
+          cacheKey,
+          JSON.stringify({
+            items,
+            nextCursor,
+            hasMore,
+          })
+        );
+      } catch (e) {}
+    }
+  }, [items, nextCursor, hasMore, cacheKey, props.initialItems]);
+
+  // Save scroll position on scroll
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saveScroll = () => {
+      try {
+        sessionStorage.setItem(scrollKey, String(window.scrollY));
+      } catch (e) {}
+    };
+    window.addEventListener("scroll", saveScroll, { passive: true });
+    return () => window.removeEventListener("scroll", saveScroll);
+  }, [scrollKey]);
+
+  const handleResetAll = React.useCallback(() => {
+    push(buildRouteHref(window.location.pathname, null, { filter: null }));
+  }, [push]);
   const listingView = getListingView(query);
   const galleryGridColumns = compactLayout
     ? "repeat(1, minmax(0, 1fr))"
@@ -96,20 +190,6 @@ export default function HomeFeedClient(props: Readonly<HomeFeedClientProps>) {
       props.session,
       routeUs,
     ]
-  );
-  const [items, setItems] = React.useState<PreviewIssue[]>(() => props.initialItems ?? []);
-  const [fetchingMore, setFetchingMore] = React.useState(false);
-  const [hasMore, setHasMore] = React.useState(Boolean(props.initialHasMore));
-  const [nextCursor, setNextCursor] = React.useState<string | null>(props.initialNextCursor ?? null);
-  const requestKey = React.useMemo(
-    () =>
-      JSON.stringify({
-        us: routeUs,
-        order: getListingOrder(query),
-        direction: getListingDirection(query),
-        filter,
-      }),
-    [routeUs, query, filter]
   );
 
   const loadPage = React.useCallback(
@@ -196,38 +276,76 @@ export default function HomeFeedClient(props: Readonly<HomeFeedClientProps>) {
         />
       ) : null}
 
-      <Box
-        key={listingView}
-        sx={{
-          animation: "listingViewSwap 220ms ease-in-out",
-          "@keyframes listingViewSwap": {
-            "0%": { opacity: 0, transform: "translateY(4px)" },
-            "100%": { opacity: 1, transform: "translateY(0)" },
-          },
-        }}
-      >
-        {listingView === "gallery" ? (
-          <Box sx={galleryGridSx}>
-            {items.map((item, idx) => (
-              <IssuePreviewSmall
-                {...previewProps}
-                key={buildIssueKey(item, idx)}
-                issue={item}
-              />
-            ))}
+      {items.length === 0 ? (
+        <Card
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+            p: { xs: 4, sm: 6 },
+            gap: 2,
+            border: "1px dashed",
+            borderColor: "divider",
+            backgroundColor: "background.paper",
+            borderRadius: 3,
+            boxShadow: "none",
+            mt: 2,
+          }}
+        >
+          <SearchOffIcon sx={{ fontSize: 48, color: "text.secondary", opacity: 0.7 }} />
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
+              Keine passenden Ausgaben gefunden
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Passe deine Filter oder deinen Suchbegriff an, um andere Ergebnisse zu sehen.
+            </Typography>
           </Box>
-        ) : (
-          <Stack spacing={1.5}>
-            {items.map((item, idx) => (
-              <IssuePreview
-                {...previewProps}
-                key={buildIssueKey(item, idx)}
-                issue={item}
-              />
-            ))}
-          </Stack>
-        )}
-      </Box>
+          <Button
+            variant="outlined"
+            onClick={handleResetAll}
+            startIcon={<RestartAltIcon />}
+            sx={{ mt: 1 }}
+          >
+            Filter zurücksetzen
+          </Button>
+        </Card>
+      ) : (
+        <Box
+          key={listingView}
+          sx={{
+            animation: "listingViewSwap 220ms ease-in-out",
+            "@keyframes listingViewSwap": {
+              "0%": { opacity: 0, transform: "translateY(4px)" },
+              "100%": { opacity: 1, transform: "translateY(0)" },
+            },
+          }}
+        >
+          {listingView === "gallery" ? (
+            <Box sx={galleryGridSx}>
+              {items.map((item, idx) => (
+                <IssuePreviewSmall
+                  {...previewProps}
+                  key={buildIssueKey(item, idx)}
+                  issue={item}
+                />
+              ))}
+            </Box>
+          ) : (
+            <Stack spacing={1.5}>
+              {items.map((item, idx) => (
+                <IssuePreview
+                  {...previewProps}
+                  key={buildIssueKey(item, idx)}
+                  issue={item}
+                />
+              ))}
+            </Stack>
+          )}
+        </Box>
+      )}
 
       {loadingIndicator}
     </>
