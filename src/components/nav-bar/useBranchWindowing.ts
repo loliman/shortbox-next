@@ -83,22 +83,30 @@ export function useBranchWindowing(
     if (deferProgressiveRendering) return;
     if (windowRange.start <= 0 && windowRange.end >= totalCount) return;
 
-    let frameId = 0;
+    let timerId: any = undefined;
     let cancelled = false;
 
     const run = () => {
       if (cancelled) return;
-      const nextRange = getNextWindowRange(windowRange, totalCount, selectedIndex);
       React.startTransition(() => {
-        setWindowRange(nextRange);
+        setWindowRange((prev) => {
+          if (prev.start <= 0 && prev.end >= totalCount) {
+            return prev;
+          }
+          return getNextWindowRange(prev, totalCount, selectedIndex);
+        });
       });
     };
 
-    frameId = globalThis.requestAnimationFrame(run);
+    // Use a small delay (120ms) instead of requestAnimationFrame for progressive rendering.
+    // This yields control back to the main thread between rendering chunks, preventing
+    // scroll/interaction lag. It also naturally debounces progressive rendering during
+    // active scrolling because windowRange changes on scroll clean up the pending timeout.
+    timerId = globalThis.setTimeout(run, 120);
 
     return () => {
       cancelled = true;
-      if (frameId) globalThis.cancelAnimationFrame(frameId);
+      if (timerId) globalThis.clearTimeout(timerId);
     };
   }, [
     deferProgressiveRendering,
