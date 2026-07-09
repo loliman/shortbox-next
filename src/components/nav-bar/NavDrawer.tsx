@@ -65,7 +65,8 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
     borderRightColor: "rgba(0, 0, 0, 0.06)",
     overflow: "hidden",
     '[data-theme="dark"] &': {
-      backgroundColor: "var(--mui-palette-background-default) !important",
+      backgroundColor: "rgba(18, 18, 18, 0.75) !important",
+      backdropFilter: "blur(20px)",
       borderRightColor: "rgba(255, 255, 255, 0.08)",
     },
   };
@@ -83,8 +84,8 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
     >
       <Box
         sx={{
-          height: 40,
-          px: 1.5,
+          height: 48,
+          px: 2,
           boxSizing: "border-box",
           borderBottom: "1px solid",
           borderColor: "divider",
@@ -131,61 +132,47 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
           }}
           sx={{
             "& .MuiOutlinedInput-root": {
-              height: 28,
-              backgroundColor: "rgba(0, 0, 0, 0.035)",
-              borderRadius: "14px",
+              height: 32,
+              backgroundColor: "rgba(0, 0, 0, 0.04)",
+              borderRadius: "8px",
               px: 1,
-              transition: "background-color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease",
+              transition: "background-color 0.2s ease, box-shadow 0.2s ease",
               "& fieldset": {
-                border: "1px solid",
-                borderColor: "rgba(0, 0, 0, 0.06)",
+                border: "none",
               },
               "&:hover": {
-                backgroundColor: "rgba(0, 0, 0, 0.055)",
-                "& fieldset": {
-                  borderColor: "rgba(0, 0, 0, 0.12)",
-                },
+                backgroundColor: "rgba(0, 0, 0, 0.07)",
               },
               "&.Mui-focused": {
                 backgroundColor: "#ffffff",
-                boxShadow: (theme) => `0 0 0 2.5px ${alpha(theme.palette.primary.main, 0.12)}`,
-                "& fieldset": {
-                  borderColor: "primary.main",
-                },
+                boxShadow: (theme) => `0 0 0 2px ${alpha(theme.palette.primary.main, 0.2)}`,
                 "& .MuiInputAdornment-positionStart .MuiSvgIcon-root": {
                   opacity: 0.8,
                   color: "primary.main",
-                  '[data-theme="dark"] &': {
-                    color: "primary.light",
-                  },
                 },
               },
               '[data-theme="dark"] &': {
-                backgroundColor: "rgba(255, 255, 255, 0.06)",
-                "& fieldset": {
-                  borderColor: "rgba(255, 255, 255, 0.06)",
-                },
+                backgroundColor: "rgba(255, 255, 255, 0.05)",
                 "&:hover": {
                   backgroundColor: "rgba(255, 255, 255, 0.09)",
-                  "& fieldset": {
-                    borderColor: "rgba(255, 255, 255, 0.12)",
-                  },
                 },
                 "&.Mui-focused": {
-                  backgroundColor: "var(--mui-palette-background-paper)",
-                  boxShadow: (theme) => `0 0 0 2.5px ${alpha(theme.palette.primary.light, 0.18)}`,
-                  "& fieldset": {
-                    borderColor: "primary.light",
+                  backgroundColor: "rgba(255, 255, 255, 0.08)",
+                  boxShadow: (theme) => `0 0 0 2px ${alpha(theme.palette.primary.light, 0.25)}`,
+                  "& .MuiInputAdornment-positionStart .MuiSvgIcon-root": {
+                    opacity: 0.8,
+                    color: "primary.light",
                   },
                 },
               },
             },
             "& .MuiOutlinedInput-input": {
               padding: "0 4px",
-              fontSize: "0.82rem",
+              fontSize: "0.85rem",
+              color: "text.primary",
             },
             "& .MuiInputBase-input::placeholder": {
-              fontSize: "0.82rem",
+              fontSize: "0.85rem",
               opacity: 0.5,
             },
           }}
@@ -231,9 +218,10 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
           ref={listRef}
           sx={{
             width: "100%",
-            p: 0,
-            pt: 0,
-            pb: navListBottomPadding,
+            boxSizing: "border-box",
+            px: 1,
+            py: 1,
+            pb: `calc(${navListBottomPadding} + 8px)`,
           }}
         >
           {children}

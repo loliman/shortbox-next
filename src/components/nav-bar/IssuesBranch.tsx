@@ -303,22 +303,35 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
               sx={(theme) => ({
                 pl: getDepthPadding(2) + 1.3,
                 py: 0.3,
-                backgroundColor: "var(--mui-palette-background-paper)",
+                borderRadius: "6px",
+                mb: "2px",
+                width: "auto",
+                borderLeft: selected
+                  ? `3px solid ${
+                      theme.palette.mode === "dark" ? theme.palette.primary.light : theme.palette.primary.main
+                    }`
+                  : "3px solid transparent",
+                transition: "background-color 0.18s ease, border-left-color 0.18s ease",
+                backgroundColor: selected
+                  ? alpha(
+                      theme.palette.mode === "dark" ? theme.palette.primary.light : theme.palette.primary.main,
+                      theme.palette.mode === "dark" ? 0.15 : 0.08
+                    )
+                  : "transparent",
                 color: "var(--mui-palette-text-primary)",
-                "&:hover": { backgroundColor: "action.hover" },
+                "&:hover": {
+                  backgroundColor: selected
+                    ? alpha(
+                        theme.palette.mode === "dark" ? theme.palette.primary.light : theme.palette.primary.main,
+                        theme.palette.mode === "dark" ? 0.22 : 0.12
+                      )
+                    : "rgba(255, 255, 255, 0.04)",
+                },
                 "&.Mui-selected": {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.14),
-                  boxShadow: `inset 3px 0 0 ${theme.palette.primary.main}`,
-                  ...theme.applyStyles("dark", {
-                    backgroundColor: alpha(theme.palette.primary.light, 0.2),
-                    boxShadow: `inset 3px 0 0 ${theme.palette.primary.light}`,
-                  }),
+                  backgroundColor: "transparent",
                 },
                 "&.Mui-selected:hover": {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.2),
-                  ...theme.applyStyles("dark", {
-                    backgroundColor: alpha(theme.palette.primary.light, 0.28),
-                  }),
+                  backgroundColor: "transparent",
                 },
                 "& .MuiListItemText-primary": {
                   color: "var(--mui-palette-text-primary) !important",

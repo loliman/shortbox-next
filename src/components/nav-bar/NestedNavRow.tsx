@@ -110,29 +110,32 @@ export const NestedRow = React.memo(function NestedRow(props: Readonly<NestedRow
       data-nav-row-key={props.navRowKey}
       sx={(theme) => ({
         pl: getDepthPadding(props.depth),
-        borderTop: props.showDivider ? 1 : 0,
-        borderColor: "divider",
+        borderTop: 0,
+        borderRadius: "6px",
+        mb: "4px",
+        width: "auto",
+        borderLeft: props.selected
+          ? `3px solid ${
+              theme.palette.mode === "dark" ? theme.palette.primary.light : theme.palette.primary.main
+            }`
+          : "3px solid transparent",
+        transition: "background-color 0.18s ease, border-left-color 0.18s ease",
         backgroundColor:
           props.selected
             ? alpha(
                 theme.palette.mode === "dark" ? theme.palette.primary.light : theme.palette.primary.main,
-                theme.palette.mode === "dark" ? 0.2 : 0.14
+                theme.palette.mode === "dark" ? 0.15 : 0.08
               )
             : "transparent",
-        boxShadow: props.selected
-          ? `inset 3px 0 0 ${
-              theme.palette.mode === "dark" ? theme.palette.primary.light : theme.palette.primary.main
-            }`
-          : "none",
         color: "var(--mui-palette-text-primary)",
-        "&:hover": props.selected
-          ? {
-              backgroundColor: alpha(
+        "&:hover": {
+          backgroundColor: props.selected
+            ? alpha(
                 theme.palette.mode === "dark" ? theme.palette.primary.light : theme.palette.primary.main,
-                theme.palette.mode === "dark" ? 0.28 : 0.2
-              ),
-            }
-          : undefined,
+                theme.palette.mode === "dark" ? 0.22 : 0.12
+              )
+            : "rgba(255, 255, 255, 0.04)",
+        },
       })}
     >
       <ExpandToggle expanded={props.expanded} pending={props.pending} onToggle={handleToggle} />
@@ -179,7 +182,7 @@ const ExpandToggle = React.memo(function ExpandToggle(props: Readonly<ExpandTogg
     );
   }
 
-  const Icon = props.expanded ? ExpandMoreIcon : ChevronRightIcon;
+  const Icon = ChevronRightIcon;
 
   return (
       <ListItemIcon sx={{ minWidth: 32, justifyContent: "center" }}>
@@ -192,9 +195,11 @@ const ExpandToggle = React.memo(function ExpandToggle(props: Readonly<ExpandTogg
           }}
           sx={{
             color: "var(--mui-palette-text-primary)",
+            transition: "transform 0.2s ease",
+            transform: props.expanded ? "rotate(90deg)" : "rotate(0deg)",
           }}
         >
-          <Icon fontSize="small" />
+          <Icon fontSize="small" sx={{ fontSize: "1.1rem" }} />
         </IconButton>
       </ListItemIcon>
   );
