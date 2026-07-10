@@ -68,7 +68,7 @@ function LoginView(props: Readonly<LoginProps>) {
           sx={{
             minHeight: { xs: "auto", sm: "80vh" },
             py: { xs: 4, sm: 0 },
-            px: { xs: 1.5, sm: 3 },
+            px: { xs: 0, sm: 3 },
             display: "flex",
             alignItems: "center",
             justifyContent: "center",

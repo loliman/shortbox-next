@@ -36,7 +36,7 @@ interface HomeProps {
 export default function Home(props: Readonly<HomeProps>) {
   const snapshotItems = props.seoSnapshot?.items ?? [];
   return (
-    <Stack spacing={3} sx={{ p: { xs: 1.5, sm: 2 } }}>
+    <Stack spacing={3} sx={{ p: { xs: 2, sm: 2 } }}>
       <Box>
         <CardHeader
           sx={{
