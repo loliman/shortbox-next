@@ -307,19 +307,27 @@ export default function TopBar(ownProps: Readonly<TopBarProps>) {
           borderBottomWidth: 1,
           borderBottomStyle: "solid",
           borderBottomColor: "var(--mui-palette-divider)",
-          backgroundColor: "transparent !important",
-          backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.82)), url("/header-bg.jpg") !important',
+          backgroundColor: "var(--shortbox-header-bg-color) !important",
+          backgroundImage: "var(--shortbox-header-bg) !important",
           backgroundSize: "100% 100%, 480px auto !important",
           backgroundRepeat: "repeat, repeat !important",
           backgroundPosition: "center, center !important",
-          backdropFilter: "blur(4px) !important",
           boxShadow: "none !important",
           color: "var(--mui-palette-text-primary) !important",
-          '[data-theme="dark"] &': {
-            backgroundImage: 'linear-gradient(rgba(18, 20, 27, 0.86), rgba(18, 20, 27, 0.86)), url("/header-bg.jpg") !important',
-          },
         }}
       >
+        <Box
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: -2,
+            pointerEvents: "none",
+            backdropFilter: "blur(4px) !important",
+          }}
+        />
         <Toolbar
           sx={{
             display: compactLayout ? "flex" : "grid",

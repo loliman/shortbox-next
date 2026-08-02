@@ -246,6 +246,8 @@ export function getAppTheme(flavor: "mac" | "material" = "mac") {
             "--shortbox-body-bg": flavor === "mac"
               ? "linear-gradient(135deg, #f2f2f7 0%, #e5e5ea 100%)"
               : "var(--mui-palette-background-default)",
+            "--shortbox-header-bg": 'linear-gradient(rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.82)), url("/header-bg.jpg")',
+            "--shortbox-header-bg-color": "rgba(255, 255, 255, 0.82)",
             ...theme.applyStyles("dark", {
               "--shortbox-glass-bg": flavor === "mac"
                 ? "rgba(28, 28, 30, 0.5)"
@@ -256,6 +258,8 @@ export function getAppTheme(flavor: "mac" | "material" = "mac") {
               "--shortbox-body-bg": flavor === "mac"
                 ? "linear-gradient(135deg, #000000 0%, #1c1c1e 100%)"
                 : "var(--mui-palette-background-default)",
+              "--shortbox-header-bg": 'linear-gradient(rgba(18, 20, 27, 0.86), rgba(18, 20, 27, 0.86)), url("/header-bg.jpg")',
+              "--shortbox-header-bg-color": "rgba(18, 20, 27, 0.86)",
             }),
           },
         // Premium slim scrollbars

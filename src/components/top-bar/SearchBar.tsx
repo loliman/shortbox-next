@@ -744,20 +744,23 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
   // ---------------------------------------------------------------------------
   return (
     <Box sx={{ width: "100%" }}>
-      <Portal>
-        <Backdrop
-          open={focused}
-          onClick={handleBackdropClick}
-          sx={(theme) => ({
-            zIndex: (t) => t.zIndex.drawer + 5,
-            backgroundColor: alpha(theme.palette.common.black, 0.36),
-            backdropFilter: "blur(5px)",
-            ...theme.applyStyles("dark", {
-              backgroundColor: alpha(theme.palette.common.black, 0.58),
-            }),
-          })}
-        />
-      </Portal>
+      <Backdrop
+        open={focused}
+        onClick={handleBackdropClick}
+        sx={(theme) => ({
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: -1,
+          backgroundColor: alpha(theme.palette.common.black, 0.36),
+          backdropFilter: "blur(1.5px)",
+          ...theme.applyStyles("dark", {
+            backgroundColor: alpha(theme.palette.common.black, 0.58),
+          }),
+        })}
+      />
 
       <Box
         sx={{
@@ -782,13 +785,13 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
             "--shortbox-search-border": "rgba(0, 0, 0, 0.30)",
             "--shortbox-search-border-hover": "rgba(0, 0, 0, 0.45)",
             // Dark mode overrides
-            ...theme.applyStyles("dark", {
+            '[data-theme="dark"] &': {
               "--shortbox-search-bg": "rgba(255, 255, 255, 0.16)",
               "--shortbox-search-color": "#ffffff",
               "--shortbox-search-placeholder": "rgba(255, 255, 255, 0.6)",
               "--shortbox-search-border": "rgba(255, 255, 255, 0.35)",
               "--shortbox-search-border-hover": "rgba(255, 255, 255, 0.55)",
-            }),
+            },
           })}
         >
           {expertModeActive ? (
@@ -1319,7 +1322,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                 transformOrigin: "top center",
                 transition: "transform 220ms ease",
                 "& .MuiOutlinedInput-root": {
-                  backgroundColor: "var(--shortbox-search-bg)",
+                  backgroundColor: "var(--shortbox-search-bg) !important",
                   borderRadius: 2.5,
                   transition: "box-shadow 180ms ease, border-color 180ms ease",
                   "& input": {
@@ -1409,7 +1412,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                     autoFocus={Boolean(ownProps.autoFocus)}
                     sx={(theme) => ({
                       "& .MuiOutlinedInput-root": {
-                        backgroundColor: "var(--shortbox-search-bg)",
+                        backgroundColor: "var(--shortbox-search-bg) !important",
                         color: "var(--shortbox-search-color)",
                       },
                       "& .MuiOutlinedInput-input": {
