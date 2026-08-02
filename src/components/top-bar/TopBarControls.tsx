@@ -7,14 +7,18 @@ import Tooltip from "@mui/material/Tooltip";
 import IconButton from "@mui/material/IconButton";
 import Badge from "@mui/material/Badge";
 import CircularProgress from "@mui/material/CircularProgress";
-import BugReportIcon from "@mui/icons-material/BugReport";
-import BugReportOutlinedIcon from "@mui/icons-material/BugReportOutlined";
-import WatchLaterIcon from "@mui/icons-material/WatchLater";
-import LoginIcon from "@mui/icons-material/Login";
-import LogoutIcon from "@mui/icons-material/Logout";
-import SearchIcon from "@mui/icons-material/Search";
-import DarkModeIcon from "@mui/icons-material/DarkMode";
-import LightModeIcon from "@mui/icons-material/LightMode";
+import {
+  AppSearchIcon,
+  AppBugIcon,
+  AppClockIcon,
+  AppLoginIcon,
+  AppLogoutIcon,
+  AppLightIcon,
+  AppDarkIcon,
+  AppAppleIcon,
+  AppAndroidIcon,
+} from "../generic/Icons";
+import { useThemeModeContext } from "../generic/AppContext";
 import { buildRouteHref } from "../generic/routeHref";
 
 type LocaleSwitchProps = {
@@ -37,8 +41,107 @@ type LocaleSwitchProps = {
 };
 
 export function LocaleSwitch(props: Readonly<LocaleSwitchProps>) {
-  const switchLabelId = React.useId();
+  const themeContext = useThemeModeContext();
+  const flavor = themeContext?.designFlavor ?? "mac";
 
+  const handleSwitch = (targetUs: boolean) => {
+    if (targetUs === props.us || props.pending) return;
+    props.resetNavigationState?.();
+    props.onNavigate(buildRouteHref(targetUs ? "/us" : "/de", props.query, { filter: null }));
+  };
+
+  if (flavor === "mac") {
+    return (
+      <Box
+        sx={(theme) => ({
+          ml: 0.75,
+          position: "relative",
+          display: "inline-flex",
+          alignItems: "center",
+          "--switch-bg": "rgba(255, 255, 255, 0.65)",
+          "--switch-border": "rgba(0, 0, 0, 0.12)",
+          "--switch-card-bg": "#ffffff",
+          ...theme.applyStyles("dark", {
+            "--switch-bg": "rgba(0, 0, 0, 0.40)",
+            "--switch-border": "rgba(255, 255, 255, 0.16)",
+            "--switch-card-bg": "rgba(255, 255, 255, 0.18)",
+          }),
+          backgroundColor: "var(--switch-bg) !important",
+          border: "1px solid",
+          borderColor: "var(--switch-border) !important",
+          borderRadius: "8px",
+          padding: "2px",
+          height: 28,
+          userSelect: "none",
+          cursor: props.pending ? "default" : "pointer",
+          opacity: props.pending ? 0.7 : 1,
+          transition: "opacity 150ms ease",
+        })}
+      >
+        {/* Sliding Active Card */}
+        <Box
+          sx={{
+            position: "absolute",
+            top: 2,
+            left: props.us ? "calc(50% + 1px)" : 2,
+            width: "calc(50% - 3px)",
+            height: "calc(100% - 4px)",
+            backgroundColor: "var(--switch-card-bg)",
+            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.04)",
+            borderRadius: "6px",
+            transition: "left 200ms cubic-bezier(0.2, 0.8, 0.2, 1)",
+            zIndex: 1,
+          }}
+        />
+
+        <Box
+          onClick={() => handleSwitch(false)}
+          sx={{
+            position: "relative",
+            zIndex: 2,
+            width: 38,
+            textAlign: "center",
+            fontSize: "0.8rem",
+            fontWeight: props.us ? 600 : 800,
+            color: props.us ? "var(--mui-palette-text-secondary) !important" : "var(--mui-palette-text-primary) !important",
+            transition: "color 200ms ease",
+          }}
+        >
+          DE
+        </Box>
+        <Box
+          onClick={() => handleSwitch(true)}
+          sx={{
+            position: "relative",
+            zIndex: 2,
+            width: 38,
+            textAlign: "center",
+            fontSize: "0.8rem",
+            fontWeight: props.us ? 800 : 600,
+            color: props.us ? "var(--mui-palette-text-primary) !important" : "var(--mui-palette-text-secondary) !important",
+            transition: "color 200ms ease",
+          }}
+        >
+          US
+        </Box>
+
+        {props.pending && (
+          <CircularProgress
+            size={12}
+            sx={{
+              position: "absolute",
+              right: 4,
+              top: "50%",
+              marginTop: "-6px",
+              color: "primary.main",
+            }}
+          />
+        )}
+      </Box>
+    );
+  }
+
+  // Material Design 3 Toggle/Switch Mode
   return (
     <Box
       sx={(theme) => ({
@@ -50,23 +153,17 @@ export function LocaleSwitch(props: Readonly<LocaleSwitchProps>) {
         py: 0.5,
         borderRadius: 999,
         border: "1px solid",
-        borderColor: props.us ? "#93c5fd" : "rgba(255,255,255,0.28)",
-        backgroundColor: props.us ? "#1d4ed8" : "#1f2937",
-        ...(props.us
-          ? theme.applyStyles("dark", {
-              borderColor: "#bfdbfe",
-              backgroundColor: "#1d4ed8",
-            })
-          : theme.applyStyles("dark", {
-              backgroundColor: "#1f2937",
-            })),
+        backgroundColor: props.us ? theme.palette.primary.main : theme.palette.background.paper,
+        borderColor: props.us ? theme.palette.primary.main : theme.palette.divider,
       })}
     >
       <Typography
+        onClick={() => handleSwitch(false)}
         sx={{
           fontSize: "0.8rem",
           fontWeight: props.us ? 600 : 700,
-          color: "common.white",
+          color: props.us ? "text.secondary" : "primary.contrastText",
+          cursor: "pointer",
         }}
       >
         DE
@@ -76,41 +173,11 @@ export function LocaleSwitch(props: Readonly<LocaleSwitchProps>) {
           component="label"
           sx={{ position: "relative", display: "inline-flex", alignItems: "center", cursor: "pointer" }}
         >
-          <Box
-            component="span"
-            id={switchLabelId}
-            sx={{
-              position: "absolute",
-              width: 1,
-              height: 1,
-              p: 0,
-              m: -1,
-              overflow: "hidden",
-              clip: "rect(0 0 0 0)",
-              whiteSpace: "nowrap",
-              border: 0,
-            }}
-          >
-            {props.localeSwitchAriaLabel}
-          </Box>
           <props.SwitchComponent
             checked={props.us}
             color="primary"
             disabled={props.pending}
-            inputProps={{
-              "aria-label": props.localeSwitchAriaLabel,
-              "aria-labelledby": switchLabelId,
-            }}
-            slotProps={{
-              input: {
-                "aria-label": props.localeSwitchAriaLabel,
-                "aria-labelledby": switchLabelId,
-              },
-            }}
-            onChange={() => {
-              props.resetNavigationState?.();
-              props.onNavigate(buildRouteHref(props.us ? "/de" : "/us", props.query, { filter: null }));
-            }}
+            onChange={() => handleSwitch(!props.us)}
           />
           {props.pending ? (
             <CircularProgress
@@ -127,10 +194,12 @@ export function LocaleSwitch(props: Readonly<LocaleSwitchProps>) {
         </Box>
       </Tooltip>
       <Typography
+        onClick={() => handleSwitch(true)}
         sx={{
           fontSize: "0.8rem",
           fontWeight: props.us ? 700 : 600,
-          color: "common.white",
+          color: props.us ? "primary.contrastText" : "text.secondary",
+          cursor: "pointer",
         }}
       >
         US
@@ -148,8 +217,9 @@ type AuthActionGroupProps = {
   onLogout: () => void;
 };
 
-export function AuthActionGroup(props: Readonly<AuthActionGroupProps>) {
+export function AuthActionGroup(props: Readonly<AuthActionGroupProps & { flavor?: "mac" | "material" }>) {
   const hasChangeRequests = props.changeRequestsCount > 0;
+  const flavor = props.flavor ?? "mac";
 
   return (
     <React.Fragment>
@@ -178,9 +248,9 @@ export function AuthActionGroup(props: Readonly<AuthActionGroupProps>) {
               onClick={() => props.onNavigate("/admin/change-requests")}
             >
               {hasChangeRequests ? (
-                <BugReportIcon sx={{ color: "common.white" }} />
+                <AppBugIcon flavor={flavor} sx={{ color: "common.white" }} />
               ) : (
-                <BugReportOutlinedIcon />
+                <AppBugIcon flavor={flavor} />
               )}
             </IconButton>
           </Badge>
@@ -193,20 +263,20 @@ export function AuthActionGroup(props: Readonly<AuthActionGroupProps>) {
             aria-label="Adminpanel"
             onClick={() => props.onNavigate("/admin/tasks")}
           >
-            <WatchLaterIcon />
+            <AppClockIcon flavor={flavor} />
           </IconButton>
         </Tooltip>
       ) : null}
       {props.loggedIn ? (
         <Tooltip title="Logout">
           <IconButton color="inherit" aria-label="Logout" onClick={props.onLogout}>
-            <LogoutIcon />
+            <AppLogoutIcon flavor={flavor} />
           </IconButton>
         </Tooltip>
       ) : (
         <Tooltip title="Login">
           <IconButton color="inherit" aria-label="Login" onClick={() => props.onNavigate("/login")}>
-            <LoginIcon />
+            <AppLoginIcon flavor={flavor} />
           </IconButton>
         </Tooltip>
       )}
@@ -245,10 +315,13 @@ type MobileBottomBarProps = {
 };
 
 export function MobileBottomBar(props: Readonly<MobileBottomBarProps>) {
+  const themeContext = useThemeModeContext();
+  const flavor = themeContext?.designFlavor ?? "mac";
+
   return (
     <Box
       data-testid="mobile-bottom-bar"
-      sx={{
+      sx={(theme) => ({
         position: "fixed",
         left: 0,
         right: 0,
@@ -261,11 +334,18 @@ export function MobileBottomBar(props: Readonly<MobileBottomBarProps>) {
         px: 0.75,
         pt: 0.5,
         pb: "calc(0.5rem + env(safe-area-inset-bottom))",
-        bgcolor: "common.black",
-        color: "common.white",
-        borderTop: "1px solid rgba(255,255,255,0.2)",
-        boxShadow: "0 -6px 18px rgba(0,0,0,0.12)",
-      }}
+        backgroundColor: flavor === "mac"
+          ? "var(--shortbox-glass-bg-drawer) !important"
+          : (theme.palette.mode === "dark" ? "#211f26 !important" : "#f3edf7 !important"),
+        color: "text.primary",
+        backdropFilter: flavor === "mac" ? "var(--shortbox-glass-blur)" : "none",
+        borderTop: "1px solid",
+        borderColor: flavor === "mac"
+          ? (theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)")
+          : "divider",
+        boxShadow: flavor === "mac" ? "none" : theme.shadows[4],
+        transition: "background-color 250ms ease, color 250ms ease, border-color 250ms ease, box-shadow 250ms ease",
+      })}
     >
       {props.showNavigation ? (
         <IconButton
@@ -277,7 +357,7 @@ export function MobileBottomBar(props: Readonly<MobileBottomBarProps>) {
         </IconButton>
       ) : null}
       <IconButton color="inherit" aria-label="Suche öffnen" onClick={props.onOpenSearch}>
-        <SearchIcon />
+        <AppSearchIcon flavor={flavor} />
       </IconButton>
       <props.FilterButton
         us={props.us}
@@ -294,9 +374,10 @@ export function MobileBottomBar(props: Readonly<MobileBottomBarProps>) {
         previewImportActive={props.previewImportActive}
         onNavigate={props.onNavigate}
         onLogout={props.onLogout}
+        flavor={flavor}
       />
       <Box sx={{ ml: 0.25, display: "inline-flex", alignItems: "center", gap: 0.35 }}>
-        <Typography sx={{ fontSize: "0.74rem", fontWeight: 700, opacity: props.us ? 0.92 : 1, color: "common.white" }}>
+        <Typography sx={{ fontSize: "0.74rem", fontWeight: 700, opacity: props.us ? 0.6 : 1, color: "text.primary" }}>
           DE
         </Typography>
         <Tooltip describeChild title={"Wechseln zu " + (props.us ? "Deutsch" : "US")}>
@@ -326,7 +407,7 @@ export function MobileBottomBar(props: Readonly<MobileBottomBarProps>) {
             ) : null}
           </Box>
         </Tooltip>
-        <Typography sx={{ fontSize: "0.74rem", fontWeight: 700, opacity: props.us ? 1 : 0.92, color: "common.white" }}>
+        <Typography sx={{ fontSize: "0.74rem", fontWeight: 700, opacity: props.us ? 1 : 0.6, color: "text.primary" }}>
           US
         </Typography>
       </Box>
@@ -343,13 +424,16 @@ type DesktopActionsProps = {
   previewImportActive: boolean;
   toggleTheme?: () => void;
   onNavigate: (href: string) => void;
+  navigationPending?: boolean;
   onLogout: () => void;
   resetNavigationState?: () => void;
   SwitchComponent: LocaleSwitchProps["SwitchComponent"];
-  navigationPending?: boolean;
 };
 
 export function DesktopActions(props: Readonly<DesktopActionsProps>) {
+  const themeContext = useThemeModeContext();
+  const flavor = themeContext?.designFlavor ?? "mac";
+
   return (
     <Box
       sx={{
@@ -367,52 +451,54 @@ export function DesktopActions(props: Readonly<DesktopActionsProps>) {
         previewImportActive={props.previewImportActive}
         onNavigate={props.onNavigate}
         onLogout={props.onLogout}
+        flavor={flavor}
       />
+      <ThemeToggleButton onClick={props.toggleTheme} />
       <LocaleSwitch
         us={props.us}
         query={props.query}
         localeSwitchAriaLabel={props.localeSwitchAriaLabel}
-        resetNavigationState={props.resetNavigationState}
         onNavigate={props.onNavigate}
+        resetNavigationState={props.resetNavigationState}
         SwitchComponent={props.SwitchComponent}
         pending={props.navigationPending}
       />
-      <ThemeToggleButton onClick={props.toggleTheme} />
     </Box>
   );
 }
 
 export function ThemeToggleButton(props: Readonly<{ onClick?: () => void }>) {
+  const themeContext = useThemeModeContext();
+  const flavor = themeContext?.designFlavor ?? "mac";
+
   return (
-    <Tooltip title="Theme umschalten">
-      <IconButton color="inherit" aria-label="Theme umschalten" onClick={props.onClick}>
-        <Box
-          sx={(theme) => ({
-            position: "relative",
-            width: 24,
-            height: 24,
-            "& .theme-icon": {
-              position: "absolute",
-              inset: 0,
-              transition: "opacity 180ms ease",
-            },
-            "& .theme-icon-light": {
+    <IconButton color="inherit" aria-label="Theme umschalten" onClick={props.onClick}>
+      <Box
+        sx={(theme) => ({
+          position: "relative",
+          width: 24,
+          height: 24,
+          "& .theme-icon": {
+            position: "absolute",
+            inset: 0,
+            transition: "opacity 180ms ease",
+          },
+          "& .theme-icon-light": {
+            opacity: 0,
+          },
+          ...theme.applyStyles("dark", {
+            "& .theme-icon-dark": {
               opacity: 0,
             },
-            ...theme.applyStyles("dark", {
-              "& .theme-icon-dark": {
-                opacity: 0,
-              },
-              "& .theme-icon-light": {
-                opacity: 1,
-              },
-            }),
-          })}
-        >
-          <DarkModeIcon className="theme-icon theme-icon-dark" />
-          <LightModeIcon className="theme-icon theme-icon-light" />
-        </Box>
-      </IconButton>
-    </Tooltip>
+            "& .theme-icon-light": {
+              opacity: 1,
+            },
+          }),
+        })}
+      >
+        <AppDarkIcon flavor={flavor} className="theme-icon theme-icon-dark" />
+        <AppLightIcon flavor={flavor} className="theme-icon theme-icon-light" />
+      </Box>
+    </IconButton>
   );
 }

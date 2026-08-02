@@ -307,38 +307,12 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
                 mb: "2px",
                 width: "auto",
                 borderLeft: selected
-                  ? `3px solid ${
-                      theme.palette.mode === "dark" ? theme.palette.primary.light : theme.palette.primary.main
-                    }`
+                  ? `3px solid var(--mui-palette-primary-light)`
                   : "3px solid transparent",
-                transition: "background-color 0.18s ease, border-left-color 0.18s ease",
-                backgroundColor: selected
-                  ? alpha(
-                      theme.palette.mode === "dark" ? theme.palette.primary.light : theme.palette.primary.main,
-                      theme.palette.mode === "dark" ? 0.15 : 0.08
-                    )
-                  : "transparent",
-                color: "var(--mui-palette-text-primary)",
-                "&:hover": {
-                  backgroundColor: selected
-                    ? alpha(
-                        theme.palette.mode === "dark" ? theme.palette.primary.light : theme.palette.primary.main,
-                        theme.palette.mode === "dark" ? 0.22 : 0.12
-                      )
-                    : theme.palette.mode === "dark"
-                      ? "rgba(255, 255, 255, 0.04)"
-                      : "rgba(0, 0, 0, 0.04)",
-                },
-                "&.Mui-selected": {
-                  backgroundColor: "transparent",
-                },
-                "&.Mui-selected:hover": {
-                  backgroundColor: "transparent",
-                },
+                transition: "all 0.18s ease",
                 "& .MuiListItemText-primary": {
-                  color: "var(--mui-palette-text-primary) !important",
-                  WebkitTextFillColor: "var(--mui-palette-text-primary) !important",
-                  opacity: "1 !important",
+                  fontSize: "0.85rem",
+                  fontWeight: selected ? 700 : 500,
                 },
               })}
               onClick={(e) =>
@@ -363,8 +337,8 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
                   <ListItemText
                     sx={{
                       "& .MuiListItemText-primary": {
-                        color: "var(--mui-palette-text-primary) !important",
-                        WebkitTextFillColor: "var(--mui-palette-text-primary) !important",
+                        color: selected ? "inherit !important" : "var(--mui-palette-text-primary) !important",
+                        WebkitTextFillColor: selected ? "inherit !important" : "var(--mui-palette-text-primary) !important",
                         opacity: "1 !important",
                       },
                     }}
@@ -378,8 +352,8 @@ const IssuesBranch = React.memo(function IssuesBranch(props: Readonly<IssuesBran
                             flex: 1,
                             fontSize: "0.9rem",
                             fontWeight: selected ? 700 : 400,
-                            color: "var(--mui-palette-text-primary) !important",
-                            WebkitTextFillColor: "var(--mui-palette-text-primary) !important",
+                            color: selected ? "inherit !important" : "var(--mui-palette-text-primary) !important",
+                            WebkitTextFillColor: selected ? "inherit !important" : "var(--mui-palette-text-primary) !important",
                             opacity: 1,
                           }}
                         >

@@ -48,52 +48,19 @@ export const NestedRow = React.memo(function NestedRow(props: Readonly<NestedRow
         minWidth: 0,
         pr: 1,
         py: props.depth === 0 ? "4px" : props.depth === 1 ? "2px" : "1px",
-        backgroundColor: "transparent",
         color: "var(--mui-palette-text-primary)",
-        "&:hover": {
-          backgroundColor: props.selected ? "transparent" : "action.hover",
-        },
-        "&.Mui-selected": {
-          backgroundColor: "transparent",
-          boxShadow: "none",
-          color: "var(--mui-palette-text-primary)",
-          ...theme.applyStyles("dark", {
-            backgroundColor: "transparent",
-            color: "var(--mui-palette-text-primary)",
-          }),
-        },
-        "&.Mui-selected:hover": {
-          backgroundColor: "transparent",
-          ...theme.applyStyles("dark", {
-            backgroundColor: "transparent",
-          }),
-        },
         "& .MuiListItemText-primary": {
-          color: "var(--mui-palette-text-primary) !important",
-          WebkitTextFillColor: "var(--mui-palette-text-primary) !important",
-          opacity: "1 !important",
           fontSize: props.depth === 0 ? "0.92rem" : props.depth === 1 ? "0.85rem" : "0.8rem",
         },
       })}
     >
       <ListItemText
         primary={props.label}
-        sx={{
-          "& .MuiListItemText-primary": {
-            color: "var(--mui-palette-text-primary) !important",
-            WebkitTextFillColor: "var(--mui-palette-text-primary) !important",
-            opacity: "1 !important",
-            fontSize: props.depth === 0 ? "0.92rem" : props.depth === 1 ? "0.85rem" : "0.8rem",
-          },
-        }}
         slotProps={{
           primary: {
             noWrap: typeof props.label === "string",
             sx: {
               fontWeight: props.selected ? 700 : 400,
-              color: "var(--mui-palette-text-primary) !important",
-              WebkitTextFillColor: "var(--mui-palette-text-primary) !important",
-              opacity: 1,
             },
           },
         }}

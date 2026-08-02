@@ -100,6 +100,7 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
   return (
     <Box data-audit-ignore-pa11y="issue-preview" ref={setElement}>
       <Card
+        className="issue-preview-card"
         sx={(theme) => ({
           backgroundColor: "background.paper",
           borderLeft: "4px solid",

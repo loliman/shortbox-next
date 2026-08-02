@@ -21,3 +21,5 @@ test-results
 /scripts/ebay-tool/.ebay-listings.json
 /scripts/ebay-tool/.env
 /scratch/
+screenshots
+scripts

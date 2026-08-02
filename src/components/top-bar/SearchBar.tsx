@@ -4,17 +4,16 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Autocomplete from "@mui/material/Autocomplete";
 import Box from "@mui/material/Box";
 import Backdrop from "@mui/material/Backdrop";
+import Portal from "@mui/material/Portal";
 import CircularProgress from "@mui/material/CircularProgress";
 import TextField from "@mui/material/TextField";
 import InputAdornment from "@mui/material/InputAdornment";
 import Typography from "@mui/material/Typography";
 import Fade from "@mui/material/Fade";
 import Collapse from "@mui/material/Collapse";
-import SearchIcon from "@mui/icons-material/Search";
-import FilterAltIcon from "@mui/icons-material/FilterAlt";
-import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
-import ClearIcon from "@mui/icons-material/Clear";
+import { AppSearchIcon, AppFilterIcon, AppClearIcon } from "../generic/Icons";
 import TerminalIcon from "@mui/icons-material/Terminal";
+import { useThemeModeContext } from "../generic/AppContext";
 import Badge from "@mui/material/Badge";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
@@ -188,6 +187,8 @@ function rawQueryToPayload(rawQuery: string, us: boolean): string | null {
 }
 
 export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
+  const themeContext = useThemeModeContext();
+  const flavor = themeContext?.designFlavor ?? "mac";
   const { navigationPending, push } = usePendingNavigation();
   const [pattern, setPattern] = useState("");
   const [debouncedPattern, setDebouncedPattern] = useState("");
@@ -678,14 +679,14 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
       left: 0,
       right: 0,
       borderRadius: 2.5,
-      border: focused || validationError ? "2px solid" : "1px solid",
+      border: focused || validationError ? "2px solid" : "1.5px solid",
       borderColor: validationError
         ? theme.palette.error.main
         : focused
         ? theme.palette.secondary.main
         : isFilterActive
-        ? alpha(theme.palette.primary.main, 0.4)
-        : "rgba(0,0,0,0.18)",
+        ? alpha(theme.palette.primary.main, 0.7)
+        : (theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.35)" : "rgba(0, 0, 0, 0.30)"),
       bgcolor: theme.vars?.palette.background.paper ?? theme.palette.background.paper,
       color: "var(--shortbox-search-color)",
       px: 1.25,
@@ -743,20 +744,29 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
   // ---------------------------------------------------------------------------
   return (
     <Box sx={{ width: "100%" }}>
-      <Backdrop
-        open={focused}
-        onClick={handleBackdropClick}
-        sx={(theme) => ({
-          zIndex: theme.zIndex.appBar + 1,
-          backgroundColor: alpha(theme.palette.common.black, 0.36),
-          backdropFilter: "blur(5px)",
-          ...theme.applyStyles("dark", {
-            backgroundColor: alpha(theme.palette.common.black, 0.58),
-          }),
-        })}
-      />
+      <Portal>
+        <Backdrop
+          open={focused}
+          onClick={handleBackdropClick}
+          sx={(theme) => ({
+            zIndex: (t) => t.zIndex.drawer + 5,
+            backgroundColor: alpha(theme.palette.common.black, 0.36),
+            backdropFilter: "blur(5px)",
+            ...theme.applyStyles("dark", {
+              backgroundColor: alpha(theme.palette.common.black, 0.58),
+            }),
+          })}
+        />
+      </Portal>
 
-      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, width: "100%" }}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 0.5,
+          width: "100%",
+        }}
+      >
         {/* Main search + filter chip area */}
         <Box
           sx={(theme) => ({
@@ -769,11 +779,15 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
             "--shortbox-search-bg": "#ffffff",
             "--shortbox-search-color": "#111111",
             "--shortbox-search-placeholder": "rgba(0, 0, 0, 0.45)",
+            "--shortbox-search-border": "rgba(0, 0, 0, 0.30)",
+            "--shortbox-search-border-hover": "rgba(0, 0, 0, 0.45)",
             // Dark mode overrides
             ...theme.applyStyles("dark", {
-              "--shortbox-search-bg": "rgba(255, 255, 255, 0.08)",
+              "--shortbox-search-bg": "rgba(255, 255, 255, 0.16)",
               "--shortbox-search-color": "#ffffff",
               "--shortbox-search-placeholder": "rgba(255, 255, 255, 0.6)",
+              "--shortbox-search-border": "rgba(255, 255, 255, 0.35)",
+              "--shortbox-search-border-hover": "rgba(255, 255, 255, 0.55)",
             }),
           })}
         >
@@ -927,7 +941,7 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                         "&:hover": { opacity: 1 },
                       }}
                     >
-                      <ClearIcon sx={{ fontSize: 15 }} />
+                      <AppClearIcon flavor={flavor} sx={{ fontSize: 15 }} />
                     </IconButton>
                   )}
                   <Tooltip title="Expert-Modus · ESC zum Beenden" describeChild>
@@ -1320,17 +1334,20 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                     opacity: "1 !important",
                   },
                   "& fieldset": {
-                    borderColor: isFilterActive
-                      ? alpha(theme.palette.primary.main, theme.palette.mode === "dark" ? 0.55 : 0.4)
-                      : "rgba(17, 17, 17, 0.18)",
-                  },
-                  "&:hover fieldset": {
+                    borderWidth: "1.5px !important",
                     borderColor: isFilterActive
                       ? alpha(theme.palette.primary.main, theme.palette.mode === "dark" ? 0.75 : 0.6)
-                      : "rgba(17, 17, 17, 0.32)",
+                      : (theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.35) !important" : "rgba(0, 0, 0, 0.30) !important"),
+                  },
+                  "&:hover fieldset": {
+                    borderWidth: "1.5px !important",
+                    borderColor: isFilterActive
+                      ? alpha(theme.palette.primary.main, theme.palette.mode === "dark" ? 0.85 : 0.7)
+                      : (theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.55) !important" : "rgba(0, 0, 0, 0.45) !important"),
                   },
                   "&.Mui-focused fieldset": {
-                    borderColor: theme.palette.mode === "dark" ? theme.palette.primary.light : "#111111",
+                    borderWidth: "2px !important",
+                    borderColor: theme.palette.mode === "dark" ? theme.palette.primary.light : "#000000 !important",
                   },
                   "&.Mui-focused": {
                     boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.2)}, 0 10px 26px ${alpha(
@@ -1341,17 +1358,20 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                   },
                   ...theme.applyStyles("dark", {
                     "& fieldset": {
-                      borderColor: isFilterActive
-                        ? alpha(theme.palette.primary.main, 0.55)
-                        : alpha(theme.palette.common.white, 0.34),
-                    },
-                    "&:hover fieldset": {
+                      borderWidth: "1.5px !important",
                       borderColor: isFilterActive
                         ? alpha(theme.palette.primary.main, 0.75)
-                        : alpha(theme.palette.common.white, 0.54),
+                        : "rgba(255, 255, 255, 0.35) !important",
+                    },
+                    "&:hover fieldset": {
+                      borderWidth: "1.5px !important",
+                      borderColor: isFilterActive
+                        ? alpha(theme.palette.primary.main, 0.85)
+                        : "rgba(255, 255, 255, 0.55) !important",
                     },
                     "&.Mui-focused fieldset": {
-                      borderColor: theme.palette.primary.light,
+                      borderWidth: "2px !important",
+                      borderColor: `${theme.palette.primary.light} !important`,
                     },
                     "&.Mui-focused": {
                       backgroundColor: "var(--mui-palette-background-paper)",
@@ -1426,7 +1446,8 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                               <CircularProgress color="inherit" size={18} />
                             ) : null}
                             <InputAdornment position="end">
-                              <SearchIcon
+                              <AppSearchIcon
+                                flavor={flavor}
                                 sx={{
                                   fontSize: 20,
                                   color: "var(--shortbox-search-color)",
@@ -1469,20 +1490,19 @@ export default function SearchBar(ownProps: Readonly<SearchBarProps>) {
                   onClick={() => setFilterPanelOpen((prev) => !prev)}
                   sx={(theme) => ({
                     color: isFilterActive
-                      ? theme.palette.secondary.light
-                      : theme.palette.mode === "dark"
-                      ? "rgba(255,255,255,0.7)"
-                      : "rgba(255,255,255,0.85)",
+                      ? theme.palette.secondary.main
+                      : "var(--shortbox-search-placeholder)",
                     "&:hover": {
-                      backgroundColor: "rgba(255,255,255,0.1)",
+                      backgroundColor: "rgba(0, 0, 0, 0.05)",
                     },
+                    ...theme.applyStyles("dark", {
+                      "&:hover": {
+                        backgroundColor: "rgba(255, 255, 255, 0.08)",
+                      },
+                    }),
                   })}
                 >
-                  {isFilterActive ? (
-                    <FilterAltIcon sx={{ fontSize: 20 }} />
-                  ) : (
-                    <FilterAltOutlinedIcon sx={{ fontSize: 20 }} />
-                  )}
+                  <AppFilterIcon flavor={flavor} active={Boolean(isFilterActive)} sx={{ fontSize: 20 }} />
                 </IconButton>
               </Badge>
             </Box>

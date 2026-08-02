@@ -11,15 +11,14 @@ import { alpha, styled } from "@mui/material/styles";
 import IconButton from "@mui/material/IconButton";
 import ButtonBase from "@mui/material/ButtonBase";
 import type { SelectedRoot } from "../../types/domain";
-import CloseIcon from "@mui/icons-material/Close";
-import MenuIcon from "@mui/icons-material/Menu";
+import { AppMenuIcon, AppClearIcon } from "../generic/Icons";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import { isMockMode } from "../../app/mockMode";
 import { mutationRequest } from "../../lib/client/mutation-request";
 import type { RouteQuery } from "../../types/route-ui";
 import { buildRouteHref } from "../generic/routeHref";
 import { usePendingNavigation } from "../generic/usePendingNavigation";
-import { useNavigationFeedbackContext } from "../generic/AppContext";
+import { useNavigationFeedbackContext, useThemeModeContext } from "../generic/AppContext";
 import SearchBar from "./SearchBar";
 import TopBarFilterMenu from "./TopBarFilterMenu";
 
@@ -109,7 +108,7 @@ interface TopBarProps {
   us: boolean;
   showNavigation?: boolean;
   compactLayout?: boolean;
-  session?: { loggedIn?: boolean } | null;
+  session?: { loggedIn?: boolean; canAdmin?: boolean } | null;
   query?: RouteQuery | null;
   selected: SelectedRoot;
   resetNavigationState?: () => void;
@@ -302,13 +301,23 @@ export default function TopBar(ownProps: Readonly<TopBarProps>) {
       <AppBar
         position="sticky"
         sx={{
-          zIndex: (theme) => theme.zIndex.drawer + 1,
+          zIndex: (theme) => theme.zIndex.drawer + 10,
           position: "sticky",
           overflow: "visible",
-          backgroundImage: "none",
           borderBottomWidth: 1,
           borderBottomStyle: "solid",
-          borderBottomColor: (theme) => theme.vars?.palette.divider ?? theme.palette.divider,
+          borderBottomColor: "var(--mui-palette-divider)",
+          backgroundColor: "transparent !important",
+          backgroundImage: 'linear-gradient(rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.82)), url("/header-bg.jpg") !important',
+          backgroundSize: "100% 100%, 480px auto !important",
+          backgroundRepeat: "repeat, repeat !important",
+          backgroundPosition: "center, center !important",
+          backdropFilter: "blur(4px) !important",
+          boxShadow: "none !important",
+          color: "var(--mui-palette-text-primary) !important",
+          '[data-theme="dark"] &': {
+            backgroundImage: 'linear-gradient(rgba(18, 20, 27, 0.86), rgba(18, 20, 27, 0.86)), url("/header-bg.jpg") !important',
+          },
         }}
       >
         <Toolbar
@@ -338,6 +347,7 @@ export default function TopBar(ownProps: Readonly<TopBarProps>) {
           <TopBarCompactActions
             compactLayout={compactLayout}
             toggleTheme={ownProps.toggleTheme}
+            session={ownProps.session}
           />
 
           <TopBarSearchCenter
@@ -477,6 +487,7 @@ function TopBarStart(props: Readonly<{
 function TopBarCompactActions(props: Readonly<{
   compactLayout: boolean;
   toggleTheme?: () => void;
+  session?: { canAdmin?: boolean } | null;
 }>) {
   if (!props.compactLayout) return null;
 
@@ -542,6 +553,8 @@ function MobileSearchOverlay(props: Readonly<{
   initialFilterCount?: number | null;
   onClose: () => void;
 }>) {
+  const themeContext = useThemeModeContext();
+  const flavor = themeContext?.designFlavor ?? "mac";
   const { push } = usePendingNavigation();
   const handleFilterChange = (nextFilter: string | null) => {
     push(
@@ -615,7 +628,7 @@ function MobileSearchOverlay(props: Readonly<{
             },
           }}
         >
-          <CloseIcon />
+          <AppClearIcon flavor={flavor} />
         </IconButton>
       </Box>
     </Box>
@@ -681,5 +694,7 @@ function GlobalNavigationIndicator() {
 }
 
 function HamburgerIcon(props: Readonly<{ open: boolean }>) {
-  return props.open ? <ChevronLeftIcon /> : <MenuIcon />;
+  const themeContext = useThemeModeContext();
+  const flavor = themeContext?.designFlavor ?? "mac";
+  return props.open ? <ChevronLeftIcon /> : <AppMenuIcon flavor={flavor} />;
 }

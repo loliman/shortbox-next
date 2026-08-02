@@ -21,6 +21,7 @@ import {
   getNavDrawerWidth,
 } from "../layoutMetrics";
 import { writeNavScrollTop } from "./navStateStorage";
+import { useThemeModeContext } from "../generic/AppContext";
 
 type NavDrawerProps = {
   temporary: boolean;
@@ -52,22 +53,33 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
     onFilterFocus,
     children,
   } = props;
+  const { designFlavor } = useThemeModeContext();
   const drawerWidth = getNavDrawerWidth(temporary);
   const navListBottomPadding = temporary ? `calc(${COMPACT_BOTTOM_BAR_CLEARANCE} + 56px)` : "56px";
+  const isMacTemporary = temporary && designFlavor === "mac";
+
   const paperSx: SxProps<Theme> = {
-    width: drawerWidth,
+    width: isMacTemporary ? "100%" : drawerWidth,
     maxWidth: "100%",
-    top: drawerHeaderTopOffset,
-    height: drawerHeaderAdjustedHeight,
-    backgroundColor: "rgba(255, 255, 255, 0.65) !important",
-    backdropFilter: "blur(20px)",
-    borderRight: "1px solid",
+    top: isMacTemporary ? "auto" : drawerHeaderTopOffset,
+    bottom: 0,
+    height: isMacTemporary ? "75vh" : drawerHeaderAdjustedHeight,
+    borderTopLeftRadius: isMacTemporary ? 20 : 0,
+    borderTopRightRadius: isMacTemporary ? 20 : 0,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    backgroundColor: "var(--shortbox-glass-bg-drawer) !important",
+    backdropFilter: "var(--shortbox-glass-blur)",
+    borderRight: isMacTemporary ? "none" : "1px solid",
     borderRightColor: "rgba(0, 0, 0, 0.06)",
+    borderTop: isMacTemporary ? "1px solid" : "none",
+    borderTopColor: "rgba(0, 0, 0, 0.06)",
     overflow: "hidden",
     '[data-theme="dark"] &': {
-      backgroundColor: "rgba(18, 18, 18, 0.75) !important",
-      backdropFilter: "blur(20px)",
-      borderRightColor: "rgba(255, 255, 255, 0.08)",
+      backgroundColor: "var(--shortbox-glass-bg-drawer) !important",
+      backdropFilter: "var(--shortbox-glass-blur)",
+      borderRightColor: isMacTemporary ? "transparent" : "rgba(255, 255, 255, 0.08)",
+      borderTopColor: isMacTemporary ? "rgba(255, 255, 255, 0.08)" : "transparent",
     },
   };
 
@@ -82,13 +94,27 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
     <Box
       sx={{ position: "relative", width: "100%", height: "100%", display: "flex", flexDirection: "column" }}
     >
+      {isMacTemporary && (
+        <Box
+          sx={{
+            width: 36,
+            height: 5,
+            borderRadius: 2.5,
+            backgroundColor: (theme) => theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.2)",
+            mx: "auto",
+            mt: 1.25,
+            mb: 0.5,
+            flexShrink: 0,
+          }}
+        />
+      )}
       <Box
         sx={{
           height: 48,
           px: 2,
           boxSizing: "border-box",
-          borderBottom: "1px solid",
-          borderColor: "divider",
+          borderBottom: designFlavor === "mac" ? "none" : "1px solid",
+          borderColor: designFlavor === "mac" ? "transparent" : "divider",
           display: "flex",
           alignItems: "center",
           gap: 1,
@@ -134,7 +160,7 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
             "& .MuiOutlinedInput-root": {
               height: 32,
               backgroundColor: "rgba(0, 0, 0, 0.04)",
-              borderRadius: "8px",
+              borderRadius: designFlavor === "mac" ? "10px" : "4px",
               px: 1,
               transition: "background-color 0.2s ease, box-shadow 0.2s ease",
               "& fieldset": {
@@ -235,6 +261,7 @@ export default function NavDrawer(props: Readonly<NavDrawerProps>) {
       <SwipeableDrawer
         disableDiscovery={true}
         variant="temporary"
+        anchor={designFlavor === "mac" ? "bottom" : "left"}
         open={Boolean(drawerOpen)}
         onClose={() => toggleDrawer?.()}
         onOpen={() => toggleDrawer?.()}

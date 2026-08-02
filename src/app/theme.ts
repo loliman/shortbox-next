@@ -12,44 +12,77 @@ type ThemeTokens = {
   link: string;
 };
 
-function getThemeTokens(mode: AppThemeMode): ThemeTokens {
+function getThemeTokens(mode: AppThemeMode, flavor: "mac" | "material"): ThemeTokens {
+  if (flavor === "mac") {
+    if (mode === "dark") {
+      return {
+        bg: "#000000",
+        paperBg: "#1c1c1e",
+        text: "#ffffff",
+        textSecondary: "#8e8e93",
+        border: "#2c2c2e",
+        rowHover: "#2c2c2e",
+        link: "#0a84ff",
+      };
+    }
+    return {
+      bg: "#f2f2f7",
+      paperBg: "#ffffff",
+      text: "#000000",
+      textSecondary: "#8e8e93",
+      border: "#e5e5ea",
+      rowHover: "#f2f2f7",
+      link: "#007aff",
+    };
+  }
+
+  // Material MD3
   if (mode === "dark") {
     return {
-      bg: "#141413",
-      paperBg: "#1b1b1a",
-      text: "#f3f2ef",
-      textSecondary: "#9d9a94",
-      border: "#201f1d",
-      rowHover: "#1b1b1a",
-      link: "#d4a373",
+      bg: "#141218",
+      paperBg: "#211f26",
+      text: "#e6e1e5",
+      textSecondary: "#cac4d0",
+      border: "#49454f",
+      rowHover: "#2b2930",
+      link: "#d0bcff",
     };
   }
 
   return {
-    bg: "#f9fafb",
-    paperBg: "#ffffff",
-    text: "#111827",
-    textSecondary: "#4b5563",
-    border: "#e5e7eb",
-    rowHover: "#f3f4f6",
-    link: "#2563eb",
+    bg: "#fef7ff",
+    paperBg: "#f3edf7",
+    text: "#1d1b20",
+    textSecondary: "#49454f",
+    border: "#cac4d0",
+    rowHover: "#e8def8",
+    link: "#6750a4",
   };
 }
 
-function createPalette(mode: AppThemeMode) {
-  const tokens = getThemeTokens(mode);
+function createPalette(mode: AppThemeMode, flavor: "mac" | "material") {
+  const tokens = getThemeTokens(mode, flavor);
 
   return {
     mode,
-    primary: {
-      main: mode === "dark" ? "#eae6df" : "#000000",
-      light: mode === "dark" ? "#f9f8f6" : "#2b2b2b",
-      dark: mode === "dark" ? "#d1c9bd" : "#000000",
+    primary: flavor === "mac" ? {
+      main: mode === "dark" ? "#ffffff" : "#1c1c1e",
+      light: mode === "dark" ? "#f2f2f7" : "#2c2c2e",
+      dark: mode === "dark" ? "#d1d1d6" : "#000000",
+      contrastText: mode === "dark" ? "#111111" : "#ffffff",
+    } : {
+      main: mode === "dark" ? "#d0bcff" : "#6750a4",
+      light: mode === "dark" ? "#eaddff" : "#825ee4",
+      dark: mode === "dark" ? "#381e72" : "#4f378b",
     },
-    secondary: {
-      main: "#b12c4a",
-      light: "#d45571",
-      dark: "#7b2035",
+    secondary: flavor === "mac" ? {
+      main: mode === "dark" ? "#ff375f" : "#ff2d55",
+      light: "#ff6680",
+      dark: "#c2002f",
+    } : {
+      main: mode === "dark" ? "#ccc2dc" : "#625b71",
+      light: "#e8def8",
+      dark: "#4a4458",
     },
     background: {
       default: tokens.bg,
@@ -61,8 +94,8 @@ function createPalette(mode: AppThemeMode) {
     },
     divider: tokens.border,
     AppBar: {
-      defaultBg: "#000000",
-      darkBg: "#000000",
+      defaultBg: flavor === "mac" ? "transparent" : (mode === "dark" ? "#211f26" : "#6750a4"),
+      darkBg: flavor === "mac" ? "transparent" : "#211f26",
       darkColor: tokens.text,
     },
   };
@@ -140,55 +173,91 @@ for (let i = 1; i < 25; i++) {
   }
 }
 
-export const appTheme = createTheme({
-  cssVariables: {
-    colorSchemeSelector: '[data-theme="%s"]',
-  },
-  shadows: customShadows,
-  colorSchemes: {
-    light: {
-      palette: createPalette("light"),
+const defaultTheme = createTheme();
+
+export function getAppTheme(flavor: "mac" | "material" = "mac") {
+  return createTheme({
+    cssVariables: {
+      colorSchemeSelector: '[data-theme="%s"]',
     },
-    dark: {
-      palette: createPalette("dark"),
+    shadows: flavor === "mac" ? customShadows : defaultTheme.shadows,
+    colorSchemes: {
+      light: {
+        palette: createPalette("light", flavor),
+      },
+      dark: {
+        palette: createPalette("dark", flavor),
+      },
     },
-  },
-  shape: {
-    borderRadius: 12,
-  },
-  typography: {
-    fontFamily: 'var(--font-inter), Roboto, "Helvetica Neue", Arial, sans-serif',
-    h5: {
-      fontFamily: 'var(--font-outfit), var(--font-inter), sans-serif',
-      fontWeight: 700,
+    shape: {
+      borderRadius: flavor === "mac" ? 16 : 16,
     },
-    h6: {
-      fontFamily: 'var(--font-outfit), var(--font-inter), sans-serif',
-      fontWeight: 700,
+    typography: {
+      fontFamily: flavor === "mac"
+        ? '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", "Segoe UI", Helvetica, Arial, sans-serif'
+        : 'var(--font-outfit), Roboto, "Helvetica Neue", Arial, sans-serif',
+      h5: {
+        fontFamily: flavor === "mac"
+          ? '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro", sans-serif'
+          : 'var(--font-outfit), Roboto, sans-serif',
+        fontWeight: 700,
+      },
+      h6: {
+        fontFamily: flavor === "mac"
+          ? '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro", sans-serif'
+          : 'var(--font-outfit), Roboto, sans-serif',
+        fontWeight: 700,
+      },
+      subtitle1: {
+        fontFamily: flavor === "mac"
+          ? '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", sans-serif'
+          : 'var(--font-outfit), Roboto, sans-serif',
+        fontWeight: 600,
+      },
+      button: {
+        fontFamily: flavor === "mac"
+          ? '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", sans-serif'
+          : 'var(--font-outfit), Roboto, sans-serif',
+        textTransform: "none",
+        fontWeight: flavor === "mac" ? 500 : 600,
+      },
     },
-    subtitle1: {
-      fontFamily: 'var(--font-inter), sans-serif',
-      fontWeight: 600,
-    },
-    button: {
-      fontFamily: 'var(--font-outfit), var(--font-inter), sans-serif',
-      textTransform: "none",
-      fontWeight: 600,
-    },
-  },
-  components: {
-    MuiCssBaseline: {
-      styleOverrides: (theme) => ({
-        html: {
-          scrollbarWidth: "thin",
-          scrollbarColor:
-            theme.palette.mode === "dark"
-              ? "rgba(255, 255, 255, 0.12) transparent"
-              : "rgba(0, 0, 0, 0.12) transparent",
-        },
-        body: {
-          transition: "background-color 250ms ease, color 250ms ease, border-color 250ms ease",
-        },
+    components: {
+      MuiCssBaseline: {
+        styleOverrides: (theme) => ({
+          html: {
+            scrollbarWidth: "thin",
+            scrollbarColor:
+              theme.palette.mode === "dark"
+                ? "rgba(255, 255, 255, 0.12) transparent"
+                : "rgba(0, 0, 0, 0.12) transparent",
+          },
+          body: {
+            transition: "background-color 250ms ease, color 250ms ease, border-color 250ms ease",
+            "--shortbox-glass-blur": flavor === "mac" ? "blur(24px)" : "none",
+            "--shortbox-glass-blur-sm": flavor === "mac" ? "blur(4px)" : "none",
+            "--shortbox-glass-blur-md": flavor === "mac" ? "blur(12px)" : "none",
+            "--shortbox-glass-bg": flavor === "mac"
+              ? "rgba(255, 255, 255, 0.45)"
+              : "var(--mui-palette-background-paper)",
+            "--shortbox-glass-bg-drawer": flavor === "mac"
+              ? "rgba(242, 242, 247, 0.8)"
+              : "var(--mui-palette-background-paper)",
+            "--shortbox-body-bg": flavor === "mac"
+              ? "linear-gradient(135deg, #f2f2f7 0%, #e5e5ea 100%)"
+              : "var(--mui-palette-background-default)",
+            ...theme.applyStyles("dark", {
+              "--shortbox-glass-bg": flavor === "mac"
+                ? "rgba(28, 28, 30, 0.5)"
+                : "var(--mui-palette-background-paper)",
+              "--shortbox-glass-bg-drawer": flavor === "mac"
+                ? "rgba(28, 28, 30, 0.85)"
+                : "var(--mui-palette-background-paper)",
+              "--shortbox-body-bg": flavor === "mac"
+                ? "linear-gradient(135deg, #000000 0%, #1c1c1e 100%)"
+                : "var(--mui-palette-background-default)",
+            }),
+          },
         // Premium slim scrollbars
         "*::-webkit-scrollbar": {
           width: "8px",
@@ -232,61 +301,140 @@ export const appTheme = createTheme({
     },
     MuiPaper: {
       styleOverrides: {
-        root: {
+        root: ({ theme }) => ({
           transition: "background-color 250ms ease, color 250ms ease, border-color 250ms ease, box-shadow 250ms ease",
-        },
+          border: flavor === "mac" ? "1px solid" : "none",
+          borderColor: theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)",
+          boxShadow: flavor === "mac"
+            ? (theme.palette.mode === "dark" ? "0 4px 20px rgba(0, 0, 0, 0.36)" : "0 4px 20px rgba(0, 0, 0, 0.04)")
+            : theme.shadows[1],
+        }),
       },
     },
     MuiCard: {
       styleOverrides: {
-        root: {
+        root: ({ theme }) => ({
           transition: "background-color 250ms ease, color 250ms ease, border-color 250ms ease, box-shadow 250ms ease",
-        },
+          "&:not(.shortbox-layout-card):not(.issue-preview-card)": flavor === "mac" ? {
+            backgroundColor: "transparent !important",
+            boxShadow: "none !important",
+            border: "none !important",
+            borderRadius: "0 !important",
+          } : {
+            border: "none",
+            boxShadow: theme.shadows[1],
+            borderRadius: 12,
+            backgroundColor: theme.palette.background.paper,
+          },
+          "&.shortbox-layout-card": flavor === "mac" ? {
+            border: "none",
+            boxShadow: theme.palette.mode === "dark" ? "0 8px 32px rgba(0, 0, 0, 0.36)" : "0 8px 32px rgba(0, 0, 0, 0.06)",
+            borderRadius: 16,
+          } : {
+            border: "none",
+            boxShadow: theme.shadows[3],
+            borderRadius: 24,
+            backgroundColor: theme.palette.background.paper,
+          },
+        }),
+      },
+    },
+    MuiDrawer: {
+      styleOverrides: {
+        paper: ({ theme }) => ({
+          backgroundColor: flavor === "mac"
+            ? (theme.palette.mode === "dark" ? "rgba(28, 28, 30, 0.75) !important" : "rgba(255, 255, 255, 0.75) !important")
+            : theme.palette.background.paper,
+          backdropFilter: flavor === "mac" ? "blur(20px)" : "none",
+        }),
       },
     },
     MuiAppBar: {
       styleOverrides: {
         root: ({ theme }) => ({
-          backgroundColor: "#000000",
-          backdropFilter: "none",
-          color: theme.palette.common.white,
-          backgroundImage: "none",
-          borderBottomWidth: 1,
-          borderBottomStyle: "solid",
-          borderBottomColor:
-            theme.palette.mode === "dark"
-              ? (theme.vars?.palette.divider ?? theme.palette.divider)
-              : "rgba(255, 255, 255, 0.08)",
-          transition: "background-color 250ms ease, color 250ms ease, border-color 250ms ease",
+          backgroundColor: flavor === "mac"
+            ? "transparent !important"
+            : (theme.palette.mode === "dark" ? "#211f26 !important" : "#6750a4 !important"),
+          backgroundImage: flavor === "mac" ? "none !important" : "none",
+          boxShadow: flavor === "mac"
+            ? "none !important"
+            : "0 2px 6px rgba(0, 0, 0, 0.15) !important",
+          borderBottom: flavor === "mac" ? "none !important" : undefined,
+          transition: "background-color 250ms ease, color 250ms ease, border-color 250ms ease, box-shadow 250ms ease",
+          "& .MuiSvgIcon-root": flavor === "mac" ? {
+            stroke: "currentColor",
+            strokeWidth: "0.6px !important",
+            filter: "drop-shadow(0px 1px 1px var(--mui-palette-background-paper)) !important",
+            color: "var(--mui-palette-text-primary) !important",
+            opacity: "1 !important",
+            transition: "transform 150ms ease !important",
+            "&:hover": {
+              transform: "scale(1.1) !important",
+            },
+          } : undefined,
+          "& .MuiButton-root:not(.locale-switch-btn)": flavor === "mac" ? {
+            fontWeight: "800 !important",
+            color: "var(--mui-palette-text-primary) !important",
+            transition: "transform 150ms ease !important",
+            "&:hover": {
+              transform: "scale(1.05) !important",
+            },
+          } : undefined,
+        }),
+        colorPrimary: ({ theme }) => ({
+          backgroundColor: flavor === "mac"
+            ? "transparent !important"
+            : (theme.palette.mode === "dark" ? "#211f26 !important" : "#6750a4 !important"),
+          backgroundImage: flavor === "mac" ? "none !important" : "none",
         }),
       },
     },
     MuiButton: {
       defaultProps: {
-        disableElevation: true,
+        disableElevation: flavor === "mac",
       },
       styleOverrides: {
         root: ({ theme }) => ({
-          borderRadius: (Number(theme.shape.borderRadius) || 12) - 4,
+          borderRadius: flavor === "mac" ? "8px !important" : "999px !important",
+          textTransform: "none",
+          fontWeight: flavor === "mac" ? 500 : 600,
+        }),
+      },
+    },
+    MuiToggleButtonGroup: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          backgroundColor: flavor === "mac"
+            ? (theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.05)")
+            : "transparent",
+          padding: flavor === "mac" ? 2 : 0,
+          borderRadius: flavor === "mac" ? "8px !important" : "999px !important",
+          border: flavor === "mac" ? "none" : `1px solid ${theme.palette.divider}`,
+          gap: flavor === "mac" ? 2 : 0,
         }),
       },
     },
     MuiToggleButton: {
       styleOverrides: {
         root: ({ theme }) => ({
-          color: theme.palette.mode === "dark" ? "#c7c4bc" : "rgba(0, 0, 0, 0.54)",
-          borderColor: theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.25)" : "rgba(0, 0, 0, 0.12)",
-          "&:hover": {
-            backgroundColor: theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.04)",
-            color: theme.palette.mode === "dark" ? "#f9f8f6" : "rgba(0, 0, 0, 0.87)",
-          },
-          "&.Mui-selected, &.Mui-selected.MuiToggleButton-standard, &.Mui-selected.MuiToggleButton-primary": {
-            backgroundColor: theme.palette.mode === "dark" ? "#ffffff" : "#111827",
-            color: theme.palette.mode === "dark" ? "#141413" : "#ffffff",
+          border: flavor === "mac" ? "none !important" : undefined,
+          borderRadius: flavor === "mac" ? "8px !important" : "999px !important",
+          textTransform: "none",
+          fontWeight: flavor === "mac" ? 500 : 600,
+          padding: flavor === "mac" ? "6px 16px" : undefined,
+          color: theme.palette.text.secondary,
+          transition: "all 150ms cubic-bezier(0.4, 0, 0.2, 1)",
+          "&.Mui-selected, &.Mui-selected.MuiToggleButton-standard, &.Mui-selected.MuiToggleButton-primary": flavor === "mac" ? {
+            backgroundColor: theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.1) !important" : "#ffffff !important",
+            color: `${theme.palette.text.primary} !important`,
+            boxShadow: "0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)",
+          } : {
+            backgroundColor: theme.palette.mode === "dark" ? "#eaddff" : "#6750a4",
+            color: theme.palette.mode === "dark" ? "#21005d" : "#ffffff",
             borderColor: theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.35)" : "rgba(0, 0, 0, 0.22)",
             "&:hover": {
-              backgroundColor: theme.palette.mode === "dark" ? "#f3f4f6" : "#1f2937",
-              color: theme.palette.mode === "dark" ? "#141413" : "#ffffff",
+              backgroundColor: theme.palette.mode === "dark" ? "#d0bcff" : "#4f378b",
+              color: theme.palette.mode === "dark" ? "#21005d" : "#ffffff",
             },
           },
         }),
@@ -315,6 +463,68 @@ export const appTheme = createTheme({
             borderColor: theme.palette.success.dark,
             opacity: 1,
           },
+        }),
+      },
+    },
+    MuiListItemButton: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          margin: flavor === "mac" ? "2px 8px" : "0px",
+          padding: flavor === "mac" ? "6px 12px" : "8px 16px",
+          borderRadius: flavor === "mac" ? "8px" : "0px",
+          transition: "all 150ms ease",
+          "&.Mui-selected": flavor === "mac" ? {
+            backgroundColor: `${theme.palette.primary.main} !important`,
+            color: `${theme.palette.primary.contrastText} !important`,
+            "& .MuiListItemIcon-root": {
+              color: `${theme.palette.primary.contrastText} !important`,
+            },
+            "& .MuiListItemText-primary": {
+              color: `${theme.palette.primary.contrastText} !important`,
+              fontWeight: "600 !important",
+            },
+            "& .MuiListItemText-secondary": {
+              color: `${theme.palette.primary.contrastText} !important`,
+              opacity: "0.7 !important",
+            },
+          } : {
+            backgroundColor: `${alpha(theme.palette.primary.main, 0.08)} !important`,
+            borderLeft: `4px solid ${theme.palette.primary.main}`,
+            "& .MuiListItemIcon-root": {
+              color: `${theme.palette.primary.main} !important`,
+            },
+            "& .MuiListItemText-primary": {
+              color: `${theme.palette.primary.main} !important`,
+              fontWeight: "600 !important",
+            },
+          },
+          "&:hover": flavor === "mac" ? {
+            backgroundColor: theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)",
+          } : undefined,
+        }),
+      },
+    },
+    MuiInputBase: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          borderRadius: `${flavor === "mac" ? 10 : 12}px !important`,
+        }),
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          borderRadius: `${flavor === "mac" ? 10 : 12}px !important`,
+          backgroundColor: flavor === "mac"
+            ? (theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.03)")
+            : "transparent",
+          transition: "all 150ms ease",
+          "& .MuiOutlinedInput-notchedOutline": flavor === "mac" ? {
+            border: "none",
+          } : undefined,
+          "&.Mui-focused .MuiOutlinedInput-notchedOutline": flavor === "mac" ? {
+            border: `1.5px solid ${theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.3)" : "rgba(0, 0, 0, 0.2)"}`,
+          } : undefined,
         }),
       },
     },
@@ -409,7 +619,7 @@ export const appTheme = createTheme({
       },
       styleOverrides: {
         root: ({ theme }) => ({
-          color: getThemeTokens(theme.palette.mode as AppThemeMode).link,
+          color: getThemeTokens(theme.palette.mode as AppThemeMode, flavor).link,
           textDecoration: "underline",
           textUnderlineOffset: "2px",
         }),
@@ -452,3 +662,6 @@ export const appTheme = createTheme({
     },
   },
 });
+}
+
+export const appTheme = getAppTheme("mac");

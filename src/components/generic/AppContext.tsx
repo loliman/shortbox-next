@@ -8,12 +8,16 @@ interface ThemeModeProviderProps {
   themeMode?: AppThemeMode;
   themeReady?: boolean;
   toggleTheme?: () => void;
+  designFlavor?: "mac" | "material";
+  toggleDesignFlavor?: () => void;
 }
 
 export interface ThemeContextValue {
   themeMode: AppThemeMode;
   themeReady: boolean;
   toggleTheme: () => void;
+  designFlavor: "mac" | "material";
+  toggleDesignFlavor: () => void;
 }
 
 export interface NavigationFeedbackContextValue {
@@ -30,6 +34,8 @@ const defaultThemeContextValue: ThemeContextValue = {
   themeMode: "light",
   themeReady: false,
   toggleTheme: () => {},
+  designFlavor: "mac",
+  toggleDesignFlavor: () => {},
 };
 
 const defaultNavigationFeedbackContextValue: NavigationFeedbackContextValue = {
@@ -52,14 +58,18 @@ export function ThemeModeProvider({
   themeMode = "light",
   themeReady = false,
   toggleTheme = () => {},
+  designFlavor = "mac",
+  toggleDesignFlavor = () => {},
 }: Readonly<ThemeModeProviderProps>) {
   const themeValue = useMemo<ThemeContextValue>(
     () => ({
       themeMode,
       themeReady,
       toggleTheme,
+      designFlavor,
+      toggleDesignFlavor,
     }),
-    [themeMode, themeReady, toggleTheme]
+    [themeMode, themeReady, toggleTheme, designFlavor, toggleDesignFlavor]
   );
 
   return (

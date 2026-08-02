@@ -13,6 +13,7 @@ import { LoginSchema } from "../util/yupSchema";
 import { isMockMode } from "../app/mockMode";
 import { useSnackbarBridge } from "./generic/useSnackbarBridge";
 import { mutationRequest } from "../lib/client/mutation-request";
+import { useThemeModeContext } from "./generic/AppContext";
 
 interface LoginProps {
   enqueueSnackbar: (
@@ -23,6 +24,8 @@ interface LoginProps {
 
 function LoginView(props: Readonly<LoginProps>) {
   const router = useRouter();
+  const themeContext = useThemeModeContext();
+  const flavor = themeContext?.designFlavor ?? "mac";
 
   return (
     <Formik
@@ -77,17 +80,17 @@ function LoginView(props: Readonly<LoginProps>) {
           <Form id="loginForm" style={{ width: "100%", maxWidth: 520 }}>
             <Paper
               elevation={0}
-              sx={{
-                border: "1px solid",
-                borderColor: "divider",
-                borderRadius: 6,
+              sx={(theme) => ({
                 padding: { xs: 2.25, sm: 5 },
-                backgroundColor: "background.paper",
-                boxShadow: (theme) =>
-                  theme.palette.mode === "dark"
-                    ? "0 18px 50px rgba(0,0,0,0.36)"
-                    : "0 18px 50px rgba(0,0,0,0.06)",
-              }}
+                backgroundColor: "var(--shortbox-glass-bg)",
+                backdropFilter: "var(--shortbox-glass-blur)",
+                borderRadius: `${theme.shape.borderRadius}px`,
+                border: flavor === "mac" ? "1px solid" : "none",
+                borderColor: theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)",
+                boxShadow: flavor === "mac"
+                  ? (theme.palette.mode === "dark" ? "0 18px 50px rgba(0,0,0,0.5)" : "0 18px 50px rgba(0,0,0,0.06)")
+                  : theme.shadows[4],
+              })}
             >
               {/* Logo */}
               <Box sx={{ mb: 4, display: "flex", justifyContent: "flex-start" }}>

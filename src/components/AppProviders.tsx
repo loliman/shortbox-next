@@ -8,7 +8,7 @@ import { SnackbarProvider } from "notistack";
 import { usePathname, useSearchParams } from "next/navigation";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ThemeModeProvider, { NavigationFeedbackContext } from "./generic/AppContext";
-import { appTheme, type AppThemeMode } from "../app/theme";
+import { appTheme, getAppTheme, type AppThemeMode } from "../app/theme";
 import {
   RESPONSIVE_GUESS_COOKIE_NAME,
   serializeResponsiveGuess,
@@ -45,7 +45,14 @@ function shouldUseTopSnackbars(pathname: string | null): boolean {
   );
 }
 
-function ThemeModeBridge(props: Readonly<AppProvidersProps>) {
+function ThemeModeBridge(
+  props: Readonly<
+    AppProvidersProps & {
+      designFlavor: "mac" | "material";
+      toggleDesignFlavor: () => void;
+    }
+  >
+) {
   const { colorScheme, setColorScheme } = useColorScheme();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -241,7 +248,13 @@ function ThemeModeBridge(props: Readonly<AppProvidersProps>) {
         containerAnchorOriginTopRight: "app-snackbar-top-right",
       }}
     >
-      <ThemeModeProvider themeMode={themeMode} themeReady={themeReady} toggleTheme={toggleTheme}>
+      <ThemeModeProvider
+        themeMode={themeMode}
+        themeReady={themeReady}
+        toggleTheme={toggleTheme}
+        designFlavor={props.designFlavor}
+        toggleDesignFlavor={props.toggleDesignFlavor}
+      >
         <NavigationFeedbackContext.Provider value={navigationFeedbackValue}>
           <ResponsiveGuessProvider initialGuess={props.initialResponsiveGuess}>
             <GlobalStyles
@@ -266,10 +279,15 @@ function ThemeModeBridge(props: Readonly<AppProvidersProps>) {
 }
 
 export default function AppProviders(props: Readonly<AppProvidersProps>) {
+  const designFlavor = "mac";
+  const toggleDesignFlavor = useCallback(() => {}, []);
+
+  const activeTheme = useMemo(() => getAppTheme("mac"), []);
+
   return (
     <AppRouterCacheProvider options={{ key: "mui" }}>
       <ThemeProvider
-        theme={appTheme}
+        theme={activeTheme}
         defaultMode="light"
         modeStorageKey={THEME_MODE_STORAGE_KEY}
         colorSchemeStorageKey={THEME_COLOR_SCHEME_STORAGE_KEY}
@@ -277,6 +295,8 @@ export default function AppProviders(props: Readonly<AppProvidersProps>) {
       >
         <ThemeModeBridge
           initialResponsiveGuess={props.initialResponsiveGuess}
+          designFlavor={designFlavor}
+          toggleDesignFlavor={toggleDesignFlavor}
         >
           {props.children}
         </ThemeModeBridge>

@@ -38,10 +38,7 @@ export default async function PersistentCatalogShell(
         minHeight: "100dvh",
         display: "flex",
         flexDirection: "column",
-        background: "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)",
-        '[data-theme="dark"] &': {
-          background: "linear-gradient(135deg, #090b0f 0%, #1a1f29 100%)",
-        },
+        background: "var(--shortbox-body-bg)",
         position: "relative",
         isolation: "isolate",
       }}
@@ -87,21 +84,11 @@ export default async function PersistentCatalogShell(
               flexDirection: "column",
               flexGrow: 1,
               minWidth: 0,
-              backgroundColor: "rgba(255, 255, 255, 0.65)",
-              backdropFilter: "blur(20px)",
+              backgroundColor: "var(--shortbox-glass-bg) !important",
+              backdropFilter: "var(--shortbox-glass-blur)",
               backgroundImage: "none",
               border: "none",
-              borderLeft: "1px solid",
-              borderColor: "rgba(0, 0, 0, 0.06)",
-              boxShadow: "none",
-              borderRadius: "0px !important",
-              mt: "3px",
               overflow: "hidden",
-              '[data-theme="dark"] &': {
-                backgroundColor: "var(--mui-palette-background-default)",
-                borderColor: "rgba(255, 255, 255, 0.08)",
-                boxShadow: "none",
-              },
             }}
           >
             <Box
