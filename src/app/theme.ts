@@ -246,8 +246,8 @@ export function getAppTheme(flavor: "mac" | "material" = "mac") {
             "--shortbox-body-bg": flavor === "mac"
               ? "linear-gradient(135deg, #f2f2f7 0%, #e5e5ea 100%)"
               : "var(--mui-palette-background-default)",
-            "--shortbox-header-bg": 'linear-gradient(rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.82)), url("/header-bg.jpg")',
-            "--shortbox-header-bg-color": "rgba(255, 255, 255, 0.82)",
+            "--shortbox-header-bg": 'linear-gradient(rgba(18, 20, 27, 0.86), rgba(18, 20, 27, 0.86)), url("/header-bg.jpg")',
+            "--shortbox-header-bg-color": "rgba(18, 20, 27, 0.86)",
             ...theme.applyStyles("dark", {
               "--shortbox-glass-bg": flavor === "mac"
                 ? "rgba(28, 28, 30, 0.5)"
@@ -368,8 +368,8 @@ export function getAppTheme(flavor: "mac" | "material" = "mac") {
           "& .MuiSvgIcon-root": flavor === "mac" ? {
             stroke: "currentColor",
             strokeWidth: "0.6px !important",
-            filter: "drop-shadow(0px 1px 1px var(--mui-palette-background-paper)) !important",
-            color: "var(--mui-palette-text-primary) !important",
+            filter: "drop-shadow(0px 1px 1px rgba(0, 0, 0, 0.4)) !important",
+            color: "rgba(255, 255, 255, 0.92) !important",
             opacity: "1 !important",
             transition: "transform 150ms ease !important",
             "&:hover": {
@@ -378,7 +378,7 @@ export function getAppTheme(flavor: "mac" | "material" = "mac") {
           } : undefined,
           "& .MuiButton-root:not(.locale-switch-btn)": flavor === "mac" ? {
             fontWeight: "800 !important",
-            color: "var(--mui-palette-text-primary) !important",
+            color: "rgba(255, 255, 255, 0.92) !important",
             transition: "transform 150ms ease !important",
             "&:hover": {
               transform: "scale(1.05) !important",

@@ -54,19 +54,14 @@ export function LocaleSwitch(props: Readonly<LocaleSwitchProps>) {
   if (flavor === "mac") {
     return (
       <Box
-        sx={(theme) => ({
+        sx={{
           ml: 0.75,
           position: "relative",
           display: "inline-flex",
           alignItems: "center",
-          "--switch-bg": "rgba(255, 255, 255, 0.65)",
-          "--switch-border": "rgba(0, 0, 0, 0.12)",
-          "--switch-card-bg": "#ffffff",
-          ...theme.applyStyles("dark", {
-            "--switch-bg": "rgba(0, 0, 0, 0.40)",
-            "--switch-border": "rgba(255, 255, 255, 0.16)",
-            "--switch-card-bg": "rgba(255, 255, 255, 0.18)",
-          }),
+          "--switch-bg": "rgba(0, 0, 0, 0.40)",
+          "--switch-border": "rgba(255, 255, 255, 0.16)",
+          "--switch-card-bg": "rgba(255, 255, 255, 0.18)",
           backgroundColor: "var(--switch-bg) !important",
           border: "1px solid",
           borderColor: "var(--switch-border) !important",
@@ -77,7 +72,7 @@ export function LocaleSwitch(props: Readonly<LocaleSwitchProps>) {
           cursor: props.pending ? "default" : "pointer",
           opacity: props.pending ? 0.7 : 1,
           transition: "opacity 150ms ease",
-        })}
+        }}
       >
         {/* Sliding Active Card */}
         <Box
@@ -88,7 +83,7 @@ export function LocaleSwitch(props: Readonly<LocaleSwitchProps>) {
             width: "calc(50% - 3px)",
             height: "calc(100% - 4px)",
             backgroundColor: "var(--switch-card-bg)",
-            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.04)",
+            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.1)",
             borderRadius: "6px",
             transition: "left 200ms cubic-bezier(0.2, 0.8, 0.2, 1)",
             zIndex: 1,
@@ -104,7 +99,7 @@ export function LocaleSwitch(props: Readonly<LocaleSwitchProps>) {
             textAlign: "center",
             fontSize: "0.8rem",
             fontWeight: props.us ? 600 : 800,
-            color: props.us ? "var(--mui-palette-text-secondary) !important" : "var(--mui-palette-text-primary) !important",
+            color: props.us ? "rgba(255, 255, 255, 0.55) !important" : "#ffffff !important",
             transition: "color 200ms ease",
           }}
         >
@@ -119,7 +114,7 @@ export function LocaleSwitch(props: Readonly<LocaleSwitchProps>) {
             textAlign: "center",
             fontSize: "0.8rem",
             fontWeight: props.us ? 800 : 600,
-            color: props.us ? "var(--mui-palette-text-primary) !important" : "var(--mui-palette-text-secondary) !important",
+            color: props.us ? "#ffffff !important" : "rgba(255, 255, 255, 0.55) !important",
             transition: "color 200ms ease",
           }}
         >

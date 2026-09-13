@@ -306,14 +306,14 @@ export default function TopBar(ownProps: Readonly<TopBarProps>) {
           overflow: "visible",
           borderBottomWidth: 1,
           borderBottomStyle: "solid",
-          borderBottomColor: "var(--mui-palette-divider)",
+          borderBottomColor: "rgba(255, 255, 255, 0.14)",
           backgroundColor: "var(--shortbox-header-bg-color) !important",
           backgroundImage: "var(--shortbox-header-bg) !important",
           backgroundSize: "100% 100%, 480px auto !important",
           backgroundRepeat: "repeat, repeat !important",
           backgroundPosition: "center, center !important",
           boxShadow: "none !important",
-          color: "var(--mui-palette-text-primary) !important",
+          color: "rgba(255, 255, 255, 0.95) !important",
         }}
       >
         <Box

@@ -103,6 +103,8 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
         className="issue-preview-card"
         sx={(theme) => ({
           backgroundColor: "background.paper",
+          border: "1px solid",
+          borderColor: "rgba(0, 0, 0, 0.08)",
           borderLeft: "4px solid",
           borderLeftColor: theme.palette[borderLeftColorKey as "divider"] ?? theme.palette.divider,
           boxShadow: theme.shadows[2],
@@ -122,10 +124,16 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
           "&:hover": {
             transform: "translateY(-4px) scale(1.002)",
             boxShadow: "0 12px 20px -10px rgba(0,0,0,0.15), 0 10px 15px -3px rgba(0,0,0,0.08)",
+            borderColor: "rgba(0, 0, 0, 0.16)",
+            borderLeftColor: theme.palette[borderLeftColorKey as "divider"] ?? theme.palette.divider,
           },
           ...theme.applyStyles("dark", {
+            borderColor: "rgba(255, 255, 255, 0.08)",
+            borderLeftColor: theme.palette[borderLeftColorKey as "divider"] ?? theme.palette.divider,
             backgroundImage: darkBackgroundImage,
             "&:hover": {
+              borderColor: "rgba(255, 255, 255, 0.16)",
+              borderLeftColor: theme.palette[borderLeftColorKey as "divider"] ?? theme.palette.divider,
               boxShadow: "0 20px 25px -5px rgba(0,0,0,0.5), 0 10px 10px -5px rgba(0,0,0,0.35)",
             },
           }),
