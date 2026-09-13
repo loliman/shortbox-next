@@ -54,12 +54,6 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
   const flags = getIssuePreviewFlags(props.issue, us, hasSession);
   const url = buildRouteHref(getIssueUrl(props.issue, us), props.query);
   const { isNavigating, handleClick } = usePreviewNavigation(url);
-  let accentKey: "success" | "secondary" | "default" = "default";
-  if (flags.collected) {
-    accentKey = "success";
-  } else if (!us && flags.hasFirstApp) {
-    accentKey = "secondary";
-  }
   let lightBackgroundImage =
     "linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.3)), linear-gradient(to right, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.65) 45%, rgba(255, 255, 255, 0) 100%), url(" +
     effectiveCoverUrl +
@@ -74,12 +68,6 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
       "linear-gradient(rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0.52)), linear-gradient(to right, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.72) 45%, rgba(255, 255, 255, 0.18) 100%), url(" +
       effectiveCoverUrl +
       ")";
-  }
-  let borderLeftColorKey = "divider";
-  if (accentKey === "success") {
-    borderLeftColorKey = "success.main";
-  } else if (accentKey === "secondary") {
-    borderLeftColorKey = "secondary.main";
   }
   let darkBackgroundImage =
     "linear-gradient(rgba(20, 20, 19, 0.28), rgba(20, 20, 19, 0.28)), linear-gradient(to right, rgba(20, 20, 19, 0.92) 0%, rgba(20, 20, 19, 0.62) 45%, rgba(20, 20, 19, 0) 100%), url(" +
@@ -103,9 +91,9 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
         className="issue-preview-card"
         sx={(theme) => ({
           backgroundColor: "background.paper",
-          border: "1px solid",
-          borderColor: "rgba(0, 0, 0, 0.08)",
           borderRadius: "12px",
+          border: "1px solid",
+          borderColor: "divider",
           boxShadow: theme.shadows[2],
           backgroundImage: lightBackgroundImage,
           backgroundRepeat: isCoverLoading ? "no-repeat, no-repeat" : "no-repeat, no-repeat, no-repeat",
@@ -120,27 +108,14 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
           position: "relative",
           transition: "transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 240ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 180ms ease, background-color 250ms ease, color 250ms ease, border-color 250ms ease",
           opacity: isNavigating ? 0.76 : 1,
-          "&::before": {
-            content: '""',
-            position: "absolute",
-            top: 0,
-            bottom: 0,
-            left: 0,
-            width: 4,
-            backgroundColor: theme.palette[borderLeftColorKey as "divider"] ?? theme.palette.divider,
-            zIndex: 1,
-            transition: "background-color 250ms ease",
-          },
           "&:hover": {
             transform: "translateY(-4px) scale(1.002)",
             boxShadow: "0 12px 20px -10px rgba(0,0,0,0.15), 0 10px 15px -3px rgba(0,0,0,0.08)",
-            borderColor: "rgba(0, 0, 0, 0.16)",
+            borderColor: "text.secondary",
           },
           ...theme.applyStyles("dark", {
-            borderColor: "rgba(255, 255, 255, 0.08)",
             backgroundImage: darkBackgroundImage,
             "&:hover": {
-              borderColor: "rgba(255, 255, 255, 0.16)",
               boxShadow: "0 20px 25px -5px rgba(0,0,0,0.5), 0 10px 10px -5px rgba(0,0,0,0.35)",
             },
           }),
