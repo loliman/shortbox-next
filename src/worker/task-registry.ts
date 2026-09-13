@@ -15,11 +15,16 @@ export type UpdateDeSeriesGenresTaskPayload = {
   dryRun?: boolean;
 };
 
+export type CheckPaniniPreviewTaskPayload = {
+  dryRun?: boolean;
+};
+
 export type AdminTaskPayloads = {
   "cleanup-db": CleanupTaskPayload;
   "update-story-badges": UpdateStoryFiltersTaskPayload;
   "rebuild-search-index": RebuildSearchIndexTaskPayload;
   "update-de-series-genres": UpdateDeSeriesGenresTaskPayload;
+  "check-panini-preview": CheckPaniniPreviewTaskPayload;
 };
 
 export type AdminTaskName = keyof AdminTaskPayloads;
@@ -51,6 +56,11 @@ export const ADMIN_TASK_DEFINITIONS: AdminTaskDefinition[] = [
     label: "Update DE Series Genres",
     description: "Leitet Genres fuer DE-Serien aus verknuepften US-Stories und deren US-Serien ab.",
   },
+  {
+    name: "check-panini-preview",
+    label: "Check Panini Preview",
+    description: "Prüft auf neue Panini Vorschauen, lädt diese im Hintergrund und bereitet den Marvel-Import vor.",
+  },
 ];
 
 export const ADMIN_TASK_DEFINITION_BY_NAME: Record<AdminTaskName, AdminTaskDefinition> = {
@@ -58,6 +68,7 @@ export const ADMIN_TASK_DEFINITION_BY_NAME: Record<AdminTaskName, AdminTaskDefin
   "update-story-badges": ADMIN_TASK_DEFINITIONS[1],
   "rebuild-search-index": ADMIN_TASK_DEFINITIONS[2],
   "update-de-series-genres": ADMIN_TASK_DEFINITIONS[3],
+  "check-panini-preview": ADMIN_TASK_DEFINITIONS[4],
 };
 
 export const isAdminTaskName = (value: string): value is AdminTaskName =>

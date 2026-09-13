@@ -15,7 +15,8 @@ jest.mock("./session", () => ({
 const mockReadServerSession = readServerSession as jest.MockedFunction<typeof readServerSession>;
 
 describe("preview-import-session with user coupling", () => {
-  const mockQueue1: PreviewImportQueue = {
+  const mockQueue1: any = {
+    id: "queue-1",
     fileName: "test1.pdf",
     drafts: [
       {
@@ -34,7 +35,8 @@ describe("preview-import-session with user coupling", () => {
     updatedAt: new Date().toISOString(),
   };
 
-  const mockQueue2: PreviewImportQueue = {
+  const mockQueue2: any = {
+    id: "queue-2",
     fileName: "test2.pdf",
     drafts: [
       {

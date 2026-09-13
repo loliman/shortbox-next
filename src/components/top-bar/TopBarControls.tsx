@@ -7,6 +7,7 @@ import Tooltip from "@mui/material/Tooltip";
 import IconButton from "@mui/material/IconButton";
 import Badge from "@mui/material/Badge";
 import CircularProgress from "@mui/material/CircularProgress";
+import AutoStoriesOutlinedIcon from "@mui/icons-material/AutoStoriesOutlined";
 import {
   AppSearchIcon,
   AppBugIcon,
@@ -254,6 +255,19 @@ export function AuthActionGroup(props: Readonly<AuthActionGroupProps & { flavor?
               )}
             </IconButton>
           </Badge>
+        </Tooltip>
+      ) : null}
+      {props.loggedIn && props.canAdmin && props.previewImportActive ? (
+        <Tooltip title="Neue Panini Vorschau zum Review bereit">
+          <IconButton
+            color="primary"
+            aria-label="Panini Vorschau Review"
+            onClick={() => props.onNavigate("/admin/preview-import")}
+          >
+            <Badge color="primary" variant="dot">
+              <AutoStoriesOutlinedIcon />
+            </Badge>
+          </IconButton>
         </Tooltip>
       ) : null}
       {props.loggedIn && props.canAdmin ? (

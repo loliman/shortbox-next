@@ -4,416 +4,564 @@ import React from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import Checkbox from "@mui/material/Checkbox";
+import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
-import FormControl from "@mui/material/FormControl";
-import MenuItem from "@mui/material/MenuItem";
-import Select from "@mui/material/Select";
+import Divider from "@mui/material/Divider";
+import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
+import Tab from "@mui/material/Tab";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+import Tabs from "@mui/material/Tabs";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useRouter } from "next/navigation";
-import { Form, Formik } from "formik";
-import { IssueSchema } from "../../util/yupSchema";
 import { mutationRequest } from "../../lib/client/mutation-request";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
-import type { ActivePreviewImportQueue } from "../../types/preview-import";
+import type { ActivePreviewImportQueue, StagedPreviewImport } from "../../types/preview-import";
 import type { SessionData } from "../../types/session";
-import IssueEditorFormContent from "../restricted/editor/issue-editor/IssueEditorFormContent";
-import { buildIssueMutationVariables } from "../restricted/editor/issue-editor/payload";
-import { buildTouchedFromErrors, findFirstErrorPath, focusEditorErrorField } from "../restricted/editor/issue-editor/validationFeedback";
 
 interface PreviewImportProps {
-  initialQueue: ActivePreviewImportQueue | null;
+  initialQueue?: ActivePreviewImportQueue | null;
+  stagedImport?: StagedPreviewImport | null;
   session?: SessionData | null;
 }
 
 export default function PreviewImport(props: Readonly<PreviewImportProps>) {
   const router = useRouter();
   const snackbar = useSnackbarBridge();
-  const [uploading, setUploading] = React.useState(false);
-  const [file, setFile] = React.useState<File | null>(null);
 
-  const activeQueue = props.initialQueue;
+  const [staged, setStaged] = React.useState<StagedPreviewImport | null>(props.stagedImport ?? null);
+  const [loading, setLoading] = React.useState(false);
+  const [committing, setCommitting] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState<"inScope" | "outOfScope">("inScope");
+  const [categoryFilter, setCategoryFilter] = React.useState<string>("all");
+  const [uploadFile, setUploadFile] = React.useState<File | null>(null);
 
-  const onDiscard = async () => {
-    await mutationRequest<{ success?: boolean }>({
-      url: "/api/admin-preview-import",
-      method: "DELETE",
-    });
-    snackbar.enqueueSnackbar("Import-Queue verworfen.", { variant: "success" });
-    router.refresh();
+  // Sync props if changed
+  React.useEffect(() => {
+    if (props.stagedImport) {
+      setStaged(props.stagedImport);
+    }
+  }, [props.stagedImport]);
+
+  const onTriggerCheck = async (force: boolean = false) => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/admin-preview-import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "trigger-check", force }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Prüfung fehlgeschlagen");
+      }
+      snackbar.enqueueSnackbar(data.message || "Prüfung erfolgreich abgeschlossen", {
+        variant: data.action === "STAGED_NEW_PREVIEW" ? "success" : "info",
+      });
+      if (data.staged) {
+        setStaged(data.staged);
+      }
+      router.refresh();
+    } catch (err) {
+      snackbar.enqueueSnackbar(err instanceof Error ? err.message : "Fehler bei der Prüfung", {
+        variant: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (activeQueue?.currentDraft) {
+  const onCommitBatch = async () => {
+    if (!staged) return;
+    setCommitting(true);
+    try {
+      const approvedDraftIds = staged.drafts.filter((d) => d.selected).map((d) => d.id);
+      if (approvedDraftIds.length === 0) {
+        snackbar.enqueueSnackbar("Bitte mindestens eine Ausgabe zum Import auswählen.", {
+          variant: "warning",
+        });
+        setCommitting(false);
+        return;
+      }
+
+      const response = await fetch("/api/admin-preview-import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "commit",
+          approvedDraftIds,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Batch-Import fehlgeschlagen");
+      }
+
+      snackbar.enqueueSnackbar(
+        `Erfolgreich: ${data.committedCount} Ausgaben in Shortbox angelegt! (${data.skippedCount} übersprungen)`,
+        { variant: "success" }
+      );
+      setStaged(null);
+      router.refresh();
+    } catch (err) {
+      snackbar.enqueueSnackbar(err instanceof Error ? err.message : "Fehler beim Batch-Import", {
+        variant: "error",
+      });
+    } finally {
+      setCommitting(false);
+    }
+  };
+
+  const onDiscard = async () => {
+    setLoading(true);
+    try {
+      await mutationRequest<{ success?: boolean }>({
+        url: "/api/admin-preview-import",
+        method: "DELETE",
+      });
+      setStaged(null);
+      snackbar.enqueueSnackbar("Vorschau-Staging verworfen.", { variant: "info" });
+      router.refresh();
+    } catch {
+      snackbar.enqueueSnackbar("Verwerfen fehlgeschlagen.", { variant: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onToggleDraft = async (draftId: string) => {
+    if (!staged) return;
+    const nextDrafts = staged.drafts.map((d) =>
+      d.id === draftId ? { ...d, selected: !d.selected } : d
+    );
+    setStaged({ ...staged, drafts: nextDrafts });
+
+    // Inform server in background
+    fetch("/api/admin-preview-import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "toggle-draft", draftId }),
+    }).catch(() => {});
+  };
+
+  const onSelectAllVisible = (select: boolean) => {
+    if (!staged) return;
+    const visibleIds = new Set(filteredDrafts.map((d) => d.id));
+    const nextDrafts = staged.drafts.map((d) =>
+      visibleIds.has(d.id) ? { ...d, selected: select } : d
+    );
+    setStaged({ ...staged, drafts: nextDrafts });
+  };
+
+  const onManualUpload = async () => {
+    if (!uploadFile) return;
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.set("file", uploadFile);
+      const res = await fetch("/api/admin-preview-import", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload fehlgeschlagen");
+      snackbar.enqueueSnackbar("PDF erfolgreich analysiert und für Review gestaged!", {
+        variant: "success",
+      });
+      if (data.staged) setStaged(data.staged);
+      router.refresh();
+    } catch (err) {
+      snackbar.enqueueSnackbar(err instanceof Error ? err.message : "Fehler beim Upload", {
+        variant: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter drafts for current tab and category
+  const inScopeDrafts = staged?.drafts.filter((d) => d.inScope) ?? [];
+  const outOfScopeDrafts = staged?.drafts.filter((d) => !d.inScope) ?? [];
+  const tabDrafts = activeTab === "inScope" ? inScopeDrafts : outOfScopeDrafts;
+
+  const filteredDrafts = tabDrafts.filter((d) => {
+    if (categoryFilter === "all") return true;
+    return d.category === categoryFilter;
+  });
+
+  const selectedCount = staged?.drafts.filter((d) => d.selected).length ?? 0;
+
+  // View 1: Staged Preview is ready for Review & Commit
+  if (staged && staged.status === "PENDING_REVIEW") {
     return (
-      <PreviewImportQueueEditor
-        queue={activeQueue}
-        session={props.session}
-        onDiscard={onDiscard}
-      />
+      <Stack spacing={3}>
+        {/* Header Summary Card */}
+        <Card elevation={1}>
+          <CardContent>
+            <Stack
+              direction={{ xs: "column", md: "row" }}
+              justifyContent="space-between"
+              alignItems={{ xs: "flex-start", md: "center" }}
+              spacing={2}
+            >
+              <Box>
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <Typography variant="h5" component="h1" fontWeight={700}>
+                    {staged.title}
+                  </Typography>
+                  <Chip
+                    label="Human-in-the-Loop Review"
+                    color="primary"
+                    size="small"
+                    variant="outlined"
+                  />
+                </Stack>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  Automatisch vorbereitet aus {staged.fileName} • {staged.totalDrafts} Ausgaben im Gesamtkatalog
+                </Typography>
+              </Box>
+
+              {/* Action Buttons */}
+              <Stack direction="row" spacing={1.5}>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  disabled={loading || committing}
+                  onClick={onDiscard}
+                >
+                  Verwerfen
+                </Button>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  size="large"
+                  disabled={loading || committing || selectedCount === 0}
+                  onClick={onCommitBatch}
+                  startIcon={committing ? <CircularProgress size={18} color="inherit" /> : null}
+                  sx={{ px: 3, fontWeight: 700 }}
+                >
+                  {committing
+                    ? "Importiert..."
+                    : `Jetzt ${selectedCount} Ausgaben importieren (Los geht's!)`}
+                </Button>
+              </Stack>
+            </Stack>
+
+            <Divider sx={{ my: 2 }} />
+
+            {/* Quick Metrics Badges */}
+            <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
+              <Chip
+                label={`${staged.readyCount} Bereit zum Import`}
+                color="success"
+                size="small"
+                sx={{ fontWeight: 600 }}
+              />
+              <Chip
+                label={`${staged.newSeriesCount} Neue Serien`}
+                color="warning"
+                size="small"
+                sx={{ fontWeight: 600 }}
+              />
+              <Chip
+                label={`${staged.duplicateCount} Bereits in DB (Duplikate)`}
+                size="small"
+                variant="outlined"
+              />
+              <Chip
+                label={`${staged.inScopeDrafts} Marvel & Kosmos`}
+                color="info"
+                size="small"
+                variant="outlined"
+              />
+            </Stack>
+          </CardContent>
+        </Card>
+
+        {/* Tabs: Marvel vs Other */}
+        <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+          <Tabs
+            value={activeTab}
+            onChange={(_, val) => {
+              setActiveTab(val);
+              setCategoryFilter("all");
+            }}
+          >
+            <Tab
+              value="inScope"
+              label={`🎯 Marvel-Fokus (${inScopeDrafts.length})`}
+              sx={{ fontWeight: 700 }}
+            />
+            <Tab
+              value="outOfScope"
+              label={`Ausgefiltert / Non-Marvel (${outOfScopeDrafts.length})`}
+            />
+          </Tabs>
+        </Box>
+
+        {/* Subfilter Chips for Categories */}
+        {activeTab === "inScope" && (
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
+            <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
+              Bereich:
+            </Typography>
+            <Chip
+              label="Alle Marvel"
+              clickable
+              color={categoryFilter === "all" ? "primary" : "default"}
+              size="small"
+              onClick={() => setCategoryFilter("all")}
+            />
+            <Chip
+              label="Marvel Superhelden"
+              clickable
+              color={categoryFilter === "marvel" ? "primary" : "default"}
+              size="small"
+              onClick={() => setCategoryFilter("marvel")}
+            />
+            <Chip
+              label="Star Wars"
+              clickable
+              color={categoryFilter === "star_wars" ? "primary" : "default"}
+              size="small"
+              onClick={() => setCategoryFilter("star_wars")}
+            />
+            <Chip
+              label="Alien & Predator"
+              clickable
+              color={categoryFilter === "alien_predator" ? "primary" : "default"}
+              size="small"
+              onClick={() => setCategoryFilter("alien_predator")}
+            />
+            <Chip
+              label="Crossovers"
+              clickable
+              color={categoryFilter === "crossover" ? "primary" : "default"}
+              size="small"
+              onClick={() => setCategoryFilter("crossover")}
+            />
+            <Chip
+              label="Marvel Manga"
+              clickable
+              color={categoryFilter === "marvel_manga" ? "primary" : "default"}
+              size="small"
+              onClick={() => setCategoryFilter("marvel_manga")}
+            />
+
+            <Box sx={{ flex: 1 }} />
+
+            <Button size="small" onClick={() => onSelectAllVisible(true)}>
+              Alle auswählen
+            </Button>
+            <Button size="small" color="inherit" onClick={() => onSelectAllVisible(false)}>
+              Auswahl aufheben
+            </Button>
+          </Stack>
+        )}
+
+        {/* Review Table */}
+        <TableContainer component={Paper} elevation={1} sx={{ maxHeight: 650 }}>
+          <Table stickyHeader size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    checked={
+                      filteredDrafts.length > 0 &&
+                      filteredDrafts.every((d) => d.selected)
+                    }
+                    indeterminate={
+                      filteredDrafts.some((d) => d.selected) &&
+                      !filteredDrafts.every((d) => d.selected)
+                    }
+                    onChange={(e) => onSelectAllVisible(e.target.checked)}
+                  />
+                </TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Heft & Titel</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Serie & Verlag</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Format / VÖ</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>US-Stories (Inhalt)</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Bestellcode</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filteredDrafts.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                    Keine Ausgaben in diesem Filter.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredDrafts.map((draft) => (
+                  <TableRow
+                    key={draft.id}
+                    hover
+                    selected={draft.selected}
+                    sx={{
+                      opacity: draft.status === "DUPLICATE" ? 0.6 : 1,
+                      backgroundColor: draft.selected ? "action.selected" : "inherit",
+                    }}
+                  >
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        checked={draft.selected}
+                        onChange={() => onToggleDraft(draft.id)}
+                      />
+                    </TableCell>
+
+                    {/* Status Chip */}
+                    <TableCell>
+                      {draft.status === "READY" && (
+                        <Chip label="Bereit" color="success" size="small" />
+                      )}
+                      {draft.status === "NEW_SERIES" && (
+                        <Tooltip title="Serie wird beim Import neu angelegt">
+                          <Chip label="Neue Serie" color="warning" size="small" />
+                        </Tooltip>
+                      )}
+                      {draft.status === "DUPLICATE" && (
+                        <Tooltip title={draft.statusMessage || "Existiert bereits"}>
+                          <Chip label="In DB" size="small" variant="outlined" />
+                        </Tooltip>
+                      )}
+                      {draft.isVariant && (
+                        <Chip label="Variant" size="small" sx={{ ml: 0.5 }} />
+                      )}
+                    </TableCell>
+
+                    {/* Title & Number */}
+                    <TableCell>
+                      <Typography variant="body2" fontWeight={600}>
+                        {draft.issue.title || draft.series.title} #{draft.issue.number}
+                      </Typography>
+                      {draft.issue.variant && (
+                        <Typography variant="caption" color="text.secondary">
+                          Cover / Variante: {draft.issue.variant}
+                        </Typography>
+                      )}
+                    </TableCell>
+
+                    {/* Series & Publisher */}
+                    <TableCell>
+                      <Typography variant="body2">{draft.series.title}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {draft.series.publisherName} (Vol. {draft.series.volume})
+                      </Typography>
+                    </TableCell>
+
+                    {/* Format & Release */}
+                    <TableCell>
+                      <Typography variant="body2">
+                        {draft.issue.format || "Softcover"} • {draft.issue.price ? `${draft.issue.price} €` : "-"}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {draft.issue.releasedate || "Unbekannt"}
+                      </Typography>
+                    </TableCell>
+
+                    {/* Stories */}
+                    <TableCell sx={{ maxWidth: 300 }}>
+                      <Typography variant="body2" noWrap title={draft.issue.storiesSummary}>
+                        {draft.issue.storiesSummary || `${draft.issue.storiesCount} Story(s)`}
+                      </Typography>
+                    </TableCell>
+
+                    {/* Issue Code */}
+                    <TableCell>
+                      <Typography variant="caption" fontFamily="monospace">
+                        {draft.issueCode || "-"}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Stack>
     );
   }
 
+  // View 2: Empty State (No staged preview currently waiting)
   return (
-    <Stack spacing={2.5}>
+    <Stack spacing={3} maxWidth={800} sx={{ mx: "auto", mt: 4 }}>
+      <Card elevation={2}>
+        <CardContent sx={{ p: 4, textAlign: "center" }}>
+          <Typography variant="h5" fontWeight={700} gutterBottom>
+            Panini-Vorschau Auto-Import (Marvel-Fokus)
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+            Der Hintergrund-Worker prüft täglich automatisch auf neue Panini-Vorschau-Ausgaben.
+            Sobald eine neue Vorschau erscheint, wird sie automatisch geladen, auf den Marvel-Kosmos vorgefiltert
+            und steht hier für dein 1-Klick-Review bereit.
+          </Typography>
+
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2} justifyContent="center" sx={{ mb: 4 }}>
+            <Button
+              variant="contained"
+              color="primary"
+              size="large"
+              disabled={loading}
+              onClick={() => onTriggerCheck(true)}
+              startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
+              sx={{ fontWeight: 700, px: 3 }}
+            >
+              {loading ? "Prüfe & Lade Vorschau..." : "Jetzt online nach neuer PV suchen"}
+            </Button>
+          </Stack>
+
+          <Divider sx={{ my: 3 }}>
+            <Typography variant="caption" color="text.secondary">
+              ODER MANUELL HOCHLADEN
+            </Typography>
+          </Divider>
+
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={2}
+            justifyContent="center"
+            alignItems="center"
+          >
+            <Button component="label" variant="outlined" disabled={loading}>
+              PDF-Datei wählen
+              <input
+                hidden
+                type="file"
+                accept="application/pdf,.pdf"
+                onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+              />
+            </Button>
+            <Typography variant="body2" color="text.secondary">
+              {uploadFile ? uploadFile.name : "Keine Datei gewählt"}
+            </Typography>
+            <Button
+              variant="contained"
+              color="secondary"
+              disabled={!uploadFile || loading}
+              onClick={onManualUpload}
+            >
+              Analysieren & Stagen
+            </Button>
+          </Stack>
+        </CardContent>
+      </Card>
+
       <Alert severity="info">
-        Panini-Vorschau als PDF hochladen. Es wird nur maschinenlesbarer Text unterstützt, keine OCR.
+        <strong>Human in the Loop:</strong> Selbst wenn der Worker im Hintergrund eine neue PDF entdeckt,
+        werden <em>niemals</em> Daten selbstständig in die Datenbank eingetragen. Du hast immer die volle
+        Kontrolle und gibst die Ausgaben mit einem einzigen Klick frei.
       </Alert>
-
-      <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} alignItems={{ xs: "stretch", md: "center" }}>
-        <Button component="label" variant="outlined" disabled={uploading}>
-          <span>PDF wählen</span>
-          <input
-            hidden
-            type="file"
-            accept="application/pdf,.pdf"
-            onChange={(event) => {
-              const nextFile = event.target.files?.[0] ?? null;
-              setFile(nextFile);
-            }}
-          />
-        </Button>
-
-        <Typography color="text.secondary">
-          {file ? file.name : "Noch keine Datei ausgewählt"}
-        </Typography>
-
-        <Box sx={{ flex: 1 }} />
-
-        <Button
-          variant="contained"
-          disabled={!file || uploading}
-          onClick={async () => {
-            if (!file) return;
-            setUploading(true);
-            try {
-              const formData = new FormData();
-              formData.set("file", file);
-              const response = await fetch("/api/admin-preview-import", {
-                method: "POST",
-                body: formData,
-              });
-
-              const contentType = response.headers.get("content-type") || "";
-              let payload: { error?: string } = {};
-
-              if (contentType.includes("application/json")) {
-                payload = (await response.json()) as { error?: string };
-              } else {
-                const text = await response.text().catch(() => "");
-
-                if (!response.ok) {
-                  if (response.status === 413) {
-                    throw new Error(
-                      "Die PDF ist für den Server-Upload zu groß. Wahrscheinlich blockiert ein Proxy- oder Webserver-Limit vor der App."
-                    );
-                  }
-
-                  if (/<html/i.test(text)) {
-                    throw new Error(
-                      `Der Server hat statt JSON eine HTML-Fehlerseite zurückgegeben (${response.status}). Das ist meist ein vorgeschalteter Proxy- oder Webserver-Fehler.`
-                    );
-                  }
-                }
-              }
-
-              if (!response.ok) {
-                throw new Error(payload.error || "PDF konnte nicht importiert werden");
-              }
-              snackbar.enqueueSnackbar("Import-Queue erstellt.", { variant: "success" });
-              router.refresh();
-            } catch (error) {
-              snackbar.enqueueSnackbar(
-                error instanceof Error ? error.message : "PDF konnte nicht importiert werden",
-                { variant: "error" }
-              );
-            } finally {
-              setUploading(false);
-            }
-          }}
-        >
-          {uploading ? (
-            <Stack direction="row" spacing={1} alignItems="center">
-              <CircularProgress size={16} color="inherit" />
-              <span>Import läuft...</span>
-            </Stack>
-          ) : (
-            "PDF importieren"
-          )}
-        </Button>
-      </Stack>
-
-      {uploading ? (
-        <Alert severity="info" icon={<CircularProgress size={18} />}>
-          Die PDF wird gerade hochgeladen und verarbeitet. Das kann je nach Dateigröße einen Moment dauern.
-        </Alert>
-      ) : null}
     </Stack>
-  );
-}
-
-function readTextValue(value: unknown): string {
-  if (typeof value === "string") return value.trim();
-  if (typeof value === "number") return String(value).trim();
-  return "";
-}
-
-function PreviewImportQueueEditor(props: Readonly<{
-  queue: ActivePreviewImportQueue;
-  session?: SessionData | null;
-  onDiscard: () => Promise<void>;
-}>) {
-  const router = useRouter();
-  const snackbar = useSnackbarBridge();
-  const [validationMessage, setValidationMessage] = React.useState<string | null>(null);
-  const draft = props.queue.currentDraft;
-  const values = React.useMemo(() => structuredClone(draft.values), [draft.values]);
-  const remainingDrafts = React.useMemo(() => {
-    return props.queue.queue.drafts.slice(props.queue.currentDraftIndex + 1);
-  }, [props.queue.queue.drafts, props.queue.currentDraftIndex]);
-
-  return (
-    <Formik
-      initialValues={values}
-      enableReinitialize
-      validationSchema={IssueSchema}
-      onSubmit={async (formValues, actions) => {
-        actions.setSubmitting(true);
-        setValidationMessage(null);
-        try {
-          const variables = buildIssueMutationVariables(formValues, false);
-          const result = await mutationRequest<{ item?: { id?: string | number } }>({
-            url: "/api/issues",
-            method: "POST",
-            body: variables as unknown as Record<string, unknown>,
-          });
-
-          await mutationRequest({
-            url: "/api/admin-preview-import",
-            method: "PATCH",
-            body: {
-              action: "complete",
-              draftId: draft.id,
-              createdIssueId: readTextValue(result.item?.id),
-            },
-          });
-
-          snackbar.enqueueSnackbar("Ausgabe erstellt. Nächster Draft geöffnet.", { variant: "success" });
-          router.refresh();
-        } catch (error) {
-          snackbar.enqueueSnackbar(
-            error instanceof Error ? error.message : "Ausgabe konnte nicht erstellt werden",
-            { variant: "error" }
-          );
-        } finally {
-          actions.setSubmitting(false);
-        }
-      }}
-    >
-      {({ resetForm, submitForm, isSubmitting, setFieldValue, values: formValues, validateForm, setTouched }) => (
-        <Form style={{ minHeight: "100%", display: "flex", flexDirection: "column" }}>
-          <IssueEditorFormContent
-            values={formValues}
-            showBatchCreate
-            isDesktop
-            session={props.session}
-            header={`Import ${props.queue.currentDraftIndex + 1} von ${props.queue.totalDraftCount}`}
-            submitLabel="Erstellen und weiter"
-            submitAndCopyLabel="Erstellen und weiter"
-            isSubmitting={isSubmitting}
-            setFieldValue={setFieldValue}
-            resetForm={() => resetForm()}
-            onToggleUs={() => {}}
-            onCancel={() => {
-              void props.onDiscard().then(() => router.refresh());
-            }}
-            onSubmitMode={() => {
-              void validateForm().then((errors) => {
-                const firstErrorPath = findFirstErrorPath(errors);
-                if (firstErrorPath) {
-                  setTouched(buildTouchedFromErrors(errors), true);
-                  setValidationMessage("Bitte die markierten Pflichtfelder prüfen.");
-                  focusEditorErrorField(firstErrorPath);
-                  return;
-                }
-
-                setValidationMessage(null);
-                submitForm();
-              });
-            }}
-            notice={
-              <Stack spacing={1}>
-                <Alert severity="info">
-                  Quelle: {draft.sourceTitle}
-                  {draft.issueCode ? ` (${draft.issueCode})` : ""}
-                </Alert>
-                {draft.warnings.length > 0 ? (
-                  <Alert severity="warning">{draft.warnings.join(" | ")}</Alert>
-                ) : null}
-              </Stack>
-            }
-            actions={
-              <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} justifyContent="space-between">
-                <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                  <Button
-                    disabled={isSubmitting || !props.queue.canGoBack}
-                    variant="text"
-                    color="inherit"
-                    onClick={async () => {
-                      try {
-                        await mutationRequest({
-                          url: "/api/admin-preview-import",
-                          method: "PATCH",
-                          body: {
-                            action: "back",
-                          },
-                        });
-                        snackbar.enqueueSnackbar("Zum letzten übersprungenen Draft zurückgekehrt.", {
-                          variant: "success",
-                        });
-                        router.refresh();
-                      } catch (error) {
-                        snackbar.enqueueSnackbar(
-                          error instanceof Error ? error.message : "Der vorherige Draft konnte nicht geöffnet werden",
-                          { variant: "error" }
-                        );
-                      }
-                    }}
-                  >
-                    Zurück
-                  </Button>
-                  <Button disabled={isSubmitting} variant="text" color="inherit" onClick={() => resetForm()}>
-                    Zurücksetzen
-                  </Button>
-                  <Button
-                    disabled={isSubmitting}
-                    variant="outlined"
-                    color="inherit"
-                    onClick={() => {
-                      void props.onDiscard().then(() => router.refresh());
-                    }}
-                  >
-                    Abbrechen
-                  </Button>
-                  <Button
-                    disabled={isSubmitting}
-                    variant="outlined"
-                    onClick={async () => {
-                      try {
-                        await mutationRequest({
-                          url: "/api/admin-preview-import",
-                          method: "PATCH",
-                          body: {
-                            action: "skip",
-                            draftId: draft.id,
-                          },
-                        });
-                        snackbar.enqueueSnackbar("Draft übersprungen.", { variant: "success" });
-                        router.refresh();
-                      } catch (error) {
-                        snackbar.enqueueSnackbar(
-                          error instanceof Error ? error.message : "Draft konnte nicht übersprungen werden",
-                          { variant: "error" }
-                        );
-                      }
-                    }}
-                  >
-                    Überspringen
-                  </Button>
-                  {remainingDrafts.length > 0 && (
-                    <FormControl size="small" sx={{ minWidth: 220 }}>
-                      <Select
-                        value=""
-                        displayEmpty
-                        disabled={isSubmitting}
-                        onChange={async (event) => {
-                          const targetDraftId = event.target.value;
-                          if (!targetDraftId) return;
-
-                          const targetDraft = remainingDrafts.find((d) => d.id === targetDraftId);
-                          const targetLabel = targetDraft
-                            ? `${targetDraft.values.series.title} #${targetDraft.values.number}`
-                            : "";
-
-                          if (
-                            !window.confirm(
-                              `Möchtest du wirklich alle Ausgaben bis zu "${targetLabel}" überspringen?`
-                            )
-                          ) {
-                            return;
-                          }
-
-                          try {
-                            await mutationRequest({
-                              url: "/api/admin-preview-import",
-                              method: "PATCH",
-                              body: {
-                                action: "skip-until",
-                                draftId: draft.id,
-                                targetDraftId,
-                              },
-                            });
-                            snackbar.enqueueSnackbar(`Ausgaben übersprungen bis ${targetLabel}.`, {
-                              variant: "success",
-                            });
-                            router.refresh();
-                          } catch (error) {
-                            snackbar.enqueueSnackbar(
-                              error instanceof Error ? error.message : "Fehler beim Überspringen der Ausgaben",
-                              { variant: "error" }
-                            );
-                          }
-                        }}
-                        renderValue={() => "Überspringen bis..."}
-                      >
-                        <MenuItem value="" disabled>
-                          Überspringen bis...
-                        </MenuItem>
-                        {remainingDrafts.map((d) => {
-                          const label = `${d.values.series.title} #${d.values.number}${
-                            d.values.title ? `: ${d.values.title}` : ""
-                          }`;
-                          return (
-                            <MenuItem key={d.id} value={d.id}>
-                              {label}
-                            </MenuItem>
-                          );
-                        })}
-                      </Select>
-                    </FormControl>
-                  )}
-                </Box>
-
-                <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
-                  <Button
-                    disabled={isSubmitting}
-                    variant="contained"
-                    onClick={() => {
-                      void validateForm().then((errors) => {
-                        const firstErrorPath = findFirstErrorPath(errors);
-                        if (firstErrorPath) {
-                          setTouched(buildTouchedFromErrors(errors), true);
-                          setValidationMessage("Bitte die markierten Pflichtfelder prüfen.");
-                          focusEditorErrorField(firstErrorPath);
-                          return;
-                        }
-
-                        setValidationMessage(null);
-                        submitForm();
-                      });
-                    }}
-                  >
-                    Erstellen und weiter
-                  </Button>
-                </Box>
-              </Stack>
-            }
-            actionNotice={
-              validationMessage ? <Alert severity="error">{validationMessage}</Alert> : null
-            }
-            showHints
-          />
-        </Form>
-      )}
-    </Formik>
   );
 }

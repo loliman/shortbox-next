@@ -32,6 +32,7 @@ export async function startWorker(): Promise<void> {
       `0 * * * * update-story-badges     ?id=cron-story-badges&max=1`,
       `0 * * * * update-de-series-genres  ?id=cron-series-genres&max=1`,
       `0 * * * * rebuild-search-index     ?id=cron-search-index&max=1`,
+      `0 4 * * * check-panini-preview     ?id=cron-check-pv&max=1`,
     ].join("\n"),
   });
 

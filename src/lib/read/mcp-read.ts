@@ -1,3 +1,5 @@
+import "server-only";
+
 import { prisma } from "../prisma/client";
 import { Prisma } from "@prisma/client";
 
@@ -881,3 +883,495 @@ export async function mcpFindSellableReprints(params: FindSellableReprintsParams
     byPublisher: grouped,
   };
 }
+
+// ── mcpSearchCatalog ────────────────────────────────────────────────────────
+
+export type McpSearchResult = {
+  id: number;
+  type: "issue" | "series" | "publisher";
+  label: string;
+  publisher: string | null;
+  seriesTitle: string | null;
+  volume: number | null;
+  startYear: number | null;
+  issueNumber: string | null;
+  format: string | null;
+  variant: string | null;
+  us: boolean;
+  url: string;
+};
+
+export async function mcpSearchCatalog(params: {
+  query: string;
+  scope?: "all" | "series" | "issue" | "publisher";
+  us?: boolean;
+  limit?: number;
+}): Promise<McpSearchResult[]> {
+  const rawQuery = params.query.trim();
+  if (!rawQuery) return [];
+
+  const limit = Math.min(Math.max(params.limit ?? 10, 1), 50);
+
+  // Normalize punctuation and hyphens so "Spider-Man" matches "spider man" in search_index
+  const normalized = rawQuery.replace(/[^a-zA-Z0-9äöüÄÖÜß]+/g, " ").trim();
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return [];
+
+  const plainTsQuery = tokens.join(" ");
+  const likePattern = `%${tokens.join("%")}%`;
+
+  const nodeTypeFilter =
+    params.scope && params.scope !== "all"
+      ? Prisma.sql`AND si.node_type = ${params.scope}::shortbox."SearchIndexNodeType"`
+      : Prisma.empty;
+
+  const usFilter =
+    params.us !== undefined
+      ? Prisma.sql`AND si.us = ${params.us}`
+      : Prisma.empty;
+
+  const rows = await prisma.$queryRaw<Array<{
+    source_id: bigint;
+    node_type: "publisher" | "series" | "issue";
+    label: string;
+    url: string;
+    publisher_name: string | null;
+    series_title: string | null;
+    series_volume: number | null;
+    series_startyear: number | null;
+    issue_number: string | null;
+    issue_format: string | null;
+    issue_variant: string | null;
+    us: boolean;
+  }>>(Prisma.sql`
+    SELECT
+      si.source_id,
+      si.node_type,
+      si.label,
+      si.url,
+      si.publisher_name,
+      si.series_title,
+      si.series_volume,
+      si.series_startyear,
+      si.issue_number,
+      si.issue_format,
+      si.issue_variant,
+      si.us
+    FROM shortbox.search_index si
+    WHERE (
+      si.search_tsv @@ plainto_tsquery('simple', unaccent(CAST(${plainTsQuery} AS text)))
+      OR si.search_text ILIKE CAST(${likePattern} AS text)
+    )
+    ${nodeTypeFilter}
+    ${usFilter}
+    ORDER BY
+      ts_rank_cd(si.search_tsv, plainto_tsquery('simple', unaccent(CAST(${plainTsQuery} AS text)))) DESC,
+      similarity(si.search_text, unaccent(CAST(${plainTsQuery} AS text))) DESC,
+      si.label ASC
+    LIMIT CAST(${limit} AS integer)
+  `);
+
+  return rows.map((r) => ({
+    id: Number(r.source_id),
+    type: r.node_type,
+    label: r.label,
+    publisher: r.publisher_name,
+    seriesTitle: r.series_title,
+    volume: r.series_volume,
+    startYear: r.series_startyear,
+    issueNumber: r.issue_number,
+    format: r.issue_format,
+    variant: r.issue_variant,
+    us: r.us,
+    url: r.url,
+  }));
+}
+
+// ── mcpCheckCollectionStatus ────────────────────────────────────────────────
+
+export type McpIssueCollectionStatus = {
+  type: "issue";
+  id: number;
+  number: string;
+  title: string | null;
+  series: string;
+  seriesId: number;
+  volume: number;
+  publisher: string;
+  isUs: boolean;
+  collected: boolean;
+  collectedVariants: Array<{
+    id: number;
+    format: string;
+    variantLabel: string | null;
+    price: string | null;
+    releaseDate: string | null;
+  }>;
+  allVariantsCount: number;
+  flags: {
+    isReprintOnly: boolean;
+    hasFirstPrint: boolean;
+    hasOnlyPrint: boolean;
+  };
+};
+
+export type McpSeriesCollectionStatus = {
+  type: "series";
+  id: number;
+  title: string;
+  volume: number;
+  startYear: number;
+  endYear: number | null;
+  publisher: string;
+  isUs: boolean;
+  totalIssues: number;
+  collectedCount: number;
+  missingCount: number;
+  completionPercent: number;
+  isComplete: boolean;
+  missingNumbers: string[];
+  collectedNumbers: string[];
+};
+
+export async function mcpCheckCollectionStatus(params: {
+  issue_id?: number;
+  series_id?: number;
+}): Promise<McpIssueCollectionStatus | McpSeriesCollectionStatus | null> {
+  if (params.issue_id != null) {
+    const issue = await prisma.issue.findFirst({
+      where: { id: BigInt(params.issue_id) },
+      select: {
+        id: true,
+        number: true,
+        title: true,
+        isReprintOnly: true,
+        hasFirstPrint: true,
+        hasOnlyPrint: true,
+        series: {
+          select: {
+            id: true,
+            title: true,
+            volume: true,
+            startYear: true,
+            publisher: { select: { name: true, original: true } },
+          },
+        },
+        variants: {
+          select: {
+            id: true,
+            format: true,
+            variantLabel: true,
+            releaseDate: true,
+            price: true,
+            currency: true,
+            collected: true,
+          },
+          orderBy: [{ format: "asc" }, { variantLabel: "asc" }],
+        },
+      },
+    });
+
+    if (!issue) return null;
+
+    const collectedVariants = issue.variants.filter((v) => v.collected === true);
+    return {
+      type: "issue",
+      id: Number(issue.id),
+      number: issue.number,
+      title: issue.title || null,
+      series: issue.series?.title ?? "",
+      seriesId: Number(issue.series?.id ?? 0),
+      volume: Number(issue.series?.volume ?? 0),
+      publisher: issue.series?.publisher?.name ?? "",
+      isUs: issue.series?.publisher?.original ?? false,
+      collected: collectedVariants.length > 0,
+      collectedVariants: collectedVariants.map((v) => ({
+        id: Number(v.id),
+        format: v.format,
+        variantLabel: v.variantLabel || null,
+        price: formatPrice(v.price, v.currency),
+        releaseDate: formatDate(v.releaseDate),
+      })),
+      allVariantsCount: issue.variants.length,
+      flags: {
+        isReprintOnly: issue.isReprintOnly,
+        hasFirstPrint: issue.hasFirstPrint,
+        hasOnlyPrint: issue.hasOnlyPrint,
+      },
+    };
+  }
+
+  if (params.series_id != null) {
+    const series = await prisma.series.findFirst({
+      where: { id: BigInt(params.series_id) },
+      select: {
+        id: true,
+        title: true,
+        volume: true,
+        startYear: true,
+        endYear: true,
+        publisher: { select: { name: true, original: true } },
+        issues: {
+          select: {
+            id: true,
+            number: true,
+            variants: {
+              select: { collected: true },
+            },
+          },
+          orderBy: [{ numberNumeric: "asc" }, { number: "asc" }],
+        },
+      },
+    });
+
+    if (!series) return null;
+
+    const total = series.issues.length;
+    const collectedIssues = series.issues.filter((i) => i.variants.some((v) => v.collected === true));
+    const missingIssues = series.issues.filter((i) => !i.variants.some((v) => v.collected === true));
+    const collectedCount = collectedIssues.length;
+    const missingCount = missingIssues.length;
+    const completionPercent = total > 0 ? Math.round((collectedCount / total) * 1000) / 10 : 0;
+
+    return {
+      type: "series",
+      id: Number(series.id),
+      title: series.title ?? "",
+      volume: Number(series.volume),
+      startYear: Number(series.startYear),
+      endYear: series.endYear != null ? Number(series.endYear) : null,
+      publisher: series.publisher?.name ?? "",
+      isUs: series.publisher?.original ?? false,
+      totalIssues: total,
+      collectedCount,
+      missingCount,
+      completionPercent,
+      isComplete: total > 0 && missingCount === 0,
+      missingNumbers: missingIssues.map((i) => i.number),
+      collectedNumbers: collectedIssues.map((i) => i.number),
+    };
+  }
+
+  return null;
+}
+
+// ── mcpResolveStoryPublications ─────────────────────────────────────────────
+
+export type McpStoryPublicationMatch = {
+  issueId: number;
+  series: string;
+  seriesId: number;
+  volume: number;
+  publisher: string;
+  number: string;
+  title: string | null;
+  isUs: boolean;
+  collected: boolean;
+  matchingStories: string[];
+  formats: string[];
+};
+
+export type McpStoryPublicationResult = {
+  sourceIssue: {
+    id: number;
+    number: string;
+    title: string | null;
+    series: string;
+    volume: number;
+    publisher: string;
+    isUs: boolean;
+    storiesCount: number;
+  };
+  publications: McpStoryPublicationMatch[];
+};
+
+export async function mcpResolveStoryPublications(params: {
+  issue_id: number;
+}): Promise<McpStoryPublicationResult | null> {
+  const issue = await prisma.issue.findFirst({
+    where: { id: BigInt(params.issue_id) },
+    select: {
+      id: true,
+      number: true,
+      title: true,
+      series: {
+        select: {
+          id: true,
+          title: true,
+          volume: true,
+          publisher: { select: { name: true, original: true } },
+        },
+      },
+      stories: {
+        select: {
+          id: true,
+          title: true,
+          number: true,
+          part: true,
+          parent: {
+            select: {
+              id: true,
+              title: true,
+              issue: {
+                select: {
+                  id: true,
+                  number: true,
+                  title: true,
+                  series: {
+                    select: {
+                      id: true,
+                      title: true,
+                      volume: true,
+                      publisher: { select: { name: true, original: true } },
+                    },
+                  },
+                  variants: { select: { collected: true, format: true } },
+                },
+              },
+            },
+          },
+          children: {
+            select: {
+              id: true,
+              title: true,
+              issue: {
+                select: {
+                  id: true,
+                  number: true,
+                  title: true,
+                  series: {
+                    select: {
+                      id: true,
+                      title: true,
+                      volume: true,
+                      publisher: { select: { name: true, original: true } },
+                    },
+                  },
+                  variants: { select: { collected: true, format: true } },
+                },
+              },
+            },
+          },
+          reprintedBy: {
+            select: {
+              id: true,
+              title: true,
+              issue: {
+                select: {
+                  id: true,
+                  number: true,
+                  title: true,
+                  series: {
+                    select: {
+                      id: true,
+                      title: true,
+                      volume: true,
+                      publisher: { select: { name: true, original: true } },
+                    },
+                  },
+                  variants: { select: { collected: true, format: true } },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!issue) return null;
+
+  const isUs = issue.series?.publisher?.original ?? false;
+  const sourceId = Number(issue.id);
+  const matchMap = new Map<number, McpStoryPublicationMatch>();
+
+  function registerMatch(
+    targetIssue: {
+      id: bigint;
+      number: string;
+      title: string | null;
+      series: {
+        id: bigint;
+        title: string | null;
+        volume: bigint;
+        publisher: { name: string; original: boolean } | null;
+      } | null;
+      variants: Array<{ collected: boolean | null; format: string }>;
+    },
+    storyTitle: string
+  ) {
+    const targetId = Number(targetIssue.id);
+    if (targetId === sourceId) return; // Don't link issue to itself
+
+    const existing = matchMap.get(targetId);
+    const storyDesc = storyTitle.trim() || "Hauptgeschichte";
+
+    if (existing) {
+      if (!existing.matchingStories.includes(storyDesc)) {
+        existing.matchingStories.push(storyDesc);
+      }
+    } else {
+      const collected = targetIssue.variants.some((v) => v.collected === true);
+      const uniqueFormats = Array.from(new Set(targetIssue.variants.map((v) => v.format).filter(Boolean)));
+
+      matchMap.set(targetId, {
+        issueId: targetId,
+        series: targetIssue.series?.title ?? "",
+        seriesId: Number(targetIssue.series?.id ?? 0),
+        volume: Number(targetIssue.series?.volume ?? 0),
+        publisher: targetIssue.series?.publisher?.name ?? "",
+        number: targetIssue.number,
+        title: targetIssue.title || null,
+        isUs: targetIssue.series?.publisher?.original ?? false,
+        collected,
+        matchingStories: [storyDesc],
+        formats: uniqueFormats,
+      });
+    }
+  }
+
+  for (const story of issue.stories) {
+    const storyLabel = story.title || (story.part ? `Teil ${story.part}` : `Story #${story.number}`);
+
+    if (isUs) {
+      // US issue: look for German reprints in children & reprintedBy
+      for (const child of story.children) {
+        if (child.issue) registerMatch(child.issue, storyLabel);
+      }
+      for (const reprint of story.reprintedBy) {
+        if (reprint.issue) registerMatch(reprint.issue, storyLabel);
+      }
+    } else {
+      // German issue: look for US parent originals and other German reprints
+      if (story.parent?.issue) {
+        registerMatch(story.parent.issue, storyLabel);
+      }
+      for (const reprint of story.reprintedBy) {
+        if (reprint.issue) registerMatch(reprint.issue, storyLabel);
+      }
+    }
+  }
+
+  const publications = Array.from(matchMap.values());
+  // Sort: collected first, then publisher, then series
+  publications.sort((a, b) => {
+    if (a.collected !== b.collected) return a.collected ? -1 : 1;
+    if (a.publisher !== b.publisher) return a.publisher.localeCompare(b.publisher);
+    return a.series.localeCompare(b.series);
+  });
+
+  return {
+    sourceIssue: {
+      id: Number(issue.id),
+      number: issue.number,
+      title: issue.title || null,
+      series: issue.series?.title ?? "",
+      volume: Number(issue.series?.volume ?? 0),
+      publisher: issue.series?.publisher?.name ?? "",
+      isUs,
+      storiesCount: issue.stories.length,
+    },
+    publications,
+  };
+}
+

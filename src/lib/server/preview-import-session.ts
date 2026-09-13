@@ -3,7 +3,7 @@ import "server-only";
 import { prisma } from "../prisma/client";
 import { findCurrentDraft, findPreviousSkippedDraftIndex } from "./preview-import-session-shared";
 import { readServerSession } from "./session";
-import type { ActivePreviewImportQueue, PreviewImportQueue } from "../../types/preview-import";
+import type { ActivePreviewImportQueue, PreviewImportQueue, StagedPreviewImport } from "../../types/preview-import";
 
 type SessionPayload = {
   previewImportQueue?: PreviewImportQueue | null;
@@ -212,4 +212,44 @@ export async function skipUntilInActivePreviewImportQueue(
 
   await replaceActivePreviewImportQueue(nextQueue);
   return readActivePreviewImportQueue();
+}
+
+const SYSTEM_STAGED_IMPORT_KEY = "system-pv-staged-import";
+
+export async function readStagedPreviewImport(): Promise<StagedPreviewImport | null> {
+  const session = await prisma.session.findUnique({
+    where: { sid: SYSTEM_STAGED_IMPORT_KEY },
+    select: { data: true },
+  });
+  if (!session?.data) return null;
+  try {
+    const parsed = JSON.parse(session.data) as { staged?: StagedPreviewImport | null };
+    return parsed.staged ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveStagedPreviewImport(staged: StagedPreviewImport): Promise<void> {
+  const timestamp = new Date();
+  await prisma.session.upsert({
+    where: { sid: SYSTEM_STAGED_IMPORT_KEY },
+    create: {
+      sid: SYSTEM_STAGED_IMPORT_KEY,
+      data: JSON.stringify({ staged }),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      expires: null,
+    },
+    update: {
+      data: JSON.stringify({ staged }),
+      updatedAt: timestamp,
+    },
+  });
+}
+
+export async function clearStagedPreviewImport(): Promise<void> {
+  await prisma.session.deleteMany({
+    where: { sid: SYSTEM_STAGED_IMPORT_KEY },
+  });
 }

@@ -36,6 +36,6 @@ describe("readIssueDetailStories - Reprint Group Integration Test", () => {
     const currentIssue = story1?.issue;
     console.log("DEBUG - child.parent.issue:", JSON.stringify(child?.parent?.issue, null, 2));
     console.log("DEBUG - currentIssue:", JSON.stringify(currentIssue, null, 2));
-    console.log("DEBUG - isSameIssue result:", isSameIssue(child?.parent?.issue, currentIssue));
+    console.log("DEBUG - isSameIssue result:", isSameIssue(child?.parent?.issue as never, currentIssue as never));
   });
 });
