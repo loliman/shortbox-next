@@ -31,8 +31,7 @@
     "mcp": "node --conditions=react-server --env-file=.env --import tsx scripts/mcp-stdio.ts",
     "sonar": "npx sonarqube-scanner",
     "prisma:generate": "prisma generate",
-    "prisma:validate": "prisma validate",
-    "ebay-list": "node --env-file=.env --import tsx scripts/ebay-tool/index.ts"
+    "prisma:validate": "prisma validate"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

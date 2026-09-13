@@ -15,11 +15,6 @@ test-results
 .env.local
 .env.*.local
 /scratch
-
-# eBay Tool Config
-/scripts/ebay-tool/.ebay-tokens.json
-/scripts/ebay-tool/.ebay-listings.json
-/scripts/ebay-tool/.env
 /scratch/
 screenshots
 scripts
