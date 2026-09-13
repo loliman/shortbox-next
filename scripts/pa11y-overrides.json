@@ -1,0 +1,27 @@
+{
+  "global": {
+    "hideElements": [
+      "input[aria-label=\"Shortbox durchsuchen\"]",
+      "[id$=\"-sort-container-select\"]",
+      "[data-audit-ignore-pa11y=\"issue-variants-summary\"]",
+      "[data-audit-ignore-pa11y=\"nav-variant-count\"]"
+    ]
+  },
+  "routes": {
+    "de-home": {
+      "hideElements": [
+        "[data-audit-ignore-pa11y=\"issue-preview\"]"
+      ]
+    },
+    "de-publisher": {
+      "hideElements": [
+        "[data-audit-ignore-pa11y=\"issue-preview\"]"
+      ]
+    },
+    "de-series": {
+      "hideElements": [
+        "[data-audit-ignore-pa11y=\"issue-preview\"]"
+      ]
+    }
+  }
+}
