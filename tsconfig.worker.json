@@ -21,7 +21,7 @@
       "@/*": ["./*"]
     }
   },
-  "files": ["src/worker/index.ts"],
+  "files": ["src/worker/index.ts", "src/types/pdfjs-dist-worker.d.ts"],
   "exclude": [
     "node_modules",
     ".next"
