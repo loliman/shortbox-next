@@ -330,6 +330,10 @@ export function getAppTheme(flavor: "mac" | "material" = "mac") {
             borderRadius: 12,
             backgroundColor: theme.palette.background.paper,
           },
+          "&.issue-preview-card": {
+            borderRadius: 12,
+            overflow: "hidden",
+          },
           "&.shortbox-layout-card": flavor === "mac" ? {
             border: "none",
             boxShadow: theme.palette.mode === "dark" ? "0 8px 32px rgba(0, 0, 0, 0.36)" : "0 8px 32px rgba(0, 0, 0, 0.06)",

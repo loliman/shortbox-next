@@ -105,8 +105,7 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
           backgroundColor: "background.paper",
           border: "1px solid",
           borderColor: "rgba(0, 0, 0, 0.08)",
-          borderLeft: "4px solid",
-          borderLeftColor: theme.palette[borderLeftColorKey as "divider"] ?? theme.palette.divider,
+          borderRadius: "12px",
           boxShadow: theme.shadows[2],
           backgroundImage: lightBackgroundImage,
           backgroundRepeat: isCoverLoading ? "no-repeat, no-repeat" : "no-repeat, no-repeat, no-repeat",
@@ -121,19 +120,27 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
           position: "relative",
           transition: "transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 240ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 180ms ease, background-color 250ms ease, color 250ms ease, border-color 250ms ease",
           opacity: isNavigating ? 0.76 : 1,
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            top: 0,
+            bottom: 0,
+            left: 0,
+            width: 4,
+            backgroundColor: theme.palette[borderLeftColorKey as "divider"] ?? theme.palette.divider,
+            zIndex: 1,
+            transition: "background-color 250ms ease",
+          },
           "&:hover": {
             transform: "translateY(-4px) scale(1.002)",
             boxShadow: "0 12px 20px -10px rgba(0,0,0,0.15), 0 10px 15px -3px rgba(0,0,0,0.08)",
             borderColor: "rgba(0, 0, 0, 0.16)",
-            borderLeftColor: theme.palette[borderLeftColorKey as "divider"] ?? theme.palette.divider,
           },
           ...theme.applyStyles("dark", {
             borderColor: "rgba(255, 255, 255, 0.08)",
-            borderLeftColor: theme.palette[borderLeftColorKey as "divider"] ?? theme.palette.divider,
             backgroundImage: darkBackgroundImage,
             "&:hover": {
               borderColor: "rgba(255, 255, 255, 0.16)",
-              borderLeftColor: theme.palette[borderLeftColorKey as "divider"] ?? theme.palette.divider,
               boxShadow: "0 20px 25px -5px rgba(0,0,0,0.5), 0 10px 10px -5px rgba(0,0,0,0.35)",
             },
           }),
@@ -225,7 +232,7 @@ export default function IssuePreview(props: Readonly<IssuePreviewProps>) {
 
 export function IssuePreviewPlaceholder() {
   return (
-    <Card>
+    <Card className="issue-preview-card" sx={{ borderRadius: "12px", border: "1px solid", borderColor: "divider" }}>
       <CardContent>
         <Stack spacing={1.5}>
           <Box>

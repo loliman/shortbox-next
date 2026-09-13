@@ -103,10 +103,12 @@ export default function IssuePreviewSmall(props: Readonly<IssuePreviewSmallProps
   return (
     <Card
       ref={setElement}
+      className="issue-preview-card"
       sx={(theme) => ({
         backgroundColor: "background.paper",
         overflow: "hidden",
         position: "relative",
+        borderRadius: "12px",
         border: "1px solid",
         borderColor: "rgba(0,0,0,0.08)",
         transition: "transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 260ms cubic-bezier(0.2, 0.8, 0.2, 1), border-color 260ms ease, opacity 180ms ease",
@@ -300,8 +302,10 @@ export function IssuePreviewPlaceholderSmall(props: Readonly<{ idx?: number; isL
 
   return (
     <Card
+      className="issue-preview-card"
       sx={(theme) => ({
         overflow: "hidden",
+        borderRadius: "12px",
         backgroundColor: "background.paper",
         border: "1px solid",
         borderColor: "rgba(0,0,0,0.08)",
