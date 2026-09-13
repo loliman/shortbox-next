@@ -14,7 +14,23 @@ export async function mutationRequest<T>(
     body: JSON.stringify(input.body || {}),
   });
 
-  const payload = (await response.json().catch(() => ({}))) as T & { error?: string };
+  const rawText = await response.text().catch(() => "");
+  let payload: (T & { error?: string }) = {} as T & { error?: string };
+
+  if (rawText) {
+    try {
+      payload = JSON.parse(rawText);
+    } catch {
+      if (!response.ok) {
+        throw new Error(
+          response.status === 504
+            ? "Server-Timeout (504 Gateway Timeout). Der Vorgang dauert länger als das Proxy-Limit."
+            : `Serverfehler (${response.status}): Die Anfrage konnte nicht verarbeitet werden.`
+        );
+      }
+    }
+  }
+
   if (!response.ok) {
     throw new Error(payload.error || `Request failed: ${response.status}`);
   }
