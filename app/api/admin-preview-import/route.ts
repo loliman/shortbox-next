@@ -19,6 +19,7 @@ import {
 } from "@/src/lib/read/preview-import-read";
 import { parsePreviewImportQueue } from "@/src/services/preview-import-parser";
 import { buildStagedPreviewImport } from "@/src/services/preview-batch-import";
+import type { IssueEditorFormValues } from "@/src/components/restricted/editor/issue-editor/types";
 
 export async function GET() {
   const auth = await requireApiAdminSession();
@@ -41,11 +42,12 @@ export async function POST(request: NextRequest) {
 
   if (contentType.includes("application/json")) {
     const body = (await request.json().catch(() => ({}))) as {
-      action?: "trigger-check" | "commit" | "discard" | "toggle-draft";
+      action?: "trigger-check" | "commit" | "discard" | "toggle-draft" | "update-draft";
       force?: boolean;
       approvedDraftIds?: string[];
       draftId?: string;
       selected?: boolean;
+      values?: Partial<IssueEditorFormValues>;
     };
 
     if (body.action === "trigger-check") {
@@ -89,6 +91,93 @@ export async function POST(request: NextRequest) {
         await saveStagedPreviewImport(staged);
       }
       return NextResponse.json({ staged }, { headers: { "Cache-Control": "no-store" } });
+    }
+
+    if (body.action === "update-draft" && body.draftId && body.values) {
+      const staged = await readStagedPreviewImport();
+      if (!staged) {
+        return NextResponse.json({ error: "Kein Import gefunden" }, { status: 404 });
+      }
+      const draft = staged.drafts.find((d) => d.id === body.draftId);
+      if (!draft) {
+        return NextResponse.json({ error: "Draft nicht gefunden" }, { status: 404 });
+      }
+
+      const v = body.values;
+      draft.rawDraft.values = {
+        ...draft.rawDraft.values,
+        ...v,
+      };
+
+      // Synchronize derived display fields
+      const seriesTitle = (v.series?.title || draft.series.title || "").trim();
+      const existingSeries = seriesTitle ? await findDeSeriesForBatchImport(seriesTitle) : null;
+      const isVariant = Boolean(draft.parentDraftId || v.variant);
+
+      let status = draft.status;
+      let statusMessage = "";
+
+      if (existingSeries) {
+        const issueNum = String(v.number ?? draft.issue.number ?? "");
+        const alreadyExists = await checkDeIssueExists(existingSeries.id, issueNum);
+        if (alreadyExists && !isVariant) {
+          status = "DUPLICATE";
+          statusMessage = `Heft #${issueNum} existiert bereits in ${existingSeries.title}`;
+        } else {
+          status = "READY";
+        }
+      } else {
+        status = "NEW_SERIES";
+        statusMessage = "Serie existiert noch nicht in der Datenbank (wird neu angelegt)";
+      }
+
+      draft.status = status;
+      draft.statusMessage = statusMessage;
+      draft.series = {
+        id: existingSeries?.id ?? null,
+        title: existingSeries?.title ?? seriesTitle,
+        volume: Number(existingSeries?.volume || v.series?.volume || draft.series.volume || 1),
+        isNew: !existingSeries,
+        publisherName: existingSeries?.publisherName || v.series?.publisher?.name || draft.series.publisherName,
+      };
+
+      const storiesList = Array.isArray(v.stories) ? v.stories : draft.rawDraft.values.stories || [];
+      const storiesSummary = storiesList
+        .slice(0, 3)
+        .map((s: Record<string, unknown>) => {
+          const title = typeof s.title === "string" ? s.title : "";
+          const num = s.number ? `#${s.number}` : "";
+          return `${title} ${num}`.trim();
+        })
+        .filter(Boolean)
+        .join(", ");
+
+      const parsedPrice = v.price ? parseFloat(String(v.price).replace(",", ".")) : undefined;
+
+      draft.issue = {
+        number: String(v.number ?? draft.issue.number ?? ""),
+        title: String(v.title ?? draft.issue.title ?? ""),
+        format: v.format ?? draft.issue.format,
+        variant: v.variant ?? draft.issue.variant,
+        releasedate: v.releasedate ?? draft.issue.releasedate,
+        pages: v.pages != null ? Number(v.pages) : draft.issue.pages,
+        price: Number.isFinite(parsedPrice) ? parsedPrice : draft.issue.price,
+        currency: v.currency ?? draft.issue.currency ?? "EUR",
+        limitation: v.limitation ?? draft.issue.limitation,
+        addinfo: v.addinfo ?? draft.issue.addinfo,
+        storiesCount: storiesList.length,
+        storiesSummary: storiesSummary
+          ? `${storiesSummary}${storiesList.length > 3 ? "..." : ""}`
+          : undefined,
+      };
+
+      // Recalculate summary metrics
+      staged.readyCount = staged.drafts.filter((d) => d.inScope && d.status === "READY").length;
+      staged.newSeriesCount = staged.drafts.filter((d) => d.inScope && d.status === "NEW_SERIES").length;
+      staged.duplicateCount = staged.drafts.filter((d) => d.inScope && d.status === "DUPLICATE").length;
+
+      await saveStagedPreviewImport(staged);
+      return NextResponse.json({ staged, draft }, { headers: { "Cache-Control": "no-store" } });
     }
 
     return NextResponse.json({ error: "Unbekannte Aktion" }, { status: 400 });

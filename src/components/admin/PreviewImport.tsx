@@ -9,6 +9,7 @@ import Checkbox from "@mui/material/Checkbox";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Divider from "@mui/material/Divider";
+import IconButton from "@mui/material/IconButton";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
@@ -21,10 +22,13 @@ import TableRow from "@mui/material/TableRow";
 import Tabs from "@mui/material/Tabs";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { useRouter } from "next/navigation";
 import { mutationRequest } from "../../lib/client/mutation-request";
 import { useSnackbarBridge } from "../generic/useSnackbarBridge";
-import type { ActivePreviewImportQueue, StagedPreviewImport } from "../../types/preview-import";
+import { DraftEditDialog } from "./DraftEditDialog";
+import type { ActivePreviewImportQueue, StagedPreviewDraft, StagedPreviewImport } from "../../types/preview-import";
+import type { IssueEditorFormValues } from "../restricted/editor/issue-editor/types";
 import type { SessionData } from "../../types/session";
 
 interface PreviewImportProps {
@@ -41,7 +45,7 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
   const [loading, setLoading] = React.useState(false);
   const [committing, setCommitting] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<"inScope" | "outOfScope">("inScope");
-  const [categoryFilter, setCategoryFilter] = React.useState<string>("all");
+  const [editingDraft, setEditingDraft] = React.useState<StagedPreviewDraft | null>(null);
   const [uploadFile, setUploadFile] = React.useState<File | null>(null);
 
   // Sync props if changed
@@ -163,6 +167,34 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
     setStaged({ ...staged, drafts: nextDrafts });
   };
 
+  const onSaveDraft = async (draftId: string, updatedValues: Partial<IssueEditorFormValues>) => {
+    try {
+      const data = await mutationRequest<{
+        staged?: StagedPreviewImport;
+        draft?: StagedPreviewDraft;
+      }>({
+        url: "/api/admin-preview-import",
+        method: "POST",
+        body: {
+          action: "update-draft",
+          draftId,
+          values: updatedValues,
+        },
+      });
+
+      if (data.staged) {
+        setStaged(data.staged);
+      }
+      snackbar.enqueueSnackbar("Eintrag aktualisiert.", { variant: "success" });
+    } catch (err) {
+      snackbar.enqueueSnackbar(
+        err instanceof Error ? err.message : "Fehler beim Speichern des Eintrags.",
+        { variant: "error" }
+      );
+      throw err;
+    }
+  };
+
   const onManualUpload = async () => {
     if (!uploadFile) return;
     setLoading(true);
@@ -199,15 +231,10 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
     }
   };
 
-  // Filter drafts for current tab and category
+  // Filter drafts for current tab
   const inScopeDrafts = staged?.drafts.filter((d) => d.inScope) ?? [];
   const outOfScopeDrafts = staged?.drafts.filter((d) => !d.inScope) ?? [];
-  const tabDrafts = activeTab === "inScope" ? inScopeDrafts : outOfScopeDrafts;
-
-  const filteredDrafts = tabDrafts.filter((d) => {
-    if (categoryFilter === "all") return true;
-    return d.category === categoryFilter;
-  });
+  const filteredDrafts = activeTab === "inScope" ? inScopeDrafts : outOfScopeDrafts;
 
   const selectedCount = staged?.drafts.filter((d) => d.selected).length ?? 0;
 
@@ -254,10 +281,7 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
             >
               <Tabs
                 value={activeTab}
-                onChange={(_, val) => {
-                  setActiveTab(val);
-                  setCategoryFilter("all");
-                }}
+                onChange={(_, val) => setActiveTab(val)}
               >
                 <Tab
                   value="inScope"
@@ -271,7 +295,7 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
                 />
               </Tabs>
 
-              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
                 <Chip
                   label={`${staged.readyCount} Bereit`}
                   color="success"
@@ -291,65 +315,16 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
                     variant="outlined"
                   />
                 )}
+                <Box sx={{ ml: 1 }}>
+                  <Button size="small" onClick={() => onSelectAllVisible(true)}>
+                    Alle wählen
+                  </Button>
+                  <Button size="small" color="inherit" onClick={() => onSelectAllVisible(false)}>
+                    Keine
+                  </Button>
+                </Box>
               </Stack>
             </Stack>
-
-            {/* Scope category subfilters */}
-            {activeTab === "inScope" && (
-              <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap alignItems="center">
-                <Chip
-                  label="Alle"
-                  clickable
-                  color={categoryFilter === "all" ? "primary" : "default"}
-                  size="small"
-                  onClick={() => setCategoryFilter("all")}
-                />
-                <Chip
-                  label="Marvel Superhelden"
-                  clickable
-                  color={categoryFilter === "marvel" ? "primary" : "default"}
-                  size="small"
-                  onClick={() => setCategoryFilter("marvel")}
-                />
-                <Chip
-                  label="Star Wars"
-                  clickable
-                  color={categoryFilter === "star_wars" ? "primary" : "default"}
-                  size="small"
-                  onClick={() => setCategoryFilter("star_wars")}
-                />
-                <Chip
-                  label="Alien & Predator"
-                  clickable
-                  color={categoryFilter === "alien_predator" ? "primary" : "default"}
-                  size="small"
-                  onClick={() => setCategoryFilter("alien_predator")}
-                />
-                <Chip
-                  label="Crossovers"
-                  clickable
-                  color={categoryFilter === "crossover" ? "primary" : "default"}
-                  size="small"
-                  onClick={() => setCategoryFilter("crossover")}
-                />
-                <Chip
-                  label="Manga"
-                  clickable
-                  color={categoryFilter === "marvel_manga" ? "primary" : "default"}
-                  size="small"
-                  onClick={() => setCategoryFilter("marvel_manga")}
-                />
-
-                <Box sx={{ flex: 1 }} />
-
-                <Button size="small" onClick={() => onSelectAllVisible(true)}>
-                  Alle wählen
-                </Button>
-                <Button size="small" color="inherit" onClick={() => onSelectAllVisible(false)}>
-                  Keine
-                </Button>
-              </Stack>
-            )}
 
             {/* Review Table */}
             <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 600 }}>
@@ -376,13 +351,14 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
                     <TableCell sx={{ fontWeight: 600 }}>Format / Datum</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Enthaltene US-Stories</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Bestellcode</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600 }}>Aktion</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {filteredDrafts.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ py: 3, color: "text.secondary" }}>
-                        Keine Einträge für die gewählte Filterung.
+                      <TableCell colSpan={8} align="center" sx={{ py: 3, color: "text.secondary" }}>
+                        Keine Einträge vorhanden.
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -461,6 +437,18 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
                             {draft.issueCode || "-"}
                           </Typography>
                         </TableCell>
+
+                        <TableCell align="right">
+                          <Tooltip title="Eintrag bearbeiten">
+                            <IconButton
+                              size="small"
+                              onClick={() => setEditingDraft(draft)}
+                              color="primary"
+                            >
+                              <EditOutlinedIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -469,6 +457,14 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
             </TableContainer>
           </Stack>
         </CardContent>
+
+        {/* Draft Edit Dialog */}
+        <DraftEditDialog
+          open={Boolean(editingDraft)}
+          draft={editingDraft}
+          onClose={() => setEditingDraft(null)}
+          onSave={onSaveDraft}
+        />
       </>
     );
   }
