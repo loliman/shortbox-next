@@ -81,7 +81,7 @@ jobs:
           cache: npm
 
       - name: Restore Next.js build cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .next/cache
           key: ${{ runner.os }}-nextjs-a11y-${{ hashFiles('package-lock.json', 'tsconfig*.json', 'next.config.*', 'app/**/*.{ts,tsx,js,jsx}', 'src/**/*.{ts,tsx,js,jsx}', 'scripts/**/*.{js,mjs,ts}') }}
@@ -140,7 +140,7 @@ jobs:
           cache: npm
 
       - name: Restore Next.js build cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .next/cache
           key: ${{ runner.os }}-nextjs-seo-${{ hashFiles('package-lock.json', 'tsconfig*.json', 'next.config.*', 'app/**/*.{ts,tsx,js,jsx}', 'src/**/*.{ts,tsx,js,jsx}', 'scripts/**/*.{js,mjs,ts}') }}
@@ -226,7 +226,7 @@ jobs:
           cache: npm
 
       - name: Restore Next.js build cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .next/cache
           key: ${{ runner.os }}-nextjs-e2e-${{ hashFiles('package-lock.json', 'tsconfig*.json', 'next.config.*', 'app/**/*.{ts,tsx,js,jsx}', 'src/**/*.{ts,tsx,js,jsx}', 'scripts/**/*.{js,mjs,ts}', 'tests/e2e/**/*.{ts,tsx,js,jsx}', 'playwright.config.*') }}
