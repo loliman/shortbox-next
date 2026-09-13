@@ -1,5 +1,4 @@
 import { readIssueDetailStories } from "./issue-details-read";
-import { isSameIssue } from "../../components/details/issue-details/utils/storyIssueUtils";
 
 // Mock server-only before anything else
 jest.mock("server-only", () => ({}));
@@ -31,11 +30,5 @@ describe("readIssueDetailStories - Reprint Group Integration Test", () => {
     expect(child?.parent).toBeDefined();
     expect(child?.parent?.number).toBe(3); // Story 3
     expect(child?.parent?.issue?.storiesCount).toBe(5); // Giant-Size Werewolf #3 has 5 stories
-
-    // Debug parentLink logic
-    const currentIssue = story1?.issue;
-    console.log("DEBUG - child.parent.issue:", JSON.stringify(child?.parent?.issue, null, 2));
-    console.log("DEBUG - currentIssue:", JSON.stringify(currentIssue, null, 2));
-    console.log("DEBUG - isSameIssue result:", isSameIssue(child?.parent?.issue as never, currentIssue as never));
   });
 });

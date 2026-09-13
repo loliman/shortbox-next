@@ -18,8 +18,8 @@ function StoryBulkImport(props: Readonly<ContainsProps>) {
   const [message, setMessage] = React.useState<string | null>(null);
   const [messageTone, setMessageTone] = React.useState<"error" | "success">("success");
 
-  const formikValues = props.values as any;
-  const storyString = formikValues?.storyString;
+  const formikValues = props.values as Record<string, unknown> | undefined;
+  const storyString = typeof formikValues?.storyString === "string" ? formikValues.storyString : undefined;
 
   React.useEffect(() => {
     if (storyString !== undefined) {

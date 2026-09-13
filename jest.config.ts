@@ -24,4 +24,4 @@ const config: Config = {
   coverageReporters: ["text", "lcov"],
 };
 
-export default createJestConfig(config);
+export default createJestConfig(config as Parameters<typeof createJestConfig>[0]);

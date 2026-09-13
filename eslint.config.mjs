@@ -11,6 +11,7 @@ const eslintConfig = [
       "dist/**",
       "node_modules/**",
       "next-env.d.ts",
+      "scratch/**",
       "src/lib/server/marvel-crawler.ts",
     ],
   },

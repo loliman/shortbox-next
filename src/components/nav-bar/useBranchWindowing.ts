@@ -83,7 +83,7 @@ export function useBranchWindowing(
     if (deferProgressiveRendering) return;
     if (windowRange.start <= 0 && windowRange.end >= totalCount) return;
 
-    let timerId: any = undefined;
+    let timerId: ReturnType<typeof setTimeout> | undefined = undefined;
     let cancelled = false;
 
     const run = () => {

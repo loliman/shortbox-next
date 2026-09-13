@@ -1,4 +1,4 @@
-import { alpha, createTheme } from "@mui/material/styles";
+import { alpha, createTheme, type Shadows } from "@mui/material/styles";
 
 export type AppThemeMode = "light" | "dark";
 
@@ -156,7 +156,7 @@ function chipAccentStyles(
   };
 }
 
-const customShadows = Array(25).fill("none") as any;
+const customShadows = Array(25).fill("none") as unknown as Shadows;
 customShadows[0] = "none";
 customShadows[1] = "0 1px 2px rgba(0, 0, 0, 0.04)";
 customShadows[2] = "0 4px 12px rgba(0, 0, 0, 0.05)";

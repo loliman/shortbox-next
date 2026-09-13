@@ -163,7 +163,7 @@ const KIND_ALIASES: Record<string, TokenKind> = {
   crossendyear: "crossEndYear",
 };
 
-type FlagTarget = { field: keyof FilterValues; value: boolean };
+type FlagTarget = { field: keyof FilterValues; value: boolean | "and" | "or" };
 
 const FLAG_MAP: Record<string, FlagTarget[]> = {
   erstdruck: [{ field: "firstPrint", value: true }],
@@ -245,10 +245,10 @@ const FLAG_MAP: Record<string, FlagTarget[]> = {
   "ungesammeltes-us-material": [{ field: "onlyNotOwnedUsMaterial", value: true }],
   "us-material-ungesammelt": [{ field: "onlyNotOwnedUsMaterial", value: true }],
   "uncollected-us-material": [{ field: "onlyNotOwnedUsMaterial", value: true }],
-  "inhalt-und": [{ field: "contentFilterMode", value: "and" as any }],
-  "content-and": [{ field: "contentFilterMode", value: "and" as any }],
-  "inhalt-oder": [{ field: "contentFilterMode", value: "or" as any }],
-  "content-or": [{ field: "contentFilterMode", value: "or" as any }],
+  "inhalt-und": [{ field: "contentFilterMode", value: "and" }],
+  "content-and": [{ field: "contentFilterMode", value: "and" }],
+  "inhalt-oder": [{ field: "contentFilterMode", value: "or" }],
+  "content-or": [{ field: "contentFilterMode", value: "or" }],
   "xexklusiv": [{ field: "crossExclusive", value: true }],
   "xexclusive": [{ field: "crossExclusive", value: true }],
   "cross-exclusive": [{ field: "crossExclusive", value: true }],
@@ -376,7 +376,7 @@ function tokenize(query: string): LexToken[] {
 // ---------------------------------------------------------------------------
 
 function hasOverlap(a: FilterValues, b: FilterValues): boolean {
-  const isActive = (val: any): boolean => {
+  const isActive = (val: unknown): boolean => {
     if (val === undefined || val === null) return false;
     if (Array.isArray(val)) return val.length > 0;
     if (typeof val === "boolean") return val === true;

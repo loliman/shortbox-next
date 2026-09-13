@@ -1,7 +1,5 @@
 import "server-only";
 
-import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
-import * as pdfjsWorker from "pdfjs-dist/legacy/build/pdf.worker.mjs";
 import {
   applyPdfTextRunStylesToRows,
   clusterPdfRowsToBlocks,
@@ -10,19 +8,61 @@ import {
 } from "../../util/pdf-layout";
 import type { PdfLayoutDocument, PdfLayoutPage, PdfLayoutTextItem } from "../../types/pdf-layout";
 
-Object.defineProperty(pdfjs.PDFWorker, "_setupFakeWorkerGlobal", {
-  value: Promise.resolve(pdfjsWorker.WorkerMessageHandler),
-  configurable: true,
-});
+const PDF_OPS = {
+  setFont: 37,
+  nextLine: 43,
+  showText: 44,
+  showSpacedText: 45,
+  nextLineShowText: 46,
+  nextLineSetSpacingShowText: 47,
+  setFillColorSpace: 51,
+  setFillColor: 54,
+  setFillColorN: 55,
+  setFillGray: 57,
+  setFillRGBColor: 59,
+  setFillCMYKColor: 61,
+} as const;
+
+interface PdfDocument {
+  numPages: number;
+  getPage: (pageNumber: number) => Promise<{
+    getViewport: (options: { scale: number }) => { width: number; height: number };
+    getTextContent: () => Promise<{ items: unknown[] }>;
+    getOperatorList: () => Promise<unknown>;
+  }>;
+}
+
+interface PdfJsModule {
+  getDocument: (options: unknown) => { promise: Promise<PdfDocument> };
+  PDFWorker: { _setupFakeWorkerGlobal?: unknown };
+}
+
+let pdfjsModulePromise: Promise<PdfJsModule> | null = null;
+
+async function getPdfJs(): Promise<PdfJsModule> {
+  if (!pdfjsModulePromise) {
+    pdfjsModulePromise = (async () => {
+      const pdfjs = (await import("pdfjs-dist/legacy/build/pdf.mjs")) as unknown as PdfJsModule;
+      const pdfjsWorker = (await import("pdfjs-dist/legacy/build/pdf.worker.mjs")) as { WorkerMessageHandler: unknown };
+      Object.defineProperty(pdfjs.PDFWorker, "_setupFakeWorkerGlobal", {
+        value: Promise.resolve(pdfjsWorker.WorkerMessageHandler),
+        configurable: true,
+      });
+      return pdfjs;
+    })();
+  }
+  return pdfjsModulePromise;
+}
 
 export async function extractPdfLayoutFromBuffer(buffer: ArrayBuffer): Promise<PdfLayoutDocument> {
+  const pdfjs = await getPdfJs();
   const data = new Uint8Array(buffer);
   const documentOptions = {
     data,
     useWorkerFetch: false,
     isEvalSupported: false,
     useSystemFonts: true,
-  } as Parameters<typeof pdfjs.getDocument>[0];
+  };
 
   const document = await pdfjs.getDocument(documentOptions).promise;
   const pages: PdfLayoutPage[] = [];
@@ -118,41 +158,41 @@ function extractStyledTextRuns(
     const fn = operatorList.fnArray[index];
     const args = operatorList.argsArray[index];
 
-    if (fn === pdfjs.OPS.setFillRGBColor) {
+    if (fn === PDF_OPS.setFillRGBColor) {
       currentFillColor = normalizeOperatorColor(args);
       continue;
     }
 
-    if (fn === pdfjs.OPS.setFillGray) {
+    if (fn === PDF_OPS.setFillGray) {
       currentFillColor = normalizeOperatorGray(args);
       continue;
     }
 
-    if (fn === pdfjs.OPS.setFillColor) {
+    if (fn === PDF_OPS.setFillColor) {
       currentFillColor = normalizeOperatorColor(args);
       continue;
     }
 
-    if (fn === pdfjs.OPS.setFillColorN) {
+    if (fn === PDF_OPS.setFillColorN) {
       currentFillColor = normalizeOperatorColor(args);
       continue;
     }
 
-    if (fn === pdfjs.OPS.setFillCMYKColor) {
+    if (fn === PDF_OPS.setFillCMYKColor) {
       currentFillColor = normalizeOperatorColor(args);
       continue;
     }
 
-    if (fn === pdfjs.OPS.setFont) {
+    if (fn === PDF_OPS.setFont) {
       currentFontName = Array.isArray(args) && typeof args[0] === "string" ? args[0] : currentFontName;
       continue;
     }
 
     if (
-      fn !== pdfjs.OPS.showText
-      && fn !== pdfjs.OPS.showSpacedText
-      && fn !== pdfjs.OPS.nextLineShowText
-      && fn !== pdfjs.OPS.nextLineSetSpacingShowText
+      fn !== PDF_OPS.showText
+      && fn !== PDF_OPS.showSpacedText
+      && fn !== PDF_OPS.nextLineShowText
+      && fn !== PDF_OPS.nextLineSetSpacingShowText
     ) {
       continue;
     }
@@ -172,15 +212,15 @@ function extractStyledTextRuns(
 
 function readRenderedTextFromOperator(fn: number, args: unknown) {
   const arr = Array.isArray(args) ? args : [];
-  if (fn === pdfjs.OPS.showText || fn === pdfjs.OPS.showSpacedText) {
+  if (fn === PDF_OPS.showText || fn === PDF_OPS.showSpacedText) {
     return readRenderedTextArg(arr[0]);
   }
 
-  if (fn === pdfjs.OPS.nextLineShowText) {
+  if (fn === PDF_OPS.nextLineShowText) {
     return typeof arr[0] === "string" ? arr[0] : readRenderedTextArg(arr[0]);
   }
 
-  if (fn === pdfjs.OPS.nextLineSetSpacingShowText) {
+  if (fn === PDF_OPS.nextLineSetSpacingShowText) {
     return typeof arr[2] === "string" ? arr[2] : readRenderedTextArg(arr[2]);
   }
 

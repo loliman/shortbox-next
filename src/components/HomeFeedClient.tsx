@@ -102,7 +102,7 @@ export default function HomeFeedClient(props: Readonly<HomeFeedClientProps>) {
     if (typeof window === "undefined" || !window.performance) return;
     try {
       const navs = window.performance.getEntriesByType("navigation");
-      const navType = navs[0] ? (navs[0] as any).type : "";
+      const navType = navs[0] ? (navs[0] as PerformanceNavigationTiming).type : "";
       if (navType && navType !== "back_forward") {
         sessionStorage.removeItem(cacheKey);
         sessionStorage.removeItem(scrollKey);
