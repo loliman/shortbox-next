@@ -1,25 +1,27 @@
 import { readStagedPreviewImport, saveStagedPreviewImport } from "../lib/server/preview-import-session";
 import { createIssue } from "../lib/server/issues-write";
 import { invalidateNavigationCache } from "../lib/server/revalidate";
+import type { StagedPreviewImport } from "../types/preview-import";
 
 export interface CommitBatchResult {
   success: boolean;
   committedCount: number;
   skippedCount: number;
   errors: Array<{ draftId: string; title: string; error: string }>;
+  staged?: StagedPreviewImport;
 }
 
 export async function commitStagedPreviewImport(
   approvedDraftIds?: string[]
 ): Promise<CommitBatchResult> {
   const staged = await readStagedPreviewImport();
-  if (!staged || staged.status !== "PENDING_REVIEW") {
+  if (!staged || (staged.status !== "PENDING_REVIEW" && staged.status !== "COMMITTED")) {
     throw new Error("Kein ausstehender Vorschau-Import gefunden.");
   }
 
   const approvedSet = approvedDraftIds ? new Set(approvedDraftIds) : null;
   const toCommit = staged.drafts.filter((d) =>
-    approvedSet ? approvedSet.has(d.id) : d.selected
+    (approvedSet ? approvedSet.has(d.id) : d.selected) && d.status !== "COMMITTED"
   );
 
   let committedCount = 0;
@@ -74,6 +76,9 @@ export async function commitStagedPreviewImport(
         });
       } else {
         committedCount += 1;
+        draft.status = "COMMITTED";
+        draft.selected = false;
+        draft.statusMessage = "Erfolgreich importiert";
       }
     } catch (err) {
       errors.push({
@@ -84,9 +89,18 @@ export async function commitStagedPreviewImport(
     }
   }
 
-  const skippedCount = staged.drafts.length - committedCount;
+  const remainingUncommitted = staged.drafts.filter((d) => d.status !== "COMMITTED");
+  const skippedCount = remainingUncommitted.length;
 
-  staged.status = "COMMITTED";
+  if (remainingUncommitted.length === 0) {
+    staged.status = "COMMITTED";
+  } else {
+    staged.status = "PENDING_REVIEW";
+  }
+
+  staged.readyCount = staged.drafts.filter((d) => d.inScope && d.status === "READY").length;
+  staged.newSeriesCount = staged.drafts.filter((d) => d.inScope && d.status === "NEW_SERIES").length;
+  staged.duplicateCount = staged.drafts.filter((d) => d.inScope && d.status === "DUPLICATE").length;
   staged.updatedAt = new Date().toISOString();
   await saveStagedPreviewImport(staged);
 
@@ -97,5 +111,6 @@ export async function commitStagedPreviewImport(
     committedCount,
     skippedCount,
     errors,
+    staged,
   };
 }

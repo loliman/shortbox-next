@@ -7,7 +7,7 @@ import { readStagedPreviewImport, saveStagedPreviewImport } from "../lib/server/
 import { extractTextFromPdfBuffer } from "../lib/server/pdf-text-extract";
 import { extractPdfLayoutFromBuffer } from "../lib/server/pdf-layout-extract";
 import { parsePreviewImportQueue } from "./preview-import-parser";
-import { buildStagedPreviewImport } from "./preview-batch-import";
+import { buildStagedPreviewImport, syncStagedImportWithDatabase } from "./preview-batch-import";
 import {
   readDeSeriesByTitle,
   readUsSeriesByTitle,
@@ -61,16 +61,29 @@ export async function runCheckPaniniPreviewPipeline(options?: { force?: boolean 
 
   const existingStaged = await readStagedPreviewImport();
   if (
-    !options?.force &&
     existingStaged &&
     existingStaged.previewNumber >= latest.previewNumber &&
+    existingStaged.drafts &&
+    existingStaged.drafts.length > 0 &&
     existingStaged.status !== "DISCARDED"
   ) {
+    // Synchronize drafts with current database state (e.g. issues created in a partial commit)
+    await syncStagedImportWithDatabase(existingStaged, {
+      findDeSeries: findDeSeriesForBatchImport,
+      issueExists: checkDeIssueExists,
+    });
+
+    const hasUncommitted = existingStaged.drafts.some((d) => d.status !== "COMMITTED");
+    if (hasUncommitted) {
+      existingStaged.status = "PENDING_REVIEW";
+    }
+    await saveStagedPreviewImport(existingStaged);
+
     return {
-      action: "SKIPPED_ALREADY_EXISTS",
+      action: "STAGED_NEW_PREVIEW",
       preview: latest,
       staged: existingStaged,
-      message: `Vorschau ${latest.previewNumber} ist bereits erfasst (Status: ${existingStaged.status}).`,
+      message: `Vorschau ${latest.previewNumber} geladen (${existingStaged.inScopeDrafts} Marvel-Ausgaben).`,
     };
   }
 

@@ -129,3 +129,80 @@ export async function buildStagedPreviewImport(
     drafts: stagedDrafts,
   };
 }
+
+export async function syncStagedImportWithDatabase(
+  staged: StagedPreviewImport,
+  matcher: PreviewSeriesIssueMatcher
+): Promise<void> {
+  let readyCount = 0;
+  let newSeriesCount = 0;
+  let duplicateCount = 0;
+
+  const seriesCache = new Map<
+    string,
+    { id: string | number; title: string; volume: number; publisherName: string } | null
+  >();
+
+  for (const draft of staged.drafts) {
+    if (draft.status === "COMMITTED") {
+      draft.selected = false;
+      continue;
+    }
+
+    const seriesTitle = (draft.series.title || draft.rawDraft.values.series.title || "").trim();
+    const cacheKey = seriesTitle.toLowerCase();
+    let existingSeries: { id: string | number; title: string; volume: number; publisherName: string } | null;
+
+    if (seriesCache.has(cacheKey)) {
+      existingSeries = seriesCache.get(cacheKey)!;
+    } else {
+      existingSeries = seriesTitle ? await matcher.findDeSeries(seriesTitle) : null;
+      seriesCache.set(cacheKey, existingSeries);
+    }
+
+    const isVariant = Boolean(draft.parentDraftId || draft.rawDraft.values.variant);
+    const issueNum = String(draft.issue.number ?? draft.rawDraft.values.number ?? "");
+
+    if (existingSeries) {
+      draft.series.id = existingSeries.id;
+      draft.series.title = existingSeries.title;
+      draft.series.volume = Number(existingSeries.volume || draft.series.volume || 1);
+      draft.series.isNew = false;
+      draft.series.publisherName = existingSeries.publisherName;
+
+      const exists = await matcher.issueExists(existingSeries.id, issueNum);
+      if (exists) {
+        if (!isVariant) {
+          if (draft.status === "READY" || draft.status === "NEW_SERIES") {
+            draft.status = "COMMITTED";
+            draft.selected = false;
+            draft.statusMessage = `Heft #${issueNum} wurde bereits importiert`;
+          } else {
+            draft.status = "DUPLICATE";
+            draft.selected = false;
+            draft.statusMessage = `Heft #${issueNum} existiert bereits in ${existingSeries.title}`;
+          }
+        }
+      } else {
+        draft.status = "READY";
+        draft.statusMessage = undefined;
+      }
+    } else {
+      draft.series.isNew = true;
+      draft.status = "NEW_SERIES";
+      draft.statusMessage = "Serie existiert noch nicht in der Datenbank (wird neu angelegt)";
+    }
+
+    if (draft.inScope) {
+      if (draft.status === "READY") readyCount += 1;
+      else if (draft.status === "NEW_SERIES") newSeriesCount += 1;
+      else if (draft.status === "DUPLICATE") duplicateCount += 1;
+    }
+  }
+
+  staged.readyCount = readyCount;
+  staged.newSeriesCount = newSeriesCount;
+  staged.duplicateCount = duplicateCount;
+  staged.updatedAt = new Date().toISOString();
+}
+

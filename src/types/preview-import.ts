@@ -30,7 +30,7 @@ export interface ActivePreviewImportQueue {
   canGoBack: boolean;
 }
 
-export type StagedDraftStatus = "READY" | "NEW_SERIES" | "DUPLICATE" | "CONFLICT";
+export type StagedDraftStatus = "READY" | "NEW_SERIES" | "DUPLICATE" | "CONFLICT" | "COMMITTED";
 
 export interface StagedPreviewDraft {
   id: string;

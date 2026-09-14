@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CardContent from "@mui/material/CardContent";
@@ -88,7 +89,9 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
     if (!staged) return;
     setCommitting(true);
     try {
-      const approvedDraftIds = staged.drafts.filter((d) => d.selected).map((d) => d.id);
+      const approvedDraftIds = staged.drafts
+        .filter((d) => d.selected && d.status !== "COMMITTED")
+        .map((d) => d.id);
       if (approvedDraftIds.length === 0) {
         snackbar.enqueueSnackbar("Bitte mindestens eine Ausgabe zum Import auswählen.", {
           variant: "warning",
@@ -100,6 +103,7 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
       const data = await mutationRequest<{
         committedCount?: number;
         skippedCount?: number;
+        staged?: StagedPreviewImport;
       }>({
         url: "/api/admin-preview-import",
         method: "POST",
@@ -113,7 +117,9 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
         `${data.committedCount ?? 0} Ausgaben erfolgreich importiert.`,
         { variant: "success" }
       );
-      setStaged(null);
+      if (data.staged) {
+        setStaged(data.staged);
+      }
       router.refresh();
     } catch (err) {
       snackbar.enqueueSnackbar(err instanceof Error ? err.message : "Import fehlgeschlagen.", {
@@ -160,9 +166,13 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
 
   const onSelectAllVisible = (select: boolean) => {
     if (!staged) return;
-    const visibleIds = new Set(filteredDrafts.map((d) => d.id));
+    const selectableIds = new Set(
+      filteredDrafts
+        .filter((d) => d.status !== "COMMITTED" && d.status !== "DUPLICATE")
+        .map((d) => d.id)
+    );
     const nextDrafts = staged.drafts.map((d) =>
-      visibleIds.has(d.id) ? { ...d, selected: select } : d
+      selectableIds.has(d.id) ? { ...d, selected: select } : d
     );
     setStaged({ ...staged, drafts: nextDrafts });
   };
@@ -236,10 +246,14 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
   const outOfScopeDrafts = staged?.drafts.filter((d) => !d.inScope) ?? [];
   const filteredDrafts = activeTab === "inScope" ? inScopeDrafts : outOfScopeDrafts;
 
-  const selectedCount = staged?.drafts.filter((d) => d.selected).length ?? 0;
+  const selectableDrafts = filteredDrafts.filter(
+    (d) => d.status !== "COMMITTED" && d.status !== "DUPLICATE"
+  );
+  const selectedCount = staged?.drafts.filter((d) => d.selected && d.status !== "COMMITTED").length ?? 0;
+  const committedCount = staged?.drafts.filter((d) => d.status === "COMMITTED").length ?? 0;
 
-  // View 1: Staged Preview is ready for Review
-  if (staged && staged.status === "PENDING_REVIEW") {
+  // View 1: Staged Preview is loaded
+  if (staged && staged.status !== "DISCARDED") {
     return (
       <>
         <CardHeader
@@ -254,7 +268,7 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
                 disabled={loading || committing}
                 onClick={onDiscard}
               >
-                Verwerfen
+                {staged.status === "COMMITTED" ? "Abschließen" : "Verwerfen"}
               </Button>
               <Button
                 variant="contained"
@@ -272,6 +286,12 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
 
         <CardContent sx={{ pt: 1 }}>
           <Stack spacing={2}>
+            {staged.status === "COMMITTED" && (
+              <Alert severity="success">
+                Alle Ausgaben dieser Vorschau wurden importiert oder abgeschlossen.
+              </Alert>
+            )}
+
             {/* Status chips & Filter tabs */}
             <Stack
               direction={{ xs: "column", sm: "row" }}
@@ -296,6 +316,13 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
               </Tabs>
 
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
+                {committedCount > 0 && (
+                  <Chip
+                    label={`${committedCount} Importiert`}
+                    color="success"
+                    size="small"
+                  />
+                )}
                 <Chip
                   label={`${staged.readyCount} Bereit`}
                   color="success"
@@ -334,13 +361,14 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
                     <TableCell padding="checkbox">
                       <Checkbox
                         size="small"
+                        disabled={selectableDrafts.length === 0}
                         checked={
-                          filteredDrafts.length > 0 &&
-                          filteredDrafts.every((d) => d.selected)
+                          selectableDrafts.length > 0 &&
+                          selectableDrafts.every((d) => d.selected)
                         }
                         indeterminate={
-                          filteredDrafts.some((d) => d.selected) &&
-                          !filteredDrafts.every((d) => d.selected)
+                          selectableDrafts.some((d) => d.selected) &&
+                          !selectableDrafts.every((d) => d.selected)
                         }
                         onChange={(e) => onSelectAllVisible(e.target.checked)}
                       />
@@ -368,18 +396,25 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
                         hover
                         selected={draft.selected}
                         sx={{
-                          opacity: draft.status === "DUPLICATE" ? 0.5 : 1,
+                          opacity: draft.status === "COMMITTED" ? 0.65 : draft.status === "DUPLICATE" ? 0.5 : 1,
+                          backgroundColor: draft.status === "COMMITTED" ? "action.hover" : undefined,
                         }}
                       >
                         <TableCell padding="checkbox">
                           <Checkbox
                             size="small"
                             checked={draft.selected}
+                            disabled={draft.status === "COMMITTED"}
                             onChange={() => onToggleDraft(draft.id)}
                           />
                         </TableCell>
 
                         <TableCell>
+                          {draft.status === "COMMITTED" && (
+                            <Tooltip title={draft.statusMessage || "Bereits in Datenbank importiert"}>
+                              <Chip label="Importiert" color="success" size="small" />
+                            </Tooltip>
+                          )}
                           {draft.status === "READY" && (
                             <Chip label="Bereit" color="success" size="small" variant="outlined" />
                           )}
@@ -439,14 +474,17 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
                         </TableCell>
 
                         <TableCell align="right">
-                          <Tooltip title="Eintrag bearbeiten">
-                            <IconButton
-                              size="small"
-                              onClick={() => setEditingDraft(draft)}
-                              color="primary"
-                            >
-                              <EditOutlinedIcon fontSize="small" />
-                            </IconButton>
+                          <Tooltip title={draft.status === "COMMITTED" ? "Bereits importiert" : "Eintrag bearbeiten"}>
+                            <span>
+                              <IconButton
+                                size="small"
+                                disabled={draft.status === "COMMITTED"}
+                                onClick={() => setEditingDraft(draft)}
+                                color="primary"
+                              >
+                                <EditOutlinedIcon fontSize="small" />
+                              </IconButton>
+                            </span>
                           </Tooltip>
                         </TableCell>
                       </TableRow>
@@ -481,7 +519,7 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
             color="primary"
             size="small"
             disabled={loading}
-            onClick={() => onTriggerCheck(true)}
+            onClick={() => onTriggerCheck(false)}
             startIcon={loading ? <CircularProgress size={16} color="inherit" /> : null}
           >
             {loading ? "Prüfe..." : "Nach Vorschau suchen"}

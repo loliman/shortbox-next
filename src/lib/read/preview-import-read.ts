@@ -14,7 +14,7 @@ export async function readPreviewImportQueue() {
 
 export async function readHasActivePreviewImportQueue() {
   const staged = await readStagedPreviewImport();
-  if (staged && staged.status === "PENDING_REVIEW") {
+  if (staged && staged.status !== "DISCARDED") {
     return true;
   }
   return hasActivePreviewImportQueue();

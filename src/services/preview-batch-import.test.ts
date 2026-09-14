@@ -1,4 +1,8 @@
-import { buildStagedPreviewImport, type PreviewSeriesIssueMatcher } from "./preview-batch-import";
+import {
+  buildStagedPreviewImport,
+  syncStagedImportWithDatabase,
+  type PreviewSeriesIssueMatcher,
+} from "./preview-batch-import";
 import type { PreviewImportQueue } from "../types/preview-import";
 
 describe("preview-batch-import", () => {
@@ -148,4 +152,88 @@ describe("preview-batch-import", () => {
     expect(s4.inScope).toBe(false);
     expect(s4.selected).toBe(false);
   });
+
+  it("should_markImportedIssuesAsCommitted_when_syncStagedImportWithDatabaseRuns", async () => {
+    const queue: PreviewImportQueue = {
+      id: "q-1",
+      fileName: "pv123.pdf",
+      createdAt: "2026-09-13T00:00:00.000Z",
+      updatedAt: "2026-09-13T00:00:00.000Z",
+      drafts: [
+        {
+          id: "d-1",
+          sourceTitle: "SPIDER-MAN 11",
+          status: "pending",
+          warnings: [],
+          values: {
+            title: "Spider-Man",
+            series: { title: "Spider-Man", volume: 1, publisher: { name: "Panini", us: false } },
+            number: "11",
+            variant: "",
+            cover: null,
+            format: "Heft",
+            releasedate: "2026-10-13",
+            price: "5,99",
+            individuals: [],
+            addinfo: "",
+            stories: [],
+            copyBatch: { enabled: false, count: 1, prefix: "" },
+          },
+        },
+        {
+          id: "d-3",
+          sourceTitle: "WADE WILSON: DEADPOOL 1",
+          status: "pending",
+          warnings: [],
+          values: {
+            title: "Wade Wilson: Deadpool",
+            series: { title: "Wade Wilson: Deadpool", volume: 1, publisher: { name: "Panini", us: false } },
+            number: "1",
+            variant: "",
+            cover: null,
+            format: "Heft",
+            releasedate: "2026-12-22",
+            price: "4,99",
+            individuals: [],
+            addinfo: "",
+            stories: [],
+            copyBatch: { enabled: false, count: 1, prefix: "" },
+          },
+        },
+      ],
+    };
+
+    const staged = await buildStagedPreviewImport({
+      queue,
+      previewNumber: 123,
+      matcher: mockMatcher,
+    });
+
+    expect(staged.drafts[0].status).toBe("READY");
+    expect(staged.drafts[0].selected).toBe(true);
+
+    // Now simulate that Spider-Man 11 was imported into DB
+    const updatedMatcher: PreviewSeriesIssueMatcher = {
+      findDeSeries: async (title: string) => {
+        if (title.toLowerCase().includes("spider-man")) {
+          return { id: 101, title: "Spider-Man (2025)", volume: 1, publisherName: "Panini - Marvel & Icon" };
+        }
+        return null;
+      },
+      issueExists: async (seriesId: string | number, number: string) => {
+        // Spider-Man 11 is now in DB!
+        return seriesId === 101 && (number === "10" || number === "11");
+      },
+    };
+
+    await syncStagedImportWithDatabase(staged, updatedMatcher);
+
+    expect(staged.drafts[0].status).toBe("COMMITTED");
+    expect(staged.drafts[0].selected).toBe(false);
+    expect(staged.readyCount).toBe(0);
+    expect(staged.newSeriesCount).toBe(1);
+    expect(staged.drafts[1].status).toBe("NEW_SERIES");
+    expect(staged.drafts[1].selected).toBe(true);
+  });
 });
+
