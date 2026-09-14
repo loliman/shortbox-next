@@ -63,7 +63,7 @@
   },
   "devDependencies": {
     "@apollo/client": "^4.1.7",
-    "@eslint/eslintrc": "^3.3.5",
+    "@eslint/eslintrc": "^3.3.7",
     "@playwright/test": "^1.59.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -76,14 +76,14 @@
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.9",
     "eslint-import-resolver-typescript": "^4.4.5",
-    "eslint-plugin-boundaries": "^6.0.2",
+    "eslint-plugin-boundaries": "^7.2.0",
     "graphql": "^17.0.1",
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.3.0",
     "pa11y": "^9.1.1",
     "ts-jest": "^29.4.11",
     "ts-node": "^10.9.2",
-    "tsx": "^4.21.0",
+    "tsx": "^4.23.13",
     "typescript": "^6.0.3",
     "unlighthouse": "^0.18.0"
   }
