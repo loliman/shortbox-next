@@ -235,5 +235,97 @@ describe("preview-batch-import", () => {
     expect(staged.drafts[1].status).toBe("NEW_SERIES");
     expect(staged.drafts[1].selected).toBe(true);
   });
+
+  it("should_recognizeHardcoverDuplicates_when_hardcoverAlreadyInDb", async () => {
+    const matcherWithHcInDb: PreviewSeriesIssueMatcher = {
+      findDeSeries: async (title: string) => {
+        if (title.toLowerCase().includes("spider-man")) {
+          return { id: 101, title: "Spider-Man (2025)", volume: 1, publisherName: "Panini - Marvel & Icon" };
+        }
+        return null;
+      },
+      issueExists: async (seriesId: string | number, number: string, format?: string, variant?: string) => {
+        // Both Softcover #10 and Hardcover #10 are in DB!
+        // Hardcover #11 is NOT in DB.
+        if (seriesId === 101 && number === "10") {
+          if (!format || format === "Softcover" || format === "Hardcover") return true;
+        }
+        return false;
+      },
+    };
+
+    const queue: PreviewImportQueue = {
+      id: "q-hc",
+      fileName: "pv123.pdf",
+      createdAt: "2026-09-13T00:00:00.000Z",
+      updatedAt: "2026-09-13T00:00:00.000Z",
+      drafts: [
+        // 1. Hardcover 10 -> already in DB! Must be DUPLICATE!
+        {
+          id: "d-hc-10",
+          sourceTitle: "SPIDER-MAN 10 (HARDCOVER)",
+          issueCode: "DAMSM010C",
+          status: "pending",
+          variantOfDraftId: "d-sc-10",
+          warnings: [],
+          values: {
+            title: "Spider-Man",
+            series: { title: "Spider-Man", volume: 1, publisher: { name: "Panini", us: false } },
+            number: "10",
+            variant: "", // NOT "A"!
+            cover: null,
+            format: "Hardcover",
+            releasedate: "2026-09-15",
+            price: "29,00",
+            individuals: [],
+            addinfo: "",
+            stories: [],
+            copyBatch: { enabled: false, count: 1, prefix: "" },
+          },
+        },
+        // 2. Hardcover 11 -> NOT in DB! Must be READY!
+        {
+          id: "d-hc-11",
+          sourceTitle: "SPIDER-MAN 11 (HARDCOVER)",
+          issueCode: "DAMSM011C",
+          status: "pending",
+          variantOfDraftId: "d-sc-11",
+          warnings: [],
+          values: {
+            title: "Spider-Man",
+            series: { title: "Spider-Man", volume: 1, publisher: { name: "Panini", us: false } },
+            number: "11",
+            variant: "", // NOT "A"!
+            cover: null,
+            format: "Hardcover",
+            releasedate: "2026-10-13",
+            price: "29,00",
+            individuals: [],
+            addinfo: "",
+            stories: [],
+            copyBatch: { enabled: false, count: 1, prefix: "" },
+          },
+        },
+      ],
+    };
+
+    const staged = await buildStagedPreviewImport({
+      queue,
+      previewNumber: 123,
+      matcher: matcherWithHcInDb,
+    });
+
+    // Hardcover 10 must be recognized as DUPLICATE even though it is a variant companion!
+    const hc10 = staged.drafts.find((d) => d.id === "d-hc-10")!;
+    expect(hc10.status).toBe("DUPLICATE");
+    expect(hc10.selected).toBe(false);
+    expect(hc10.issue.variant).toBe("");
+
+    // Hardcover 11 must be READY
+    const hc11 = staged.drafts.find((d) => d.id === "d-hc-11")!;
+    expect(hc11.status).toBe("READY");
+    expect(hc11.selected).toBe(true);
+    expect(hc11.issue.variant).toBe("");
+  });
 });
 

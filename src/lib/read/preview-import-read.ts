@@ -119,11 +119,36 @@ export async function findDeSeriesForBatchImport(title: string): Promise<{
   };
 }
 
-export async function checkDeIssueExists(seriesId: string | number, number: string): Promise<boolean> {
+export async function checkDeIssueExists(
+  seriesId: string | number,
+  number: string,
+  format?: string,
+  variant?: string
+): Promise<boolean> {
+  const normNumber = String(number).trim();
+  const normFormat = (format || "").trim();
+  const normVariant = (variant || "").trim();
+
+  if (normFormat) {
+    const count = await prisma.variant.count({
+      where: {
+        issue: {
+          fkSeries: BigInt(seriesId),
+          number: normNumber,
+        },
+        format: { equals: normFormat, mode: "insensitive" },
+        ...(normVariant
+          ? { variantLabel: { equals: normVariant, mode: "insensitive" } }
+          : { OR: [{ variantLabel: null }, { variantLabel: "" }] }),
+      },
+    });
+    return count > 0;
+  }
+
   const count = await prisma.issue.count({
     where: {
       fkSeries: BigInt(seriesId),
-      number: String(number),
+      number: normNumber,
     },
   });
   return count > 0;

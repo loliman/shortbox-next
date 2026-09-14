@@ -1280,7 +1280,7 @@ describe("parsePreviewImportQueue", () => {
     const hardcover = queue.drafts.find((entry) => entry.issueCode === "DJULSB003C");
 
     expect(softcover?.values.variant).toBe("");
-    expect(hardcover?.values.variant).toBe("A");
+    expect(hardcover?.values.variant).toBe("");
     expect(hardcover?.variantOfDraftId).toBe(softcover?.id);
     expect(hardcover?.values.format).toBe("Hardcover");
     expect(hardcover?.values.stories).toHaveLength(0);

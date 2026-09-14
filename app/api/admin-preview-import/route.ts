@@ -119,10 +119,13 @@ export async function POST(request: NextRequest) {
 
       if (existingSeries) {
         const issueNum = String(v.number ?? draft.issue.number ?? "");
-        const alreadyExists = await checkDeIssueExists(existingSeries.id, issueNum);
-        if (alreadyExists && !isVariant) {
+        const format = v.format ?? draft.issue.format;
+        const variant = v.variant ?? draft.issue.variant;
+        const alreadyExists = await checkDeIssueExists(existingSeries.id, issueNum, format, variant);
+        if (alreadyExists) {
           status = "DUPLICATE";
-          statusMessage = `Heft #${issueNum} existiert bereits in ${existingSeries.title}`;
+          const formatInfo = format ? ` (${format}${variant ? ` ${variant}` : ""})` : "";
+          statusMessage = `Ausgabe #${issueNum}${formatInfo} existiert bereits in ${existingSeries.title}`;
         } else {
           status = "READY";
         }

@@ -901,9 +901,14 @@ async function buildDraft(input: {
       ? derivedIssueNumber
       : parsedTitle.number;
   values.title = parsedTitle.title;
-  values.variant = input.isVariant ? deriveVariantLabel(input.variantIndex ?? 0) : "";
-  values.pages = metadata.pages ?? values.pages;
   values.format = metadata.format ?? values.format;
+  const isHardcover = values.format === "Hardcover" || /C$/i.test(metadata.issueCode || input.issueCodeHint || "");
+  if (isHardcover) {
+    values.variant = extractExplicitVariantLabel(resolvedSourceTitle, input.metadataLines);
+  } else {
+    values.variant = input.isVariant ? deriveVariantLabel(input.variantIndex ?? 0) : "";
+  }
+  values.pages = metadata.pages ?? values.pages;
   values.price = metadata.price ?? values.price;
   values.currency = "EUR";
   values.releasedate = metadata.releaseDate ?? values.releasedate;
@@ -1528,10 +1533,15 @@ function attachDerivedVariantParents(drafts: PreviewImportDraft[]) {
     if (!parent) continue;
 
     draft.variantOfDraftId = parent.id;
-    if (!draft.values.variant) {
-      const nextIndex = variantCounts.get(parent.id) ?? 0;
-      variantCounts.set(parent.id, nextIndex + 1);
-      draft.values.variant = deriveVariantLabel(nextIndex);
+    const isHardcover = draft.values.format === "Hardcover" || /C$/i.test(issueCode);
+    if (!draft.values.variant || (isHardcover && draft.values.variant === "A")) {
+      if (isHardcover) {
+        draft.values.variant = extractExplicitVariantLabel(draft.sourceTitle, []);
+      } else {
+        const nextIndex = variantCounts.get(parent.id) ?? 0;
+        variantCounts.set(parent.id, nextIndex + 1);
+        draft.values.variant = deriveVariantLabel(nextIndex);
+      }
     }
     if (!draft.values.pages) draft.values.pages = parent.values.pages;
     if (!draft.values.releasedate || draft.values.releasedate === "1900-01-01") {
@@ -2072,6 +2082,18 @@ function toIsoDate(value: string) {
   const match = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(value);
   if (!match) return "1900-01-01";
   return `${match[3]}-${match[2]}-${match[1]}`;
+}
+
+export function extractExplicitVariantLabel(title: string, lines: string[] = []): string {
+  const combined = [title, ...lines].join(" ");
+  const letterMatch = /\b(?:Hardcover-)?(?:Variant(?:-Cover)?|Cover)\s+([A-Z0-9]+)\b/i.exec(combined);
+  if (letterMatch) {
+    return `Variant ${letterMatch[1].toUpperCase()}`;
+  }
+  if (/\b(?:Hardcover-)?Variant(?:-Cover)?\b/i.test(combined)) {
+    return "Variant";
+  }
+  return "";
 }
 
 function deriveVariantLabel(variantIndex: number) {

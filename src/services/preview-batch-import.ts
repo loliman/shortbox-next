@@ -6,9 +6,11 @@ import type {
 } from "../types/preview-import";
 import { classifyDraftForMarvelScope } from "./preview-marvel-filter";
 
+import { extractExplicitVariantLabel } from "./preview-import-parser";
+
 export interface PreviewSeriesIssueMatcher {
   findDeSeries(title: string): Promise<{ id: string | number; title: string; volume: number; publisherName: string } | null>;
-  issueExists(seriesId: string | number, number: string): Promise<boolean>;
+  issueExists(seriesId: string | number, number: string, format?: string, variant?: string): Promise<boolean>;
 }
 
 export interface BuildStagedImportOptions {
@@ -37,6 +39,8 @@ export async function buildStagedPreviewImport(
     const seriesTitle = draft.values.series.title.trim();
     const isVariant = Boolean(draft.variantOfDraftId || draft.values.variant);
     const existingSeries = seriesTitle ? await matcher.findDeSeries(seriesTitle) : null;
+    const format = draft.values.format;
+    const variantLabel = draft.values.variant;
 
     let status: StagedDraftStatus = "READY";
     let statusMessage = "";
@@ -49,12 +53,18 @@ export async function buildStagedPreviewImport(
         : "Panini - Marvel & Icon");
 
     if (existingSeries) {
-      const alreadyExists = await matcher.issueExists(existingSeries.id, draft.values.number);
-      if (alreadyExists && !isVariant) {
+      const alreadyExists = await matcher.issueExists(
+        existingSeries.id,
+        draft.values.number,
+        format,
+        variantLabel
+      );
+      if (alreadyExists) {
         status = "DUPLICATE";
         selected = false;
         duplicateCount += 1;
-        statusMessage = `Heft #${draft.values.number} existiert bereits in ${existingSeries.title}`;
+        const formatInfo = format ? ` (${format}${variantLabel ? ` ${variantLabel}` : ""})` : "";
+        statusMessage = `Ausgabe #${draft.values.number}${formatInfo} existiert bereits in ${existingSeries.title}`;
       } else {
         status = "READY";
         if (inScope) readyCount += 1;
@@ -144,6 +154,20 @@ export async function syncStagedImportWithDatabase(
   >();
 
   for (const draft of staged.drafts) {
+    // Sanitize leftover "A" from previous parser bug on Hardcovers
+    const isHardcover =
+      draft.issue.format === "Hardcover" ||
+      draft.rawDraft?.values?.format === "Hardcover" ||
+      /C$/i.test(draft.issueCode || "");
+
+    if (isHardcover && (draft.issue.variant === "A" || draft.rawDraft?.values?.variant === "A")) {
+      const explicit = extractExplicitVariantLabel(draft.sourceTitle, draft.rawDraft?.warnings || []);
+      draft.issue.variant = explicit;
+      if (draft.rawDraft?.values) {
+        draft.rawDraft.values.variant = explicit;
+      }
+    }
+
     if (draft.status === "COMMITTED") {
       draft.selected = false;
       continue;
@@ -160,8 +184,9 @@ export async function syncStagedImportWithDatabase(
       seriesCache.set(cacheKey, existingSeries);
     }
 
-    const isVariant = Boolean(draft.parentDraftId || draft.rawDraft.values.variant);
     const issueNum = String(draft.issue.number ?? draft.rawDraft.values.number ?? "");
+    const format = draft.issue.format ?? draft.rawDraft.values.format;
+    const variantLabel = draft.issue.variant ?? draft.rawDraft.values.variant;
 
     if (existingSeries) {
       draft.series.id = existingSeries.id;
@@ -170,18 +195,17 @@ export async function syncStagedImportWithDatabase(
       draft.series.isNew = false;
       draft.series.publisherName = existingSeries.publisherName;
 
-      const exists = await matcher.issueExists(existingSeries.id, issueNum);
+      const exists = await matcher.issueExists(existingSeries.id, issueNum, format, variantLabel);
       if (exists) {
-        if (!isVariant) {
-          if (draft.status === "READY" || draft.status === "NEW_SERIES") {
-            draft.status = "COMMITTED";
-            draft.selected = false;
-            draft.statusMessage = `Heft #${issueNum} wurde bereits importiert`;
-          } else {
-            draft.status = "DUPLICATE";
-            draft.selected = false;
-            draft.statusMessage = `Heft #${issueNum} existiert bereits in ${existingSeries.title}`;
-          }
+        if (draft.status === "READY" || draft.status === "NEW_SERIES") {
+          draft.status = "COMMITTED";
+          draft.selected = false;
+          draft.statusMessage = `Ausgabe #${issueNum} wurde bereits importiert`;
+        } else {
+          draft.status = "DUPLICATE";
+          draft.selected = false;
+          const formatInfo = format ? ` (${format}${variantLabel ? ` ${variantLabel}` : ""})` : "";
+          draft.statusMessage = `Ausgabe #${issueNum}${formatInfo} existiert bereits in ${existingSeries.title}`;
         }
       } else {
         draft.status = "READY";
