@@ -65,6 +65,13 @@ updates:
       - dependency-name: "eslint"
         update-types:
           - "version-update:semver-major"
+      - dependency-name: "@mui/*"
+        update-types:
+          - "version-update:semver-major"
+      - dependency-name: "graphile-worker"
+        update-types:
+          - "version-update:semver-minor"
+          - "version-update:semver-major"
 
   - package-ecosystem: "github-actions"
     directory: "/"
