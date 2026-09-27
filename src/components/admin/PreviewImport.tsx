@@ -195,7 +195,7 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
       if (data.staged) {
         setStaged(data.staged);
       }
-      snackbar.enqueueSnackbar("Eintrag aktualisiert.", { variant: "success" });
+      snackbar.enqueueSnackbar("Entwurf aktualisiert.", { variant: "success" });
     } catch (err) {
       snackbar.enqueueSnackbar(
         err instanceof Error ? err.message : "Fehler beim Speichern des Eintrags.",
@@ -474,11 +474,10 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
                         </TableCell>
 
                         <TableCell align="right">
-                          <Tooltip title={draft.status === "COMMITTED" ? "Bereits importiert" : "Eintrag bearbeiten"}>
+                          <Tooltip title="Eintrag bearbeiten">
                             <span>
                               <IconButton
                                 size="small"
-                                disabled={draft.status === "COMMITTED"}
                                 onClick={() => setEditingDraft(draft)}
                                 color="primary"
                               >
@@ -500,6 +499,7 @@ export default function PreviewImport(props: Readonly<PreviewImportProps>) {
         <DraftEditDialog
           open={Boolean(editingDraft)}
           draft={editingDraft}
+          session={props.session}
           onClose={() => setEditingDraft(null)}
           onSave={onSaveDraft}
         />

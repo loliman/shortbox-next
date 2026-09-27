@@ -387,6 +387,142 @@ describe("editIssue identity conflicts", () => {
     });
   });
 
+  it("should create and edit bundle items (collected issues) successfully", async () => {
+    // Preemptive cleanup of any leftover dirty state from previous failed runs
+    await prisma.issueBundleItem.deleteMany({
+      where: { rawTitle: { in: ["Raw description of #10", "Freetext Only Issue #11"] } },
+    });
+    await prisma.issue.deleteMany({
+      where: { series: { title: "Contained Series" } },
+    });
+    await prisma.series.deleteMany({
+      where: { title: "Contained Series" },
+    });
+
+    // 1. Create a second issue (to bundle)
+    const containedIssueRes = await createIssue({
+      title: "Contained Issue",
+      number: "10",
+      format: "Heft",
+      variant: "",
+      series: {
+        title: "Contained Series",
+        volume: 1,
+        publisher: {
+          name: publisherName,
+          us: false,
+        },
+      },
+      stories: [],
+    });
+    expect(containedIssueRes.success).toBe(true);
+    if (!containedIssueRes.success) throw new Error("Could not create contained issue");
+    const containedIssueId = BigInt(containedIssueRes.data.item.id);
+
+    // 2. Call editIssue on issueId1 to bundle the contained issue
+    const result = await editIssue({
+      id: Number(issueId1),
+      variantId: Number(variantId1),
+      title: "Williams Superband #9",
+      number: "1",
+      format: "Heft",
+      variant: "A",
+      series: {
+        title: seriesTitle,
+        volume: 1,
+        publisher: {
+          name: publisherName,
+          us: false,
+        },
+      },
+      stories: [],
+      bundleItems: [
+        {
+          rawTitle: "Raw description of #10",
+          addInfo: "Seiten 3-24",
+          position: 1,
+          containedIssue: {
+            series: {
+              title: "Contained Series",
+              volume: 1,
+              publisher: {
+                name: publisherName,
+                us: false,
+              },
+            },
+            number: "10",
+          },
+        },
+      ],
+    });
+    expect(result.success).toBe(true);
+
+    // 3. Verify the bundle item was created successfully in database
+    const dbBundleItems = await prisma.issueBundleItem.findMany({
+      where: { fkBundleIssue: issueId1 },
+    });
+    expect(dbBundleItems.length).toBe(1);
+    expect(dbBundleItems[0].fkContainedIssue).toBe(containedIssueId);
+    expect(dbBundleItems[0].rawTitle).toBe("Raw description of #10");
+    expect(dbBundleItems[0].addInfo).toBe("Seiten 3-24");
+    expect(dbBundleItems[0].position).toBe(1);
+
+    // 4. Update the bundle to remove the contained issue and change it to freetext rawTitle
+    const updateResult = await editIssue({
+      id: Number(issueId1),
+      variantId: Number(variantId1),
+      title: "Williams Superband #9",
+      number: "1",
+      format: "Heft",
+      variant: "A",
+      series: {
+        title: seriesTitle,
+        volume: 1,
+        publisher: {
+          name: publisherName,
+          us: false,
+        },
+      },
+      stories: [],
+      bundleItems: [
+        {
+          rawTitle: "Freetext Only Issue #11",
+          addInfo: "Seiten 25-48",
+          position: 1,
+          containedIssue: null,
+        },
+      ],
+    });
+    expect(updateResult.success).toBe(true);
+
+    // 5. Verify the bundle items were updated correctly
+    const dbBundleItems2 = await prisma.issueBundleItem.findMany({
+      where: { fkBundleIssue: issueId1 },
+    });
+    expect(dbBundleItems2.length).toBe(1);
+    expect(dbBundleItems2[0].fkContainedIssue).toBeNull();
+    expect(dbBundleItems2[0].rawTitle).toBe("Freetext Only Issue #11");
+    expect(dbBundleItems2[0].addInfo).toBe("Seiten 25-48");
+
+    // Clean up
+    await prisma.issueBundleItem.deleteMany({
+      where: { fkBundleIssue: issueId1 },
+    });
+    await prisma.story.deleteMany({
+      where: { fkIssue: containedIssueId },
+    });
+    await prisma.variant.deleteMany({
+      where: { fkIssue: containedIssueId },
+    });
+    await prisma.issue.delete({
+      where: { id: containedIssueId },
+    });
+    await prisma.series.deleteMany({
+      where: { title: "Contained Series" },
+    });
+  });
+
+
   afterAll(async () => {
     await prisma.$disconnect();
     if (globalThis.__shortboxPrismaPool__) {

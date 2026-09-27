@@ -8,6 +8,7 @@ import Paper from "@mui/material/Paper";
 import Alert from "@mui/material/Alert";
 import Typography from "@mui/material/Typography";
 import Divider from "@mui/material/Divider";
+import Chip from "@mui/material/Chip";
 import { generateIssueSubHeader } from "../../util/issues";
 import { generateLabel } from "../../lib/routes/hierarchy";
 import { isMockMode } from "../../app/mockMode";
@@ -190,11 +191,21 @@ export default function IssueDetails(props: Readonly<IssueDetailsProps>) {
         title={
           <TitleLine
             title={
-              <IssueReferenceInline
-                seriesLabel={generateLabel({ series: loadedIssue.series })}
-                number={loadedIssue.number}
-                legacy_number={loadedIssue.legacy_number}
-              />
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+                <IssueReferenceInline
+                  seriesLabel={generateLabel({ series: loadedIssue.series })}
+                  number={loadedIssue.number}
+                  legacy_number={loadedIssue.legacy_number}
+                />
+                {loadedIssue.bundleItems && loadedIssue.bundleItems.length > 0 ? (
+                  <Chip
+                    label="Remittenden-Sammelband"
+                    color="warning"
+                    size="small"
+                    sx={{ fontWeight: 700, textTransform: "uppercase", fontSize: "0.68rem", letterSpacing: "0.05em", height: 20 }}
+                  />
+                ) : null}
+              </Box>
             }
             session={props.session}
           />

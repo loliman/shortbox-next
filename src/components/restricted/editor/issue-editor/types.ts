@@ -25,9 +25,11 @@ export interface IssueEditorFormValues {
   individuals: Array<Record<string, unknown>>;
   addinfo: string;
   comicguideid?: number;
+  gcdid?: number;
   isbn?: string;
   arcs?: Array<Record<string, unknown>>;
   stories: Array<Record<string, unknown>>;
+  bundleItems: Array<Record<string, unknown>>;
   storyString?: string;
   copyBatch: {
     enabled: boolean;
@@ -79,14 +81,14 @@ export interface IssueEditorFormContentProps {
   id?: string | number;
   session?: SessionData | null;
   header: string;
-  submitLabel: string;
-  submitAndCopyLabel: string;
+  submitLabel?: string;
+  submitAndCopyLabel?: string;
   isSubmitting: boolean;
   setFieldValue: (field: string, value: unknown, shouldValidate?: boolean) => void;
   resetForm: () => void;
   onToggleUs: () => void;
-  onCancel: (event: MouseEvent<HTMLButtonElement>) => void;
-  onSubmitMode: (copyMode: boolean) => void;
+  onCancel?: (event: MouseEvent<HTMLButtonElement>) => void;
+  onSubmitMode?: (copyMode: boolean) => void;
   notice?: ReactNode;
   actionNotice?: ReactNode;
   actions?: ReactNode;

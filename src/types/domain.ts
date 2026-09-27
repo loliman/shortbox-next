@@ -90,6 +90,7 @@ export interface Variant {
   verified?: boolean | null;
   collected?: boolean | null;
   comicguideid?: OptionalId;
+  gcdid?: OptionalId;
   isbn?: string | null;
   pages?: number | null;
   price?: number | null;
@@ -100,6 +101,11 @@ export interface Variant {
   __typename?: "Variant";
   [key: string]: unknown;
 }
+
+/**
+ * VariantLike: Alias for Variant for compatibility.
+ */
+export type VariantLike = Variant;
 
 /**
  * Issue: die abstrakte Publikationseinheit (das Werk).
@@ -141,6 +147,8 @@ export interface Issue {
   collected?: boolean | null;
   /** Aus bevorzugtem Variant: Variant.comicguideid */
   comicguideid?: OptionalId;
+  /** Aus bevorzugtem Variant: Variant.gcdid */
+  gcdid?: OptionalId;
   /** Aus bevorzugtem Variant: Variant.isbn */
   isbn?: string | null;
   /** Aus bevorzugtem Variant: Variant.pages */
@@ -157,6 +165,7 @@ export interface Issue {
   originalStoryCover?: {
     cover?: Cover | null;
     comicguideid?: string | number | null;
+    gcdid?: string | number | null;
   } | null;
 
   [key: string]: unknown;

@@ -81,17 +81,17 @@ model ChangeRequest {
 }
 
 model Series {
-  id          BigInt   @id @default(autoincrement()) @db.BigInt
-  title       String?  @db.VarChar(255)
-  startYear   BigInt   @default(0) @map("startyear") @db.BigInt
-  endYear     BigInt?  @default(0) @map("endyear") @db.BigInt
-  volume      BigInt   @db.BigInt
-  genre       String   @default("") @db.VarChar(255)
-  addInfo     String   @default("") @map("addinfo") @db.VarChar(1000)
-  createdAt   DateTime @map("createdat") @db.Timestamptz(6)
-  updatedAt   DateTime @map("updatedat") @db.Timestamptz(6)
-  fkPublisher BigInt?  @map("fk_publisher") @db.BigInt
-  publisher   Publisher? @relation(fields: [fkPublisher], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id          BigInt        @id @default(autoincrement()) @db.BigInt
+  title       String?       @db.VarChar(255)
+  startYear   BigInt        @default(0) @map("startyear") @db.BigInt
+  endYear     BigInt?       @default(0) @map("endyear") @db.BigInt
+  volume      BigInt        @db.BigInt
+  genre       String        @default("") @db.VarChar(255)
+  addInfo     String        @default("") @map("addinfo") @db.VarChar(1000)
+  createdAt   DateTime      @map("createdat") @db.Timestamptz(6)
+  updatedAt   DateTime      @map("updatedat") @db.Timestamptz(6)
+  fkPublisher BigInt?       @map("fk_publisher") @db.BigInt
+  publisher   Publisher?    @relation(fields: [fkPublisher], references: [id], onDelete: NoAction, onUpdate: NoAction)
   issues      Issue[]
   genres      SeriesGenre[]
 
@@ -167,16 +167,16 @@ model AdminTaskResult {
 //                pages, addInfo, collected, verified, comicGuideId
 // ---------------------------------------------------------------------------
 model Issue {
-  id                  BigInt    @id @default(autoincrement()) @db.BigInt
-  title               String    @default("") @db.VarChar(255)
-  number              String    @default("") @db.VarChar(255)
-  legacyNumber        String    @default("") @map("legacy_number") @db.VarChar(255)
-  numberNumeric       Decimal?  @map("number_numeric") @db.Decimal
-  legacyNumberNumeric Decimal?  @map("legacy_number_numeric") @db.Decimal
-  createdAt           DateTime  @map("createdat") @db.Timestamptz(6)
-  updatedAt           DateTime  @map("updatedat") @db.Timestamptz(6)
-  fkSeries            BigInt?   @map("fk_series") @db.BigInt
-  fkPublisher         BigInt?   @map("fk_publisher") @db.BigInt
+  id                  BigInt   @id @default(autoincrement()) @db.BigInt
+  title               String   @default("") @db.VarChar(255)
+  number              String   @default("") @db.VarChar(255)
+  legacyNumber        String   @default("") @map("legacy_number") @db.VarChar(255)
+  numberNumeric       Decimal? @map("number_numeric") @db.Decimal
+  legacyNumberNumeric Decimal? @map("legacy_number_numeric") @db.Decimal
+  createdAt           DateTime @map("createdat") @db.Timestamptz(6)
+  updatedAt           DateTime @map("updatedat") @db.Timestamptz(6)
+  fkSeries            BigInt?  @map("fk_series") @db.BigInt
+  fkPublisher         BigInt?  @map("fk_publisher") @db.BigInt
 
   // Materialisierte Story-Flags (werden aus Story-Daten berechnet)
   hasFirstPrint     Boolean @default(false) @map("has_first_print")
@@ -192,7 +192,7 @@ model Issue {
   doubleCollected          Boolean @default(false) @map("double_collected")
   doublePublisherCollected Boolean @default(false) @map("double_publisher_collected")
   notOwnedUsMaterial       Boolean @default(false) @map("not_owned_us_material")
-  noOwnedVariants          Boolean @default(true)  @map("no_owned_variants")
+  noOwnedVariants          Boolean @default(true) @map("no_owned_variants")
 
   // Materialisierte Cover/Variant-Previewfelder (werden bei Variant/Cover-Änderungen berechnet)
   preferredVariantId    BigInt? @map("preferred_variant_id") @db.BigInt
@@ -200,15 +200,18 @@ model Issue {
   preferredFormat       String? @map("preferred_format") @db.VarChar(255)
   preferredVariantLabel String? @map("preferred_variant_label") @db.VarChar(255)
 
-  series      Series?           @relation(fields: [fkSeries], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  publisher   Publisher?        @relation(fields: [fkPublisher], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  stories     Story[]
-  arcs        IssueArc[]
-  individuals IssueIndividual[]
-  variants    Variant[]
+  series             Series?             @relation(fields: [fkSeries], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  publisher          Publisher?          @relation(fields: [fkPublisher], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  stories            Story[]
+  arcs               IssueArc[]
+  individuals        IssueIndividual[]
+  variants           Variant[]
+  bundleParents      IssueBundleItem[]   @relation("BundleParents")
+  containedInBundles IssueBundleItem[]   @relation("BundleContainedIssue")
+  curationCandidates CurationCandidate[]
 
-  @@index([fkSeries], map: "idx_issue_fk_series")
   @@unique([fkSeries, number], map: "uq_issue_series_number")
+  @@index([fkSeries], map: "idx_issue_fk_series")
   @@index([fkPublisher], map: "idx_issue_fk_publisher")
   @@map("issue")
   @@schema("shortbox")
@@ -234,15 +237,40 @@ model Variant {
   isbn         String?   @db.VarChar(255)
   limitation   BigInt?   @default(0) @db.BigInt
   comicGuideId BigInt?   @map("comicguideid") @db.BigInt
+  gcdId        BigInt?   @map("gcd_id") @db.BigInt
   createdAt    DateTime  @map("createdat") @db.Timestamptz(6)
   updatedAt    DateTime  @map("updatedat") @db.Timestamptz(6)
 
-  issue  Issue   @relation(fields: [fkIssue], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  covers Cover[]
+  issue       Issue             @relation(fields: [fkIssue], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  covers      Cover[]
+  bundleItems IssueBundleItem[]
 
   @@unique([fkIssue, format, variantLabel], map: "uq_variant_issue_format_label")
   @@index([fkIssue], map: "idx_variant_fk_issue")
+  @@index([gcdId], map: "idx_variant_gcd_id")
   @@map("variant")
+  @@schema("shortbox")
+}
+
+model IssueBundleItem {
+  id               BigInt   @id @default(autoincrement()) @db.BigInt
+  fkBundleIssue    BigInt   @map("fk_bundle_issue") @db.BigInt
+  fkBundleVariant  BigInt?  @map("fk_bundle_variant") @db.BigInt
+  fkContainedIssue BigInt?  @map("fk_contained_issue") @db.BigInt
+  rawTitle         String   @default("") @map("raw_title") @db.VarChar(255)
+  versionLabel     String   @default("") @map("version_label") @db.VarChar(100)
+  position         Int      @default(1)
+  addInfo          String   @default("") @map("addinfo") @db.VarChar(255)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  bundleIssue    Issue    @relation("BundleParents", fields: [fkBundleIssue], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  bundleVariant  Variant? @relation(fields: [fkBundleVariant], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  containedIssue Issue?   @relation("BundleContainedIssue", fields: [fkContainedIssue], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([fkBundleIssue], map: "idx_issue_bundle_parent")
+  @@index([fkContainedIssue], map: "idx_issue_bundle_contained")
+  @@index([fkBundleVariant], map: "idx_issue_bundle_variant")
+  @@map("issue_bundle_item")
   @@schema("shortbox")
 }
 
@@ -303,23 +331,23 @@ model Session {
 }
 
 model SearchIndex {
-  id              BigInt              @id @default(autoincrement()) @db.BigInt
-  nodeType        SearchIndexNodeType @map("node_type")
-  sourceId        BigInt              @map("source_id") @db.BigInt
+  id              BigInt                  @id @default(autoincrement()) @db.BigInt
+  nodeType        SearchIndexNodeType     @map("node_type")
+  sourceId        BigInt                  @map("source_id") @db.BigInt
   us              Boolean
-  publisherName   String?             @map("publisher_name")
-  seriesTitle     String?             @map("series_title")
-  seriesVolume    Int?                @map("series_volume")
-  seriesStartYear Int?                @map("series_startyear")
-  seriesEndYear   Int?                @map("series_endyear")
-  seriesKey       String?             @map("series_key")
-  issueNumber     String?             @map("issue_number")
-  issueFormat     String?             @map("issue_format")
-  issueVariant    String?             @map("issue_variant")
-  issueTitle      String?             @map("issue_title")
+  publisherName   String?                 @map("publisher_name")
+  seriesTitle     String?                 @map("series_title")
+  seriesVolume    Int?                    @map("series_volume")
+  seriesStartYear Int?                    @map("series_startyear")
+  seriesEndYear   Int?                    @map("series_endyear")
+  seriesKey       String?                 @map("series_key")
+  issueNumber     String?                 @map("issue_number")
+  issueFormat     String?                 @map("issue_format")
+  issueVariant    String?                 @map("issue_variant")
+  issueTitle      String?                 @map("issue_title")
   label           String
   url             String
-  searchText      String              @map("search_text")
+  searchText      String                  @map("search_text")
   searchTsv       Unsupported("tsvector") @default(dbgenerated("''::tsvector'")) @map("search_tsv")
 
   @@unique([nodeType, sourceId], map: "search_index_node_type_source_id_key")
@@ -332,12 +360,12 @@ model SearchIndex {
 }
 
 model Appearance {
-  id          BigInt            @id @default(autoincrement()) @db.BigInt
-  name        String            @db.VarChar(255)
-  type        String            @db.VarChar(255)
-  createdAt   DateTime          @map("createdat") @db.Timestamptz(6)
-  updatedAt   DateTime          @map("updatedat") @db.Timestamptz(6)
-  storyLinks  StoryAppearance[]
+  id         BigInt            @id @default(autoincrement()) @db.BigInt
+  name       String            @db.VarChar(255)
+  type       String            @db.VarChar(255)
+  createdAt  DateTime          @map("createdat") @db.Timestamptz(6)
+  updatedAt  DateTime          @map("updatedat") @db.Timestamptz(6)
+  storyLinks StoryAppearance[]
 
   @@map("appearance")
   @@schema("shortbox")
@@ -391,14 +419,54 @@ model CoverIndividual {
 }
 
 model Individual {
-  id          BigInt            @id @default(autoincrement()) @db.BigInt
-  name        String            @default("") @db.VarChar(255)
-  createdAt   DateTime          @map("createdat") @db.Timestamptz(6)
-  updatedAt   DateTime          @map("updatedat") @db.Timestamptz(6)
-  storyLinks  StoryIndividual[]
-  issueLinks  IssueIndividual[]
-  coverLinks  CoverIndividual[]
+  id         BigInt            @id @default(autoincrement()) @db.BigInt
+  name       String            @default("") @db.VarChar(255)
+  createdAt  DateTime          @map("createdat") @db.Timestamptz(6)
+  updatedAt  DateTime          @map("updatedat") @db.Timestamptz(6)
+  storyLinks StoryIndividual[]
+  issueLinks IssueIndividual[]
+  coverLinks CoverIndividual[]
 
   @@map("individual")
+  @@schema("shortbox")
+}
+
+model CurationCandidate {
+  id          Int      @id @default(autoincrement())
+  fkIssue     BigInt   @map("fk_issue") @db.BigInt
+  sourceUrl   String   @map("source_url")
+  sourceQuote String   @map("source_quote") @db.Text
+  confidence  String   @default("LOW") @db.VarChar(50)
+  status      String   @default("PENDING") @db.VarChar(50)
+  diffJson    Json     @map("diff_json") @db.JsonB
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  issue Issue @relation(fields: [fkIssue], references: [id], onDelete: Cascade)
+
+  @@map("curation_candidate")
+  @@schema("shortbox")
+}
+
+model EntityAlias {
+  id             String   @id @default(cuid())
+  rawInput       String   @map("raw_input")
+  canonicalValue String   @map("canonical_value")
+  entityType     String   @map("entity_type")
+  verifiedByUser Boolean  @default(false) @map("verified_by_user")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([rawInput, entityType])
+  @@map("entity_alias")
+  @@schema("shortbox")
+}
+
+model ScrapeCache {
+  urlHash    String   @id @map("url_hash")
+  rawText    String   @map("raw_text") @db.Text
+  httpStatus Int      @map("http_status")
+  cachedAt   DateTime @default(now()) @map("cached_at") @db.Timestamptz(6)
+
+  @@map("scrape_cache")
   @@schema("shortbox")
 }

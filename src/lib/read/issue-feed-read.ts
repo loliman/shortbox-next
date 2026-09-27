@@ -159,6 +159,7 @@ export function createPreviewIssueInclude() {
                   orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
                   select: {
                     comicGuideId: true,
+                    gcdId: true,
                     covers: {
                       select: {
                         url: true,
@@ -210,6 +211,7 @@ export function createPreviewIssueInclude() {
                   orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
                   select: {
                     comicGuideId: true,
+                    gcdId: true,
                     covers: {
                       select: {
                         url: true,

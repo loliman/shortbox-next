@@ -6,10 +6,10 @@ import { IssueSchema } from "../../../util/yupSchema";
 import { Form, Formik } from "formik";
 import React from "react";
 import { generateLabel, generateSeoUrl } from "../../../lib/routes/hierarchy";
-import { createEmptyIssueValues } from "./issue-editor/constants";
 import { buildIssueMutationVariables } from "./issue-editor/payload";
 import { buildIssueEditorState } from "./issue-editor/state";
 import IssueEditorFormContent from "./issue-editor/IssueEditorFormContent";
+import { normalizeIssueEditorValues } from "./issue-editor/defaultValues";
 import type { IssueEditorFormValues, IssueEditorProps } from "./issue-editor/types";
 import { mutationRequest } from "../../../lib/client/mutation-request";
 import type { SelectedRoot } from "../../../types/domain";
@@ -31,55 +31,6 @@ function readIssueUs(item: IssueMutationResult): boolean {
 
 function toIssueSelection(item: IssueMutationResult, us: boolean): SelectedRoot {
   return { issue: item as unknown as SelectedRoot["issue"], us };
-}
-
-function normalizeIssueEditorValues(
-  value: IssueEditorFormValues | undefined
-): IssueEditorFormValues {
-  const defaults = createEmptyIssueValues();
-  const source = value || defaults;
-
-  return {
-    title: readTextValue(source.title),
-    series: {
-      ...defaults.series,
-      ...source.series,
-      title: readTextValue(source.series?.title),
-      volume: source.series?.volume ?? defaults.series.volume,
-      publisher: {
-        ...defaults.series.publisher,
-        ...source.series?.publisher,
-        name: readTextValue(source.series?.publisher?.name),
-        us: Boolean(source.series?.publisher?.us),
-      },
-    },
-    number: readTextValue(source.number),
-    variant: readTextValue(source.variant),
-    cover: source.cover ?? defaults.cover,
-    format: readTextValue(source.format) || defaults.format,
-    limitation: readTextValue(source.limitation),
-    pages: source.pages ?? defaults.pages,
-    releasedate: readTextValue(source.releasedate),
-    price: source.price == null ? "" : String(source.price),
-    currency: readTextValue(source.currency),
-    individuals: Array.isArray(source.individuals) ? source.individuals : [],
-    addinfo: readTextValue(source.addinfo),
-    comicguideid: source.comicguideid,
-    isbn: readTextValue(source.isbn),
-    arcs: Array.isArray(source.arcs) ? source.arcs : [],
-    stories: Array.isArray(source.stories) ? source.stories : [],
-    copyBatch: {
-      enabled: Boolean(source.copyBatch?.enabled),
-      count: source.copyBatch?.count ?? defaults.copyBatch.count,
-      prefix: readTextValue(source.copyBatch?.prefix),
-    },
-  };
-}
-
-function readTextValue(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (typeof value === "number") return String(value);
-  return "";
 }
 
 function IssueEditorView(props: Readonly<IssueEditorProps>) {

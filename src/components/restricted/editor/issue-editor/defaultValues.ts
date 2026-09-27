@@ -12,6 +12,55 @@ function deepClone<T>(value: T): T {
   return structuredClone(value);
 }
 
+export function normalizeIssueEditorValues(
+  value: IssueEditorFormValues | undefined
+): IssueEditorFormValues {
+  const defaults = createEmptyIssueValues();
+  const source = value || defaults;
+
+  return {
+    title: readTextValue(source.title),
+    series: {
+      ...defaults.series,
+      ...source.series,
+      title: readTextValue(source.series?.title),
+      volume: source.series?.volume ?? defaults.series.volume,
+      publisher: {
+        ...defaults.series.publisher,
+        ...source.series?.publisher,
+        name: readTextValue(source.series?.publisher?.name),
+        us: Boolean(source.series?.publisher?.us),
+      },
+    },
+    number: readTextValue(source.number),
+    variant: readTextValue(source.variant),
+    cover: source.cover ?? defaults.cover,
+    format: readTextValue(source.format) || defaults.format,
+    limitation: readTextValue(source.limitation),
+    pages: source.pages ?? defaults.pages,
+    releasedate: readTextValue(source.releasedate),
+    price: source.price == null ? "" : String(source.price),
+    currency: readTextValue(source.currency),
+    individuals: Array.isArray(source.individuals) ? source.individuals : [],
+    addinfo: readTextValue(source.addinfo),
+    comicguideid: source.comicguideid,
+    gcdid: source.gcdid,
+    isbn: readTextValue(source.isbn),
+    arcs: Array.isArray(source.arcs) ? source.arcs : [],
+    stories: Array.isArray(source.stories)
+      ? source.stories.map((story) => ensureFieldItemClientId(story))
+      : [],
+    bundleItems: Array.isArray(source.bundleItems)
+      ? source.bundleItems.map((item) => ensureFieldItemClientId(item))
+      : [],
+    copyBatch: {
+      enabled: Boolean(source.copyBatch?.enabled),
+      count: source.copyBatch?.count ?? defaults.copyBatch.count,
+      prefix: readTextValue(source.copyBatch?.prefix),
+    },
+  };
+}
+
 function normalizeSeries(series: Record<string, unknown> | undefined, fallbackUs = false) {
   if (!series) return createEmptyIssueValues().series;
 
@@ -125,6 +174,7 @@ export function mapIssueToEditorDefaultValues(
     variant: "",
     isbn: "",
     stories: [],
+    bundleItems: [],
     individuals: [],
     arcs: [],
     cover: undefined,
@@ -134,6 +184,29 @@ export function mapIssueToEditorDefaultValues(
       prefix: "",
     },
   };
+}
+
+function normalizeBundleItem(item: Record<string, any>) {
+  const containedIssue = item.containedIssue ? {
+    series: {
+      title: readTextValue(item.containedIssue.series?.title),
+      volume: item.containedIssue.series?.volume ?? 1,
+      publisher: {
+        name: readTextValue(item.containedIssue.series?.publisher?.name),
+        us: Boolean(item.containedIssue.series?.publisher?.us),
+      },
+    },
+    number: readTextValue(item.containedIssue.number),
+  } : null;
+
+  return ensureFieldItemClientId({
+    id: item.id,
+    versionLabel: readTextValue(item.versionLabel),
+    position: item.position ?? 1,
+    rawTitle: readTextValue(item.rawTitle),
+    addInfo: readTextValue(item.addInfo ?? item.addinfo),
+    containedIssue,
+  });
 }
 
 function buildMergedIssueEditorValues(values: Record<string, unknown>): IssueEditorFormValues {
@@ -157,6 +230,7 @@ function buildMergedIssueEditorValues(values: Record<string, unknown>): IssueEdi
     currency: readTextValue(values.currency) || defaults.currency,
     addinfo: readTextValue(values.addinfo),
     comicguideid: Number(values.comicguideid || 0),
+    gcdid: Number(values.gcdid || 0),
     isbn: readTextValue(values.isbn),
     individuals: asArray(values.individuals as Array<Record<string, unknown>>).map((individual) => ({
       name: individual.name,
@@ -168,6 +242,9 @@ function buildMergedIssueEditorValues(values: Record<string, unknown>): IssueEdi
     })),
     stories: asArray(values.stories as Array<Record<string, unknown>>).map((story) =>
       normalizeStory(story, usIssue)
+    ),
+    bundleItems: asArray(values.bundleItems as Array<Record<string, unknown>>).map((item) =>
+      normalizeBundleItem(item)
     ),
   };
 }
@@ -183,6 +260,7 @@ function normalizeEditDefaults(
   if (values.currency == null) normalized.currency = "";
   if (values.pages == null) normalized.pages = undefined;
   if (values.comicguideid == null) normalized.comicguideid = undefined;
+  if (values.gcdid == null) normalized.gcdid = undefined;
   if (values.limitation == null) normalized.limitation = "";
   if (values.isbn == null) normalized.isbn = "";
   if (values.addinfo == null) normalized.addinfo = "";

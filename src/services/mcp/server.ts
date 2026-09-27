@@ -13,22 +13,39 @@ import { findDuplicateVariants } from "./tools/duplicate-variants";
 import { searchCatalog } from "./tools/search-catalog";
 import { checkCollectionStatus } from "./tools/collection-status";
 import { resolveStoryPublications } from "./tools/story-publications";
+import { searchDeepCatalog } from "./tools/search-deep-catalog";
+import { getStorylineChronology } from "./tools/storyline-chronology";
+import { analyzeUsRunCoverage } from "./tools/us-run-coverage";
+import { findUpgradeCandidates } from "./tools/upgrade-candidates";
+import { auditPublicationHealth } from "./tools/audit-publication-health";
+import { getCurationDossier } from "./tools/curation-dossier";
 
 export const SHORTBOX_MCP_INSTRUCTIONS = `
-Du bist der Shortbox Comic-Bibliothekar. Du hast Zugriff auf die Shortbox-Comic-Datenbank und die persönliche Comic-Sammlung des Nutzers.
+Du bist der Shortbox Comic-Bibliothekar. Du hast Zugriff auf die gesamte Shortbox-Comic-Datenbank und die persönliche Comic-Sammlung des Nutzers.
 
 ## Domänenmodell & Konzepte
 - **Issue**: Das Werk bzw. die Veröffentlichungseinheit (Serie, Nummer, Titel, enthaltene Stories).
 - **Variant**: Die konkrete physische Ausgabe mit Format (Heft, Hardcover, Paperback), Variant-Cover, Preis und dem Sammlungsstatus 'collected'.
-- **DE vs. US**: US-Comics sind in der Regel Originalausgaben. Deutsche Ausgaben (Panini, Ehapa, Williams, Dino, Splitter etc.) drucken überwiegend US-Stories nach.
+- **DE vs. US**: US-Comics sind in der Regel Originalausgaben. Deutsche Ausgaben (Panini, Ehapa, Williams, Condor, Dino, Splitter etc.) drucken überwiegend US-Stories nach.
 - **Stories & Reprints**: Stories in deutschen Heften verlinken über 'fkParent' auf die US-Originalstory und über 'reprintedBy' auf weitere deutsche Nachdrucke.
-- **Flags**: 'isReprintOnly' bedeutet, dass alle enthaltenen Stories bereits früher auf Deutsch erschienen sind (wichtig für Verkaufsentscheidungen).
+- **Flags**: 'isReprintOnly' bedeutet, dass alle enthaltenen Stories bereits früher auf Deutsch erschienen sind.
 
-## Verhaltensregeln für den Agenten
-1. **Fuzzy Search First**: Nutzer nennen selten interne Datenbank-IDs. Rufe bei Fragen nach Titeln, Figuren, Heften oder Serien IMMER ZUERST 'search_catalog' auf, um die passenden Entitäts-IDs ('issue_id' oder 'series_id') zu ermitteln.
-2. **Kompakte Antworten bei Serien**: Liste bei Serien niemals unzählige Einzelhefte auf. Verwende 'check_collection_status' und nenne die Vollständigkeit in % sowie die Lücken als zusammenhängende Nummernblöcke (z.B. "#1-5, #8, #12-14").
-3. **Nachdrucke & Originale**: Wenn der Nutzer wissen will, wo eine bestimmte US-Story auf Deutsch erschienen ist oder welche US-Hefte in einem deutschen Band stecken, nutze 'resolve_story_publications'.
-4. **Verkauf & Doubletten**: Nutze 'find_sellable_reprints' oder 'find_duplicate_variants', wenn der Nutzer wissen will, welche Hefte er verkaufen kann, ohne Stories zu verlieren.
+## Verhaltensregeln für den Agenten nach Nutzergruppe
+
+### 1. Für allgemeine Leser & Suche (Discovery)
+- **Deep Search**: Bei Fragen nach Figuren (z.B. "Venom", "Punisher"), Events/Arcs (z.B. "Civil War", "Infinity"), Künstlern/Kreativen (z.B. "McFarlane", "Frank Miller", "Christian Heiss") oder Story-Titeln nutze 'search_deep_catalog'.
+- **Lesereihenfolgen & Events**: Wenn der Nutzer wissen will, wie ein Story-Arc zu lesen ist und welche deutschen Bände existieren, nutze 'get_storyline_chronology'.
+- **Nachdrucke & Originale**: Wenn der Nutzer wissen will, wo ein bestimmtes US-Heft auf Deutsch erschienen ist oder welche US-Hefte in einem deutschen Band stecken, nutze 'resolve_story_publications'.
+
+### 2. Für Sammler & Bestandsanalyse (Collection Intelligence)
+- **US-Run-Abdeckung**: Wenn ein Sammler wissen will, welche Hefte eines US-Laufs (z.B. Amazing Spider-Man #200-300) er über seine gesamte deutsche Sammlung besitzt und was noch fehlt, nutze 'analyze_us_run_coverage'.
+- **Serienstatus**: Verwende 'check_collection_status', um Vollständigkeit (%) und Lücken als kompakte Nummernblöcke ("#1-5, #8") zu nennen.
+- **Format-Upgrades**: Nutze 'find_upgrade_candidates', um zu sehen, welche Softcovers/Hefte der Sammler besitzt, für die es auch ein Hardcover im Katalog gibt.
+- **Verkauf & Doubletten**: Nutze 'find_sellable_reprints' oder 'find_duplicate_variants', wenn der Nutzer wissen will, welche Hefte er verkaufen kann, ohne Stories zu verlieren.
+
+### 3. Für Kuratoren & Datenhygiene (Curation & Data Quality)
+- **Health-Audit**: Nutze 'audit_publication_health', um Hefte oder Serien auf Datenqualitätsmängel (Dummy-Titel, Scan-Artefakte, Plenks, fehlende US-Parents, fehlende Übersetzer, Zählbrüche) zu prüfen.
+- **Quellen-Dossier**: Nutze 'get_curation_dossier', um für ein bestimmtes Heft die Shortbox-Daten im Live-Abgleich mit den gecachten GCD- und UHBMCC-Daten gegenüberzustellen.
 `.trim();
 
 /**
@@ -39,14 +56,14 @@ export function createMcpServer(): McpServer {
   const server = new McpServer(
     {
       name: "shortbox",
-      version: "2.0.0",
+      version: "2.1.0",
     },
     {
       instructions: SHORTBOX_MCP_INSTRUCTIONS,
     }
   );
 
-  // ── High-Level Intent Tools (Primary for Agent Use) ─────────────────────
+  // ── Discovery & Deep Search Tools (For Readers & General Search) ────────
 
   server.tool(
     "search_catalog",
@@ -67,18 +84,39 @@ export function createMcpServer(): McpServer {
   );
 
   server.tool(
-    "check_collection_status",
+    "search_deep_catalog",
     [
-      "Prüft den Sammlungsstatus für ein bestimmtes Heft oder eine Serie.",
-      "Für Hefte: gibt an ob gesammelt, welches Format/Variante vorliegt und wann erschienen.",
-      "Für Serien: gibt Gesamthefte, Sammlungsquote in % und eine kompakte Liste fehlender Nummern zurück.",
+      "Universelle semantische Tiefensuche über den gesamten Katalog.",
+      "Findet Charaktere (Auftritte), Storylines/Arcs (Events), Kreative (Zeichner, Autoren, Übersetzer), Story-Titel und Serien/Hefte.",
+      "Gibt strukturierte IDs und Treffer zurück, die direkt in Folge-Tools verwendet werden können.",
     ].join(" "),
     {
-      issue_id: z.number().int().optional().describe("Eindeutige Heft-ID (vorher über search_catalog ermitteln)"),
-      series_id: z.number().int().optional().describe("Eindeutige Serien-ID (vorher über search_catalog ermitteln)"),
+      query: z.string().describe("Suchbegriff (z.B. 'Venom', 'Civil War', 'McFarlane', 'Gwen Stacy')"),
+      types: z
+        .array(z.enum(["all", "series", "issue", "character", "arc", "creator", "story"]))
+        .optional()
+        .describe("Optionale Einschränkung auf Entitätstypen (Standard: all)"),
+      us: z.boolean().optional().describe("true = nur US-Comics, false = nur deutsche Ausgaben"),
+      limit: z.number().int().min(1).max(30).optional().describe("Max. Ergebnisse je Kategorie (Standard: 10)"),
     },
     async (params) => {
-      const result = await checkCollectionStatus(params);
+      const result = await searchDeepCatalog(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "get_storyline_chronology",
+    [
+      "Gibt die chronologische Lesereihenfolge für eine Storyline oder ein Event (z.B. 'Civil War', 'Infinity Gauntlet', 'Kraven's Last Hunt') aus.",
+      "Mapped jedes US-Heft auf alle existierenden deutschen Ausgaben und zeigt an, ob der Nutzer die Ausgabe besitzt.",
+    ].join(" "),
+    {
+      arc_id: z.number().int().optional().describe("Arc-ID (aus search_deep_catalog)"),
+      title: z.string().optional().describe("Titel des Arcs/Events (z.B. 'Civil War')"),
+    },
+    async (params) => {
+      const result = await getStorylineChronology(params);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     }
   );
@@ -99,14 +137,56 @@ export function createMcpServer(): McpServer {
     }
   );
 
-  // ── Curatorial & Maintenance Tools ───────────────────────────────────────
+  // ── Collector Intelligence Tools (For Collection Analysis & Strategy) ──
 
   server.tool(
-    "get_collection_stats",
-    "Schnellübersicht: Gesamtanzahl Hefte, gesammelt/fehlend, aufgeteilt nach Verlag.",
-    {},
-    async () => {
-      const result = await getCollectionStats();
+    "check_collection_status",
+    [
+      "Prüft den Sammlungsstatus für ein bestimmtes Heft oder eine Serie.",
+      "Für Hefte: gibt an ob gesammelt, welches Format/Variante vorliegt und wann erschienen.",
+      "Für Serien: gibt Gesamthefte, Sammlungsquote in % und eine kompakte Liste fehlender Nummern zurück.",
+    ].join(" "),
+    {
+      issue_id: z.number().int().optional().describe("Eindeutige Heft-ID (vorher über search_catalog ermitteln)"),
+      series_id: z.number().int().optional().describe("Eindeutige Serien-ID (vorher über search_catalog ermitteln)"),
+    },
+    async (params) => {
+      const result = await checkCollectionStatus(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "analyze_us_run_coverage",
+    [
+      "Analysiert die Abdeckung eines US-Serienabschnitts (z.B. Amazing Spider-Man #200-300) über die gesamte deutsche Sammlung.",
+      "Prüft für jede US-Nummer: Im Besitz (egal in welchem deutschen Band)? Auf Deutsch verfügbar aber fehlt? Noch nie auf Deutsch erschienen?",
+      "Liefert prozentuale Quoten, kompakte Lücken-Nummernblöcke und eine Einkaufsliste.",
+    ].join(" "),
+    {
+      us_series_id: z.number().int().optional().describe("ID der US-Serie (aus search_catalog)"),
+      us_series_title: z.string().optional().describe("Titel der US-Serie (z.B. 'The Amazing Spider-Man')"),
+      start_number: z.number().int().optional().describe("Start-Heftnummer des Runs (z.B. 200)"),
+      end_number: z.number().int().optional().describe("End-Heftnummer des Runs (z.B. 300)"),
+    },
+    async (params) => {
+      const result = await analyzeUsRunCoverage(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "find_upgrade_candidates",
+    [
+      "Findet gesammelte Hefte/Bände, die der Sammler als Softcover oder normales Heft besitzt,",
+      "bei denen aber eine höherwertige Hardcover- oder limitierte Vorzugsausgabe im Katalog existiert, die noch nicht gesammelt ist.",
+    ].join(" "),
+    {
+      publisher_pattern: z.string().optional().describe("Verlag einschränken (z.B. 'Panini')"),
+      limit: z.number().int().min(1).max(200).optional().describe("Max. Treffer (Standard: 50)"),
+    },
+    async (params) => {
+      const result = await findUpgradeCandidates(params);
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     }
   );
@@ -134,6 +214,56 @@ export function createMcpServer(): McpServer {
     },
     async (params) => {
       const result = await findDuplicateVariants(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  // ── Curatorial & Data Quality Tools (For Curation & Hygiene Audits) ──────
+
+  server.tool(
+    "audit_publication_health",
+    [
+      "Führt einen tiefen Datenhygiene-Check für Hefte oder Serien gemäß den verbindlichen AGENTS.md-Regeln durch.",
+      "Prüft auf: Verbotene Dummys, Plenks, Scan-Artefakte, redaktionelle Zählbrüche, fehlende US-Parents,",
+      "fehlende Übersetzer bei Erstausgaben, Lücken in Story.number und fehlende Varianten-/GCD-Metadaten.",
+      "Berechnet einen Health-Score (0-100%) und listet konkrete Handlungsempfehlungen.",
+    ].join(" "),
+    {
+      issue_id: z.number().int().optional().describe("Einzelnes Heft prüfen"),
+      series_id: z.number().int().optional().describe("Ganze Serie prüfen"),
+      publisher_pattern: z.string().optional().describe("Alle Hefte eines Verlags prüfen (z.B. 'Panini', 'BSV')"),
+      limit: z.number().int().min(1).max(200).optional().describe("Max. zu prüfende Hefte (Standard: 50)"),
+    },
+    async (params) => {
+      const result = await auditPublicationHealth(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "get_curation_dossier",
+    [
+      "Erstellt ein 360-Grad-Kurations-Dossier für ein Heft mit Live-Abgleich zwischen Shortbox, GCD und UHBMCC.",
+      "Zentrales Werkzeug für den atomaren Heft-Kurations-Loop: Klassifiziert die Befunde strikt in autonome Entscheidungen",
+      "(Konsenswerte, Bereinigungen) und Nicht-Entscheidungen (Konflikte, die dem Nutzer vorgelegt werden müssen).",
+    ].join(" "),
+    {
+      issue_id: z.number().int().optional().describe("Heft-ID in Shortbox"),
+      series_title: z.string().optional().describe("Serientitel"),
+      issue_number: z.string().optional().describe("Heftnummer"),
+    },
+    async (params) => {
+      const result = await getCurationDossier(params);
+      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "get_collection_stats",
+    "Schnellübersicht: Gesamtanzahl Hefte, gesammelt/fehlend, aufgeteilt nach Verlag.",
+    {},
+    async () => {
+      const result = await getCollectionStats();
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     }
   );

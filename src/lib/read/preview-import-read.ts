@@ -86,16 +86,26 @@ async function readSeriesByTitle(title: string, us: boolean) {
     .filter((entry) => entry.title && entry.volume > 0 && entry.publisherName);
 }
 
-export async function findDeSeriesForBatchImport(title: string): Promise<{
+export async function findDeSeriesForBatchImport(
+  title: string,
+  volume?: number
+): Promise<{
   id: string | number;
   title: string;
   volume: number;
   publisherName: string;
 } | null> {
-  const matches = await readDeSeriesByTitle(title);
+  let matches = await readDeSeriesByTitle(title);
+  if (matches.length === 0 && /\s+Paperback$/i.test(title)) {
+    matches = await readDeSeriesByTitle(title.replace(/\s+Paperback$/i, " (Paperback)"));
+  }
   if (matches.length === 0) return null;
 
-  const match = matches[0];
+  const match =
+    (volume != null && volume > 1 ? matches.find((m) => m.volume === volume) : null) ||
+    matches[0];
+
+  if (!match) return null;
   const series = await prisma.series.findFirst({
     where: {
       title: match.title,

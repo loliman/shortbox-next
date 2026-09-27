@@ -37,6 +37,13 @@ export const storyDefault: FieldItem = {
   exclusive: false,
 };
 
+export const bundleItemDefault: FieldItem = {
+  rawTitle: "",
+  addInfo: "",
+  position: 1,
+  containedIssue: null,
+};
+
 export function cloneFieldItem<T>(item: T): T {
   return structuredClone(item);
 }

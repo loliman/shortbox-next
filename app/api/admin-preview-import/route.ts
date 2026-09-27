@@ -103,19 +103,36 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Draft nicht gefunden" }, { status: 404 });
       }
 
-      const v = body.values;
+      const v = body.values || {};
+      const targetVolume = Number(
+        v.series?.volume != null
+          ? v.series.volume
+          : draft.rawDraft.values?.series?.volume != null
+          ? draft.rawDraft.values.series.volume
+          : draft.series.volume || 1
+      );
+
       draft.rawDraft.values = {
         ...draft.rawDraft.values,
         ...v,
+        series: {
+          ...draft.rawDraft.values.series,
+          ...v.series,
+          volume: targetVolume,
+        },
       };
 
       // Synchronize derived display fields
       const seriesTitle = (v.series?.title || draft.series.title || "").trim();
-      const existingSeries = seriesTitle ? await findDeSeriesForBatchImport(seriesTitle) : null;
+      const existingSeries = seriesTitle ? await findDeSeriesForBatchImport(seriesTitle, targetVolume) : null;
       const isVariant = Boolean(draft.parentDraftId || v.variant);
+      draft.isVariant = isVariant;
 
-      let status = draft.status;
-      let statusMessage = "";
+      const storiesList = Array.isArray(v.stories) ? v.stories : draft.rawDraft.values.stories || [];
+      const parsedPrice = v.price ? parseFloat(String(v.price).replace(",", ".")) : undefined;
+
+      let status: typeof draft.status = draft.status;
+      let statusMessage: string | undefined = undefined;
 
       if (existingSeries) {
         const issueNum = String(v.number ?? draft.issue.number ?? "");
@@ -124,14 +141,18 @@ export async function POST(request: NextRequest) {
         const alreadyExists = await checkDeIssueExists(existingSeries.id, issueNum, format, variant);
         if (alreadyExists) {
           status = "DUPLICATE";
+          draft.selected = false;
           const formatInfo = format ? ` (${format}${variant ? ` ${variant}` : ""})` : "";
           statusMessage = `Ausgabe #${issueNum}${formatInfo} existiert bereits in ${existingSeries.title}`;
         } else {
           status = "READY";
+          statusMessage = undefined;
+          draft.selected = draft.inScope;
         }
       } else {
         status = "NEW_SERIES";
         statusMessage = "Serie existiert noch nicht in der Datenbank (wird neu angelegt)";
+        draft.selected = draft.inScope;
       }
 
       draft.status = status;
@@ -139,23 +160,24 @@ export async function POST(request: NextRequest) {
       draft.series = {
         id: existingSeries?.id ?? null,
         title: existingSeries?.title ?? seriesTitle,
-        volume: Number(existingSeries?.volume || v.series?.volume || draft.series.volume || 1),
+        volume: targetVolume,
         isNew: !existingSeries,
         publisherName: existingSeries?.publisherName || v.series?.publisher?.name || draft.series.publisherName,
       };
 
-      const storiesList = Array.isArray(v.stories) ? v.stories : draft.rawDraft.values.stories || [];
       const storiesSummary = storiesList
         .slice(0, 3)
         .map((s: Record<string, unknown>) => {
+          const parent = (s as { parent?: { issue?: { series?: { title?: string }; number?: string } } })?.parent?.issue;
+          if (parent?.series?.title && parent?.number) {
+            return `${parent.series.title} #${parent.number}`;
+          }
           const title = typeof s.title === "string" ? s.title : "";
           const num = s.number ? `#${s.number}` : "";
           return `${title} ${num}`.trim();
         })
         .filter(Boolean)
         .join(", ");
-
-      const parsedPrice = v.price ? parseFloat(String(v.price).replace(",", ".")) : undefined;
 
       draft.issue = {
         number: String(v.number ?? draft.issue.number ?? ""),

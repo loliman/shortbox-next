@@ -652,6 +652,15 @@ export async function editIssue(item: IssueInput): Promise<Result<IssueWriteItem
         );
       }
 
+      if (!newPublisher.original && Object.hasOwn(item, "bundleItems")) {
+        await syncBundleItems(
+          Number(updatedIssue.id),
+          Number(updatedVariant.id),
+          item,
+          tx
+        );
+      }
+
       await handleIssueWriteEffects(updatedIssue.id, tx);
 
       return {
@@ -1056,6 +1065,15 @@ async function createIssueRecord(
 
   if (isNewParent && shouldSyncIssueStories(item, publisher.original)) {
     await syncStoriesFromParentRefs(Number(fullParentIssue.id), item, tx, parentIssueCache, preflightCache);
+  }
+
+  if (!publisher.original && Object.hasOwn(item, "bundleItems")) {
+    await syncBundleItems(
+      Number(fullParentIssue.id),
+      Number(createdVariant.id),
+      item,
+      tx
+    );
   }
 
   return {
@@ -1903,6 +1921,76 @@ async function findIssueBySeriesIdentity(
   });
 
   return matchedVariant ? { id: matchedVariant.fkIssue } : null;
+}
+
+async function syncBundleItems(
+  bundleIssueId: number,
+  bundleVariantId: number,
+  item: IssueInput,
+  executor: PrismaExecutor
+) {
+  const inputBundleItems = Array.isArray(item.bundleItems) ? item.bundleItems : [];
+
+  // 1. Delete existing bundle items associated with this variant
+  // Or having matching versionLabel matching the variant label we are writing
+  await executor.issueBundleItem.deleteMany({
+    where: {
+      fkBundleIssue: BigInt(bundleIssueId),
+      OR: [
+        { fkBundleVariant: BigInt(bundleVariantId) },
+        { versionLabel: normalizeOptionalText(item.variant) ?? "" },
+      ],
+    },
+  });
+
+  if (inputBundleItems.length === 0) {
+    return;
+  }
+
+  // 2. Insert new bundle items
+  for (const bundleItem of inputBundleItems) {
+    let containedIssueId: bigint | null = null;
+
+    if (bundleItem.containedIssue) {
+      // Resolve the publisher of the contained issue
+      const containedPub = await findPublisher(bundleItem.containedIssue.series?.publisher, executor);
+      if (containedPub) {
+        // Resolve the series of the contained issue
+        const containedSeries = await executor.series.findFirst({
+          where: {
+            title: normalizeText(bundleItem.containedIssue.series?.title),
+            volume: BigInt(Number(bundleItem.containedIssue.series?.volume ?? 0)),
+            fkPublisher: containedPub.id,
+          },
+        });
+
+        if (containedSeries) {
+          // Find the contained issue
+          const resolvedContainedIssue = await executor.issue.findFirst({
+            where: {
+              fkSeries: containedSeries.id,
+              number: normalizeText(bundleItem.containedIssue.number),
+            },
+          });
+          if (resolvedContainedIssue) {
+            containedIssueId = resolvedContainedIssue.id;
+          }
+        }
+      }
+    }
+
+    await executor.issueBundleItem.create({
+      data: {
+        fkBundleIssue: BigInt(bundleIssueId),
+        fkBundleVariant: BigInt(bundleVariantId),
+        fkContainedIssue: containedIssueId,
+        rawTitle: normalizeText(bundleItem.rawTitle),
+        versionLabel: normalizeOptionalText(item.variant) ?? "",
+        position: Number(bundleItem.position || 1),
+        addInfo: normalizeText(bundleItem.addInfo ?? bundleItem.addinfo),
+      },
+    });
+  }
 }
 
 

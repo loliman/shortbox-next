@@ -27,6 +27,16 @@ function IssueEditorIdentifiersFields({
         </Grid>
       ) : null}
 
+      <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+        <FastField
+          name="gcdid"
+          label="Comics.org ID (GCD)"
+          type="number"
+          component={TextField}
+          fullWidth
+        />
+      </Grid>
+
       {isDePublisher ? (
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <FastField name="isbn" label="ISBN" type="string" component={TextField} fullWidth />

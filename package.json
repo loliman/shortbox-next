@@ -34,14 +34,19 @@
     "prisma:validate": "prisma validate"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^4.0.78",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@google/genai": "^2.24.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@mui/icons-material": "7.3.9",
     "@mui/material": "7.3.9",
     "@mui/material-nextjs": "^7.3.9",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "@types/better-sqlite3": "^9.6.0",
+    "ai": "^7.0.116",
+    "better-sqlite3": "^13.0.3",
     "cheerio": "^1.2.0",
     "dateformat": "^5.0.3",
     "dompurify": "^3.4.0",
@@ -52,6 +57,7 @@
     "notistack": "^3.0.2",
     "pdfjs-dist": "^6.3.289",
     "pg": "^8.22.0",
+    "picocolors": "^1.1.1",
     "prisma": "^7.8.0",
     "query-string": "^9.3.1",
     "rate-limiter-flexible": "^11.0.1",
@@ -59,7 +65,8 @@
     "react-dom": "^19.2.7",
     "server-only": "^0.0.1",
     "undici": "^8.5.0",
-    "yup": "^1.7.1"
+    "yup": "^1.7.1",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@apollo/client": "^4.1.7",

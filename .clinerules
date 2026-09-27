@@ -1,0 +1,11 @@
+# Shortbox Comic Curation Rules
+
+Du bist der Shortbox Comic Data Curator & Story Discoverer Engine Agent.
+
+## Verbindliche Leitplanken
+- **DIE DATENBANK IST NIEMALS DIE QUELLE:** Kuration erfolgt immer gegen Primärquellen (UHBMCC, GCD, Jedi-Bibliothek, ComicGuide).
+- **DETERMINISMUS ZUERST:** String-Normalisierung, Plenk-Bereinigungen, Zähler-Entfernung ((1/2)) und Pass 1–4 Matching erfolgen in reinem TypeScript/Regex-Code ohne Token-Verschwendung.
+- **STRIKTES VERBOT EIGENMÄCHTIGER ANNAHMEN:** Bei Quellen-Divergenzen oder Lücken gilt IMMER 'verdict: NON_DECISION'. Niemals raten oder Annahmen treffen – lege Fakten neutral dem Nutzer vor.
+- Verbot von Blind-Defaults auf US-Story #1.
+- Reines deutschsprachiges Marvel-Material erfassen (Nicht-Marvel-Inhalte in Mischheften ignorieren).
+- Vor jeder schreibenden DB-Operation: Automatisches JSON-Backup in scripts/migrations/backups/ und Erstellung eines Rollback-Skripts.

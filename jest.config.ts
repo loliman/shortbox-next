@@ -9,7 +9,7 @@ const config: Config = {
   // Jest is the repository default for unit and regression coverage. Keep
   // browser workflow confidence out of this layer and in Playwright instead.
   testEnvironment: "node",
-  roots: ["<rootDir>/src"],
+  roots: ["<rootDir>/src", "<rootDir>/scripts"],
   testMatch: ["**/*.test.ts", "**/*.test.tsx"],
   testPathIgnorePatterns: ["/node_modules/"],
   collectCoverageFrom: [

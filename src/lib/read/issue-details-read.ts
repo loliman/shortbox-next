@@ -393,6 +393,56 @@ function createIssueDetailsInclude() {
         },
       },
     },
+    bundleParents: {
+      orderBy: [{ versionLabel: "asc" }, { position: "asc" }, { id: "asc" }],
+      include: {
+        containedIssue: {
+          include: {
+            series: {
+              include: {
+                publisher: true,
+              },
+            },
+            variants: {
+              orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
+              include: {
+                covers: {
+                  orderBy: [{ number: "asc" }, { id: "asc" }],
+                  take: 1,
+                },
+              },
+            },
+            stories: {
+              orderBy: [{ number: "asc" }, { id: "asc" }],
+              include: {
+                parent: {
+                  include: {
+                    issue: {
+                      include: {
+                        series: {
+                          include: {
+                            publisher: true,
+                          },
+                        },
+                        variants: {
+                          orderBy: [{ format: "asc" }, { variantLabel: "asc" }, { id: "asc" }],
+                          take: 1,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            _count: {
+              select: {
+                stories: true,
+              },
+            },
+          },
+        },
+      },
+    },
     _count: {
       select: {
         stories: true,
@@ -599,6 +649,7 @@ function toIssueDetailsShape(issue: any, selectedVariant: any) {
     verified: variant.verified,
     collected: variant.collected ?? null,
     comicguideid: serializeNullableIssueId(variant.comicGuideId),
+    gcdid: serializeNullableIssueId(variant.gcdId),
     cover: variant.covers[0] ? toIssueCoverShape(variant.covers[0]) : null,
     series: toIssueSeriesShape(issue.series),
     // Keep number/legacy_number for backward compat in variant list
@@ -629,6 +680,7 @@ function toIssueDetailsShape(issue: any, selectedVariant: any) {
     verified: activeVariant?.verified ?? false,
     collected: activeVariant?.collected ?? null,
     comicguideid: serializeNullableIssueId(activeVariant?.comicGuideId),
+    gcdid: serializeNullableIssueId(activeVariant?.gcdId),
     // Issue-level fields
     createdat: serializeIssueDate(issue.createdAt),
     updatedat: serializeIssueDate(issue.updatedAt),
@@ -642,6 +694,53 @@ function toIssueDetailsShape(issue: any, selectedVariant: any) {
       type: entry.arc.type || null,
     })),
     variants: mappedVariants,
+    bundleItems: (issue.bundleParents ?? []).map((item: any) => ({
+      id: serializeIssueId(item.id),
+      fkBundleVariant: item.fkBundleVariant ? serializeIssueId(item.fkBundleVariant) : null,
+      versionLabel: item.versionLabel || "",
+      position: item.position ?? 1,
+      rawTitle: item.rawTitle || "",
+      addInfo: item.addInfo || "",
+      containedIssue: item.containedIssue
+        ? {
+            id: serializeIssueId(item.containedIssue.id),
+            number: item.containedIssue.number,
+            title: item.containedIssue.title || "",
+            series: toIssueSeriesShape(item.containedIssue.series),
+            format: item.containedIssue.variants?.[0]?.format || null,
+            variant: item.containedIssue.variants?.[0]?.variantLabel || null,
+            cover: item.containedIssue.variants?.[0]?.covers?.[0]
+              ? toIssueCoverShape(item.containedIssue.variants[0].covers[0])
+              : null,
+            comicguideid: serializeNullableIssueId(item.containedIssue.variants?.[0]?.comicGuideId),
+            gcdid: serializeNullableIssueId(item.containedIssue.variants?.[0]?.gcdId),
+            storiesCount: item.containedIssue._count?.stories ?? 0,
+            stories: (item.containedIssue.stories ?? []).map((story: any) => ({
+              id: serializeIssueId(story.id),
+              number: Number(story.number || 0),
+              title: story.title || "",
+              addinfo: story.addInfo || "",
+              part: story.part || "",
+              parent: story.parent
+                ? {
+                    id: serializeIssueId(story.parent.id),
+                    number: Number(story.parent.number || 0),
+                    title: story.parent.title || "",
+                    issue: story.parent.issue
+                      ? {
+                          id: serializeIssueId(story.parent.issue.id),
+                          number: story.parent.issue.number,
+                          series: toIssueSeriesShape(story.parent.issue.series),
+                          format: story.parent.issue.variants?.[0]?.format || null,
+                          variant: story.parent.issue.variants?.[0]?.variantLabel || null,
+                        }
+                      : null,
+                  }
+                : null,
+            })),
+          }
+        : null,
+    })),
     // Simplified: no more storyOwner / inheritsStories – stories always on Issue
     storyOwner: null,
     storyOwnerId: serializeIssueId(issue.id),
@@ -714,6 +813,7 @@ function toIssueReferenceShape(issue: any) {
     releasedate: serializeIssueDate(preferredVariant?.releaseDate),
     collected: preferredVariant?.collected ?? null,
     comicguideid: serializeNullableIssueNumber(preferredVariant?.comicGuideId),
+    gcdid: serializeNullableIssueNumber(preferredVariant?.gcdId),
     cover: preferredVariant?.covers?.[0] ? toIssueCoverShape(preferredVariant.covers[0]) : null,
     series: toIssueSeriesShape(issue.series),
     individuals: Array.isArray(issue.individuals)

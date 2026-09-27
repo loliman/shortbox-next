@@ -290,6 +290,38 @@ When working in these areas:
 
 ---
 
+# Comic Data Curation & Multi-Source Reconciliation
+
+When curating, importing, or migrating comic issue, story, or individual data:
+- Always use the `.agents/skills/comic-data-curator/` skill and its reconciliation engine.
+- **Universal Per-Issue Curation Loop:** Curation ALWAYS proceeds strictly issue by issue (atomic process): The agent takes a single issue, reconciles it against all external sources (UHBMCC, GCD, etc.), decides autonomously (on normalized consensus) or records non-decisions (on conflict), documents the result, and only then proceeds to the next issue.
+  - **Uniformity:** The process is ALWAYS identical for every issue.
+  - **Parallelization:** Parallel processing is explicitly allowed (e.g. across issues or series using subagents/workers), but every issue must undergo the complete, isolated 4-step cycle.
+  - **Non-Decisions:** Genuine discrepancies between sources (conflicting titles/translators) are non-decisions and must NEVER be guessed or decided autonomously. They must be documented with all raw source values and presented to the user for manual decision.
+- **Source Hierarchy & Core Mandate:** $\text{UHBMCC} > \text{GCD} > \text{Jedi-Bibliothek (Star Wars)} > \text{ComicGuide} > \text{Erweiterte glaubwuerdige Quellen (Fallback)}$.
+  **DIE DATENBANK IST NIEMALS DIE QUELLE!** Never perform isolated "in-DB hygiene" or blind database-only cosmetic changes. Every single issue, variant, and story must be curated and verified against external primary sources.
+  - **Autonome Erschließung neuer Quellen (Fallback):** Wenn die etablierten Primärquellen (UHBMCC, GCD, Jedi-Bibliothek, ComicGuide) zu einem Heft oder einer Serie keine Daten oder Inhalte liefern, ist der Agent verpflichtet und ermächtigt, eigenständig weitere glaubwürdige, belastbare Quellen zu recherchieren, zu erschließen und als Beleg heranzuziehen (z. B. Verlagsarchive wie blue-ocean.de / panini.de, DNB / Katalog der Deutschen Nationalbibliothek, Sammler-/Fanzine-Archive, Comicvine, Bedetheque, Verkaufs- und Auktions-Scans von Inhaltsseiten, Impressen und Beilagen). Jede neu herangezogene Quelle wird transparent dokumentiert und als Beleg hinterlegt.
+- **Multi-Source Obligation:** Never stop at the first source. Check **ALL** available sources.
+- **Normalization:** Strings are compared case-insensitively, with collapsed whitespace, outer parentheses and brackets stripped, German orthography normalized (`ß` -> `ss`), ampersands normalized (`&` -> `und`), genitive apostrophes normalized (`'s` -> `s`), and numeral/word counter equivalence (`Teil eins` <-> `Teil 1`). Identical values after normalization (`"X "` vs `" x "`, `"Dreißig"` vs `"Dreissig"`, `"(Tot - Teil 2)"` vs `"Tot, Teil 2"`, `"Blitz & Donner"` vs `"Blitz und Donner"`) are considered consensus, not conflict. Known translator typo variants (e.g. `Strittmater` -> `Strittmatter`) map to canonical individuals.
+- **Conflict Handling:** Genuine semantic discrepancies between sources (different titles, different translators) must **NEVER** be resolved automatically. They must be escalated to the user for manual review.
+- **Issue Disambiguation:** Matching requires Title + Volume/Start Year + Issue Number. If matches are ambiguous (multiple candidates) or 0 candidates are found, escalate to the user for manual review.
+- **Strict Invariants:**
+  - Never copy US parent titles into German editions.
+  - Never use artificial dummy strings (`"Untitled"`, `"(ohne Titel)"`, `"1st story"`, `"Cover"`). If a story has no German title: `title: ""`. If an entry in the primary source or printed issue is an authentic pin-up, the title *„Pin-up“* (as attested in the source) is legitimate and must be retained.
+  - Genuine printed counters (*„Teil 1“*, *„Kapitel 2“*) remain in `Story.title`; editorial fraction counters (e.g. `(1/2)`, `1/2`, `3/4`) from catalogers (such as UHBMCC) are strictly forbidden internal markers and must be stripped from titles.
+  - Kein Präfix- oder Suffixverbot: Präfixe und Suffixe (wie *„Die unbesiegbare Spinne: ...“*) sind ERLAUBT – wenn eine Story so heißt, dann heißt sie so. Bereinigt werden ausschließlich echte Rohdaten-Artefakte wie angehängte Seitenzahlen (`13 (5-8)`), OCR-Scanfehler (` 7i` -> `!`) und typografische Kontraktionsfehler (Backticks).
+  - Story sequence validation: Never assume `Story.number` in the database is in correct printed order. Match stories semantically (US parent issue, title, content) and re-sequence `Story.number` to match primary sources (GCD sequence number, UHBMCC order).
+  - Strict Marvel Scope: Shortbox exclusively catalogs German-language Marvel material (anything ever published worldwide by Marvel or later reprinted by Marvel, such as Star Wars from Dark Horse). Non-Marvel stories in mixed anthologies/magazines (e.g. Bastei Gespenster Geschichten) are deliberately excluded and must never be imported.
+  - Translators in GCD must be pulled from `gcd_story_credit` with `gcd_creator_name_detail`.
+  - Universelles Erb-Verbot für Titel und Übersetzer: Kein Heft darf Titel erben. Kein Heft darf Übersetzer erben. Dies gilt ausnahmslos für ALLE Hefte (kein Sonderfall für Bootlegs oder Fanzines). Alle Hefte müssen gegen alle externen Quellen geprüft werden.
+  - Hefte ohne Stories vs. Varianten (Ausnahmslose Prüfpflicht für ALLE Issues): ALLE, AUSNAHMSLOS ALLE Hefte (`Issue`) ohne Stories MÜSSEN intensiv geprüft werden! Es gibt kein einziges Heft, das ignoriert oder pauschal als „leer“ abgetan werden darf. Wenn ein Heft keine Stories besitzt, greift verpflichtend Workstream 2 (Skill `comic-story-discoverer`). Einzige Ausnahme sind Varianten (`Variant`), da Varianten im Datenmodell von Shortbox naturgemäß keine eigenen Stories besitzen, sondern am Issue hängen. Existiert ein Band jedoch NUR als Hardcover und hat kein Softcover, ist dieser HC das eigenständige Heft/Issue selbst und trägt ganz normal die Comic-Stories. Varianten dürfen niemals ignoriert werden und müssen vollständig mit Metadaten (`gcdId`, `comicGuideId`, `pages`, `releaseDate`, `price`, `currency`, Format, Limitierung, ISBN) versorgt werden.
+  - US-Ausgaben: Ausnahmslos Marvel Wikia & Wikia-API-Brücke: US-Ausgaben werden IMMER und AUSNAHMSLOS aus der Marvel Wikia (`https://marvel.fandom.com/wiki/`) bezogen. Existieren Ausgaben dort noch nicht, müssen sie automatisiert über die Wikia/MediaWiki API angelegt werden (Informationen vorab aus GCD oder anderen seriösen Quellen extrahieren), bevor sie mit dem Shortbox-Crawler importiert werden. Werden Comic-Stories erst in erweiterten Sekundärquellen gefunden, müssen diese vor einer Übernahme zwingend detailliert dem Nutzer zum Review vorgelegt werden. Verbot von Blind-Defaults: Es darf bei mehreren US-Stories niemals blind auf Story #1 defaulted werden.
+  - Absolutes Verbot eigenmächtiger Annahmen: Der Agent darf **NIEMALS** Annahmen treffen. Annahmen trifft ausschließlich der Nutzer und der Agent pflegt sie nur mit dessen ausdrücklicher Zustimmung ein.
+  - Every migration must generate a JSON backup and a working rollback script.
+  - Deterministic Self-Evolution: After each curation run, the agent must evaluate the process, translate manual heuristics into deterministic rules, close normalization gaps, and expand test suites to ensure autonomous repeatability.
+
+---
+
 # Writing Tests
 
 Test runner: **Jest**

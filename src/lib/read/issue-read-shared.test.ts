@@ -55,6 +55,7 @@ describe("pickFirstOriginalStoryCoverReference", () => {
     expect(pickFirstOriginalStoryCoverReference(stories)).toEqual({
       cover: { url: "https://example.com/original-parent.jpg" },
       comicguideid: null,
+      gcdid: null,
     });
   });
 
@@ -72,6 +73,7 @@ describe("pickFirstOriginalStoryCoverReference", () => {
     expect(pickFirstOriginalStoryCoverReference(stories)).toEqual({
       cover: null,
       comicguideid: "1234",
+      gcdid: null,
     });
   });
 
@@ -96,6 +98,25 @@ describe("pickFirstOriginalStoryCoverReference", () => {
     expect(pickFirstOriginalStoryCoverReference(stories)).toEqual({
       cover: { url: "https://example.com/original-reprint.jpg" },
       comicguideid: null,
+      gcdid: null,
+    });
+  });
+
+  it("should_use_gcdid_when_cover_and_comicguide_are_missing_on_original", () => {
+    const stories = [
+      {
+        parent: {
+          issue: {
+            variants: [{ comicGuideId: null, gcdId: "5678", covers: [] }],
+          },
+        },
+      },
+    ];
+
+    expect(pickFirstOriginalStoryCoverReference(stories)).toEqual({
+      cover: null,
+      comicguideid: null,
+      gcdid: "5678",
     });
   });
 

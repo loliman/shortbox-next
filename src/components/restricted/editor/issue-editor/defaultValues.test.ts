@@ -48,4 +48,49 @@ describe("mapIssueToEditorDefaultValues", () => {
 
     expect(result.releasedate).toBe("2026-06-07");
   });
+
+  it("should_map_gcdid_from_source_issue", () => {
+    const result = mapIssueToEditorDefaultValues(
+      {
+        id: "123",
+        title: "Spider-Man",
+        number: "1",
+        comicguideid: 5555,
+        gcdid: 98765,
+        series: {
+          title: "Spider-Man",
+          volume: 1,
+          publisher: {
+            name: "Marvel",
+            us: true,
+          },
+        },
+      },
+      true
+    );
+
+    expect(result.gcdid).toBe(98765);
+    expect(result.comicguideid).toBe(5555);
+  });
+
+  it("should_normalize_empty_or_null_gcdid_when_mapping_values", () => {
+    const result = mapIssueToEditorDefaultValues(
+      {
+        id: "123",
+        title: "Spider-Man",
+        number: "1",
+        series: {
+          title: "Spider-Man",
+          volume: 1,
+          publisher: {
+            name: "Marvel",
+            us: true,
+          },
+        },
+      },
+      false
+    );
+
+    expect(result.gcdid).toBeUndefined();
+  });
 });

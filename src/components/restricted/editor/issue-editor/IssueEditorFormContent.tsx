@@ -78,11 +78,11 @@ function IssueEditorFormContent(props: Readonly<IssueEditorFormContentProps>) {
           {actions || (
             <IssueEditorActions
               isSubmitting={isSubmitting}
-              submitLabel={submitLabel}
-              submitAndCopyLabel={submitAndCopyLabel}
+              submitLabel={submitLabel ?? "Speichern"}
+              submitAndCopyLabel={submitAndCopyLabel ?? "Speichern und kopieren"}
               resetForm={resetForm}
-              onCancel={onCancel}
-              onSubmitMode={onSubmitMode}
+              onCancel={onCancel ?? (() => {})}
+              onSubmitMode={onSubmitMode ?? (() => {})}
             />
           )}
         </Stack>

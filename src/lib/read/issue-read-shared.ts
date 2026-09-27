@@ -6,6 +6,7 @@ type SortDirection = "asc" | "desc";
 type CoverReference = {
   cover?: { url?: string | null } | null;
   comicguideid?: string | number | null;
+  gcdid?: string | number | null;
 };
 
 const ALLOWED_LAST_EDITED_SORT_FIELDS = new Set([
@@ -277,16 +278,19 @@ export function pickIssuePreviewStorySource<
 
 function serializeCoverReference(variant: {
   comicGuideId?: bigint | number | string | null;
+  gcdId?: bigint | number | string | null;
   covers?: Array<{ url?: string | null }> | null;
 } | null | undefined): CoverReference | null {
   if (!variant) return null;
 
   const comicGuideId = variant.comicGuideId == null ? null : String(variant.comicGuideId);
+  const gcdId = variant.gcdId == null ? null : String(variant.gcdId);
   const coverUrl = variant.covers?.[0]?.url || null;
-  if (!coverUrl && !comicGuideId) return null;
+  if (!coverUrl && !comicGuideId && !gcdId) return null;
 
   return {
     comicguideid: comicGuideId,
+    gcdid: gcdId,
     cover: coverUrl ? { url: coverUrl } : null,
   };
 }
@@ -300,6 +304,7 @@ export function pickFirstOriginalStoryCoverReference(stories: Array<{
         format?: string | null;
         variantLabel?: string | null;
         comicGuideId?: bigint | number | string | null;
+        gcdId?: bigint | number | string | null;
         covers?: Array<{ url?: string | null }> | null;
       }> | null;
     } | null;
@@ -312,6 +317,7 @@ export function pickFirstOriginalStoryCoverReference(stories: Array<{
         format?: string | null;
         variantLabel?: string | null;
         comicGuideId?: bigint | number | string | null;
+        gcdId?: bigint | number | string | null;
         covers?: Array<{ url?: string | null }> | null;
       }> | null;
     } | null;
@@ -324,6 +330,7 @@ export function pickFirstOriginalStoryCoverReference(stories: Array<{
     if (parentIssue.preferredCoverUrl !== undefined && parentIssue.preferredCoverUrl !== null) {
       return {
         comicguideid: null,
+        gcdid: null,
         cover: { url: parentIssue.preferredCoverUrl }
       };
     }
@@ -334,7 +341,8 @@ export function pickFirstOriginalStoryCoverReference(stories: Array<{
     const originalReference = serializeCoverReference(preferredVariant);
     const coverUrl = normalizeText(originalReference?.cover?.url);
     const comicGuideId = normalizeText(originalReference?.comicguideid);
-    if (coverUrl || comicGuideId) return originalReference;
+    const gcdId = normalizeText(originalReference?.gcdid);
+    if (coverUrl || comicGuideId || gcdId) return originalReference;
   }
 
   return null;
@@ -359,6 +367,7 @@ export function serializePreviewIssue(issue: {
     format: string;
     variantLabel: string | null;
     comicGuideId: bigint | null;
+    gcdId?: bigint | null;
     verified: boolean;
     collected: boolean | null;
     covers?: Array<{ url: string | null }>;
@@ -378,7 +387,7 @@ export function serializePreviewIssue(issue: {
         id: bigint;
         preferredCoverUrl?: string | null;
         preferredVariantId?: bigint | null;
-        variants?: Array<{ comicGuideId: bigint | null; covers: Array<{ url: string | null }> }> | null;
+        variants?: Array<{ comicGuideId: bigint | null; gcdId?: bigint | null; covers: Array<{ url: string | null }> }> | null;
       } | null;
     } | null;
     reprintedBy: Array<{ id: bigint }>;
@@ -387,7 +396,7 @@ export function serializePreviewIssue(issue: {
         id: bigint;
         preferredCoverUrl?: string | null;
         preferredVariantId?: bigint | null;
-        variants?: Array<{ comicGuideId: bigint | null; covers: Array<{ url: string | null }> }> | null;
+        variants?: Array<{ comicGuideId: bigint | null; gcdId?: bigint | null; covers: Array<{ url: string | null }> }> | null;
       } | null;
       children: Array<{ id: bigint }>;
       collectedMultipleTimes: boolean;
@@ -419,6 +428,7 @@ export function serializePreviewIssue(issue: {
   return {
     id: String(issue.id),
     comicguideid: preferredVariant?.comicGuideId == null ? null : String(preferredVariant.comicGuideId),
+    gcdid: preferredVariant?.gcdId == null ? null : String(preferredVariant.gcdId),
     number: issue.number,
     legacy_number: issue.legacyNumber || null,
     title: issue.title || null,

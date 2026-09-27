@@ -1375,3 +1375,945 @@ export async function mcpResolveStoryPublications(params: {
   };
 }
 
+// ── Health Audit ─────────────────────────────────────────────────────────────
+
+export type McpHealthFinding = {
+  rule: string;
+  severity: "ERROR" | "WARNING" | "INFO";
+  message: string;
+  storyId?: number;
+  storyNumber?: number;
+  storyTitle?: string;
+};
+
+export type McpIssueHealthReport = {
+  issueId: number;
+  series: string;
+  seriesId: number;
+  number: string;
+  title: string | null;
+  publisher: string;
+  isUs: boolean;
+  healthScore: number;
+  storiesCount: number;
+  variantsCount: number;
+  findings: McpHealthFinding[];
+};
+
+export type McpAuditPublicationHealthResult = {
+  summary: {
+    totalAudited: number;
+    issuesWithErrors: number;
+    issuesWithWarnings: number;
+    cleanIssues: number;
+    averageHealthScore: number;
+  };
+  issues: McpIssueHealthReport[];
+};
+
+export async function mcpAuditPublicationHealth(params: {
+  issue_id?: number;
+  series_id?: number;
+  publisher_pattern?: string;
+  limit?: number;
+}): Promise<McpAuditPublicationHealthResult> {
+  const limit = Math.min(Math.max(params.limit ?? 50, 1), 200);
+
+  const where: Prisma.IssueWhereInput = {
+    ...(params.issue_id ? { id: BigInt(params.issue_id) } : {}),
+    ...(params.series_id ? { fkSeries: BigInt(params.series_id) } : {}),
+    ...(params.publisher_pattern
+      ? {
+          publisher: {
+            name: { contains: params.publisher_pattern, mode: "insensitive" },
+          },
+        }
+      : {}),
+  };
+
+  const issues = await prisma.issue.findMany({
+    where,
+    take: limit,
+    include: {
+      series: {
+        include: { publisher: true },
+      },
+      publisher: true,
+      variants: true,
+      stories: {
+        orderBy: { number: "asc" },
+        include: {
+          parent: {
+            include: {
+              issue: {
+                include: { series: true },
+              },
+            },
+          },
+          individuals: {
+            include: { individual: true },
+          },
+        },
+      },
+    },
+    orderBy: [{ fkSeries: "asc" }, { numberNumeric: "asc" }, { id: "asc" }],
+  });
+
+  const dummyPattern = /^(untitled|\(ohne titel\)?|ohne titel|\[ohne titel\]|\?|-|n\/a|\[n\.g\.\])$/i;
+  const plenksPattern = /\s+[!?:;,]/;
+  const pageRangePattern = /\s+\(?\d+-\d+\)?$/;
+  const fractionPattern = /\b\d+\/\d+\b/;
+  const scanTyposPattern = /(\s+7i\b|`[a-zA-Z])/;
+
+  const auditedIssues: McpIssueHealthReport[] = [];
+  let issuesWithErrors = 0;
+  let issuesWithWarnings = 0;
+  let totalScore = 0;
+
+  for (const iss of issues) {
+    const isUs = iss.publisher?.original ?? iss.series?.publisher?.original ?? false;
+    const findings: McpHealthFinding[] = [];
+    let score = 100;
+
+    // Check: 0 stories on issue
+    if (iss.stories.length === 0) {
+      findings.push({
+        rule: "ZERO_STORIES_ON_ISSUE",
+        severity: "WARNING",
+        message: "Heft hat 0 eingetragene Comic-Stories (Textband, Sekundärliteratur oder fehlender Import?).",
+      });
+      score -= 10;
+    }
+
+    // Check: Variant metadata & external IDs
+    if (iss.variants.length === 0) {
+      findings.push({
+        rule: "NO_VARIANTS_RECORDED",
+        severity: "ERROR",
+        message: "Heft hat keine physische Variante (Variant-Eintrag fehlt).",
+      });
+      score -= 25;
+    } else {
+      for (const v of iss.variants) {
+        if (!v.format) {
+          findings.push({
+            rule: "MISSING_VARIANT_FORMAT",
+            severity: "ERROR",
+            message: `Variante #${v.id} hat kein Format definiert.`,
+          });
+          score -= 20;
+        }
+        if (v.gcdId == null && v.comicGuideId == null) {
+          findings.push({
+            rule: "MISSING_EXTERNAL_IDS",
+            severity: "WARNING",
+            message: `Variante #${v.id} (${v.format || "Unbekannt"}) hat weder gcdId noch comicGuideId.`,
+          });
+          score -= 8;
+        }
+      }
+    }
+
+    // Check story sequence continuity
+    const seenNumbers = new Set<number>();
+    iss.stories.forEach((st, idx) => {
+      const num = Number(st.number);
+      if (seenNumbers.has(num)) {
+        findings.push({
+          rule: "DUPLICATE_STORY_NUMBER",
+          severity: "ERROR",
+          message: `Doppelte Story.number ${num} auf Heft #${iss.id}.`,
+          storyId: Number(st.id),
+          storyNumber: num,
+          storyTitle: st.title,
+        });
+        score -= 20;
+      }
+      seenNumbers.add(num);
+
+      if (idx > 0) {
+        const prevNum = Number(iss.stories[idx - 1].number);
+        if (num !== prevNum + 1) {
+          findings.push({
+            rule: "STORY_SEQUENCE_GAP",
+            severity: "INFO",
+            message: `Nummerierungslücke zwischen Story ${prevNum} und ${num}.`,
+            storyId: Number(st.id),
+            storyNumber: num,
+          });
+          score -= 2;
+        }
+      }
+
+      // Title inspections
+      const rawTitle = st.title;
+      if (rawTitle) {
+        if (dummyPattern.test(rawTitle)) {
+          findings.push({
+            rule: "NO_DUMMY_TITLE",
+            severity: "ERROR",
+            message: `Verbotener Dummy-Titel "${rawTitle}" (muss leere Zeichenkette "" sein).`,
+            storyId: Number(st.id),
+            storyNumber: num,
+            storyTitle: rawTitle,
+          });
+          score -= 25;
+        }
+
+        if (plenksPattern.test(rawTitle)) {
+          findings.push({
+            rule: "NO_PLENKS",
+            severity: "ERROR",
+            message: `Plenk (Leerzeichen vor Satzzeichen) in Story-Titel: "${rawTitle}".`,
+            storyId: Number(st.id),
+            storyNumber: num,
+            storyTitle: rawTitle,
+          });
+          score -= 20;
+        }
+
+        if (scanTyposPattern.test(rawTitle)) {
+          findings.push({
+            rule: "SCAN_OR_TYPO_ARTIFACT",
+            severity: "ERROR",
+            message: `Scan-Fehler oder Typo-Artefakt in Story-Titel: "${rawTitle}".`,
+            storyId: Number(st.id),
+            storyNumber: num,
+            storyTitle: rawTitle,
+          });
+          score -= 20;
+        }
+
+        if (pageRangePattern.test(rawTitle)) {
+          findings.push({
+            rule: "ATTACHED_PAGE_RANGE",
+            severity: "WARNING",
+            message: `Angehängter Seitenbereich im Story-Titel: "${rawTitle}".`,
+            storyId: Number(st.id),
+            storyNumber: num,
+            storyTitle: rawTitle,
+          });
+          score -= 8;
+        }
+
+        if (fractionPattern.test(rawTitle)) {
+          findings.push({
+            rule: "EDITORIAL_FRACTION",
+            severity: "WARNING",
+            message: `Redaktioneller Zählbruch (z.B. 1/2) im Story-Titel: "${rawTitle}".`,
+            storyId: Number(st.id),
+            storyNumber: num,
+            storyTitle: rawTitle,
+          });
+          score -= 8;
+        }
+      }
+
+      // German editions specific checks
+      if (!isUs) {
+        if (!st.fkParent) {
+          findings.push({
+            rule: "MISSING_US_PARENT",
+            severity: "WARNING",
+            message: `Deutsche Story #${num} (${st.title || "ohne Titel"}) hat keine verlinkte US-Originalstory.`,
+            storyId: Number(st.id),
+            storyNumber: num,
+            storyTitle: st.title,
+          });
+          score -= 10;
+        } else if (st.parent?.title && st.title && st.title.trim().toLowerCase() === st.parent.title.trim().toLowerCase()) {
+          findings.push({
+            rule: "SUSPICIOUS_US_TITLE_COPY",
+            severity: "INFO",
+            message: `Deutscher Story-Titel identisch mit englischem US-Titel ("${st.title}"). Prüfen ob offizieller Titel oder versehentlich kopiert.`,
+            storyId: Number(st.id),
+            storyNumber: num,
+            storyTitle: st.title,
+          });
+          score -= 2;
+        }
+
+        // Translator check on first print
+        const translators = st.individuals.filter((i) => i.type.toUpperCase() === "TRANSLATOR");
+        if (iss.hasFirstPrint && translators.length === 0) {
+          findings.push({
+            rule: "MISSING_TRANSLATOR",
+            severity: "WARNING",
+            message: `Erstveröffentlichung von Story #${num}, aber kein Übersetzer zugeordnet.`,
+            storyId: Number(st.id),
+            storyNumber: num,
+            storyTitle: st.title,
+          });
+          score -= 8;
+        }
+      }
+    });
+
+    const finalScore = Math.max(0, Math.min(100, score));
+    totalScore += finalScore;
+
+    const hasError = findings.some((f) => f.severity === "ERROR");
+    const hasWarning = findings.some((f) => f.severity === "WARNING");
+    if (hasError) issuesWithErrors++;
+    else if (hasWarning) issuesWithWarnings++;
+
+    auditedIssues.push({
+      issueId: Number(iss.id),
+      series: iss.series?.title ?? "",
+      seriesId: Number(iss.series?.id ?? 0),
+      number: iss.number,
+      title: iss.title || null,
+      publisher: iss.publisher?.name ?? iss.series?.publisher?.name ?? "",
+      isUs,
+      healthScore: finalScore,
+      storiesCount: iss.stories.length,
+      variantsCount: iss.variants.length,
+      findings,
+    });
+  }
+
+  const cleanIssues = issues.length - issuesWithErrors - issuesWithWarnings;
+  const averageHealthScore = issues.length > 0 ? Math.round(totalScore / issues.length) : 100;
+
+  return {
+    summary: {
+      totalAudited: issues.length,
+      issuesWithErrors,
+      issuesWithWarnings,
+      cleanIssues,
+      averageHealthScore,
+    },
+    issues: auditedIssues,
+  };
+}
+
+// ── Deep Search Catalog ──────────────────────────────────────────────────────
+
+export type McpDeepSearchResult = {
+  query: string;
+  totalMatches: number;
+  characters: Array<{ id: number; name: string; type: string; storyCount: number }>;
+  arcs: Array<{ id: number; title: string; issueCount: number }>;
+  creators: Array<{ id: number; name: string; types: string[]; issueCount: number }>;
+  stories: Array<{ id: number; title: string; issueId: number; seriesTitle: string; issueNumber: string; isUs: boolean }>;
+  publications: McpSearchResult[];
+};
+
+export async function mcpSearchDeepCatalog(params: {
+  query: string;
+  types?: Array<"all" | "series" | "issue" | "character" | "arc" | "creator" | "story">;
+  us?: boolean;
+  limit?: number;
+}): Promise<McpDeepSearchResult> {
+  const query = params.query.trim();
+  if (!query) {
+    return {
+      query: "",
+      totalMatches: 0,
+      characters: [],
+      arcs: [],
+      creators: [],
+      stories: [],
+      publications: [],
+    };
+  }
+
+  const searchTypes = params.types && params.types.length > 0 ? params.types : ["all"];
+  const isAll = searchTypes.includes("all");
+  const limit = Math.min(Math.max(params.limit ?? 10, 1), 30);
+
+  const [characters, arcs, creators, stories, publications] = await Promise.all([
+    // 1. Characters / Appearances
+    isAll || searchTypes.includes("character")
+      ? prisma.appearance.findMany({
+          where: { name: { contains: query, mode: "insensitive" } },
+          take: limit,
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            _count: { select: { storyLinks: true } },
+          },
+          orderBy: { storyLinks: { _count: "desc" } },
+        })
+      : Promise.resolve([]),
+
+    // 2. Arcs / Events
+    isAll || searchTypes.includes("arc")
+      ? prisma.arc.findMany({
+          where: { title: { contains: query, mode: "insensitive" } },
+          take: limit,
+          select: {
+            id: true,
+            title: true,
+            _count: { select: { issues: true } },
+          },
+          orderBy: { issues: { _count: "desc" } },
+        })
+      : Promise.resolve([]),
+
+    // 3. Creators / Individuals
+    isAll || searchTypes.includes("creator")
+      ? prisma.individual.findMany({
+          where: { name: { contains: query, mode: "insensitive" } },
+          take: limit,
+          select: {
+            id: true,
+            name: true,
+            storyLinks: { select: { type: true }, take: 10 },
+            _count: { select: { storyLinks: true } },
+          },
+          orderBy: { storyLinks: { _count: "desc" } },
+        })
+      : Promise.resolve([]),
+
+    // 4. Story titles
+    isAll || searchTypes.includes("story")
+      ? prisma.story.findMany({
+          where: {
+            title: { contains: query, mode: "insensitive" },
+            NOT: { title: "" },
+          },
+          take: limit,
+          select: {
+            id: true,
+            title: true,
+            issue: {
+              select: {
+                id: true,
+                number: true,
+                series: {
+                  select: {
+                    title: true,
+                    publisher: { select: { original: true } },
+                  },
+                },
+              },
+            },
+          },
+        })
+      : Promise.resolve([]),
+
+    // 5. Publications (Series & Issues via search index)
+    isAll || searchTypes.includes("series") || searchTypes.includes("issue")
+      ? mcpSearchCatalog({ query, us: params.us, limit })
+      : Promise.resolve([]),
+  ]);
+
+  const formattedCharacters = characters.map((c) => ({
+    id: Number(c.id),
+    name: c.name,
+    type: c.type,
+    storyCount: c._count.storyLinks,
+  }));
+
+  const formattedArcs = arcs.map((a) => ({
+    id: Number(a.id),
+    title: a.title,
+    issueCount: a._count.issues,
+  }));
+
+  const formattedCreators = creators.map((cr) => ({
+    id: Number(cr.id),
+    name: cr.name,
+    types: Array.from(new Set(cr.storyLinks.map((sl) => sl.type).filter(Boolean))),
+    issueCount: cr._count.storyLinks,
+  }));
+
+  const formattedStories = stories.map((s) => ({
+    id: Number(s.id),
+    title: s.title,
+    issueId: Number(s.issue?.id ?? 0),
+    seriesTitle: s.issue?.series?.title ?? "",
+    issueNumber: s.issue?.number ?? "",
+    isUs: s.issue?.series?.publisher?.original ?? false,
+  }));
+
+  const totalMatches =
+    formattedCharacters.length +
+    formattedArcs.length +
+    formattedCreators.length +
+    formattedStories.length +
+    publications.length;
+
+  return {
+    query,
+    totalMatches,
+    characters: formattedCharacters,
+    arcs: formattedArcs,
+    creators: formattedCreators,
+    stories: formattedStories,
+    publications,
+  };
+}
+
+// ── Storyline Chronology ─────────────────────────────────────────────────────
+
+export type McpStorylineChronologyResult = {
+  arc: { id: number; title: string; type: string };
+  totalIssues: number;
+  collectedIssues: number;
+  completionPercent: number;
+  issues: Array<{
+    usIssue: {
+      id: number;
+      series: string;
+      number: string;
+      title: string | null;
+      releaseDate: string | null;
+    };
+    isCollected: boolean;
+    germanEditions: Array<{
+      id: number;
+      series: string;
+      number: string;
+      publisher: string;
+      format: string;
+      collected: boolean;
+      storyTitle: string;
+    }>;
+  }>;
+};
+
+export async function mcpGetStorylineChronology(params: {
+  arc_id?: number;
+  title?: string;
+}): Promise<McpStorylineChronologyResult | null> {
+  const arc = await prisma.arc.findFirst({
+    where: {
+      ...(params.arc_id ? { id: BigInt(params.arc_id) } : {}),
+      ...(params.title ? { title: { contains: params.title, mode: "insensitive" } } : {}),
+    },
+    include: {
+      issues: {
+        include: {
+          issue: {
+            include: {
+              series: { include: { publisher: true } },
+              variants: { select: { collected: true, releaseDate: true } },
+              stories: {
+                include: {
+                  children: {
+                    include: {
+                      issue: {
+                        include: {
+                          series: { include: { publisher: true } },
+                          variants: { select: { format: true, collected: true } },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!arc) return null;
+
+  const rawIssues = arc.issues.map((l) => l.issue);
+  // Sort chronologically by numberNumeric or series
+  rawIssues.sort((a, b) => {
+    const aNum = Number(a.numberNumeric ?? 0);
+    const bNum = Number(b.numberNumeric ?? 0);
+    if (a.series?.title === b.series?.title) return aNum - bNum;
+    return (a.series?.title ?? "").localeCompare(b.series?.title ?? "");
+  });
+
+  let collectedCount = 0;
+
+  const issueChronology = rawIssues.map((iss) => {
+    const isDirectlyCollected = iss.variants.some((v) => v.collected === true);
+
+    const deMap = new Map<number, {
+      id: number;
+      series: string;
+      number: string;
+      publisher: string;
+      format: string;
+      collected: boolean;
+      storyTitle: string;
+    }>();
+
+    for (const story of iss.stories) {
+      for (const child of story.children) {
+        if (!child.issue) continue;
+        const deIss = child.issue;
+        const deId = Number(deIss.id);
+        const isDeCollected = deIss.variants.some((v) => v.collected === true);
+        const format = deIss.variants.map((v) => v.format).filter(Boolean)[0] || "Heft";
+
+        if (!deMap.has(deId)) {
+          deMap.set(deId, {
+            id: deId,
+            series: deIss.series?.title ?? "",
+            number: deIss.number,
+            publisher: deIss.series?.publisher?.name ?? "",
+            format,
+            collected: isDeCollected,
+            storyTitle: child.title || "Comic Story",
+          });
+        }
+      }
+    }
+
+    const germanEditions = Array.from(deMap.values());
+    const isCollectedViaGerman = germanEditions.some((g) => g.collected);
+    const isCollected = isDirectlyCollected || isCollectedViaGerman;
+    if (isCollected) collectedCount++;
+
+    const firstRelDate = iss.variants.find((v) => v.releaseDate)?.releaseDate ?? null;
+
+    return {
+      usIssue: {
+        id: Number(iss.id),
+        series: iss.series?.title ?? "",
+        number: iss.number,
+        title: iss.title || null,
+        releaseDate: formatDate(firstRelDate),
+      },
+      isCollected,
+      germanEditions,
+    };
+  });
+
+  const total = issueChronology.length;
+  const completionPercent = total > 0 ? Math.round((collectedCount / total) * 100) : 0;
+
+  return {
+    arc: {
+      id: Number(arc.id),
+      title: arc.title,
+      type: "STORYARC",
+    },
+    totalIssues: total,
+    collectedIssues: collectedCount,
+    completionPercent,
+    issues: issueChronology,
+  };
+}
+
+// ── US Run Coverage ──────────────────────────────────────────────────────────
+
+export type McpUsRunCoverageRaw = {
+  usSeries: { id: number; title: string; publisher: string };
+  runRange: { start: string; end: string; totalRequested: number };
+  collectedNumbers: string[];
+  availableUncollectedNumbers: string[];
+  neverTranslatedNumbers: string[];
+  details: Array<{
+    usNumber: string;
+    status: "COLLECTED" | "AVAILABLE_UNCOLLECTED" | "NEVER_TRANSLATED";
+    germanPublications: Array<{
+      issueId: number;
+      series: string;
+      number: string;
+      publisher: string;
+      format: string;
+      collected: boolean;
+    }>;
+  }>;
+};
+
+export async function mcpAnalyzeUsRunCoverage(params: {
+  us_series_id?: number;
+  us_series_title?: string;
+  start_number?: number;
+  end_number?: number;
+}): Promise<McpUsRunCoverageRaw | null> {
+  const series = await prisma.series.findFirst({
+    where: {
+      ...(params.us_series_id ? { id: BigInt(params.us_series_id) } : {}),
+      ...(params.us_series_title
+        ? { title: { contains: params.us_series_title, mode: "insensitive" } }
+        : {}),
+      publisher: { original: true },
+    },
+    include: { publisher: true },
+  });
+
+  if (!series) return null;
+
+  const issues = await prisma.issue.findMany({
+    where: {
+      fkSeries: series.id,
+      ...(params.start_number != null
+        ? { numberNumeric: { gte: params.start_number } }
+        : {}),
+      ...(params.end_number != null
+        ? { numberNumeric: { lte: params.end_number } }
+        : {}),
+    },
+    orderBy: { numberNumeric: "asc" },
+    include: {
+      variants: { select: { collected: true } },
+      stories: {
+        include: {
+          children: {
+            include: {
+              issue: {
+                include: {
+                  series: { include: { publisher: true } },
+                  variants: { select: { format: true, collected: true } },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const collectedNumbers: string[] = [];
+  const availableUncollectedNumbers: string[] = [];
+  const neverTranslatedNumbers: string[] = [];
+
+  const details = issues.map((iss) => {
+    const isDirectlyCollected = iss.variants.some((v) => v.collected === true);
+
+    const deMap = new Map<number, {
+      issueId: number;
+      series: string;
+      number: string;
+      publisher: string;
+      format: string;
+      collected: boolean;
+    }>();
+
+    for (const story of iss.stories) {
+      for (const child of story.children) {
+        if (!child.issue) continue;
+        const deIss = child.issue;
+        const deId = Number(deIss.id);
+        const isDeCollected = deIss.variants.some((v) => v.collected === true);
+        const format = deIss.variants.map((v) => v.format).filter(Boolean)[0] || "Heft";
+
+        if (!deMap.has(deId)) {
+          deMap.set(deId, {
+            issueId: deId,
+            series: deIss.series?.title ?? "",
+            number: deIss.number,
+            publisher: deIss.series?.publisher?.name ?? "",
+            format,
+            collected: isDeCollected,
+          });
+        }
+      }
+    }
+
+    const germanPublications = Array.from(deMap.values());
+    const hasGermanPublication = germanPublications.length > 0;
+    const isGermanCollected = germanPublications.some((g) => g.collected);
+
+    let status: "COLLECTED" | "AVAILABLE_UNCOLLECTED" | "NEVER_TRANSLATED";
+    if (isDirectlyCollected || isGermanCollected) {
+      status = "COLLECTED";
+      collectedNumbers.push(iss.number);
+    } else if (hasGermanPublication) {
+      status = "AVAILABLE_UNCOLLECTED";
+      availableUncollectedNumbers.push(iss.number);
+    } else {
+      status = "NEVER_TRANSLATED";
+      neverTranslatedNumbers.push(iss.number);
+    }
+
+    return {
+      usNumber: iss.number,
+      status,
+      germanPublications,
+    };
+  });
+
+  return {
+    usSeries: {
+      id: Number(series.id),
+      title: series.title ?? "",
+      publisher: series.publisher?.name ?? "",
+    },
+    runRange: {
+      start: String(params.start_number ?? (issues[0]?.number ?? "")),
+      end: String(params.end_number ?? (issues[issues.length - 1]?.number ?? "")),
+      totalRequested: issues.length,
+    },
+    collectedNumbers,
+    availableUncollectedNumbers,
+    neverTranslatedNumbers,
+    details,
+  };
+}
+
+// ── Upgrade Candidates ───────────────────────────────────────────────────────
+
+export type McpUpgradeCandidate = {
+  issueId: number;
+  series: string;
+  seriesId: number;
+  number: string;
+  publisher: string;
+  ownedVariant: {
+    id: number;
+    format: string;
+    variantLabel: string | null;
+    price: string | null;
+  };
+  upgradeVariant: {
+    id: number;
+    format: string;
+    variantLabel: string | null;
+    price: string | null;
+    limitation: number | null;
+    isbn: string | null;
+  };
+};
+
+export async function mcpFindUpgradeCandidates(params: {
+  publisher_pattern?: string;
+  limit?: number;
+}): Promise<McpUpgradeCandidate[]> {
+  const limit = Math.min(Math.max(params.limit ?? 50, 1), 200);
+
+  const issues = await prisma.issue.findMany({
+    where: {
+      ...(params.publisher_pattern
+        ? {
+            publisher: {
+              name: { contains: params.publisher_pattern, mode: "insensitive" },
+            },
+          }
+        : {}),
+      variants: {
+        some: {
+          collected: true,
+          format: { in: ["Softcover", "Heft", "Taschenbuch", "Prestige"] },
+        },
+      },
+    },
+    take: limit * 2,
+    include: {
+      series: { include: { publisher: true } },
+      variants: true,
+    },
+  });
+
+  const candidates: McpUpgradeCandidate[] = [];
+
+  for (const iss of issues) {
+    const owned = iss.variants.find(
+      (v) => v.collected === true && ["Softcover", "Heft", "Taschenbuch", "Prestige"].includes(v.format)
+    );
+    if (!owned) continue;
+
+    const upgrade = iss.variants.find(
+      (v) =>
+        v.collected !== true &&
+        (v.format === "Hardcover" || (v.variantLabel && v.variantLabel.toLowerCase().includes("hardcover")))
+    );
+
+    if (upgrade) {
+      candidates.push({
+        issueId: Number(iss.id),
+        series: iss.series?.title ?? "",
+        seriesId: Number(iss.series?.id ?? 0),
+        number: iss.number,
+        publisher: iss.series?.publisher?.name ?? "",
+        ownedVariant: {
+          id: Number(owned.id),
+          format: owned.format,
+          variantLabel: owned.variantLabel,
+          price: formatPrice(owned.price, owned.currency),
+        },
+        upgradeVariant: {
+          id: Number(upgrade.id),
+          format: upgrade.format,
+          variantLabel: upgrade.variantLabel,
+          price: formatPrice(upgrade.price, upgrade.currency),
+          limitation: upgrade.limitation != null ? Number(upgrade.limitation) : null,
+          isbn: upgrade.isbn,
+        },
+      });
+
+      if (candidates.length >= limit) break;
+    }
+  }
+
+  return candidates;
+}
+
+// ── Curation Issue Data ──────────────────────────────────────────────────────
+
+export async function mcpGetIssueCurationData(params: {
+  issue_id?: number;
+  series_title?: string;
+  issue_number?: string;
+}) {
+  const where: Prisma.IssueWhereInput = {
+    ...(params.issue_id ? { id: BigInt(params.issue_id) } : {}),
+    ...(params.series_title && params.issue_number
+      ? {
+          series: { title: { contains: params.series_title, mode: "insensitive" } },
+          number: params.issue_number.trim(),
+        }
+      : {}),
+  };
+
+  const issue = await prisma.issue.findFirst({
+    where,
+    include: {
+      series: { include: { publisher: true } },
+      publisher: true,
+      variants: true,
+      stories: {
+        orderBy: { number: "asc" },
+        include: {
+          parent: {
+            include: {
+              issue: { include: { series: true } },
+            },
+          },
+          individuals: {
+            include: { individual: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!issue) return null;
+
+  const isUs = issue.publisher?.original ?? issue.series?.publisher?.original ?? false;
+
+  return {
+    id: Number(issue.id),
+    number: issue.number,
+    title: issue.title || null,
+    series: issue.series?.title ?? "",
+    publisher: issue.publisher?.name ?? issue.series?.publisher?.name ?? "",
+    isUs,
+    variants: issue.variants.map((v) => ({
+      id: Number(v.id),
+      format: v.format,
+      variantLabel: v.variantLabel,
+      gcdId: v.gcdId != null ? Number(v.gcdId) : null,
+      comicGuideId: v.comicGuideId != null ? Number(v.comicGuideId) : null,
+      isbn: v.isbn,
+      pages: v.pages != null ? Number(v.pages) : null,
+      price: formatPrice(v.price, v.currency),
+      collected: v.collected,
+    })),
+    stories: issue.stories.map((s) => ({
+      id: Number(s.id),
+      number: Number(s.number),
+      title: s.title,
+      parentUs: s.parent
+        ? `${s.parent.issue?.series?.title ?? "US"} #${s.parent.issue?.number ?? "?"} - "${s.parent.title}"`
+        : null,
+      translators: s.individuals
+        .filter((i) => i.type.toUpperCase() === "TRANSLATOR")
+        .map((i) => i.individual.name),
+    })),
+  };
+}
+

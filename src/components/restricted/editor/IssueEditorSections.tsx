@@ -1,1 +1,1 @@
-export { Cover, Stories, getPattern, storyDefault, updateField } from "./issue-sections";
+export { Cover, Stories, BundleItems, getPattern, storyDefault, bundleItemDefault, updateField } from "./issue-sections";

@@ -220,6 +220,18 @@ function readTextValue(value: unknown): string {
   return "";
 }
 
+function normalizeBundleItems(value: unknown): Array<Record<string, unknown>> {
+  return asRecordArray(value).map((item) => {
+    const containedIssue = normalizeIssueReference(item.containedIssue);
+    return {
+      rawTitle: readTextValue(item.rawTitle),
+      addinfo: readTextValue(item.addInfo ?? item.addinfo),
+      position: toOptionalInt(item.position) || 1,
+      containedIssue,
+    };
+  });
+}
+
 export function buildIssueMutationVariables(
   values: IssueEditorFormValues,
   edit?: boolean,
@@ -241,8 +253,10 @@ export function buildIssueMutationVariables(
     isbn: toOptionalString(values.isbn),
     limitation: toOptionalString(values.limitation),
     comicguideid: toOptionalInt(values.comicguideid),
+    gcdid: toOptionalInt(values.gcdid),
     addinfo: toOptionalString(values.addinfo),
     stories: normalizeStories(values.stories),
+    bundleItems: normalizeBundleItems(values.bundleItems),
     series: seriesPayload,
     variantId: values.variantId ? String(values.variantId) : undefined,
   } as Record<string, unknown>;
@@ -255,6 +269,7 @@ export function buildIssueMutationVariables(
     itemPayload.isbn = undefined;
     itemPayload.price = undefined;
     itemPayload.currency = undefined;
+    itemPayload.bundleItems = undefined;
   }
 
   const variables: MutationVariables = {

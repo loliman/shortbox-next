@@ -37,9 +37,11 @@ export function createEmptyIssueValues(): IssueEditorFormValues {
     individuals: [],
     addinfo: "",
     comicguideid: 0,
+    gcdid: 0,
     isbn: "",
     arcs: [],
     stories: [],
+    bundleItems: [],
     storyString: "",
     copyBatch: {
       enabled: false,
