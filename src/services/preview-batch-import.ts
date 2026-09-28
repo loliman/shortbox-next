@@ -9,7 +9,10 @@ import { classifyDraftForMarvelScope } from "./preview-marvel-filter";
 import { extractExplicitVariantLabel } from "./preview-import-parser";
 
 export interface PreviewSeriesIssueMatcher {
-  findDeSeries(title: string): Promise<{ id: string | number; title: string; volume: number; publisherName: string } | null>;
+  findDeSeries(
+    title: string,
+    volume?: number
+  ): Promise<{ id: string | number; title: string; volume: number; publisherName: string } | null>;
   issueExists(seriesId: string | number, number: string, format?: string, variant?: string): Promise<boolean>;
 }
 
@@ -37,8 +40,9 @@ export async function buildStagedPreviewImport(
     if (inScope) inScopeDrafts += 1;
 
     const seriesTitle = draft.values.series.title.trim();
+    const draftVolume = Number(draft.values.series.volume || 1);
     const isVariant = Boolean(draft.variantOfDraftId || draft.values.variant);
-    const existingSeries = seriesTitle ? await matcher.findDeSeries(seriesTitle) : null;
+    const existingSeries = seriesTitle ? await matcher.findDeSeries(seriesTitle, draftVolume) : null;
     const format = draft.values.format;
     const variantLabel = draft.values.variant;
 
@@ -52,9 +56,19 @@ export async function buildStagedPreviewImport(
         ? "Panini - Star Wars & Generation"
         : "Panini - Marvel & Icon");
 
-    if (existingSeries) {
+    let matchedSeries = existingSeries;
+    let isNewSeries = !existingSeries;
+    let finalVolume = existingSeries?.volume ?? draftVolume;
+
+    if (existingSeries && draftVolume > existingSeries.volume) {
+      matchedSeries = null;
+      isNewSeries = true;
+      finalVolume = draftVolume;
+    }
+
+    if (matchedSeries) {
       const alreadyExists = await matcher.issueExists(
-        existingSeries.id,
+        matchedSeries.id,
         draft.values.number,
         format,
         variantLabel
@@ -64,7 +78,7 @@ export async function buildStagedPreviewImport(
         selected = false;
         duplicateCount += 1;
         const formatInfo = format ? ` (${format}${variantLabel ? ` ${variantLabel}` : ""})` : "";
-        statusMessage = `Ausgabe #${draft.values.number}${formatInfo} existiert bereits in ${existingSeries.title}`;
+        statusMessage = `Ausgabe #${draft.values.number}${formatInfo} existiert bereits in ${matchedSeries.title}`;
       } else {
         status = "READY";
         if (inScope) readyCount += 1;
@@ -97,10 +111,10 @@ export async function buildStagedPreviewImport(
       isVariant,
       parentDraftId: draft.variantOfDraftId ?? null,
       series: {
-        id: existingSeries?.id ?? null,
-        title: existingSeries?.title ?? seriesTitle,
-        volume: Number(existingSeries?.volume || draft.values.series.volume || 1),
-        isNew: !existingSeries,
+        id: matchedSeries?.id ?? null,
+        title: matchedSeries?.title ?? (existingSeries?.title ?? seriesTitle),
+        volume: finalVolume,
+        isNew: isNewSeries,
         publisherName,
       },
       issue: {
@@ -174,13 +188,14 @@ export async function syncStagedImportWithDatabase(
     }
 
     const seriesTitle = (draft.series.title || draft.rawDraft.values.series.title || "").trim();
-    const cacheKey = seriesTitle.toLowerCase();
+    const draftVolume = Number(draft.rawDraft?.values?.series?.volume || draft.series?.volume || 1);
+    const cacheKey = `${seriesTitle.toLowerCase()}#vol${draftVolume}`;
     let existingSeries: { id: string | number; title: string; volume: number; publisherName: string } | null;
 
     if (seriesCache.has(cacheKey)) {
       existingSeries = seriesCache.get(cacheKey)!;
     } else {
-      existingSeries = seriesTitle ? await matcher.findDeSeries(seriesTitle) : null;
+      existingSeries = seriesTitle ? await matcher.findDeSeries(seriesTitle, draftVolume) : null;
       seriesCache.set(cacheKey, existingSeries);
     }
 
@@ -191,7 +206,7 @@ export async function syncStagedImportWithDatabase(
     if (existingSeries) {
       draft.series.id = existingSeries.id;
       draft.series.title = existingSeries.title;
-      draft.series.volume = Number(existingSeries.volume || draft.series.volume || 1);
+      draft.series.volume = draftVolume;
       draft.series.isNew = false;
       draft.series.publisherName = existingSeries.publisherName;
 
@@ -212,6 +227,9 @@ export async function syncStagedImportWithDatabase(
         draft.statusMessage = undefined;
       }
     } else {
+      draft.series.id = null;
+      draft.series.title = seriesTitle;
+      draft.series.volume = draftVolume;
       draft.series.isNew = true;
       draft.status = "NEW_SERIES";
       draft.statusMessage = "Serie existiert noch nicht in der Datenbank (wird neu angelegt)";

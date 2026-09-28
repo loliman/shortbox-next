@@ -162,4 +162,43 @@ describe("preview-marvel-filter", () => {
     expect(res.inScope).toBe(false);
     expect(res.category).toBe("other");
   });
+
+  it("should_excludeAsOther_when_nonComicMagazinOrCookbookOrNovelProvided", () => {
+    const magazin = {
+      sourceTitle: "DAS OFFIZIELLE STAR WARS MAGAZIN 426",
+      issueCode: "YDOSWM00426",
+      values: { title: "Das Offizielle Star Wars Magazin" },
+    };
+    expect(classifyDraftForMarvelScope(magazin as any).inScope).toBe(false);
+
+    const kochbuch = {
+      sourceTitle: "Star Wars: Rezepte, inspiriert von...",
+      issueCode: "YDSWWC010",
+      values: { title: "Star Wars: Rezepte" },
+    };
+    expect(classifyDraftForMarvelScope(kochbuch as any).inScope).toBe(false);
+
+    const roman = {
+      sourceTitle: "Star Wars: Augen wie Sterne",
+      issueCode: "YDSWYA012",
+      values: { title: "Augen wie Sterne" },
+    };
+    expect(classifyDraftForMarvelScope(roman as any).inScope).toBe(false);
+  });
+
+  it("should_excludeAsOther_when_mangaWithDmaOrDpokPrefixProvided", () => {
+    const mushoku = {
+      sourceTitle: "Mushoku Tensei 12",
+      issueCode: "DMAGM012",
+      values: { title: "Mushoku Tensei" },
+    };
+    expect(classifyDraftForMarvelScope(mushoku as any).inScope).toBe(false);
+
+    const pokemon = {
+      sourceTitle: "Pokémon Karmesin und Purpur",
+      issueCode: "DPOKAM012",
+      values: { title: "Pokémon" },
+    };
+    expect(classifyDraftForMarvelScope(pokemon as any).inScope).toBe(false);
+  });
 });

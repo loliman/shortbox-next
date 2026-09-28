@@ -15,8 +15,9 @@ interface StoryReferenceContext {
 }
 
 const DASH_PATTERN = /[‐‑–—]/g;
-const ANNUAL_RANGE_PATTERN = /^annual\s+(\d+)(?:-(\d+))?$/i;
+const ANNUAL_RANGE_PATTERN = /^annual(?:\s*\(\d{4}\))?\s+(\d+)(?:-(\d+))?$/i;
 const NUMERIC_RANGE_PATTERN = /^(\d+)([A-Za-z]?)(?:-(\d+)([A-Za-z]?))?$/;
+const PART_ISSUE_PATTERN = /^(\d+)([A-Za-z]?)(?:-(\d+)([A-Za-z]?))?\s*\(([^)]+)\)$/;
 
 export function parseStoryReferences(input: string): StoryReferenceParseResult {
   const normalizedInput = normalizeInput(input);
@@ -96,13 +97,22 @@ function addUniqueReferences(
   seen: Set<string>,
   incoming: StoryIssueReference[]
 ) {
-  for (const reference of incoming) {
+  for (let index = 0; index < incoming.length; index += 1) {
+    const reference = incoming[index];
     const key = [
       reference.seriesTitle.toLowerCase(),
       String(reference.volume),
       reference.issueNumber,
     ].join("::");
-    if (seen.has(key)) continue;
+    if (seen.has(key)) {
+      const prev = incoming[index - 1];
+      const isMultiPartSibling =
+        prev &&
+        prev.seriesTitle === reference.seriesTitle &&
+        prev.volume === reference.volume &&
+        prev.issueNumber === reference.issueNumber;
+      if (!isMultiPartSibling) continue;
+    }
     seen.add(key);
     target.push(reference);
   }
@@ -167,6 +177,17 @@ function parseAnnualIssueNumbers(normalized: string): string[] | null {
 }
 
 function parseNumericIssueNumbers(normalized: string): string[] | null {
+  const partMatch = PART_ISSUE_PATTERN.exec(normalized);
+  if (partMatch) {
+    const issueNum = partMatch[1] ?? "";
+    const partContent = partMatch[5] ?? "";
+    const parts = partContent.split(/[+,]/).map((p) => p.trim()).filter(Boolean);
+    if (parts.length > 1) {
+      return parts.map(() => issueNum);
+    }
+    return [issueNum];
+  }
+
   const numericRangeMatch = NUMERIC_RANGE_PATTERN.exec(normalized);
   if (!numericRangeMatch) return null;
 
@@ -197,12 +218,14 @@ function expandNumericRange(start: number, end: number): number[] {
 }
 
 function isValidRange(start: number, end: number) {
-  return Number.isFinite(start) && Number.isFinite(end) && start > 0 && end >= start;
+  return Number.isFinite(start) && Number.isFinite(end) && start >= 0 && end >= start;
 }
 
 function normalizeInput(input: string) {
   return input
     .replaceAll(DASH_PATTERN, "-")
+    .replaceAll(/(\d+)\s*-\s*(\d+)/g, "$1-$2")
+    .replaceAll(/(\b\d+[A-Za-z]?(?:-\d+[A-Za-z]?)?(?:\s*\([IVX1-9+, ]+\))?)\s*&\s*/gi, "$1, ")
     .replaceAll(/[;\n\r]+/g, ",")
     .trim();
 }
@@ -241,8 +264,8 @@ function splitSeriesAndIssueSpec(segment: string) {
 }
 
 function isContextIssueSpec(value: string) {
-  if (/^annual\s+\d+(?:-\d+)?$/i.test(value)) return true;
-  return /^\d+[A-Z]?(?:-\d+[A-Z]?)?$/i.test(value);
+  if (ANNUAL_RANGE_PATTERN.test(value)) return true;
+  return /^\d+[A-Z]?(?:-\d+[A-Z]?)?(?:\s*\([IVX1-9+, ]+\))?$/i.test(value);
 }
 
 function readTrailingVolume(seriesSpec: string) {
@@ -273,7 +296,7 @@ function splitTrailingAnnualIssueSpec(segment: string) {
 
   const rawSeriesSpec = segment.slice(0, annualIndex).trim();
   const rawIssueSpec = segment.slice(annualIndex + 1).trim();
-  if (!rawSeriesSpec || !/^annual\s+\d+(?:-\d+)?$/i.test(rawIssueSpec)) return null;
+  if (!rawSeriesSpec || !ANNUAL_RANGE_PATTERN.test(rawIssueSpec)) return null;
 
   return { rawSeriesSpec, rawIssueSpec };
 }
@@ -285,7 +308,12 @@ function splitTrailingNumericIssueSpec(segment: string) {
     const rawSeriesSpec = segment.slice(0, index).trim();
     const rawIssueSpec = segment.slice(index + 1).trim();
     if (!rawSeriesSpec || !rawIssueSpec) continue;
-    if (!/^#?\d+[A-Z]?(?:-#?\d+[A-Z]?)?$/i.test(rawIssueSpec)) continue;
+    if (
+      !/^#?\d+[A-Z]?(?:-#?\d+[A-Z]?)?$/i.test(rawIssueSpec) &&
+      !PART_ISSUE_PATTERN.test(rawIssueSpec)
+    ) {
+      continue;
+    }
     return { rawSeriesSpec, rawIssueSpec };
   }
 

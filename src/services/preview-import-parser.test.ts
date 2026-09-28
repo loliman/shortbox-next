@@ -254,7 +254,7 @@ describe("parsePreviewImportQueue", () => {
     expect(queue.drafts).toHaveLength(1);
     expect(queue.drafts[0]?.values.series.title).toBe("DC Must-Have");
     expect(queue.drafts[0]?.values.title).toBe("Batman & Superman: Supergirl");
-    expect(queue.drafts[0]?.values.number).toBe("1");
+    expect(queue.drafts[0]?.values.number).toBe("10");
   });
 
   it("should_use_layout_titles_for_grouped_top_full_width_issue_blocks_without_content_rows", async () => {
@@ -535,7 +535,7 @@ describe("parsePreviewImportQueue", () => {
     expect(queue.drafts).toHaveLength(1);
     expect(queue.drafts[0]?.values.series.title).toBe("Marvel Events");
     expect(queue.drafts[0]?.values.title).toBe("Shadowland");
-    expect(queue.drafts[0]?.values.number).toBe("1");
+    expect(queue.drafts[0]?.values.number).toBe("8");
   });
 
   it("should_trim_spurious_trailing_issue_numbers_from_collection_titles", async () => {
@@ -561,7 +561,7 @@ describe("parsePreviewImportQueue", () => {
     expect(queue.drafts).toHaveLength(1);
     expect(queue.drafts[0]?.values.series.title).toBe("Marvel Events");
     expect(queue.drafts[0]?.values.title).toBe("Infinity");
-    expect(queue.drafts[0]?.values.number).toBe("1");
+    expect(queue.drafts[0]?.values.number).toBe("12");
   });
 
   it("should_prefer_colored_layout_title_runs_for_collection_prefix_pages", async () => {

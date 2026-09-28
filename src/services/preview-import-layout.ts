@@ -4,7 +4,7 @@ import type {
   PreviewImportLayoutPageAnalysis,
 } from "../types/preview-import-layout";
 
-const PRODUCT_CODE_PATTERN = /\b([A-Z][A-Z0-9]{3,}\d{3,}[A-Z]?)\b/;
+const PRODUCT_CODE_PATTERN = /(?<=\b|[a-z]|\d{4})([A-Z][A-Z0-9]{3,}\d{3,}(?:CV\d*|V\d*|OEX|[A-Z])?)(?=\b|[^A-Za-z0-9]|$)/;
 
 export function analyzePreviewImportLayoutPages(pages: PdfLayoutPage[]) {
   return pages
@@ -24,7 +24,7 @@ export function analyzePreviewImportLayoutPage(page: PdfLayoutPage): PreviewImpo
 
   return {
     page,
-    anchors: attachCollectionContext(page, inheritSiblingContext(anchors)),
+    anchors: attachCollectionContext(page, inheritSiblingContext(page, anchors)),
     usesMultiColumnPattern,
   };
 }
@@ -82,7 +82,7 @@ function selectNearestContentRow(
       centerDistance: Math.abs(readCenterX(row) - readCenterX(metadataBlock)),
       inColumnBand: isWithinColumnBand(row, metadataBlock),
     }))
-    .filter((candidate) => candidate.distance <= 420);
+    .filter((candidate) => candidate.distance <= 620);
 
   const prioritizedCandidates = candidates.some((candidate) => candidate.inColumnBand)
     ? candidates.filter((candidate) => candidate.inColumnBand)
@@ -91,9 +91,9 @@ function selectNearestContentRow(
   const selectedRow = prioritizedCandidates
     .sort(
       (left, right) =>
-        right.overlap - left.overlap
+        left.distance - right.distance
+        || right.overlap - left.overlap
         || left.centerDistance - right.centerDistance
-        || left.distance - right.distance
     )[0]?.row ?? null;
 
   return selectedRow ? sliceRowToBlockBand(selectedRow, metadataBlock) : null;
@@ -144,10 +144,18 @@ function selectTitleRows(
     : isMetadataBlockInTopZone(metadataBlock, stackedLayoutSplitY)
       ? 360
       : 80;
+  const rowAboveInColumn = page.rows
+    .filter((row) => row.y > metadataBlock.yTop && (isWithinColumnBand(row, metadataBlock) || readHorizontalOverlap(row, metadataBlock) > 24))
+    .filter((row) => PRODUCT_CODE_PATTERN.test(row.text))
+    .sort((a, b) => a.y - b.y)[0];
+
+  const ceilingFromRowAbove = rowAboveInColumn ? rowAboveInColumn.y - 10 : Infinity;
+  const effectiveCeiling = Math.min(titleCeiling + titleSearchPadding, ceilingFromRowAbove);
+
   const titleFloor = metadataBlock.yTop;
   const titleRows = page.rows
     .filter((row) => row.y > titleFloor)
-    .filter((row) => row.y < titleCeiling + titleSearchPadding)
+    .filter((row) => row.y < effectiveCeiling)
     .filter((row) => isRowInSameVerticalZone(row, metadataBlock, stackedLayoutSplitY))
     .filter((row) => isTitleLikeRow(row))
     .filter((row) => {
@@ -167,7 +175,7 @@ function selectTitleRows(
 
   const fallbackTitleRows = page.rows
     .filter((row) => row.y > titleFloor)
-    .filter((row) => row.y < titleCeiling + titleSearchPadding)
+    .filter((row) => row.y < effectiveCeiling)
     .filter((row) => isRowInSameVerticalZone(row, metadataBlock, stackedLayoutSplitY))
     .filter((row) => isTitleLikeRow(row))
     .filter((row) => {
@@ -209,12 +217,21 @@ function isTitleLikeRow(row: PdfLayoutRow) {
   if (/^Variant-Cover$/i.test(text)) return false;
   if (/^COVER FOLGT$/i.test(text)) return false;
   if (/^Vorläufiges Cover$/i.test(text)) return false;
+  if (/^(?:MARVEL|STAR WARS)\s+©/i.test(text)) return false;
   if (/^Story\b/i.test(text) || /^Zeichnungen\b/i.test(text) || /^Inhalt:/i.test(text)) return false;
   if (PRODUCT_CODE_PATTERN.test(text)) return false;
   if (/€|\d{2}\.\d{2}\.\d{4}/.test(text)) return false;
 
   const letters = text.replaceAll(/[^A-Za-zÄÖÜäöüß]/g, "");
-  if (letters.length < 4) return false;
+  if (letters.length < 4) {
+    if (/^\d+[A-Za-z]?\s*\(\d{4}\)/.test(text)) {
+      return true;
+    }
+    if (/\b\d+[A-Za-z]?\s*\+\s*\d+[A-Za-z]?\b/.test(text)) {
+      return true;
+    }
+    return false;
+  }
   const uppercaseLetters = letters.replaceAll(/[^A-ZÄÖÜ]/g, "").length;
   return uppercaseLetters / letters.length > 0.55;
 }
@@ -282,6 +299,7 @@ function shouldContinueLayoutContent(currentText: string, nextText: string) {
   const normalizedNext = normalizeLayoutStoryText(nextText);
 
   if (!normalizedNext) return false;
+  if (/^Ausgabe\s+\d+/i.test(normalizedNext)) return false;
   if (/^Story\b/i.test(normalizedNext) || /^Zeichnungen\b/i.test(normalizedNext)) return false;
   if (/^Inhalt:/i.test(normalizedNext)) return false;
   if (PRODUCT_CODE_PATTERN.test(normalizedNext)) return false;
@@ -470,15 +488,16 @@ function splitMetadataBlocks(page: PdfLayoutPage, metadataBlock: PdfLayoutBlock)
 
     return rowCodes.map((code) => {
       const slicedRow = sliceRowToIssueCode(row, code);
+      const effectiveRow = slicedRow ?? row;
       const rows = [
-        slicedRow ?? row,
-        ...metadataBlock.rows.filter(
+        effectiveRow,
+        ...page.rows.filter(
           (candidate) =>
             candidate !== row
             && !PRODUCT_CODE_PATTERN.test(candidate.text)
-            && candidate.y < row.y + 12
-            && candidate.y > row.y - 12
-            && overlapsBand(candidate, slicedRow ?? row)
+            && isCandidateMetadataRow(candidate.text)
+            && Math.abs(candidate.y - row.y) < 28
+            && (overlapsBand(candidate, effectiveRow) || (candidate.xMin <= effectiveRow.xMax + 24 && candidate.xMax >= effectiveRow.xMin - 24))
         ),
       ];
 
@@ -487,13 +506,81 @@ function splitMetadataBlocks(page: PdfLayoutPage, metadataBlock: PdfLayoutBlock)
   });
 }
 
-function inheritSiblingContext(anchors: PreviewImportLayoutAnchor[]) {
+function isCandidateMetadataRow(text: string) {
+  return /(?:\d{2}\.\d{2}\.\d{4}|\d+\s*S\.|Heft|Softcover|Hardcover|Taschenbuch|Prestige|Album|Magazin|€\s*\d+|Ex\.|Exemplar|Lim\b|ISBN|Comic\s*Con)/i.test(text);
+}
+
+function inheritSiblingContext(page: PdfLayoutPage, anchors: PreviewImportLayoutAnchor[]) {
   return anchors.map((anchor) => {
-    if (anchor.titleRows.length > 0 || anchor.contentRow) return anchor;
+    if (!anchor.contentRow) {
+      const codeNum = anchor.issueCode.match(/\d+/)?.[0]?.replace(/^0+/, "");
+      // 1. Check if a sibling anchor has content matching this issue
+      const siblingWithContent = anchors.find(
+        (c) =>
+          c !== anchor &&
+          c.contentText &&
+          ((codeNum &&
+            new RegExp(`\\(Nr\\.\\s*${codeNum}(?:[–\\-]\\d+)?\\)|Ausgabe\\s+${codeNum}:`, "i").test(
+              c.contentText
+            )) ||
+            (/\b\d+\s*\+\s*\d+/.test(c.titleText) && c.titleText === anchor.titleText))
+      );
+      if (siblingWithContent) {
+        anchor = {
+          ...anchor,
+          titleRows: anchor.titleRows.length > 0 ? anchor.titleRows : siblingWithContent.titleRows,
+          titleText: anchor.titleText || siblingWithContent.titleText,
+          contentRow: siblingWithContent.contentRow,
+          contentRows: siblingWithContent.contentRows,
+          contentText: siblingWithContent.contentText,
+          confidence: Math.max(anchor.confidence, 4),
+        };
+      } else {
+        // 2. Check if page.rows has an Inhalt: row matching this issue code or grouped title
+        const pageContentRow = page.rows.find(
+          (r) =>
+            /^Inhalt:/i.test(r.text) &&
+            ((codeNum &&
+              new RegExp(`\\(Nr\\.\\s*${codeNum}(?:[–\\-]\\d+)?\\)|Ausgabe\\s+${codeNum}:`, "i").test(
+                r.text
+              )) ||
+              (codeNum &&
+                page.rows.some((pr) => new RegExp(`Ausgabe\\s+${codeNum}:`, "i").test(pr.text))) ||
+              /\b\d+\s*\+\s*\d+/.test(anchor.titleText))
+        );
+        if (pageContentRow) {
+          const sortedRows = [...page.rows].sort((left, right) => right.y - left.y || left.xMin - right.xMin);
+          const firstIndex = sortedRows.findIndex(
+            (r) => r.y === pageContentRow.y && r.text === pageContentRow.text
+          );
+          const contentRows = [pageContentRow];
+          let currentText = pageContentRow.text;
+          let prevY = pageContentRow.y;
+          for (let i = firstIndex + 1; i < sortedRows.length; i++) {
+            const rawRow = sortedRows[i];
+            if (!rawRow || prevY - rawRow.y > 34) break;
+            if (!shouldContinueLayoutContent(currentText, rawRow.text)) break;
+            contentRows.push(rawRow);
+            currentText = `${currentText} ${rawRow.text}`.trim();
+            prevY = rawRow.y;
+          }
+          const contentText = contentRows.map((r) => r.text).join(" ").trim();
+          anchor = {
+            ...anchor,
+            contentRow: pageContentRow,
+            contentRows,
+            contentText,
+            confidence: Math.max(anchor.confidence, 4),
+          };
+        }
+      }
+    }
+
+    if (anchor.titleRows.length > 0) return anchor;
 
     const siblingCandidates = anchors
       .filter((candidate) => candidate !== anchor)
-      .filter((candidate) => candidate.titleRows.length > 0 || candidate.contentRow);
+      .filter((candidate) => candidate.titleRows.length > 0);
 
     const overlappingSibling = siblingCandidates
       .filter((candidate) => readHorizontalBlockOverlap(candidate.metadataBlock, anchor.metadataBlock) > 40)
@@ -503,7 +590,11 @@ function inheritSiblingContext(anchors: PreviewImportLayoutAnchor[]) {
         return leftDistance - rightDistance;
       })[0];
 
-    const nearestEditionSibling = overlappingSibling
+    const groupedSibling = overlappingSibling
+      ? null
+      : siblingCandidates.find((c) => /\b\d+\s*\+\s*\d+/.test(c.titleText));
+
+    const nearestEditionSibling = overlappingSibling ?? groupedSibling
       ? null
       : looksLikeEditionOnlyMetadata(anchor.metadataBlock.text)
         ? siblingCandidates
@@ -518,20 +609,26 @@ function inheritSiblingContext(anchors: PreviewImportLayoutAnchor[]) {
           })[0]
         : null;
 
-    const sibling = overlappingSibling ?? nearestEditionSibling;
+    const sibling = overlappingSibling ?? groupedSibling ?? nearestEditionSibling;
 
     if (!sibling) return anchor;
 
-    const titleRows = sibling.titleRows.map((row) => sliceRowToBlockBand(row, anchor.metadataBlock)).filter(
-      (row): row is PdfLayoutRow => row !== null
-    );
-    const contentRow = sibling.contentRow
-      ? sliceRowToBlockBand(sibling.contentRow, anchor.metadataBlock) ?? sibling.contentRow
-      : null;
-    const contentRows = sibling.contentRows
-      .map((row) => sliceRowToBlockBand(row, anchor.metadataBlock) ?? row)
+    const slicedTitleRows = sibling.titleRows
+      .map((row) => sliceRowToBlockBand(row, anchor.metadataBlock))
       .filter((row): row is PdfLayoutRow => row !== null);
-    const contentText = contentRows.map((row) => row.text).join(" ").trim();
+    const titleRows = slicedTitleRows.length > 0 ? slicedTitleRows : sibling.titleRows;
+
+    const contentRow = anchor.contentRow
+      ? anchor.contentRow
+      : sibling.contentRow
+        ? sliceRowToBlockBand(sibling.contentRow, anchor.metadataBlock) ?? sibling.contentRow
+        : null;
+    const contentRows = anchor.contentRows && anchor.contentRows.length > 0
+      ? anchor.contentRows
+      : sibling.contentRows
+        .map((row) => sliceRowToBlockBand(row, anchor.metadataBlock) ?? row)
+        .filter((row): row is PdfLayoutRow => row !== null);
+    const contentText = anchor.contentText || contentRows.map((row) => row.text).join(" ").trim();
     const titleText = titleRows.map((row) => row.text).join(" ").trim();
 
     return {
@@ -588,6 +685,7 @@ function selectCollectionTitleRows(page: PdfLayoutPage) {
     if (!candidate) continue;
     if (Math.abs(collectionRow.y - candidate.y) > 48) break;
     if (!isTitleLikeRow(candidate)) continue;
+    if (!overlapsBand(candidate, collectionRow) && Math.abs(readCenterX(candidate) - readCenterX(collectionRow)) > 60) continue;
     rows.unshift(candidate);
     break;
   }
@@ -596,6 +694,7 @@ function selectCollectionTitleRows(page: PdfLayoutPage) {
     if (!candidate) continue;
     if (Math.abs(collectionRow.y - candidate.y) > 48) break;
     if (!isTitleLikeRow(candidate)) continue;
+    if (!overlapsBand(candidate, collectionRow) && Math.abs(readCenterX(candidate) - readCenterX(collectionRow)) > 60) continue;
     rows.push(candidate);
     break;
   }

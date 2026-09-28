@@ -327,5 +327,69 @@ describe("preview-batch-import", () => {
     expect(hc11.selected).toBe(true);
     expect(hc11.issue.variant).toBe("");
   });
+
+  it("should_treatNewVolumeAsNewSeries_when_onlyPreviousVolumeExistsInDb", async () => {
+    const matcherWithVol10: PreviewSeriesIssueMatcher = {
+      findDeSeries: async (title: string, volume?: number) => {
+        if (title.toLowerCase() === "punisher" && volume === 10) {
+          return { id: 200, title: "Punisher", volume: 10, publisherName: "Panini - Marvel & Icon" };
+        }
+        return null;
+      },
+      issueExists: async (seriesId: string | number, number: string) => {
+        // Punisher Vol 10 #1 is in DB
+        return seriesId === 200 && number === "1";
+      },
+    };
+
+    const queue: PreviewImportQueue = {
+      id: "q-punisher",
+      fileName: "pv123.pdf",
+      createdAt: "2026-09-13T00:00:00.000Z",
+      updatedAt: "2026-09-13T00:00:00.000Z",
+      drafts: [
+        {
+          id: "d-punisher-vol11",
+          sourceTitle: "PUNISHER 1",
+          issueCode: "DPUN11001",
+          status: "pending",
+          warnings: [],
+          values: {
+            title: "Punisher",
+            series: { title: "Punisher", volume: 11, publisher: { name: "Panini", us: false } },
+            number: "1",
+            variant: "",
+            cover: null,
+            format: "Softcover",
+            releasedate: "2026-10-13",
+            price: "15,00",
+            individuals: [],
+            addinfo: "",
+            stories: [],
+            copyBatch: { enabled: false, count: 1, prefix: "" },
+          },
+        },
+      ],
+    };
+
+    const staged = await buildStagedPreviewImport({
+      queue,
+      previewNumber: 123,
+      matcher: matcherWithVol10,
+    });
+
+    const punisherDraft = staged.drafts[0];
+    expect(punisherDraft.series.volume).toBe(11);
+    expect(punisherDraft.series.isNew).toBe(true);
+    expect(punisherDraft.series.id).toBeNull();
+    expect(punisherDraft.status).toBe("NEW_SERIES");
+    expect(punisherDraft.selected).toBe(true);
+
+    // Syncing with DB should preserve Volume 11 and NEW_SERIES
+    await syncStagedImportWithDatabase(staged, matcherWithVol10);
+    expect(punisherDraft.series.volume).toBe(11);
+    expect(punisherDraft.series.isNew).toBe(true);
+    expect(punisherDraft.status).toBe("NEW_SERIES");
+  });
 });
 

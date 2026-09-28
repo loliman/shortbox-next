@@ -79,6 +79,9 @@ export async function commitStagedPreviewImport(
         draft.status = "COMMITTED";
         draft.selected = false;
         draft.statusMessage = "Erfolgreich importiert";
+        if (res.data?.item?.id) {
+          draft.rawDraft.createdIssueId = String(res.data.item.id);
+        }
       }
     } catch (err) {
       errors.push({

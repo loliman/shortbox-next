@@ -84,6 +84,9 @@ const MARVEL_KEYWORDS = [
   "civil war",
   "infinity",
   "doctor doom",
+  "doom",
+  "jessica jones",
+  "alias",
   "black cat",
   "marvel",
   "marvel-origins",
@@ -119,6 +122,26 @@ const DC_SPECIFIC_KEYWORDS = [
   "action comics",
 ];
 
+const NON_COMIC_KEYWORDS = [
+  "magazin",
+  "das offizielle star wars magazin",
+  "kochbuch",
+  "rezepte",
+  "roman",
+  "notizbuch",
+  "kalender",
+  "sticker",
+  "malbuch",
+];
+
+const MANGA_CODE_PREFIXES = [
+  "DPOK",
+  "DMAGM",
+  "DMAYO",
+  "DSWJED",
+  "DSWMAND",
+];
+
 export function classifyDraftForMarvelScope(
   draft: Pick<PreviewImportDraft, "sourceTitle" | "issueCode" | "values">
 ): MarvelClassificationResult {
@@ -136,6 +159,30 @@ export function classifyDraftForMarvelScope(
     .toLowerCase();
 
   const combined = `${sourceTitle} ${seriesTitle} ${title} ${storiesText}`.trim();
+
+  // Non-comic check (cookbooks, magazines, novels, merch)
+  if (
+    code.startsWith("YDOSWM") ||
+    code.startsWith("YDSWYA") ||
+    code.startsWith("YDSWWC") ||
+    code.startsWith("YDSWRR") ||
+    NON_COMIC_KEYWORDS.some((kw) => combined.includes(kw))
+  ) {
+    return {
+      inScope: false,
+      category: "other",
+      reason: "Kein Comic (Magazin, Roman, Kochbuch oder Merch)",
+    };
+  }
+
+  // Non-Marvel Manga and Pokémon check
+  if (MANGA_CODE_PREFIXES.some((p) => code.startsWith(p))) {
+    return {
+      inScope: false,
+      category: "other",
+      reason: "Manga oder Pokémon-Reihe",
+    };
+  }
 
   // 1. Crossover check first
   if (CROSSOVER_KEYWORDS.some((kw) => combined.includes(kw) || code.includes("DDCXMA") || code.includes("DMGODZ"))) {
@@ -192,7 +239,8 @@ export function classifyDraftForMarvelScope(
   // 6. Regular Marvel check
   if (
     MARVEL_KEYWORDS.some((kw) => combined.includes(kw)) ||
-    code.startsWith("DMA") ||
+    (code.startsWith("DMA") && !code.startsWith("DMAGM") && !code.startsWith("DMAYO")) ||
+    code.startsWith("DOSMA") ||
     code.startsWith("DAMSM") ||
     code.startsWith("DNAVE") ||
     code.startsWith("DWWDP") ||
