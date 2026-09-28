@@ -58,7 +58,7 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "server-only": "^0.0.1",
-    "undici": "^8.5.0",
+    "undici": "^8.11.2",
     "yup": "^1.7.1",
     "zod": "^4.6.5"
   },
@@ -73,7 +73,7 @@
     "@types/node": "^26.5.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.3.0",
-    "dotenv": "^17.4.2",
+    "dotenv": "^18.0.3",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.9",
     "eslint-import-resolver-typescript": "^4.4.5",
