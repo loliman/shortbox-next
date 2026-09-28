@@ -2558,6 +2558,7 @@ function createEmptyIssueValues(): PreviewImportDraft["values"] {
     isbn: "",
     arcs: [],
     stories: [],
+    bundleItems: [],
     copyBatch: {
       enabled: false,
       count: 1,

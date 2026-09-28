@@ -4,7 +4,6 @@ ENV NODE_ENV=production
 
 FROM base AS deps
 ENV NODE_ENV=development
-RUN apk add --no-cache python3 make g++
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
 RUN npm ci
