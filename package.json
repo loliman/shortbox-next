@@ -85,13 +85,13 @@
     "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-plugin-boundaries": "^7.2.0",
     "graphql": "^17.0.1",
-    "jest": "^30.4.2",
+    "jest": "^30.5.2",
     "jest-environment-jsdom": "^30.5.1",
     "pa11y": "^10.0.0",
-    "ts-jest": "^29.4.11",
+    "ts-jest": "^29.4.13",
     "ts-node": "^10.9.2",
     "tsx": "^4.23.13",
     "typescript": "^6.0.3",
-    "unlighthouse": "^0.18.0"
+    "unlighthouse": "^0.18.1"
   }
 }
